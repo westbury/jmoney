@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: JMoney Real Property Plug-in
+Bundle-SymbolicName: net.sf.jmoney.property;singleton:=true
+Bundle-Version: 1.0.0
+Bundle-Activator: net.sf.jmoney.property.StocksPlugin
+Bundle-Localization: plugin
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.eclipse.ui.forms,
+ net.sf.jmoney,
+ org.eclipse.ui.navigator,
+ org.eclipse.core.expressions
+Bundle-ActivationPolicy: lazy
+Bundle-Vendor: JMoney.sf.net
+Export-Package: net.sf.jmoney.property.model
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Search Plug-in
+Bundle-SymbolicName: net.sf.jmoney.search;singleton:=true
+Bundle-Version: 1.0.0
+Bundle-Activator: net.sf.jmoney.search.Activator
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ net.sf.jmoney,
+ net.sf.jmoney.jdbcdatastore;resolution:=optional,
+ org.eclipse.core.expressions
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

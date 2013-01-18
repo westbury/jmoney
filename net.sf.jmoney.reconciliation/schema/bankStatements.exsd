@@ -1,0 +1,132 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Schema file written by PDE -->
+<schema targetNamespace="net.sf.jmoney">
+<annotation>
+      <appInfo>
+         <meta.schema plugin="net.sf.jmoney.reconciliation" id="bankStatements" name="Bank Statement Sources"/>
+      </appInfo>
+      <documentation>
+         The net.sf.jmoney.reconcilition plug-in provides a mechanism
+for reconciling account entries against the bank's records.
+Users may reconcile from a printed statement.  However, the user
+can often get account records online.  Records obtained online
+may come in a large number of different formats: QIF, OCX, comma
+delimited files, HTML, PDF.  The reconciliation plug-in therefore
+defines this extension point to allow other plug-ins to provide
+an implementation of methods to obtain banking records.
+      </documentation>
+   </annotation>
+
+   <element name="extension">
+      <complexType>
+         <sequence>
+            <element ref="statement-source"/>
+         </sequence>
+         <attribute name="point" type="string" use="required">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="id" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="name" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <element name="statement-source">
+      <complexType>
+         <attribute name="id" type="string">
+            <annotation>
+               <documentation>
+                  The id of this source of bank statement.
+                  The globally unique id of the plug-in defining the
+                  file format is prepended, so this id need be unique
+                  only within the plugin.xml file.
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="description" type="string">
+            <annotation>
+               <documentation>
+                  The localized description.  This is displayed when
+the user selects a source from which to import a bank statement or
+banking records.
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="class" type="string">
+            <annotation>
+               <documentation>
+                  The name of a class that implements the IBankStatementSource
+interface.  This class provides implementations of the
+methods to obtain the bank's records.
+               </documentation>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="since"/>
+      </appInfo>
+      <documentation>
+         1.0
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="examples"/>
+      </appInfo>
+      <documentation>
+         &lt;extension
+         point=&quot;net.sf.jmoney.filestores&quot;&gt;
+      &lt;session
+            class=&quot;[class implementing I???????]&quot;&gt;
+      &lt;/session&gt;
+   &lt;/extension&gt;
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="apiInfo"/>
+      </appInfo>
+      <documentation>
+         [Enter API information here.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="implementation"/>
+      </appInfo>
+      <documentation>
+         [Enter information about supplied implementation of this extension point.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="copyright"/>
+      </appInfo>
+      <documentation>
+         Copyright (c) 2005 Nigel Westbury (westbury@users.sourceforge.net)
+      </documentation>
+   </annotation>
+
+</schema>

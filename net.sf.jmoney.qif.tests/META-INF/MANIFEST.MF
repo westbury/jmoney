@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: QIF Tests Plug-in
+Bundle-SymbolicName: net.sf.jmoney.qif.tests
+Bundle-Version: 1.0.0
+Bundle-Vendor: JMoney.sf.net
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Require-Bundle: net.sf.jmoney.qif;bundle-version="1.0.0",
+ org.junit4;bundle-version="4.3.1"

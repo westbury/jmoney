@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+<plugin>
+
+     <extension
+         point="net.sf.jmoney.pages">
+<!--         
+      <node
+            id="birtReportsNode"
+            label="Birt Reports"
+            icon="icons/report.gif"
+            position="500">
+      </node>
+      <node
+            id="birtIncomeAndExpenses"
+            label="Income and Expenses"
+            icon="icons/report.gif"
+            parent="net.sf.jmoney.oda.birtReportsNode"
+            position="100">
+      </node>
+-->      
+      <pages
+            class="net.sf.jmoney.oda.pages.IncomeExpenseDetailPage"
+            extendable-property-set="net.sf.jmoney.categoryAccount"
+            id="birtIncomeAndExpensesPage">
+      </pages>
+   </extension>
+
+   <extension
+         point="org.eclipse.datatools.connectivity.oda.dataSource">
+      <dataSource
+            odaVersion="3.0"
+            driverClass="net.sf.jmoney.oda.driver.Driver"
+            defaultDisplayName="%datasource.name"
+            id="net.sf.jmoney.oda"
+            setThreadContextClassLoader="false">
+      </dataSource>
+      <dataSet
+            defaultDisplayName="%dataset.name"
+            id="net.sf.jmoney.oda.dataSet">
+            <dataTypeMapping
+                  nativeDataType="String"
+                  nativeDataTypeCode="1"
+                  odaScalarDataType="String"/>
+            <dataTypeMapping
+                  nativeDataType="Integer"
+                  nativeDataTypeCode="2"
+                  odaScalarDataType="Integer"/>
+            <dataTypeMapping
+                  nativeDataType="Currency"
+                  nativeDataTypeCode="3"
+                  odaScalarDataType="Double"/>
+            <dataTypeMapping
+                  nativeDataType="Double"
+                  nativeDataTypeCode="4"
+                  odaScalarDataType="Double"/>
+            <dataTypeMapping
+                  nativeDataType="Boolean"
+                  nativeDataTypeCode="5"
+                  odaScalarDataType="Boolean"/>
+            <dataTypeMapping
+                  nativeDataType="Date"
+                  nativeDataTypeCode="6"
+                  odaScalarDataType="Date"/>
+      </dataSet>
+   </extension>
+
+</plugin>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+	<extension point="org.eclipse.ui.importWizards">
+		<wizard id="net.sf.jmoney.paypal.ImportWizard"
+			name="%csvImport.name"
+			icon="icons/PayPal_mark_37x23.gif"
+			class="net.sf.jmoney.paypal.CsvImportWizard">
+			<description>
+				%csvImport.description 
+			</description>
+		</wizard>
+	</extension>
+
+   <extension
+         point="net.sf.jmoney.fields">
+      <extendable-property-set
+      	id="paypalAccount"
+          info-class="net.sf.jmoney.paypal.PaypalAccountInfo"
+          base-property-set="net.sf.jmoney.currencyAccount">
+      </extendable-property-set>
+      <extension-property-set
+      	id="entryProperties"
+          info-class="net.sf.jmoney.paypal.PaypalEntryInfo"
+	      extendable-property-set="net.sf.jmoney.entry">
+      </extension-property-set>
+   </extension>
+   
+	<extension point="org.eclipse.ui.newWizards">
+		<wizard
+        category="net.sf.jmoney.wizards.newAccounts"
+        class="net.sf.jmoney.paypal.NewAccountWizard"
+        id="net.sf.jmoney.wizards.new.paypalAccount"
+		icon="icons/PayPal_mark_37x23.gif"
+        name="Paypal Account">
+			<description>
+				Create a new Paypal account. 
+			</description>
+		</wizard>
+	</extension>
+
+    <extension
+         point="net.sf.jmoney.importer.importdata">
+
+        <import-format
+           id="paypalimport" 
+           label="Paypal Data"
+           class="net.sf.jmoney.paypal.PaypalImportWizard"/>
+
+   </extension>
+
+ 
+</plugin>

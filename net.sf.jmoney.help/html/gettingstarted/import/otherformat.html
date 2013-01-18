@@ -1,0 +1,33 @@
+<!DOCTYPE HTML PUBliC "-//W3C//DTD HTML 4.0 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>Extracting Data from an Unsupported File Format</title>
+</head>
+<body>
+
+<h1>Extracting Data from an Unsupported File Format</h1>
+<p>Even though JMoney has no support for the format of your current
+accounting data, you have a few options:</p>
+
+<ul>
+	<li>Someone may have written a plug-in to support the file format.
+	Try posting a message on the jmoney-user@lists.sourceforge.net mailing
+	list.</li>
+
+	<li>If you are a developer you may write a plug-in to support your
+	file format. First you must build JMoney from source (see the JMoney
+	web site for instructions). You should implement an extension to the
+	net.sf.jmoney.serialiseddatastore.filestores extension point. This
+	extension point required the implementation of two methods: one to read
+	the data from the file and one to write the data out to file.</li>
+
+	<li>If the accounting software that you currently use supports
+	export to Quicken Interchange Format (QIF) then you can export all your
+	accounts and import them into JMoney by using the Import menu under the
+	File menu.</li>
+</ul>
+
+</body>
+</html>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+   <extension-point id="sources" name="Commodity Price Sources" schema="schema/priceSources.exsd"/>
+
+   <extension
+         point="net.sf.jmoney.fields">
+      <extendable-property-set
+      	id="price"
+          info-class="net.sf.jmoney.pricehistory.PriceInfo">
+      </extendable-property-set>
+      <extension-property-set
+      	id="commodityProperties"
+          info-class="net.sf.jmoney.pricehistory.CommodityPricingInfo"
+	      extendable-property-set="net.sf.jmoney.commodity">
+      </extension-property-set>
+   </extension>
+
+</plugin>

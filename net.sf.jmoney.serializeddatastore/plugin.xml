@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+   <extension-point id="filestores" name="File Storage Formats" schema="schema/filestores.exsd"/>
+
+   <extension
+         point="org.eclipse.ui.commands">
+    <command
+            defaultHandler="net.sf.jmoney.serializeddatastore.handlers.OpenSessionHandler"
+            id="net.sf.jmoney.serializeddatastore.openSession"
+            name="Open Session">
+         <commandParameter
+               id="net.sf.jmoney.serializeddatastore.openSession.newWindow"
+               name="In New Window"
+               optional="true">
+         </commandParameter>
+         <commandParameter
+               id="net.sf.jmoney.serializeddatastore.openSession.newSession"
+               name="Create New Session"
+               optional="true">
+         </commandParameter>
+      </command>
+    <command
+            id="net.sf.jmoney.serializeddatastore.saveSession"
+            name="Save Session"/>
+    <command
+            id="net.sf.jmoney.serializeddatastore.saveSessionAs"
+            name="Save Session As"/>
+   </extension>
+
+<extension point="org.eclipse.ui.handlers">
+    <handler
+          commandId="net.sf.jmoney.serializeddatastore.saveSession">
+        <enabledWhen>
+          <with variable="activeWorkbenchWindow">
+		   <test property="net.sf.jmoney.core.isSessionOpen"/>
+          </with>
+       </enabledWhen>
+        <class
+              class="net.sf.jmoney.serializeddatastore.handlers.SaveSessionHandler">
+        </class>
+    </handler>
+    <handler
+          commandId="net.sf.jmoney.serializeddatastore.saveSessionAs">
+        <enabledWhen>
+          <with variable="activeWorkbenchWindow">
+		   <test property="net.sf.jmoney.core.isSessionOpen"/>
+          </with>
+       </enabledWhen>
+        <class
+              class="net.sf.jmoney.serializeddatastore.handlers.SaveSessionAsHandler">
+        </class>
+    </handler>
+</extension>
+
+<!--
+Note that we use 'before' as the placement.  This ensures that
+the menu items are added in the same order as specified here.
+If we were to use 'after', we would see the menu in reverse order.
+-->
+   <extension point="org.eclipse.ui.menus">
+     <menuContribution
+           locationURI="menu:file?after=sessionGroup">
+        <separator
+              name="net.sf.jmoney.serializeddatastore.sessionGroup"
+              visible="true">
+        </separator>
+     </menuContribution>
+
+     <menuContribution locationURI="menu:file?before=net.sf.jmoney.serializeddatastore.sessionGroup">
+        <command
+              commandId="net.sf.jmoney.serializeddatastore.openSession"
+              icon="icons/New16.gif"
+              label="%MainFrame.new.label"
+              mnemonic="%MainFrame.new.mnemonic"
+              tooltip="%MainFrame.new.tooltip">
+                         <parameter
+                 name="net.sf.jmoney.serializeddatastore.openSession.newSession"
+                 value="true">
+           </parameter>
+        </command>
+              
+     </menuContribution>
+
+     <menuContribution locationURI="menu:file?before=net.sf.jmoney.serializeddatastore.sessionGroup">
+        <command
+              commandId="net.sf.jmoney.serializeddatastore.openSession"
+              icon="icons/New16.gif"
+              label="%MainFrame.newInWin.label"
+              mnemonic="%MainFrame.newInWin.mnemonic"
+              tooltip="%MainFrame.newInWin.tooltip">
+           <parameter
+                 name="net.sf.jmoney.serializeddatastore.openSession.newSession"
+                 value="true">
+           </parameter>
+           <parameter
+                 name="net.sf.jmoney.serializeddatastore.openSession.newWindow"
+                 value="true">
+           </parameter>
+        <visibleWhen>
+          <with variable="activeWorkbenchWindow">
+		   <test property="net.sf.jmoney.core.isSessionOpen"/>
+          </with>
+       </visibleWhen>
+        </command>
+     </menuContribution>
+
+     <menuContribution locationURI="menu:file?before=net.sf.jmoney.serializeddatastore.sessionGroup">
+        <command
+              commandId="net.sf.jmoney.serializeddatastore.openSession"
+              icon="icons/Open16.gif"
+              label="%MainFrame.open.label"
+              mnemonic="%MainFrame.open.mnemonic"
+              tooltip="%MainFrame.open.tooltip"/>
+     </menuContribution>
+
+     <menuContribution locationURI="menu:file?before=net.sf.jmoney.serializeddatastore.sessionGroup">
+        <command
+              commandId="net.sf.jmoney.serializeddatastore.openSession"
+              icon="icons/Open16.gif"
+              label="%MainFrame.openInWin.label"
+              mnemonic="%MainFrame.openInWin.mnemonic"
+              tooltip="%MainFrame.openInWin.tooltip">
+           <parameter
+                 name="net.sf.jmoney.serializeddatastore.openSession.newWindow"
+                 value="true">
+           </parameter>
+        <visibleWhen>
+          <with variable="activeWorkbenchWindow">
+		   <test property="net.sf.jmoney.core.isSessionOpen"/>
+          </with>
+       </visibleWhen>
+        </command>
+     </menuContribution>
+
+     <menuContribution locationURI="menu:file?before=net.sf.jmoney.serializeddatastore.sessionGroup">
+        <command
+              commandId="net.sf.jmoney.serializeddatastore.saveSession"
+              icon="icons/Save16.gif"
+              label="%MainFrame.save"
+              mnemonic="%MainFrame.save.mnemonic"/>
+     </menuContribution>
+
+     <menuContribution locationURI="menu:file?before=net.sf.jmoney.serializeddatastore.sessionGroup">
+        <command
+              commandId="net.sf.jmoney.serializeddatastore.saveSessionAs"
+              icon="icons/SaveAs16.gif"
+              label="%MainFrame.saveAs"
+              mnemonic="%MainFrame.saveAs.mnemonic"/>
+     </menuContribution>
+
+   </extension>
+
+   <extension
+         point="org.eclipse.ui.elementFactories">
+        <factory 
+           id ="net.sf.jmoney.serializeddatastore.SessionFactory" 
+           class="net.sf.jmoney.serializeddatastore.SessionFactory">
+        </factory> 
+   </extension>
+
+   <extension
+         point="net.sf.jmoney.serializeddatastore.filestores">
+        <file-format
+           id="jmxFormat" 
+           file-pattern="*.jmx" 
+           format-description="JMoney files" 
+           class="net.sf.jmoney.serializeddatastore.formats.JMoneyXmlFormat">
+        </file-format> 
+        <file-format
+           id="xmlFormat" 
+           file-pattern="*.xml" 
+           format-description="JMoney in uncompressed xml" 
+           class="net.sf.jmoney.serializeddatastore.formats.JMoneyXmlFormat">
+        </file-format> 
+   </extension>
+
+</plugin>

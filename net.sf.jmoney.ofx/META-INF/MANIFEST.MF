@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: OFX importer
+Bundle-SymbolicName: net.sf.jmoney.ofx;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Activator: net.sf.jmoney.ofx.Activator
+Bundle-ActivationPolicy: lazy
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ net.sf.jmoney,
+ net.sf.jmoney.stocks;resolution:=optional,
+ net.sf.jmoney.reconciliation,
+ net.sf.jmoney.importer,
+ org.eclipse.core.databinding.property
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

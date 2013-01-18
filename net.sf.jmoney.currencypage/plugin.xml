@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+   <extension
+         point="org.eclipse.ui.editors">
+      <editor
+            id="net.sf.jmoney.currencypage.editor"
+            name="%NavigationTreeModel.currencies"
+            icon="icons/currencies.gif"
+            class="net.sf.jmoney.currencypage.CurrencyEditor">
+      </editor>
+   </extension>
+
+<extension point="org.eclipse.ui.menus">
+     <menuContribution locationURI="menu:navigate?after=openEditors">
+        <command commandId="net.sf.jmoney.command.openEditor"
+                 label="%NavigationTreeModel.currencies"
+                 icon="icons/currencies.gif"
+                 tooltip="Edit list of available currencies">
+           <parameter
+                 name="net.sf.jmoney.openEditor.editorId"
+                 value="net.sf.jmoney.currencypage.editor">
+           </parameter>
+        </command>
+     </menuContribution>
+     <menuContribution locationURI="toolbar:main?after=openEditors">
+        <command commandId="net.sf.jmoney.command.openEditor"
+                 icon="icons/currencies.gif"
+                 tooltip="Edit list of available currencies">
+           <parameter
+                 name="net.sf.jmoney.openEditor.editorId"
+                 value="net.sf.jmoney.currencypage.editor">
+           </parameter>
+        </command>
+     </menuContribution>
+</extension>
+ 
+</plugin>

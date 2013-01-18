@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+  <extension
+         point="org.eclipse.ui.actionSets">
+      <actionSet
+            label="Datastore Copy Action Set"
+            visible="true"
+            id="net.sf.jmoney.copier.actionSet">
+
+         <menu
+               label="&amp;Edit"
+               id="edit">
+            <separator
+                  name="clipboardGroup">
+            </separator>
+         </menu>
+         <action
+               label="%cutSession"
+               tooltip="Cut session"
+               class="net.sf.jmoney.copier.actions.CutSessionAction"
+               menubarPath="edit/clipboardGroup"
+               id="net.sf.jmoney.copier.actions.CutSession">
+         </action>
+         <action
+               label="%pasteContents"
+               tooltip="Paste session contents"
+               class="net.sf.jmoney.copier.actions.PasteContentsAction"
+               menubarPath="edit/clipboardGroup"
+               id="net.sf.jmoney.copier.actions.PasteContents">
+         </action>
+      </actionSet>
+   </extension>
+
+</plugin>

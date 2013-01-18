@@ -1,0 +1,19 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: GnucashXML Plug-in
+Bundle-SymbolicName: net.sf.jmoney.gnucashXML; singleton:=true
+Bundle-Version: 1.0.0
+Bundle-ClassPath: xmlparserv2.jar,
+ gnucashxml.jar
+Bundle-Activator: net.sf.jmoney.gnucashXML.GnucashXMLPlugin
+Bundle-Vendor: JMoney.sf.net
+Bundle-Localization: plugin
+Export-Package: net.sf.jmoney.gnucashXML,
+ net.sf.jmoney.gnucashXML.actions
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ net.sf.jmoney,
+ org.eclipse.ui.ide,
+ org.eclipse.core.resources
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

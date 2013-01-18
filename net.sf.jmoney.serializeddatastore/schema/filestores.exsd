@@ -1,0 +1,154 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Schema file written by PDE -->
+<schema targetNamespace="net.sf.jmoney.serializeddatastore" xmlns="http://www.w3.org/2001/XMLSchema">
+<annotation>
+      <appinfo>
+         <meta.schema plugin="net.sf.jmoney.serializeddatastore" id="filestores" name="File Storage Formats"/>
+      </appinfo>
+      <documentation>
+         The net.sf.jmoney.serializeddatastore plug-in is a
+JMoney datastore implementation that stores the
+datastore in a single file.  The entire datastore
+is read into memory when a session is opened and
+is written sequentially when the datastore is saved.
+This extension point is provided so that plug-ins can
+add additional file formats.  A plug-in may implement
+a complete datastore by extending the net.sf.jmoney.datastores
+extension point and providing menu actions or other methods
+to open/save/create datastores.  However, by using 
+the net.sf.jmoney.serializeddatastore plug-in and extending this
+extension point, not only is substantially less work involved,
+but also better integration is achieved.  For example, instead
+of having a separate menu item to open each file type, a single
+file open dialog can open any of the supported file types.
+      </documentation>
+   </annotation>
+
+   <element name="extension">
+      <annotation>
+         <appinfo>
+            <meta.element />
+         </appinfo>
+      </annotation>
+      <complexType>
+         <sequence>
+            <element ref="file-format" minOccurs="1" maxOccurs="unbounded"/>
+         </sequence>
+         <attribute name="point" type="string" use="required">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="id" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="name" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <element name="file-format">
+      <complexType>
+         <attribute name="id" type="string">
+            <annotation>
+               <documentation>
+                  The id of this file format.
+                  The globally unique id of the plug-in defining the
+                  file format is prepended, so this id need be unique
+                  only within the plugin.xml file.
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="file-pattern" type="string" use="required">
+            <annotation>
+               <documentation>
+                  The file pattern used for this file format.
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="format-description" type="string">
+            <annotation>
+               <documentation>
+                  The localized description.  This is displayed by the
+open dialog and save dialog in the drop-down list
+of file types.
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="class" type="string" use="required">
+            <annotation>
+               <documentation>
+                  The name of a class that implements the IFileDatastore
+interface.  This class provides implementations of the
+methods to open and to save the file.
+               </documentation>
+               <appinfo>
+                  <meta.attribute kind="java" basedOn=":net.sf.jmoney.serializeddatastore.IFileDatastore"/>
+               </appinfo>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="since"/>
+      </appinfo>
+      <documentation>
+         1.0
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="examples"/>
+      </appinfo>
+      <documentation>
+         &lt;extension
+         point=&quot;net.sf.jmoney.filestores&quot;&gt;
+      &lt;session
+            class=&quot;[class implementing I???????]&quot;&gt;
+      &lt;/session&gt;
+   &lt;/extension&gt;
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="apiInfo"/>
+      </appinfo>
+      <documentation>
+         [Enter API information here.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="implementation"/>
+      </appinfo>
+      <documentation>
+         [Enter information about supplied implementation of this extension point.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="copyright"/>
+      </appinfo>
+      <documentation>
+         Copyright (c) 2004 Nigel Westbury (westbury@users.sourceforge.net)
+      </documentation>
+   </annotation>
+
+</schema>

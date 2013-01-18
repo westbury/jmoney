@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+	<extension point="org.eclipse.ui.importWizards">
+		<wizard id="net.sf.jmoney.ofx.ImportWizard"
+			name="OFX Import"
+			class="net.sf.jmoney.ofx.wizards.OfxImportWizard">
+			<description>
+				Import data from an OFX (Open Financial Exchange) or QFX file. 
+			</description>
+		</wizard>
+	</extension>
+ 
+   <extension point="net.sf.jmoney.fields">
+      <extension-property-set
+      	id="entryProperties"
+          info-class="net.sf.jmoney.ofx.model.OfxEntryInfo"
+	      extendable-property-set="net.sf.jmoney.entry">
+      </extension-property-set>
+   </extension>
+
+   <extension
+         point="net.sf.jmoney.dropHandlers">
+      <filetype
+      	extension="ofx"
+          class="net.sf.jmoney.ofx.DroppedFileImporter">
+      </filetype>
+   </extension>
+
+</plugin>

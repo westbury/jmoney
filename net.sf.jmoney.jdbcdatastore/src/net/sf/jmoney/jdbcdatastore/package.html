@@ -1,0 +1,41 @@
+<html>
+This plug-in is complicated by the fact that it uses a mixture
+of cached and uncached lists.
+Even if a list is cached, the list is not read from the database until
+required.  I.e. it is lazily read.  But once read a cached list is maintained
+in a Collection object for as long as the parent object exists.
+<p>
+A weak map is maintained of all objects to ensure that only a single instance
+of a given object is constructed.
+<p>
+This plug-in caches everthing except
+the list of transactions in the session object.  Note that it is the list, not
+the object class, that is cached or uncached.  Though as the only list of transactions
+is in the session, this distinction is academic.
+<p>
+Entries are cached, but only while
+the transaction is in a materialized state.
+I.e. The entries are
+first read when the transaction
+is materialized AND the entries are iterated.  The list is maintained in
+memory from then on.  If there are no references left to the transaction
+then the entire transaction, including the entry list, is garbage collected
+and is removed from the weak reference map.  As all updates (including new or deleted entries) to committed to
+the database when made, the transaction can be re-materialized correctly.
+<p>
+If a list is uncached then a query will be sent to the database each time
+the list is iterated.  The weak reference map only prevents us from instantiating
+duplicate objects but does not save any database access as the required data has
+already been fetched in the query result set.
+<p>
+An uncached list MUST look to the weak reference map before materializing
+each object.  A cached list keeps a list of all objects in the list (and therefore
+we do not need to look at the weak reference map, although all the objects
+will be in the map).
+<p>
+Scanning the transactions for entries that match a given criteria is not going
+to be the most efficient.  The reason is that first a fetch of all transactions
+is required, then a fetch of all entries in that transaction.  It may be more efficient
+to fetch both in a join, but to keep things simple this is not done.  A special method is provided for fetching all entries
+in a given account.  Other such methods may need to be added.
+</html>

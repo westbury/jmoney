@@ -1,0 +1,405 @@
+!Type:Cat
+NBonus
+DBonus Income
+T
+R7360
+I
+^
+NDiv Income
+DDividend Income
+T
+R4576
+I
+^
+NGift Received
+DGift Received
+I
+^
+NInterest Inc
+DInterest Income
+T
+R4592
+I
+^
+NInvest Inc
+DInvestment Income
+T
+I
+^
+NOther Inc
+DOther Income
+T
+R4112
+I
+^
+NSalary
+DSalary Income
+T
+R7360
+I
+^
+NSalary Spouse
+DSpouse's Salary Income
+T
+R8096
+I
+^
+NTax Refund
+DState/Local Tax Refund
+T
+R4160
+I
+^
+NUnemployment Inc
+DUnemployment Compensation
+T
+R7664
+I
+^
+NAuto
+DAutomobile Expenses
+E
+^
+NAuto:Fuel
+DAuto Fuel
+E
+^
+NAuto:Insurance
+DAuto Insurance
+E
+^
+NAuto:Registration
+DAuto Registration
+T
+R8560
+E
+^
+NAuto:Service
+DAuto Service
+E
+^
+NBank Charge
+DBank Charge
+E
+^
+NCash
+DMisc Cash
+E
+^
+NCharity
+DCharitable Donations - Cash
+T
+R4480
+E
+^
+NClothing
+DClothing
+E
+^
+NDining
+DDining Out
+E
+^
+NEducation
+DEducation
+E
+^
+NEntertainment
+DEntertainment
+E
+^
+NGifts Given
+DGift Expenses
+E
+^
+NGroceries
+DGroceries
+E
+^
+NHome Repair
+DHome Repair & Maint.
+E
+^
+NHousehold
+DHousehold Misc. Exp
+E
+^
+NHousing
+DHousing
+E
+^
+NInsurance
+DInsurance
+E
+^
+NInterest Exp
+DInterest Expense
+E
+^
+NIRA Contrib
+DIRA Contribution
+T
+R4192
+E
+^
+NIRA Contrib Spouse
+DIRA Contribution Spouse
+T
+R7696
+E
+^
+NMedical
+DMedical Expense
+T
+R4368
+E
+^
+NMedical:Doctor
+DDoctors, Dentists, & Hospitals
+T
+R7744
+E
+^
+NMedical:Medicine
+DPrescriptions
+T
+R4368
+E
+^
+NMisc
+DMiscellaneous
+E
+^
+NMortgage Int
+DMortgage Interest
+T
+E
+^
+NMortgage Int:Bank
+DMortgage Interest - Bank
+T
+R4528
+E
+^
+NMortgage Int:Individual
+DMortgage Interest - Individual
+T
+R8720
+E
+^
+NRecreation
+DRecreation Expense
+E
+^
+NRent
+DHousing Rent
+E
+^
+NSubscriptions
+DSubscriptions
+E
+^
+NTax
+DTaxes
+T
+E
+^
+NTax:Fed
+DFederal Tax
+T
+R7376
+E
+^
+NTax:Medicare
+DMedicare Tax
+T
+R7680
+E
+^
+NTax:Other
+DMisc. Taxes
+T
+E
+^
+NTax:Property
+DProperty Tax
+T
+R4416
+E
+^
+NTax:SDI
+DState Disability Insurance
+T
+R7408
+E
+^
+NTax:Soc Sec
+DSoc Sec Tax
+T
+R7392
+E
+^
+NTax:State
+DState Tax
+T
+R7424
+E
+^
+NTax Spouse
+DSpouse's Taxes
+T
+E
+^
+NTax Spouse:Fed
+DFederal Tax
+T
+R8112
+E
+^
+NTax Spouse:Medicare
+DMedicare Tax
+T
+R8160
+E
+^
+NTax Spouse:SDI
+DState Disability Insurance
+T
+R8144
+E
+^
+NTax Spouse:Soc Sec
+DSoc Sec Tax
+T
+R8128
+E
+^
+NTax Spouse:State
+DState Tax
+T
+R8176
+E
+^
+NUtilities
+DWater, Gas, Electric
+E
+^
+NUtilities:Cable TV
+DCable TV
+E
+^
+NUtilities:Gas & Electric
+DGas and Electricity
+E
+^
+NUtilities:Telephone
+DTelephone Expense
+E
+^
+NUtilities:Water
+DWater
+E
+^
+NVacation
+DVacation expenses
+E
+^
+NVacation:Lodging
+DMotel/Hotel Costs
+E
+^
+NVacation:Travel
+DTransportation exp
+E
+^
+!Option:AutoSwitch
+!Account
+NChecking
+TBank
+^
+NSavings
+TBank
+D3 Rivers Savings
+^
+!Clear:AutoSwitch
+!Type:Security
+NDow Jones Industrials
+SDJI
+TMarket Index
+^
+!Type:Security
+NNASDAQ Composite
+SCOMPX
+TMarket Index
+^
+!Type:Security
+NS&P 500 Index
+SINX
+TMarket Index
+^
+!Option:AutoSwitch
+!Account
+NChecking
+TBank
+^
+!Type:Bank 
+D6/26' 1
+U0.00
+T0.00
+CX
+POpening Balance
+L[Checking]
+^
+!Account
+NSavings
+D3 Rivers Savings
+TBank
+^
+!Type:Bank 
+D6/26' 1
+U10.00
+T10.00
+CX
+POpening Balance
+L[Savings]
+^
+D6/26' 1
+U400.00
+T400.00
+PPayCheck
+MPaycheck
+LSalary
+SSalary
+ESalary
+$500.00
+STax:Fed
+EFed Tax
+$-100.00
+^
+D6/26' 1
+U-100.00
+T-100.00
+PPet Store
+MDog food
+LDining
+^
+!Type:Memorized
+KD
+U400.00
+T400.00
+PPayCheck
+LSalary
+SSalary
+ESalary
+$500.00
+STax:Fed
+EFed Tax
+$-100.00
+^
+KP
+U-100.00
+T-100.00
+PPet Store
+MDog food
+LDining
+^

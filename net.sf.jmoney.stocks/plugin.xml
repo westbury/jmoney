@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+   <extension
+         point="net.sf.jmoney.pages">
+         
+      <pages
+            class="net.sf.jmoney.stocks.pages.StockEntriesPage"
+            extendable-property-set="net.sf.jmoney.stocks.stockAccount"
+            id="entries"
+            position="1">
+      </pages>
+   </extension>
+
+   <extension
+         point="org.eclipse.ui.commands">
+      <command
+            name="%Commands.showStockDetails"
+            id="net.sf.jmoney.stock.showStockDetails"/>
+      <command
+            defaultHandler="net.sf.jmoney.stocks.MergeDuplicatedSecurityHandler"
+            id="net.sf.jmoney.stock.mergeStock"
+            name="Merge Securities"/>
+   </extension>
+
+<extension point="org.eclipse.ui.menus">
+     <menuContribution locationURI="menu:navigate?after=openEditors">
+        <command
+              commandId="net.sf.jmoney.stock.showStockDetails"/>
+     </menuContribution>
+     <menuContribution locationURI="popup:org.eclipse.ui.popup.any">
+        <command commandId="net.sf.jmoney.stock.mergeStock">
+            <visibleWhen>
+               		<with
+                     	variable="activeMenuSelection">
+                     	<and>
+               			<iterate
+                     		operator="and">
+                     		<instanceof
+                        		value="net.sf.jmoney.stocks.model.Security">
+                     		</instanceof>
+                  		</iterate>
+                  <count
+                        value="2">
+                  </count>
+                  		</and>
+               		</with>
+            </visibleWhen>
+              </command>
+     </menuContribution>
+</extension>
+
+   <extension
+         point="org.eclipse.ui.navigator.viewer">
+      <viewer
+            viewerId="net.sf.jmoney.navigationView">
+      </viewer>
+      <viewerContentBinding
+            viewerId="net.sf.jmoney.navigationView">
+         <includes>
+            <contentExtension
+                  isRoot="true"
+                  pattern="net.sf.jmoney.stocks.navigator.stocksContent">
+            </contentExtension>
+         </includes>
+      </viewerContentBinding>
+   </extension>
+
+   <extension
+         point="org.eclipse.ui.navigator.navigatorContent">
+      <navigatorContent
+            activeByDefault="true"
+            contentProvider="net.sf.jmoney.stocks.navigator.SecuritiesContentProvider"
+            icon="icons/accounts.gif"
+            id="net.sf.jmoney.stocks.navigator.stocksContent"
+            labelProvider="net.sf.jmoney.stocks.navigator.SecuritiesLabelProvider"
+            name="Stocks Content"
+            priority="low">
+         <triggerPoints>
+            <or>
+               <instanceof
+                     value="net.sf.jmoney.model2.DatastoreManager">
+               </instanceof>
+            </or>
+         </triggerPoints>
+         <possibleChildren>
+            <or>
+               <instanceof
+                     value="net.sf.jmoney.views.IDynamicTreeNode">
+               </instanceof>
+               <instanceof
+                     value="net.sf.jmoney.stocks.model.Security">
+               </instanceof>
+            </or>
+         </possibleChildren>
+      <actionProvider
+            class="net.sf.jmoney.stocks.navigator.SecuritiesActionProvider"
+            id="net.sf.jmoney.stocks.stocksActionProvider">
+      </actionProvider>
+      </navigatorContent>
+   </extension>
+
+   <extension
+         point="net.sf.jmoney.fields">
+      <extendable-property-set
+      	id="security"
+          info-class="net.sf.jmoney.stocks.model.SecurityInfo"
+          base-property-set="net.sf.jmoney.commodity">
+      </extendable-property-set>
+      <extendable-property-set
+      	id="stock"
+          info-class="net.sf.jmoney.stocks.model.StockInfo"
+          base-property-set="net.sf.jmoney.stocks.security">
+      </extendable-property-set>
+      <extendable-property-set
+      	id="bond"
+          info-class="net.sf.jmoney.stocks.model.BondInfo"
+          base-property-set="net.sf.jmoney.stocks.security">
+      </extendable-property-set>
+      <extendable-property-set
+      	id="stockAccount"
+          info-class="net.sf.jmoney.stocks.model.StockAccountInfo"
+          base-property-set="net.sf.jmoney.capitalAccount">
+      </extendable-property-set>
+      <extension-property-set
+      	id="entryProperties"
+          info-class="net.sf.jmoney.stocks.model.StockEntryInfo"
+	      extendable-property-set="net.sf.jmoney.entry">
+      </extension-property-set>
+   </extension>
+</plugin>

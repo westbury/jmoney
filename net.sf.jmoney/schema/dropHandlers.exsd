@@ -1,0 +1,127 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Schema file written by PDE -->
+<schema targetNamespace="net.sf.jmoney" xmlns="http://www.w3.org/2001/XMLSchema">
+<annotation>
+      <appInfo>
+         <meta.schema plugin="net.sf.jmoney" id="dropHandlers" name="Editor Drop Area Handlers"/>
+      </appInfo>
+      <documentation>
+         JMoney allows files to be dropped in the editor area.
+This is an easy way to import files.
+
+This method of importing data should generally only be used if all
+the necessary information is in the file.  For example, if the file
+contains bank account entries then information that allows the account
+to be determined must be in the file.  OFX files contain the account number,
+so this can be used to determine account into which the entries are imported.
+There is no context such as the current selection available.
+      </documentation>
+   </annotation>
+
+   <element name="extension">
+      <annotation>
+         <appInfo>
+            <meta.element />
+         </appInfo>
+      </annotation>
+      <complexType>
+         <sequence>
+            <element ref="filetype" minOccurs="1" maxOccurs="unbounded"/>
+         </sequence>
+         <attribute name="point" type="string" use="required">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="id" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="name" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <element name="filetype">
+      <complexType>
+         <attribute name="extension" type="string">
+            <annotation>
+               <documentation>
+                  A file extension that can be handled by this drop handler.
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="class" type="string" use="required">
+            <annotation>
+               <documentation>
+                  Class of object that must implement IDroppedFileImporter.
+               </documentation>
+               <appInfo>
+                  <meta.attribute kind="java" basedOn=":net.sf.jmoney.IDroppedFileImporter."/>
+               </appInfo>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="since"/>
+      </appInfo>
+      <documentation>
+         1.0
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="examples"/>
+      </appInfo>
+      <documentation>
+         &lt;extension
+         point=&quot;net.sf.jmoney.dropHandlers&quot;&gt;
+      &lt;session
+            class=&quot;[class implementing IDroppedFileImporter]&quot;&gt;
+      &lt;/session&gt;
+   &lt;/extension&gt;
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="apiInfo"/>
+      </appInfo>
+      <documentation>
+         [Enter API information here.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="implementation"/>
+      </appInfo>
+      <documentation>
+         [Enter information about supplied implementation of this extension point.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="copyright"/>
+      </appInfo>
+      <documentation>
+         Copyright (c) 2006 Nigel Westbury (westbury@users.sourceforge.net)
+      </documentation>
+   </annotation>
+
+</schema>

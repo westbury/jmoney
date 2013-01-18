@@ -1,0 +1,18 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: JDBC Datastore Plug-in
+Bundle-SymbolicName: net.sf.jmoney.jdbcdatastore; singleton:=true
+Bundle-Version: 1.0.0
+Bundle-ClassPath: jdbcdatastore.jar,
+ hsqldb.jar,
+ jtds-1.2.jar
+Bundle-Activator: net.sf.jmoney.jdbcdatastore.JDBCDatastorePlugin
+Bundle-Localization: plugin
+Export-Package: net.sf.jmoney.sqldirect
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ net.sf.jmoney,
+ org.eclipse.core.databinding.property
+Bundle-ActivationPolicy: lazy
+Bundle-Vendor: JMoney.sf.net
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

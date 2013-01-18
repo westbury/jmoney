@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+<plugin>
+   <extension point="org.eclipse.ui.commands">
+      <command
+            id="net.sf.jmoney.search.entrySearchCommand"
+            defaultHandler="net.sf.jmoney.search.EntrySearchHandler"
+            name="Entry Search...">
+      </command>
+      <command
+            id="net.sf.jmoney.search.accountSearchCommand"
+            defaultHandler="net.sf.jmoney.search.AccountSearchHandler"
+            name="Account Search...">
+      </command>
+   </extension>
+
+<extension point="org.eclipse.ui.menus">
+     <menuContribution locationURI="menu:navigate?after=additions">
+        <command
+              commandId="net.sf.jmoney.search.entrySearchCommand">
+        </command>
+     </menuContribution>
+
+     <menuContribution locationURI="menu:search?after=additions">
+        <command
+              commandId="net.sf.jmoney.search.accountSearchCommand"/>
+     </menuContribution>
+   </extension>
+
+   <extension 
+   		 point="org.eclipse.ui.views">
+      <view
+            id="net.sf.jmoney.search.EntrySearchView"
+            name="Search"
+            icon="icons/eview16/searchres.gif"
+            class="net.sf.jmoney.search.views.SearchView">
+      </view>
+   </extension>
+
+</plugin>

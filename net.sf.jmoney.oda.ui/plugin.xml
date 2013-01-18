@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+   <extension
+         point="org.eclipse.datatools.connectivity.connectionProfile">
+      <category
+            id="net.sf.jmoney.oda"
+            name="%oda.data.source.name"
+            parentCategory="net.sf.jmoney.oda.profileCategory"/>
+      <connectionProfile
+            category="net.sf.jmoney.oda"
+            icon="icons/jmoneyconnection.gif"
+            id="net.sf.jmoney.oda"
+            name="%connection.profile.name"
+            pingFactory="org.eclipse.datatools.connectivity.oda.profile.OdaConnectionFactory"/>
+      <connectionFactory
+            id="org.eclipse.datatools.connectivity.oda.IConnection"
+            name="%oda.connection.factory.name"
+            class="org.eclipse.datatools.connectivity.oda.profile.OdaConnectionFactory"
+            profile="net.sf.jmoney.oda"/>
+      <newWizard
+            id="net.sf.jmoney.oda"
+            name="%newwizard.name"
+            class="org.eclipse.datatools.connectivity.oda.design.ui.wizards.NewDataSourceWizard"
+            description="%newwizard.description"
+            icon="icons/fieldlist.ico"
+            profile="net.sf.jmoney.oda"/>
+   </extension>
+
+<!-- Even though there are no properties, a property page is required -->
+   <extension
+         point="org.eclipse.ui.propertyPages">
+      <page
+            id="net.sf.jmoney.oda"
+            name="%profile.propertypage.name"
+            class="net.sf.jmoney.oda.ui.wizards.DatasourcePropertyPage">
+         <filter
+               name="org.eclipse.datatools.profile.property.id"
+               value="net.sf.jmoney.oda"/>
+      </page>
+   </extension>
+   
+   <extension
+         point="org.eclipse.datatools.connectivity.oda.design.ui.dataSource">
+      <dataSourceUI id="net.sf.jmoney.oda">
+         <newDataSourceWizard
+               includesProgressMonitor="false"
+               pageClass="net.sf.jmoney.oda.ui.wizards.DatasourceWizardPage"
+               pageTitle="%wizard.data.source.page.title"
+               windowTitle="%wizard.window.title"/>
+      </dataSourceUI>
+      <dataSetUI
+            id="net.sf.jmoney.oda.dataSet"
+            initialPageId="oda.ui.tablePage"
+            supportsInParameters="true"
+            supportsOutParameters="false">
+         <dataSetWizard
+               class="org.eclipse.datatools.connectivity.oda.design.ui.wizards.DataSetWizard"
+               windowTitle="%wizard.data.set.title"/>
+         <dataSetPage
+               displayName="%wizard.data.set.page.title"
+               icon="icons/file.gif"
+               id="oda.ui.tablePage"
+               path="/"
+               wizardPageClass="net.sf.jmoney.oda.ui.wizards.TableSelectionWizardPage"/>
+      </dataSetUI>
+   </extension>
+
+</plugin>

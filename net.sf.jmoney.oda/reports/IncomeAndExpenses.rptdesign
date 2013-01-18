@@ -1,0 +1,1765 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<report xmlns="http://www.eclipse.org/birt/2005/design" version="3.2.14" id="1">
+    <property name="createdBy">Eclipse BIRT Designer Version 1.0.1 Build &lt;20051130-1157></property>
+    <property name="units">in</property>
+    <property name="comments">Copyright (c) 2007 Nigel Westbury</property>
+    <html-property name="description">Creates an itemized report on an income or expense account.</html-property>
+    <text-property name="displayName">Income and Expense Report</text-property>
+    <property name="iconFile">/templates/simple_listing.gif</property>
+    <property name="cheatSheet">org.eclipse.birt.report.designer.ui.cheatsheet.simplelisting</property>
+    <parameters>
+        <scalar-parameter name="AccountName" id="74">
+            <text-property name="helpText">All accounts containing the given text will be reported</text-property>
+            <property name="valueType">static</property>
+            <property name="dataType">string</property>
+            <text-property name="promptText">Enter an account name (or part of a name)</text-property>
+            <property name="isRequired">false</property>
+            <property name="controlType">text-box</property>
+            <property name="defaultValue">Essex Road</property>
+            <structure name="format">
+                <property name="category">Unformatted</property>
+            </structure>
+        </scalar-parameter>
+        <scalar-parameter name="StartDate" id="76">
+            <text-property name="helpText">The start date of the inclusive range of dates to be included in the report</text-property>
+            <property name="valueType">static</property>
+            <property name="dataType">date</property>
+            <text-property name="promptText">Enter the start date</text-property>
+            <property name="isRequired">false</property>
+            <property name="controlType">text-box</property>
+            <structure name="format">
+                <property name="category">Short Date</property>
+                <property name="pattern">Short Date</property>
+            </structure>
+        </scalar-parameter>
+        <scalar-parameter name="EndDate" id="77">
+            <text-property name="helpText">The last day of the inclusive range of dates to be included</text-property>
+            <property name="valueType">static</property>
+            <property name="dataType">date</property>
+            <text-property name="promptText">Enter the end date</text-property>
+            <property name="isRequired">false</property>
+            <property name="controlType">text-box</property>
+            <structure name="format">
+                <property name="category">Short Date</property>
+                <property name="pattern">Short Date</property>
+            </structure>
+        </scalar-parameter>
+    </parameters>
+    <data-sources>
+        <oda-data-source extensionID="net.sf.jmoney.oda" name="JMoneyDataSource" id="41"/>
+    </data-sources>
+    <data-sets>
+        <oda-data-set extensionID="net.sf.jmoney.oda.dataSet" name="IncomeAndExpenses" id="42">
+            <list-property name="columnHints">
+                <structure>
+                    <property name="columnName">net_sf_jmoney_entry_amount</property>
+                    <property name="displayName">Amount</property>
+                </structure>
+            </list-property>
+            <list-property name="filter">
+                <structure>
+                    <property name="operator">ge</property>
+                    <expression name="expr">row["net_sf_jmoney_transaction_date"]</expression>
+                    <expression name="value1">params["StartDate"]</expression>
+                </structure>
+                <structure>
+                    <property name="operator">le</property>
+                    <expression name="expr">row["net_sf_jmoney_transaction_date"]</expression>
+                    <expression name="value1">params["EndDate"]</expression>
+                </structure>
+            </list-property>
+            <structure name="cachedMetaData">
+                <list-property name="resultSet">
+                    <structure>
+                        <property name="position">1</property>
+                        <property name="name">net_sf_jmoney_entry_check</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">2</property>
+                        <property name="name">net_sf_jmoney_entry_account</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">3</property>
+                        <property name="name">net_sf_jmoney_entry_valuta</property>
+                        <property name="dataType">date</property>
+                    </structure>
+                    <structure>
+                        <property name="position">4</property>
+                        <property name="name">net_sf_jmoney_entry_memo</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">5</property>
+                        <property name="name">net_sf_jmoney_entry_amount</property>
+                        <property name="dataType">float</property>
+                    </structure>
+                    <structure>
+                        <property name="position">6</property>
+                        <property name="name">net_sf_jmoney_entry_creation</property>
+                        <property name="dataType">float</property>
+                    </structure>
+                    <structure>
+                        <property name="position">7</property>
+                        <property name="name">net_sf_jmoney_entry_incomeExpenseCurrency</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">8</property>
+                        <property name="name">other_net_sf_jmoney_entry_check</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">9</property>
+                        <property name="name">other_net_sf_jmoney_entry_account</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">10</property>
+                        <property name="name">other_net_sf_jmoney_entry_valuta</property>
+                        <property name="dataType">date</property>
+                    </structure>
+                    <structure>
+                        <property name="position">11</property>
+                        <property name="name">other_net_sf_jmoney_entry_memo</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">12</property>
+                        <property name="name">other_net_sf_jmoney_entry_amount</property>
+                        <property name="dataType">float</property>
+                    </structure>
+                    <structure>
+                        <property name="position">13</property>
+                        <property name="name">other_net_sf_jmoney_entry_creation</property>
+                        <property name="dataType">float</property>
+                    </structure>
+                    <structure>
+                        <property name="position">14</property>
+                        <property name="name">other_net_sf_jmoney_entry_incomeExpenseCurrency</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">15</property>
+                        <property name="name">net_sf_jmoney_transaction_date</property>
+                        <property name="dataType">date</property>
+                    </structure>
+                    <structure>
+                        <property name="position">16</property>
+                        <property name="name">net_sf_jmoney_account_name</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">17</property>
+                        <property name="name">net_sf_jmoney_categoryAccount_multiCurrency</property>
+                        <property name="dataType">boolean</property>
+                    </structure>
+                    <structure>
+                        <property name="position">18</property>
+                        <property name="name">net_sf_jmoney_categoryAccount_currency</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                </list-property>
+            </structure>
+            <property name="dataSource">JMoneyDataSource</property>
+            <list-property name="parameters">
+                <structure>
+                    <property name="name">param_1</property>
+                    <property name="paramName">AccountName</property>
+                    <property name="nativeName"></property>
+                    <property name="dataType">string</property>
+                    <property name="nativeDataType">1</property>
+                    <property name="position">1</property>
+                    <expression name="defaultValue">"Essex"</expression>
+                    <property name="allowNull">true</property>
+                    <property name="isInput">true</property>
+                    <property name="isOutput">false</property>
+                </structure>
+            </list-property>
+            <list-property name="resultSet">
+                <structure>
+                    <property name="position">1</property>
+                    <property name="name">net_sf_jmoney_entry_check</property>
+                    <property name="nativeName">net_sf_jmoney_entry_check</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">2</property>
+                    <property name="name">net_sf_jmoney_entry_account</property>
+                    <property name="nativeName">net_sf_jmoney_entry_account</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">3</property>
+                    <property name="name">net_sf_jmoney_entry_valuta</property>
+                    <property name="nativeName">net_sf_jmoney_entry_valuta</property>
+                    <property name="dataType">date</property>
+                </structure>
+                <structure>
+                    <property name="position">4</property>
+                    <property name="name">net_sf_jmoney_entry_memo</property>
+                    <property name="nativeName">net_sf_jmoney_entry_memo</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">5</property>
+                    <property name="name">net_sf_jmoney_entry_amount</property>
+                    <property name="nativeName">net_sf_jmoney_entry_amount</property>
+                    <property name="dataType">float</property>
+                </structure>
+                <structure>
+                    <property name="position">6</property>
+                    <property name="name">net_sf_jmoney_entry_creation</property>
+                    <property name="nativeName">net_sf_jmoney_entry_creation</property>
+                    <property name="dataType">float</property>
+                </structure>
+                <structure>
+                    <property name="position">7</property>
+                    <property name="name">net_sf_jmoney_entry_incomeExpenseCurrency</property>
+                    <property name="nativeName">net_sf_jmoney_entry_incomeExpenseCurrency</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">8</property>
+                    <property name="name">other_net_sf_jmoney_entry_check</property>
+                    <property name="nativeName">other_net_sf_jmoney_entry_check</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">9</property>
+                    <property name="name">other_net_sf_jmoney_entry_account</property>
+                    <property name="nativeName">other_net_sf_jmoney_entry_account</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">10</property>
+                    <property name="name">other_net_sf_jmoney_entry_valuta</property>
+                    <property name="nativeName">other_net_sf_jmoney_entry_valuta</property>
+                    <property name="dataType">date</property>
+                </structure>
+                <structure>
+                    <property name="position">11</property>
+                    <property name="name">other_net_sf_jmoney_entry_memo</property>
+                    <property name="nativeName">other_net_sf_jmoney_entry_memo</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">12</property>
+                    <property name="name">other_net_sf_jmoney_entry_amount</property>
+                    <property name="nativeName">other_net_sf_jmoney_entry_amount</property>
+                    <property name="dataType">float</property>
+                </structure>
+                <structure>
+                    <property name="position">13</property>
+                    <property name="name">other_net_sf_jmoney_entry_creation</property>
+                    <property name="nativeName">other_net_sf_jmoney_entry_creation</property>
+                    <property name="dataType">float</property>
+                </structure>
+                <structure>
+                    <property name="position">14</property>
+                    <property name="name">other_net_sf_jmoney_entry_incomeExpenseCurrency</property>
+                    <property name="nativeName">other_net_sf_jmoney_entry_incomeExpenseCurrency</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">15</property>
+                    <property name="name">net_sf_jmoney_transaction_date</property>
+                    <property name="nativeName">net_sf_jmoney_transaction_date</property>
+                    <property name="dataType">date</property>
+                </structure>
+                <structure>
+                    <property name="position">16</property>
+                    <property name="name">net_sf_jmoney_account_name</property>
+                    <property name="nativeName">net_sf_jmoney_account_name</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">17</property>
+                    <property name="name">net_sf_jmoney_categoryAccount_multiCurrency</property>
+                    <property name="nativeName">net_sf_jmoney_categoryAccount_multiCurrency</property>
+                    <property name="dataType">boolean</property>
+                </structure>
+                <structure>
+                    <property name="position">18</property>
+                    <property name="name">net_sf_jmoney_categoryAccount_currency</property>
+                    <property name="nativeName">net_sf_jmoney_categoryAccount_currency</property>
+                    <property name="dataType">string</property>
+                </structure>
+            </list-property>
+            <property name="queryText">&lt;?xml version="1.0" encoding="UTF-8"?>
+&lt;dataset>
+&lt;entriesInAccount>
+&lt;parameter propertySetId="net.sf.jmoney.categoryAccount"/>
+&lt;/entriesInAccount>
+&lt;/dataset></property>
+            <xml-property name="designerValues"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<model:DesignValues xmlns:design="http://www.eclipse.org/datatools/connectivity/oda/design" xmlns:model="http://www.eclipse.org/birt/report/model/adapter/odaModel">
+  <Version>1.0</Version>
+  <design:DataSetParameters>
+    <design:parameterDefinitions>
+      <design:inOutMode>In</design:inOutMode>
+      <design:attributes>
+        <design:name></design:name>
+        <design:position>1</design:position>
+        <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+        <design:precision>10</design:precision>
+        <design:scale>10</design:scale>
+        <design:nullability>Nullable</design:nullability>
+      </design:attributes>
+    </design:parameterDefinitions>
+  </design:DataSetParameters>
+  <design:ResultSets derivedMetaData="true">
+    <design:resultSetDefinitions>
+      <design:resultSetColumns>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_check</design:name>
+            <design:position>1</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Check</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_description</design:name>
+            <design:position>2</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Description</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_account</design:name>
+            <design:position>3</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Category</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_valuta</design:name>
+            <design:position>4</design:position>
+            <design:nativeDataTypeCode>6</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Valuta</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_memo</design:name>
+            <design:position>5</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Memo</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_amount</design:name>
+            <design:position>6</design:position>
+            <design:nativeDataTypeCode>3</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>NotNullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Amount</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_creation</design:name>
+            <design:position>7</design:position>
+            <design:nativeDataTypeCode>3</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>NotNullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Creation</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_incomeExpenseCurrency</design:name>
+            <design:position>8</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Currency</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_reconciliation_entryProperties_status</design:name>
+            <design:position>9</design:position>
+            <design:nativeDataTypeCode>2</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>NotNullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>S</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_reconciliation_entryProperties_statement</design:name>
+            <design:position>10</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Statement</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_reconciliation_entryProperties_uniqueId</design:name>
+            <design:position>11</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Unique Id</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_qif_entryProperties_reconcilingState</design:name>
+            <design:position>12</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>NotNullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Reconciled</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_qif_entryProperties_address</design:name>
+            <design:position>13</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Address</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_check</design:name>
+            <design:position>14</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Check(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_description</design:name>
+            <design:position>15</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Description(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_account</design:name>
+            <design:position>16</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Category(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_valuta</design:name>
+            <design:position>17</design:position>
+            <design:nativeDataTypeCode>6</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Valuta(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_memo</design:name>
+            <design:position>18</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Memo(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_amount</design:name>
+            <design:position>19</design:position>
+            <design:nativeDataTypeCode>3</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Amount(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_creation</design:name>
+            <design:position>20</design:position>
+            <design:nativeDataTypeCode>3</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Creation(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_incomeExpenseCurrency</design:name>
+            <design:position>21</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Currency(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_reconciliation_entryProperties_status</design:name>
+            <design:position>22</design:position>
+            <design:nativeDataTypeCode>2</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>S(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_reconciliation_entryProperties_statement</design:name>
+            <design:position>23</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Statement(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_reconciliation_entryProperties_uniqueId</design:name>
+            <design:position>24</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Unique Id(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_qif_entryProperties_reconcilingState</design:name>
+            <design:position>25</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Reconciled(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_qif_entryProperties_address</design:name>
+            <design:position>26</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Address(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_transaction_date</design:name>
+            <design:position>27</design:position>
+            <design:nativeDataTypeCode>6</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Date</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_account_name</design:name>
+            <design:position>28</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Name</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_categoryAccount_multiCurrency</design:name>
+            <design:position>29</design:position>
+            <design:nativeDataTypeCode>5</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>NotNullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Multi-Currency</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_categoryAccount_currency</design:name>
+            <design:position>30</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Currency</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+      </design:resultSetColumns>
+    </design:resultSetDefinitions>
+    <design:resultSetDefinitions>
+      <design:resultSetColumns>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_check</design:name>
+            <design:position>1</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Check</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_description</design:name>
+            <design:position>2</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Description</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_account</design:name>
+            <design:position>3</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Category</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_valuta</design:name>
+            <design:position>4</design:position>
+            <design:nativeDataTypeCode>6</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Valuta</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_memo</design:name>
+            <design:position>5</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Memo</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_amount</design:name>
+            <design:position>6</design:position>
+            <design:nativeDataTypeCode>3</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>NotNullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Amount</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_creation</design:name>
+            <design:position>7</design:position>
+            <design:nativeDataTypeCode>3</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>NotNullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Creation</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_incomeExpenseCurrency</design:name>
+            <design:position>8</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Currency</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_reconciliation_entryProperties_status</design:name>
+            <design:position>9</design:position>
+            <design:nativeDataTypeCode>2</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>NotNullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>S</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_reconciliation_entryProperties_statement</design:name>
+            <design:position>10</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Statement</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_reconciliation_entryProperties_uniqueId</design:name>
+            <design:position>11</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Unique Id</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_qif_entryProperties_reconcilingState</design:name>
+            <design:position>12</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>NotNullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Reconciled</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_qif_entryProperties_address</design:name>
+            <design:position>13</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Address</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_check</design:name>
+            <design:position>14</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Check(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_description</design:name>
+            <design:position>15</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Description(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_account</design:name>
+            <design:position>16</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Category(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_valuta</design:name>
+            <design:position>17</design:position>
+            <design:nativeDataTypeCode>6</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Valuta(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_memo</design:name>
+            <design:position>18</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Memo(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_amount</design:name>
+            <design:position>19</design:position>
+            <design:nativeDataTypeCode>3</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Amount(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_creation</design:name>
+            <design:position>20</design:position>
+            <design:nativeDataTypeCode>3</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Creation(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_incomeExpenseCurrency</design:name>
+            <design:position>21</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Currency(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_reconciliation_entryProperties_status</design:name>
+            <design:position>22</design:position>
+            <design:nativeDataTypeCode>2</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>S(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_reconciliation_entryProperties_statement</design:name>
+            <design:position>23</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Statement(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_reconciliation_entryProperties_uniqueId</design:name>
+            <design:position>24</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Unique Id(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_qif_entryProperties_reconcilingState</design:name>
+            <design:position>25</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Reconciled(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_qif_entryProperties_address</design:name>
+            <design:position>26</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Address(2)</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_transaction_date</design:name>
+            <design:position>27</design:position>
+            <design:nativeDataTypeCode>6</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Date</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_account_name</design:name>
+            <design:position>28</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Name</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_categoryAccount_multiCurrency</design:name>
+            <design:position>29</design:position>
+            <design:nativeDataTypeCode>5</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>NotNullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Multi-Currency</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_categoryAccount_currency</design:name>
+            <design:position>30</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+            <design:precision>-1</design:precision>
+            <design:scale>-1</design:scale>
+            <design:nullability>Nullable</design:nullability>
+          </design:attributes>
+          <design:usageHints>
+            <design:label>Currency</design:label>
+            <design:formattingHints>
+              <design:displaySize>10</design:displaySize>
+            </design:formattingHints>
+          </design:usageHints>
+        </design:resultColumnDefinitions>
+      </design:resultSetColumns>
+    </design:resultSetDefinitions>
+    <design:resultSetDefinitions>
+      <design:resultSetColumns>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_check</design:name>
+            <design:position>1</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_description</design:name>
+            <design:position>2</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_account</design:name>
+            <design:position>3</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_valuta</design:name>
+            <design:position>4</design:position>
+            <design:nativeDataTypeCode>6</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_memo</design:name>
+            <design:position>5</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_amount</design:name>
+            <design:position>6</design:position>
+            <design:nativeDataTypeCode>3</design:nativeDataTypeCode>
+            <design:uiHints>
+              <design:displayName>Amount</design:displayName>
+            </design:uiHints>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_creation</design:name>
+            <design:position>7</design:position>
+            <design:nativeDataTypeCode>3</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_entry_incomeExpenseCurrency</design:name>
+            <design:position>8</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_reconciliation_entryProperties_status</design:name>
+            <design:position>9</design:position>
+            <design:nativeDataTypeCode>2</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_reconciliation_entryProperties_statement</design:name>
+            <design:position>10</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_reconciliation_entryProperties_uniqueId</design:name>
+            <design:position>11</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_qif_entryProperties_reconcilingState</design:name>
+            <design:position>12</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_qif_entryProperties_address</design:name>
+            <design:position>13</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_check</design:name>
+            <design:position>14</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_description</design:name>
+            <design:position>15</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_account</design:name>
+            <design:position>16</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_valuta</design:name>
+            <design:position>17</design:position>
+            <design:nativeDataTypeCode>6</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_memo</design:name>
+            <design:position>18</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_amount</design:name>
+            <design:position>19</design:position>
+            <design:nativeDataTypeCode>3</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_creation</design:name>
+            <design:position>20</design:position>
+            <design:nativeDataTypeCode>3</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_entry_incomeExpenseCurrency</design:name>
+            <design:position>21</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_reconciliation_entryProperties_status</design:name>
+            <design:position>22</design:position>
+            <design:nativeDataTypeCode>2</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_reconciliation_entryProperties_statement</design:name>
+            <design:position>23</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_reconciliation_entryProperties_uniqueId</design:name>
+            <design:position>24</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_qif_entryProperties_reconcilingState</design:name>
+            <design:position>25</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>other_net_sf_jmoney_qif_entryProperties_address</design:name>
+            <design:position>26</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_transaction_date</design:name>
+            <design:position>27</design:position>
+            <design:nativeDataTypeCode>6</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_account_name</design:name>
+            <design:position>28</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_categoryAccount_multiCurrency</design:name>
+            <design:position>29</design:position>
+            <design:nativeDataTypeCode>5</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+        <design:resultColumnDefinitions>
+          <design:attributes>
+            <design:name>net_sf_jmoney_categoryAccount_currency</design:name>
+            <design:position>30</design:position>
+            <design:nativeDataTypeCode>1</design:nativeDataTypeCode>
+          </design:attributes>
+        </design:resultColumnDefinitions>
+      </design:resultSetColumns>
+    </design:resultSetDefinitions>
+  </design:ResultSets>
+</model:DesignValues>]]></xml-property>
+        </oda-data-set>
+    </data-sets>
+    <page-setup>
+        <simple-master-page name="Simple MasterPage" id="2">
+            <page-footer>
+                <grid id="3">
+                    <property name="width">100%</property>
+                    <column id="4"/>
+                    <row id="5">
+                        <cell id="6">
+                            <text id="7">
+                                <property name="contentType">html</property>
+                                <text-property name="content"><![CDATA[<value-of>new Date()</value-of>]]></text-property>
+                            </text>
+                        </cell>
+                    </row>
+                </grid>
+            </page-footer>
+        </simple-master-page>
+    </page-setup>
+    <body>
+        <grid id="8">
+            <property name="height">0.333in</property>
+            <property name="width">5.968in</property>
+            <column id="9"/>
+            <row id="10">
+                <property name="height">0.333in</property>
+                <property name="verticalAlign">text-bottom</property>
+                <cell id="11">
+                    <property name="verticalAlign">top</property>
+                    <grid id="59">
+                        <property name="width">100%</property>
+                        <column id="60">
+                            <property name="width">33%</property>
+                        </column>
+                        <column id="61">
+                            <property name="width">34%</property>
+                        </column>
+                        <column id="62">
+                            <property name="width">33%</property>
+                        </column>
+                        <row id="63">
+                            <property name="verticalAlign">top</property>
+                            <cell id="64">
+                                <image id="71">
+                                    <property name="source">embed</property>
+                                    <property name="imageName">JMoney32.gif</property>
+                                </image>
+                            </cell>
+                            <cell id="65">
+                                <text id="75">
+                                    <property name="contentType">auto</property>
+                                    <text-property name="content"><![CDATA[<HTML>
+<CENTER>
+<FONT size="6" color=blue>
+<VALUE-OF>params["AccountName"]</VALUE-OF>
+</FONT>
+<BR>
+<I>Income and Expense Report</I>
+</CENTER>
+</HTML>]]></text-property>
+                                </text>
+                            </cell>
+                            <cell id="66">
+                                <data id="72">
+                                    <structure name="dateTimeFormat">
+                                        <property name="category">Medium Date</property>
+                                        <property name="pattern">Medium Date</property>
+                                    </structure>
+                                    <list-property name="boundDataColumns">
+                                        <structure>
+                                            <property name="name">current_date</property>
+                                            <expression name="expression">new Date()</expression>
+                                            <property name="dataType">date-time</property>
+                                        </structure>
+                                    </list-property>
+                                    <property name="resultSetColumn">current_date</property>
+                                </data>
+                            </cell>
+                        </row>
+                        <row id="67">
+                            <property name="height">0.25in</property>
+                            <cell id="68"/>
+                            <cell id="69"/>
+                            <cell id="70"/>
+                        </row>
+                    </grid>
+                </cell>
+            </row>
+        </grid>
+        <table name="table1" id="13">
+            <property name="width">100%</property>
+            <property name="dataSet">IncomeAndExpenses</property>
+            <list-property name="boundDataColumns">
+                <structure>
+                    <property name="name">net_sf_jmoney_entry_description</property>
+                    <expression name="expression">dataSetRow["net_sf_jmoney_entry_memo"]</expression>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="name">net_sf_jmoney_entry_amount</property>
+                    <expression name="expression">dataSetRow["net_sf_jmoney_entry_amount"]</expression>
+                    <property name="dataType">integer</property>
+                </structure>
+                <structure>
+                    <property name="name">net_sf_jmoney_entry_account</property>
+                    <expression name="expression">dataSetRow["net_sf_jmoney_entry_account"]</expression>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="name">net_sf_jmoney_transaction_date</property>
+                    <expression name="expression">dataSetRow["net_sf_jmoney_transaction_date"]</expression>
+                    <property name="dataType">date-time</property>
+                </structure>
+                <structure>
+                    <property name="name">sub total</property>
+                    <expression name="expression">"Total for " + row["net_sf_jmoney_entry_account"] + ": " + Total.sum(row["net_sf_jmoney_entry_amount"])</expression>
+                    <property name="dataType">string</property>
+                    <simple-property-list name="aggregateOn">
+                        <value>NewTableGroup1</value>
+                    </simple-property-list>
+                </structure>
+                <structure>
+                    <property name="name">Column Binding</property>
+                    <expression name="expression">dataSetRow["net_sf_jmoney_entry_memo"]</expression>
+                    <property name="dataType">any</property>
+                </structure>
+                <structure>
+                    <property name="name">net_sf_jmoney_entry_memo</property>
+                    <expression name="expression">dataSetRow["net_sf_jmoney_entry_memo"]</expression>
+                    <property name="dataType">string</property>
+                </structure>
+            </list-property>
+            <column id="35">
+                <property name="width">33.3%</property>
+            </column>
+            <column id="54">
+                <property name="width">33.3%</property>
+            </column>
+            <column id="36">
+                <property name="width">33.3%</property>
+            </column>
+            <column id="37">
+                <property name="width">33.4%</property>
+            </column>
+            <header>
+                <row id="14">
+                    <cell id="15">
+                        <label id="47">
+                            <text-property name="text">Account</text-property>
+                        </label>
+                    </cell>
+                    <cell id="49">
+                        <label id="55">
+                            <text-property name="text">Date</text-property>
+                        </label>
+                    </cell>
+                    <cell id="16">
+                        <label id="43">
+                            <text-property name="text">Description</text-property>
+                        </label>
+                    </cell>
+                    <cell id="17">
+                        <label id="45">
+                            <text-property name="text">Amount</text-property>
+                        </label>
+                    </cell>
+                </row>
+            </header>
+            <group id="18">
+                <property name="groupName">NewTableGroup1</property>
+                <expression name="keyExpr">row["net_sf_jmoney_entry_account"]</expression>
+                <header>
+                    <row id="19">
+                        <cell id="20">
+                            <data id="48">
+                                <property name="resultSetColumn">net_sf_jmoney_entry_account</property>
+                            </data>
+                        </cell>
+                        <cell id="50"/>
+                        <cell id="21"/>
+                        <cell id="22"/>
+                    </row>
+                </header>
+                <footer>
+                    <row id="23">
+                        <cell id="24"/>
+                        <cell id="52"/>
+                        <cell id="25"/>
+                        <cell id="26">
+                            <data id="58">
+                                <structure name="numberFormat">
+                                    <property name="category">Currency</property>
+                                    <property name="pattern">###0.00;(###0.00)</property>
+                                </structure>
+                                <property name="textAlign">right</property>
+                                <property name="resultSetColumn">sub total</property>
+                            </data>
+                        </cell>
+                    </row>
+                </footer>
+            </group>
+            <detail>
+                <row id="27">
+                    <cell id="28"/>
+                    <cell id="51">
+                        <data id="56">
+                            <structure name="dateTimeFormat">
+                                <property name="category">Medium Date</property>
+                                <property name="pattern">Medium Date</property>
+                            </structure>
+                            <property name="resultSetColumn">net_sf_jmoney_transaction_date</property>
+                        </data>
+                    </cell>
+                    <cell id="29">
+                        <data id="80">
+                            <property name="resultSetColumn">net_sf_jmoney_entry_memo</property>
+                        </data>
+                    </cell>
+                    <cell id="30">
+                        <data id="46">
+                            <property name="marginTop">0pt</property>
+                            <property name="marginBottom">0pt</property>
+                            <property name="paddingTop">1pt</property>
+                            <structure name="numberFormat">
+                                <property name="category">Currency</property>
+                                <property name="pattern">###0.00;(###0.00)</property>
+                            </structure>
+                            <property name="textAlign">right</property>
+                            <property name="resultSetColumn">net_sf_jmoney_entry_amount</property>
+                        </data>
+                    </cell>
+                </row>
+            </detail>
+            <footer>
+                <row id="31">
+                    <cell id="32"/>
+                    <cell id="53"/>
+                    <cell id="33"/>
+                    <cell id="34"/>
+                </row>
+            </footer>
+        </table>
+    </body>
+    <list-property name="images">
+        <structure>
+            <property name="name">JMoney32.gif</property>
+            <property name="data">
+                R0lGODlhIAAgAOYAAAAAAAgICBhYeAgoOCBwkEAwEIh4MGBAGLiwoCBYcCAgICBYgChAYChIaDgwGFBQ
+                UFBIIFhIKGhoaJiYmNCwMPj4+HhYOFCIoKioqCBoiHBwcCBgiIiIiLCwsCBokJCQkFhwiBhQcIh4QFB4
+                kChgiIiIcChYeCBYeHhwOChggChYgKCQSNC4SKiYSIBwOBhwmNC4QFCIqJiouLi4uLiwgBh4mFCYsCBQ
+                cChQcDBYeDAoEBhIYCBAWFiAmFCQsChQeLCgUNDAWBA4SCg4UBhIaChIYFiAoFiIoODYmMDAwNC4ULio
+                UNjQkJiIQNC4OKigSMC4iCBAYCBIYMi4WMCwUNjY2JCAQFCQqOjo6IiAOCgoKCA4WDggECAgECAYCBgY
+                CCBIaCBQaBAQCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAEAAGMALAAAAAAgACAAAAf/gGOC
+                g4SFhoeGE4qLjI2KiIkAkpOUlZKQhQAIBwcWFp2fnpyiBROYg5qcqqusB6Wngqmts66msLK0rK+3m7m6
+                tqe4vpy7wb3DxMCYwsPFy8e5ltIAhMytXDY2Pj5XVzExF0dGRj09H6jQ1wA1NS8EBB4ZGRskKSkmJgDn
+                Y7Ki/hZc1r3IksVAvAz1UqjApy8WggIQpwF48UIJCyfyNthbaCJHwzETJnmBSBJiQHcsYFCYl3AhjgYf
+                CS16IDLgOw/x6ClU8bIIg5iHFNGUdDPjxh8NGjD4uQ/WBwA45y04cSMMGDANfDI9VaUDBg0ABAgYkeCG
+                jKogsi7dComDghI0gCQJCXGjblWsSpcOAVpoRoAuQaag8DJACJEdUqRE4cF4y5YhQ5oaSiIBShAqS560
+                ACDhg+fPoD1j6qAFyZQlQFqscKAF1mgtTDK3aGJFR2vXiCjTSL3CigjOuBFV8PvFhZUIYjjMCI4Ii1sH
+                EAAo6ICFufCuGJJUqWC9u/fvhgIBADs=
+            </property>
+        </structure>
+    </list-property>
+</report>

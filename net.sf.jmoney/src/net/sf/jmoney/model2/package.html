@@ -1,0 +1,493 @@
+<html><head>
+
+<!-- $Id: package.html,v 1.3 2004-10-13 10:15:20 westbury Exp $ -->
+
+</head><body>
+
+<p> This package provides the core JMoney Plug-in APIs.
+You must use these APIs if you want to write a JMoney plug-in.
+</p>
+
+<p>See <a
+href='http://www.jmoney.sourceforge.net'>http://www.jmoney.sourceforge.net</a>
+for more information about the JMoney plug-in architecture.</p>
+
+<h2> The Accounting Data Model </h2>
+
+<p> The JMoney accounting framework can keep track of your money.  It can also
+keep track of other assets such as stocks.  Money can be kept in any of
+a number of different currencies.  All of these (currencies, stocks, and
+anything else you may wish to keep track of) are known as commodities.  An object
+exists in the data model for each commodity.  There will be a commodity
+object for each currency you use, a commodity object for each company whose
+stock you own, and so on.
+</p>
+<p>
+Your money can be kept in different places.  A bank account, for example, or
+you may have made a loan to someone.  You may have a negative amount of money
+(a debt liability) somewhere, for example with a credit card company.  Stock
+is probably kept in a stock brokerage.  You might even have two or more stock
+brokerage accounts.  All of these places where you have cash, stock, or other
+types of commodities are known as accounts.  There will be an account object
+for each place where you hold commodities (or where you have a liablility).
+</p>
+<p>
+Money comes and goes.  You may recieve money from a number of different
+sources.  For example, pay from your job or interest on you bank account.
+The things you spend money on will fall into a number of different categories
+and you may want to keep track of where your money goes.  Each source of money
+and each category of expenditure is known as a category.  A category may be
+entirely income (salary) or entirely expenditure (groceries) or a mixture (you
+may have a category for computer book purchases but then you sell one of your
+books on Amazon, thus creating an income item in that category).  You may also
+recieve income in commodities other than currency (stock options from your
+employer), or you may have expenditure in commodities other than currency.
+</p>
+<p>
+A typical financial transaction will involve a debit from an account and an
+expense entry in an income/expense category, or a credit to an account and an
+income entry in an income/expense category.  A financial transaction may also
+consist of a credit to one account and a debit from another account (a transfer
+of money between accounts).  A transaction could perhaps involve a 
+credit from a bank account and
+a number of expense entries into a number of different categories where
+the sum of the expenses equals the amount debited from the bank account.
+A transaction could also be an exchange of one commodity to another.
+In general, a transaction consists of two or more entries.  If all the entries
+are in the same commodity then the total of all the entries should be zero.
+There can be any number of account entries and any number of category
+entries in the transaction.
+</p>
+
+<h2> Reading the JMoney Database </h2>
+
+<p> Access to the top level object in the database is through the
+<code>Session</code> interface.  The <code>Session</code> interface has
+methods that provide iterators that iterate over the accounts, categories,
+and transactions.  From the account and category interfaces, you can
+get iterators that iterate over any sub-accounts and sub-categories.
+From the transaction interface, you can get an iterator that iterates
+over the entries in the transaction.
+</p>
+<p>
+The interfaces also provide methods for going back up the tree, from entry
+to transaction and transaction to session, and from sub-category to category
+and so on.
+
+<h2> Modifying the JMoney Database </h2>
+
+<p> Unless you are interested only in writing plug-ins that show reports
+and other views of the data, you are going to want to modify the accounting
+data.  This can be done using the interfaces in this package.  However, to do
+this is unfortunately not quite as simple as calling the setter methods.
+If we were simply to update the properties in the objects using the setter
+methods, we would have the following problems:
+<OL>
+<LI>JMoney supports different storage methods thru the use of
+		datastore plug-ins.  Consider a datastore plug-in that
+		stores the data in a SQL database.  Each time a property
+		setter method is called, a SQL 'UPDATE' statement would
+		be executed.  It would be more efficient if a single
+		'UPDATE' statement were executed which updated all the
+		changed properties.
+		<P>
+		If a new object is being added to the datastore then it
+		would be more efficient if the 'INSERT' statement set the
+		correct values of the properties.
+		<P>
+		Using setters would not allow the above optimizations because
+		the datastore plug-in would not know when to make the changes to the
+		database.
+		<P>
+		</LI>
+		
+<LI>Many, if not all, updates are better done within database transactions.
+		For example, adding a new financial transaction is best done within a
+		database transaction.  Many other updates may need to be done within
+		a database transaction in order to ensure that the database does not
+		become inconsistent during a failure.
+		<P>
+		</LI>
+		
+<LI>At some point the undo/redo feature will be built into JMoney.
+		If a change was made by the user with a single mouse click,
+		then the change should be undone or redone as a single item,
+		even if a number of objects are added, deleted, or updated
+		as a result of the change.  Therefore the interface to
+		the datastore must allow changes to be grouped, with
+		a localized short discription for each group of changes.
+		<P>
+		A group of changes in a single undo/redo item is, in the
+		JMoney framework, exactly the same as the group of changes
+		in a single transaction.  I.e. one undo/redo item corresponds
+		to one transaction.  There is thus no need for a separate
+		way of specifying groups for the purposes of undo/redo.
+		We do, however, add a text message as a parameter to the 
+		'commit' method, being the localized short discription of
+		the change.
+		<P>  
+		</LI>
+		
+<LI>Many databases support only transaction isolation level zero.
+		Datastore plug-ins that keep all the data in memory 
+		(e.g. the net.sf.jmoney.serializeddatastore plug-in) would
+		require a significant amount of code to support transaction
+		isolation level 1 or higher.
+		<P>
+		Supporting transaction isolation level 1 in JMoney is important
+		because we allow users to switch between tabbed controls at any time,
+		even when data has been partially entered into one tabbed control.
+		For example, a user might create a new entry in the account entries
+		panel, enter some but not all of the data, then switch to another
+		tab.  That other tab might have been provided by a plug-in that does
+		not expect to see a partially complete entry.  Although JMoney itself
+		does not have many restrictions on the property values, plug-ins may
+		impose restrictions such as "if property A is set to
+		'true' then property B must be set to a non-null value".
+		A plug-in developer may be displeased if the plug-in sees data
+		that violates a restriction.
+		<P>
+		</LI>
+</OL>
+		
+Problem 1 is solved by delaying applying the changes to the database.
+No statement that inserts or updates a row in the database is applied until
+an operation arrives for another row.  At that point a single insert or update
+statement is applied.  The change is also submitted to the database before any
+query (select) statements are executed because the change may affect the query.
+<P>
+Problem 2 is solved by requiring that plug-ins call the <code>applyChanges</code>
+datastore method
+to indicate that a transaction has ended.  This puts a requirement on all
+plug-ins that update the datastore.
+<P>
+Problem 3 is solved by adding a String parameter to the 
+<code>applyChanges</code> method.  This string contains localized text
+that describes the change.  This text is displayed by the undo/redo feature.
+<P>
+Problem 4 can be solved by saving up all the changes
+and applying them all to the model when the transaction is committed.
+As datastore access in JMoney is single-threaded, there is no chance
+of any code seeing a partial transaction.
+<P>
+
+
+In order to support undo/redo, the change manager must save details of changes
+to the datastore.  The change manager is able to apply, undo and re-apply these changes.
+
+These details can be used for a second purpose.  The change
+manager can keep the changes and delay making the changes to the underlying
+datastore.  This may be useful as a means of providing isolation level 1.
+However, this means all queries must go through the change manager.
+Getters get values from the change manager, and setters set values in the
+change manager.  Plug-ins can, instead of calling the getters and setters,
+call 
+
+e.g.
+anstadt die Setteren zu kallen, kallt die Plug-in 
+
+setFoo(x);
+
+changeManager.setProperty(extendableObject, propertyAccessor, value);
+Object value = changeManager.getProperty(object, propertyAccessor);
+
+
+
+
+
+
+<h3> The Solutions in Practice </h3>
+
+The rules are as follows:
+
+All getters and setter methods exist for all properties.
+		<P>
+		</LI>
+		
+<LI>All changes to the object store are sent to change listeners when
+changes are committed.
+		<P>
+		</LI>
+		
+<LI>Plug-ins must commit all changes before exiting a method and reliquishing
+	control.
+	<P>
+	</LI>
+		
+<LI>The datastore implementation may not immediately reflect changes in any 
+	underlying database.  For example, the datastore may decide to
+	delay insert and update statements on an object until an operation
+	is performed on another object or until a query (select) is done.
+	This can not cause change in behavior because the changes are always
+	applied before a select statement is executed.
+	<P>
+	</LI>
+		
+<LI>An 'applyChanges' method exists which serves the following purposes:
+- if a database underlies the datastore, the transaction is committed.
+- localized text is passed which give a description of the change
+to be used by the undo/redo feature.
+	<P>
+	</LI>
+		
+<LI>A 'rollback' method is provided by the session object.  Although the
+	changes have not been committed to the database at the time of the
+	rollback, they will still have been made to the object store.
+	The datastore must use a ChangeManager class (provided in the
+	JMoney framework) to undo the changes to the object store.
+	<P>
+	</LI>
+		
+<LI>An event is fired whenever changes are committed.  This event allows
+	the following:
+	<UL>
+	<LI>A Change object is passed to the listener.  The Change object
+		has methods to undo the change, redo the change, and to get the
+		short localized description of the change.  Plug-ins that support
+		the undo/redo commands typically store these objects in a list.
+		<P>
+		</LI>
+		
+	<LI>Plug-ins may want to perform an action when certain changes are
+		made to the datastore.  For example, if a change altered a figure
+		that had already been used in preparing a tax return form then
+		the plug-in may want to inform the user that the tax return form
+		should be amended.
+		<P>
+		</LI>
+		
+	<LI>Plug-ins may wish to impose constraints of the data.  Plug-ins may
+		request that they be told of changes when a commit has been requested
+		but before the commit has been committed to the database.  Furthermore,
+		they have the oppertunity to veto the changes.
+		<P>
+		</LI>
+	</UL>
+	</LI>
+		
+<LI>Normally a plug-in must commit its changes before it control passes
+	to another plug-in.  This is most safely done by submitting all the
+	changes and then committing the changes within a single method call.
+	A plug-in may get away with delaying the commit until a 'lost focus'
+	event occurs.  This is, however, not so safe.  At a later time, JMoney
+	may support, for example, support for timer tasks.  A plug-in may want
+	to allow other plug-ins control without others seeing its uncommitted
+	changes.  Plug-ins can always do this by not applying any changes to
+	the datastore, but saving them up.  Complex code can adjust queries,
+	if necessary, to reflect these changes.  However, if this is a problem
+	then a plug-in can use a private ChangeManager.  This must be set
+	every time the plug-in gets control and before the datastore is
+	read or updated.  It must be reset before the plug-in relinquishes
+	control.
+	<P>
+	</LI>
+<OL>
+
+
+
+<LI>Every model object must contain, for each object list maintained by
+	that object, a method called create&lt;propertyName&gt;.  For example,
+	the session object has methods called createCommodity, createAccount,
+	and createTransaction.  The account objects have a method called
+	createSubAccount.
+	<P>
+	If the class of objects being listed is a derivable property set
+	then a PropertySet object must also be passed.  This indicates
+	the class of object to be created.
+	For example, the createAccount method is used to add both CapitalAccount
+	objects and IncomeExpenseAccount objects.
+	We could have a different method for each.  The problem
+	with this is that a further derived type may be added by a plug-in
+	and no method would exist in the Session object to create it.
+	For example a plug-in could add another property set that extends the
+	Accounts property set.  Methods would exist in the Session object
+	to create CapitalAccount objects, IncomeExpenseAccount objects but
+	not this third class of Account objects.
+	<P>
+	These methods are discovered using retrospection
+	by the JMoney framework and an error will be issued if the methods are
+	not present or the parameters are not correct.
+	<P>
+	</LI>
+<LI>Plug-ins must be sure that they always leave the state of the model in a state
+	acceptable to all other plug-ins.
+	<P>
+	Access to the datastore is single-threaded.  JMoney uses the same thread
+	for datastore access as for the GUI.  The plug-in therefore has some options
+	in the way it ensures that it always leaves the datastore in a consistent state.
+	For example, the datastore may be in an inconsistent state while the user
+	is making some edits as long as the datastore is put into a consistent state
+	when the plug-in control loses focus.
+	<P>
+	Currently there is no real definition of what constitutes a valid state of
+	the datastore.  For example, do all entries need accounts to be set, or must
+	all the entries in a split transaction, involving a single
+	currency, balance.  This is not currently an issue but may become one
+	as more plug-ins are developed.
+	<P>
+	</LI>
+</OL>
+
+The above list describes the rules that must be followed.  If the rules
+are not followed then there is code that cannot be made to work.
+For example, if the add.... methods are not present with the correct
+signatures then the plug-in
+that copies data from one datastore to another will not know how to
+create the objects in the destination datastore.
+<P>
+There are also many possibilities for extra methods and classes that help
+the plug-in developer.  By leaving it to the plug-in developer to decide
+which helper methods are classes are useful, it is hoped that the best way
+of accessing the datastore will evolve.
+
+<OL>
+<LI>The constructor to the ExtensionProperties object takes a
+	PropertySet object and an array containing the values of the
+	properties in that extension property set.  Setting values into
+	the array may be error prone because the array is an array of
+	Objects and it may not be easy, when lots of properties are present,
+	to get the properties in the correct places in the array.
+	Therefore a 'properties' method may be provided for an extension
+	property set.  This method is a	static method in the property set
+	implementation class.  It takes a list of the scalar properties as
+	parameters and returns an ExtensionProperties object.
+	<P>
+	</LI>
+<LI>For each property set, a 'mutable' class may be provided.
+	These classes are constructed either from the property values
+	in an existing object if an object is being edited or with default values 
+	if a new object is being created.  The 'mutable' class 
+	has the normal getter and setter methods for each property.
+	When the new property values are ready to be applied to the datastore,
+	a 'commit' method is called.
+	<P>
+	This class may be provided by the plug-in that added the property set or
+	it may be provided by the plug-in that wants to update values in the
+	property set.  The former is generally preferable to avoid duplication,
+	but the latter gives more flexibility.  For example, the gnucashXML plug-in
+	does not know the parent of an object at the time the mutable class is
+	created.  The current implementation of the mutable class allowed the parent
+	to be set only at construction time.  The gnucashXML developer was thus not
+	able to use the MutableCapitalAccount object provided by the framework and
+	the plug-in had to have its own copy to be able to set the parent accounts
+	correctly.
+	<P>
+	</LI>
+<LI>Often a plug-in may require a standard interface into both objects
+	in the datastore and objects not yet in the datastore (such as the
+	mutable objects).  Such an interface may be useful when a plug-in must
+	display both data from the datastore and data currently being edited.
+	<P>
+	Therefore, an interface may be provided which contains getters
+	for the scalar properties and perhaps some of the other methods such
+	as the methods for getting the objects contained in a list within
+	the property set.  The property set implementation class implements
+	this class.
+	<P>
+	There is another use for such an interface.  Sometimes the editing or
+	displaying of one property may depend on the value of another property.
+	An example is the amount fields in a bank account.  The formatting
+	depends on the currency property.  When the user changes the selection
+	in the currency drop down list, the amount controls must be notified.
+	The rules for the editors are standardized, because generalized property
+	editors would not otherwise know how to edit the properties.  An interface
+	may or may not be useful here. 
+	TODO: think about this some more.
+	<P>
+	Yet another reason for providing such an interface.  This allows the
+	classes that implement extension property sets to also support getters
+	and list iterators from the base property set.  Indeed, a base property
+	set implementation can provide not only such an interface but also an abstract
+	class that implements the interface and provides a useful class from which
+	extension property set classes can be derived.	
+	<P>
+TODO: tidy up and finish this bullet.	  
+	<P>
+	</LI>
+</OL>
+
+<h3> Generalized Datastore Access </h3>
+
+Usually application developers know the model at the time that they
+write the application.  However that is not the case with the JMoney
+model because plug-ins can add properties and even entirely new classes 
+to the model.  Often the code only needs to access the properties
+it knows about, and can safely ignore any other properties.  Sometimes,
+however, code must be able to find out about all properties dynamically
+at runtime.  For example, the account properties tab shows all the properties
+of an account.  If a plug-in adds more properties to the account objects
+then those properties appear in the account properties tab.
+<P>
+To discover and process properties dynamically, look at the
+PropertySet and the PropertyAccessor classes.  The account properties
+tab (net.sf.jmoney.bookkeepingPages.AccountPropertiesPages)
+gives an example of accessing all the properties of a object
+dynamically.  The net.sf.jmoney.copier plug-in reads all the data
+from one datastore and writes it to another.  This is more complete
+example because it must discover all the classes of objects, the
+lists of objects contained in other objects, etc.
+This plug-in knows nothing about the model but gets all it
+needs to know about the model from the PropertySet and PropertyAccessor
+class instances.
+<P>
+
+
+
+
+<p>
+The JMoney architecture supports multiple storage methods.  You may keep all
+the accounting data for a session in memory, serializing it to disk when you
+save the session to disk and de-serializing it when you load a session from
+disk.  Alternatively, you may keep the accounting data in a transactional
+database, using perhaps JDBC or some other technology.
+</p>
+<p>
+
+<h2> Accessing Extended Properties </h2>
+
+Plug-ins may extend any of the database model interfaces and add properties.
+The plug-in development section gives more detail on this.
+</p>
+<p>
+Extension objects also implement the interface to the object being extended.
+For example, an extension object that adds additional properties to an entry
+object will itself implement the Entry interface.  Extension properties and
+core properties are thus provided in a single interface.
+
+In many cases, when the framework passes an object to a plug-in, it does not
+pass the base object but will pass the extension object appropriate for
+the plug-in.  The plug-in thus gains access to its extension properties.
+
+In other cases the plug-in will have the base object but may want to access
+an extension property.  There are two ways the plug-in can do this.
+
+<ul>
+<li>
+Each of the data model interfaces contains a method to get the value of
+a property, given an object that identifies that property.
+For example, to get an extension property for an entry, call
+<em>getPropertyValue(PropertyAccessor)</em> in the Entry interface.
+</li>
+<li>
+Every object in the data model contains a method to get the
+extension object for any plug-in.
+For example, to get the extension interface for an entry, 
+call <em>getExtension(Class)</em> in the Entry interface
+and pass the PropertySet object.  Cast the result
+to the object that implements the extension properties
+for the given plug-in.
+<P>
+It is likely that most extension properties will be set to the default value.
+For efficiency, if all the properties in an extension property set contain the
+default values then no extension object is constructed.  When requesting an
+extension object, the caller may indicate whether a null value may be returned
+when all the properties contain default values.  It is more efficient to allow
+a null value to be returned, especially if scanning a large set of objects.
+The caller must request non-null values only if the caller is going to set
+any of the extension properties.
+</li>
+</ul>
+
+
+
+</body></html>

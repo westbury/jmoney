@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Reconciliation Plug-in
+Bundle-SymbolicName: net.sf.jmoney.reconciliation; singleton:=true
+Bundle-Version: 1.0.0
+Bundle-Activator: net.sf.jmoney.reconciliation.ReconciliationPlugin
+Export-Package: net.sf.jmoney.reconciliation,
+ net.sf.jmoney.reconciliation.reconcilePage
+Require-Bundle: net.sf.jmoney,
+ org.eclipse.core.runtime,
+ org.eclipse.ui,
+ org.eclipse.ui.forms,
+ org.eclipse.core.expressions,
+ net.sf.jmoney.importer
+Bundle-ActivationPolicy: lazy
+Bundle-Vendor: JMoney.sf.net
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

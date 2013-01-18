@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+<plugin>
+   <extension
+         point="net.sf.jmoney.qif.importers">
+      <importer
+            class="net.sf.jmoney.qifstock.InvestmentImporter">
+      </importer>
+   </extension>
+
+	<extension point="org.eclipse.ui.importWizards">
+		<wizard id="net.sf.jmoney.qif-stock.BrokerageDownloadImportWizard"
+			name="QIF Brokerage Download Import"
+			class="net.sf.jmoney.qifstock.QifBrokerageDownloadImportWizard">
+			<description>
+				Import data from a QIF (Quicken Import) file that has been downloaded from a stock brokerage site and that contains stock transactions. 
+			</description>
+		</wizard>
+	</extension>
+ 
+</plugin>

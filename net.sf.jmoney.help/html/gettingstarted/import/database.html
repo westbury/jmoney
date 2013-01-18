@@ -1,0 +1,42 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>Importing your data from a database</title>
+</head>
+
+<body>
+
+<h1>Using a Proprietary Database as a JMoney Datastore</h1>
+
+<p>If you have accounting data stored in a database, you can
+continue to use the same database as a back-end for JMoney. There is no
+need for any data conversion and, furthermore, you can use JMoney and
+you existing accounting software side by side.</p>
+
+<p>This does require some development work. You will need to write a
+plug-in that supports your database. The plug-in must have
+implementations that can materialize the various accounting objects
+(accounts, currencies, transactions) upon request from data in the
+database and implementations of iterators that return lists of objects
+from the database (e.g. a list of all entries in a given account). The
+plug-in decides what is cached in memory and what is read from the
+database upon demand.</p>
+
+<h2>What if I do not want to develop a plug-in for my database?</h2>
+
+<p>If you do not want to continue to use your existing database then
+you can more simply convert the data to a format that can be read by
+JMoney. If you current accounting program supports export to Quicken
+Interchange Format (QIF) then you can import your data into JMoney using
+QIF files.</p>
+
+<p>If your accounting software does not support QIF or if the QIF
+export process drops information that you want to keep then you can
+write a script to convert the data to XML format (which can be read by
+JMoney) or you can write a simple plug-in that can read your data from
+the database and import into JMoney.
+<p>
+</body>
+</html>

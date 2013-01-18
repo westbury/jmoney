@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+     <extension-point id="bankstatements" name="Bank Statements" schema="schema/bankStatements.exsd"/>
+
+   <extension
+         point="net.sf.jmoney.pages">
+      <pages
+            class="net.sf.jmoney.reconciliation.reconcilePage.ReconcileBookkeepingPage"
+            extendable-property-set="net.sf.jmoney.currencyAccount"
+            id="reconcile">
+      </pages>
+   </extension>
+
+   <extension
+         point="net.sf.jmoney.fields">
+      
+      <extension-property-set
+      	id="accountProperties"
+          info-class="net.sf.jmoney.reconciliation.ReconciliationAccountInfo"
+	      extendable-property-set="net.sf.jmoney.capitalAccount">
+      </extension-property-set>
+      
+      <extension-property-set
+      	id="entryProperties"
+          info-class="net.sf.jmoney.reconciliation.ReconciliationEntryInfo"
+	      extendable-property-set="net.sf.jmoney.entry">
+      </extension-property-set>
+   </extension>
+
+   <extension
+         point="net.sf.jmoney.reconciliation.bankstatements">
+        <statement-source
+           id="qifimport" 
+           description="A Quicken Import File (*.QIF)" 
+           class="net.sf.jmoney.reconciliation.QifImport">
+        </statement-source> 
+   </extension>
+
+   <extension
+         point="net.sf.jmoney.reconciliation.bankstatements">
+        <statement-source
+           id="ofximport" 
+           description="A Financial Exchange File (*.OFX or *.QFX)" 
+           class="net.sf.jmoney.reconciliation.OfxImport">
+        </statement-source> 
+   </extension>
+   
+   <extension
+         point="org.eclipse.ui.menus">
+      <menuContribution
+            locationURI="popup:org.eclipse.ui.popup.any">
+         <command
+               commandId="net.sf.jmoney.reconciliation.openImportPatternsHandler"
+               label="Open Import Patterns..."
+               style="push">
+            <visibleWhen>
+               <with
+                     variable="activeMenuSelection">
+                  <and>
+                     <count
+                           value="1">
+                     </count>
+                     <iterate
+                           operator="and">
+                        <instanceof
+                              value="net.sf.jmoney.model2.CapitalAccount">
+                        </instanceof>
+                     </iterate>
+                  </and>
+               </with>
+            </visibleWhen>
+         </command>
+      </menuContribution>
+   </extension>
+   <extension
+         point="org.eclipse.ui.commands">
+      <command
+            defaultHandler="net.sf.jmoney.reconciliation.navigator.OpenImporterOptionsHandler"
+            id="net.sf.jmoney.reconciliation.openImportPatternsHandler"
+            name="Open Import Patterns">
+      </command>
+   </extension>
+
+</plugin>

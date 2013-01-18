@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Currency Page Plug-in
+Bundle-SymbolicName: net.sf.jmoney.currencypage; singleton:=true
+Bundle-Version: 1.0.0
+Bundle-Activator: net.sf.jmoney.currencypage.CurrencyPagePlugin
+Bundle-Localization: plugin
+Export-Package: net.sf.jmoney.currencypage
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ net.sf.jmoney,
+ org.eclipse.ui.forms
+Bundle-ActivationPolicy: lazy
+Bundle-Vendor: JMoney.sf.net
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

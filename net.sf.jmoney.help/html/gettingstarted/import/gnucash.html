@@ -1,0 +1,51 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>Importing your data from GnuCash</title>
+</head>
+
+<body>
+<h1>GnuCash</h1>
+
+<p>You can load your GnuCash data into JMoney simply by opening the
+GnuCash file from the <b>File &gt; Open</b> menu.</p>
+
+Problems:
+<ul>
+	<li>There is no 'Open...' in the File menu: You do not have the
+	net.sf.jmoney.serializeddatastore plug-in installed.</li>
+	<li>The open dialog box does not list 'GnuCash files (*.*)' as a
+	file type: You do not have the net.sf.jmoney.gnucash plug-in installed.
+	</li>
+</ul>
+
+<h2>Saving the data</h2>
+
+<p>When it comes to saving your data, you have two choices. You may
+save it a GnuCash file, or you may save the data in the JMoney format.
+If you save your data in GnuCash format then JMoney will automatically
+load the accounting data from your GnuCash file when it is started and
+will save it back when you exit JMoney or select Save from the File
+menu.</p>
+
+<p>The advantage of saving the data in GnuCash format is that you
+may switch back and forth between using GnuCash and using JMoney. (Just
+don't have both applications running with the same file open at the same
+time).</p>
+
+<p>The advantag of saving the data in JMoney format is that the
+JMoney format can store accounting data stored in properties that were
+added by plug-ins. The GnuCash format, on the other hand, can store only
+the properties supported by GnuCash. The GnuCash format can store all
+the properties supported by the basic JMoney plug-ins. However, other
+JMoney plug-ins may add properties to the accounting objects. The JMoney
+format will always be able to store these properties but the GnuCash
+format may not be able to store them.</p>
+
+<p>To save the data back to file, select <b>File &gt; Save</b> from
+the menu. If you want to save to a different file or the data was not
+loaded from a GnuCash file, select <b>File &gt; Save As</b>.</p>
+</body>
+</html>

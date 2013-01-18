@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+   <extension
+         point="net.sf.jmoney.pages">
+         
+      <pages
+            class="net.sf.jmoney.property.pages.ListOfRealPropertyPage"
+            extendable-property-set="net.sf.jmoney.property.realPropertyAccount"
+            id="entries"
+            position="1">
+      </pages>
+   </extension>
+
+   <extension
+         point="org.eclipse.ui.commands">
+      <command
+            name="%Commands.showStockDetails"
+            id="net.sf.jmoney.stock.showStockDetails"/>
+   </extension>
+	   
+<extension point="org.eclipse.ui.menus">
+     <menuContribution locationURI="menu:navigate?after=openEditors">
+        <command
+              commandId="net.sf.jmoney.stock.showStockDetails"/>
+     </menuContribution>
+
+</extension>
+   <extension
+         point="org.eclipse.ui.navigator.viewer">
+      <viewer
+            viewerId="net.sf.jmoney.navigationView">
+      </viewer>
+      <viewerContentBinding
+            viewerId="net.sf.jmoney.navigationView">
+         <includes>
+            <contentExtension
+                  isRoot="true"
+                  pattern="net.sf.jmoney.realProperty.realPropertyContent">
+            </contentExtension>
+         </includes>
+      </viewerContentBinding>
+   </extension>
+
+   <extension
+         point="org.eclipse.ui.navigator.navigatorContent">
+      <navigatorContent
+            activeByDefault="true"
+            id="net.sf.jmoney.realProperty.realPropertyContent"
+            contentProvider="net.sf.jmoney.property.navigator.RealPropertiesContentProvider"
+            labelProvider="net.sf.jmoney.property.navigator.RealPropertyLabelProvider"
+            name="Real Property Content"
+            priority="low">
+         <triggerPoints>
+            <or>
+               <instanceof
+                     value="net.sf.jmoney.model2.DatastoreManager">
+               </instanceof>
+            </or>
+         </triggerPoints>
+         <possibleChildren>
+         <or>
+               <instanceof
+                     value="net.sf.jmoney.property.model.RealProperty">
+               </instanceof>
+               <instanceof
+                     value="net.sf.jmoney.property.views.RealPropertyTypeNode">
+               </instanceof>
+         </or>
+         </possibleChildren>
+      <actionProvider
+            class="net.sf.jmoney.property.navigator.RealPropertyActionProvider"
+            id="net.sf.jmoney.property.realPropertyActionProvider">
+      </actionProvider>
+      </navigatorContent>
+   </extension>
+
+   <extension
+         point="net.sf.jmoney.fields">
+      <extendable-property-set
+      	id="realProperty"
+          info-class="net.sf.jmoney.property.model.RealPropertyInfo"
+          base-property-set="net.sf.jmoney.commodity">
+      </extendable-property-set>
+      <extendable-property-set
+      	id="realPropertyAccount"
+          info-class="net.sf.jmoney.property.model.RealPropertyAccountInfo"
+          base-property-set="net.sf.jmoney.capitalAccount">
+      </extendable-property-set>
+      <extension-property-set
+      	id="entryProperties"
+          info-class="net.sf.jmoney.property.model.RealPropertyEntryInfo"
+	      extendable-property-set="net.sf.jmoney.entry">
+      </extension-property-set>
+   </extension>
+</plugin>

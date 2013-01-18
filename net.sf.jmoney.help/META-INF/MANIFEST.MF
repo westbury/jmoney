@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: JMoney Help Plug-in
+Bundle-SymbolicName: net.sf.jmoney.help; singleton:=true
+Bundle-Version: 1.0.0
+Bundle-Vendor: JMoney.sf.net
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

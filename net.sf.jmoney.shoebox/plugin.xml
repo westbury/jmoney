@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+<plugin>
+
+   <extension-point id="templates" name="Shoebox Transaction Templates" schema="schema/shoeboxTemplates.exsd"/>
+
+<extension point="org.eclipse.ui.menus">
+     <menuContribution locationURI="menu:navigate?after=openEditors">
+        <command commandId="net.sf.jmoney.command.openEditor"
+                 label="%navigationTreeLabel"
+                 icon="icons/shoebox.gif"
+                 tooltip="Open Receipt Entry Editor">
+           <parameter
+                 name="net.sf.jmoney.openEditor.editorId"
+                 value="net.sf.jmoney.shoebox.editor">
+           </parameter>
+        </command>
+     </menuContribution>
+     <menuContribution locationURI="toolbar:main?after=openEditors">
+        <command commandId="net.sf.jmoney.command.openEditor"
+                 icon="icons/shoebox.gif"
+                 tooltip="Open Receipt Entry Editor">
+           <parameter
+                 name="net.sf.jmoney.openEditor.editorId"
+                 value="net.sf.jmoney.shoebox.editor">
+           </parameter>
+        </command>
+     </menuContribution>
+</extension>
+ 
+   <extension
+         point="org.eclipse.ui.editors">
+      <editor
+            id="net.sf.jmoney.shoebox.editor"
+            name="Receipt Entry Editor"
+            icon="icons/shoebox.gif"
+            class="net.sf.jmoney.shoebox.ShoeboxEditor">
+      </editor>
+   </extension>
+
+   <extension
+         point="net.sf.jmoney.shoebox.templates">
+      <template
+            id="credit"
+            class="net.sf.jmoney.shoebox.templates.CreditTemplate"
+            position="1">
+      </template>
+      <template
+            id="debit"
+            class="net.sf.jmoney.shoebox.templates.DebitTemplate"
+            position="2">
+      </template>
+      <template
+            id="transfer"
+            class="net.sf.jmoney.shoebox.templates.TransferTemplate"
+            position="3">
+      </template>
+   </extension>
+   
+</plugin>

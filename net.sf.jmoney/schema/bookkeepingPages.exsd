@@ -1,0 +1,154 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Schema file written by PDE -->
+<schema targetNamespace="net.sf.jmoney" xmlns="http://www.w3.org/2001/XMLSchema">
+<annotation>
+      <appinfo>
+         <meta.schema plugin="net.sf.jmoney" id="pages" name="Bookkeeping Pages"/>
+      </appinfo>
+      <documentation>
+         Add a page to an editor.  
+         A page may be specific to any object type that is listed
+         in the navigation view.  When an object is selected in the
+         navigation view, all appropriate pages that have 
+         been added through this extension point will be shown in 
+         the editor window.
+         Filtering may be done not only on the object type, 
+         but also on the object id and also may be filtered 
+         based on the value of properties in the selected object.
+         If a node element is specified then a node will be added
+         to the navigation view if one does not already exist.
+         A node may only be added if the page is filtered on node
+         id (the nodeId attribute is specified on the page element).
+      </documentation>
+   </annotation>
+
+   <element name="extension">
+      <annotation>
+         <appinfo>
+            <meta.element />
+         </appinfo>
+      </annotation>
+      <complexType>
+         <sequence>
+            <element ref="pages" minOccurs="0" maxOccurs="unbounded"/>
+         </sequence>
+         <attribute name="point" type="string" use="required">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="id" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="name" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <element name="pages">
+      <complexType>
+         <attribute name="id" type="string">
+            <annotation>
+               <documentation>
+                  An id must be specified and it must be unique
+                  within the set of pages added by a plug-in.
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="class" type="string">
+            <annotation>
+               <documentation>
+                  Class must implement IBookkeepingPages.
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="node" type="string">
+            <annotation>
+               <documentation>
+                  The fully qualified id of a node.  This page
+                  will be shown whenever the node of the given
+                  id is selected.
+                  This attribute is optional.
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="extendable-property-set" type="string">
+            <annotation>
+               <documentation>
+                  The fully qualified id of an extendable property set.
+                  Extension property sets may not be specified.
+                  The page will be shown whenever a node is selected
+                  that represents an object that contains the given
+                  property set.
+                  This attribute is optional.
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="position" type="string">
+            <annotation>
+               <documentation>
+                  A number in the range 0 to 10.
+Pages will be ordered according to this value.
+               </documentation>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="since"/>
+      </appinfo>
+      <documentation>
+         [Enter the first release in which this extension point appears.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="examples"/>
+      </appinfo>
+      <documentation>
+         [Enter extension point usage example here.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="apiInfo"/>
+      </appinfo>
+      <documentation>
+         [Enter API information here.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="implementation"/>
+      </appinfo>
+      <documentation>
+         [Enter information about supplied implementation of this extension point.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="copyright"/>
+      </appinfo>
+      <documentation>
+         Copyright (c) 2004 Nigel Westbury (westbury@users.sourceforge.net)
+      </documentation>
+   </annotation>
+
+</schema>

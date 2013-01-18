@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Quicken Interchange Format Plug-in
+Bundle-SymbolicName: net.sf.jmoney.qif; singleton:=true
+Bundle-Version: 1.0.0
+Bundle-Activator: net.sf.jmoney.qif.QIFPlugin
+Bundle-Localization: plugin
+Export-Package: net.sf.jmoney.qif,
+ net.sf.jmoney.qif.parser,
+ net.sf.jmoney.qif.resources
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ net.sf.jmoney,
+ net.sf.jmoney.importer
+Bundle-ActivationPolicy: lazy
+Bundle-Vendor: JMoney.sf.net
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Datastore Copier Plug-in
+Bundle-SymbolicName: net.sf.jmoney.copier; singleton:=true
+Bundle-Version: 1.0.0
+Bundle-Activator: net.sf.jmoney.copier.CopierPlugin
+Bundle-Localization: plugin
+Export-Package: net.sf.jmoney.copier,
+ net.sf.jmoney.copier.actions
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ net.sf.jmoney,
+ org.eclipse.core.databinding.property
+Bundle-ActivationPolicy: lazy
+Bundle-Vendor: JMoney.sf.net
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?pde version="3.4"?>
+
+<product name="JMoney RCP" id="net.sf.jmoney.product" application="net.sf.jmoney.JMoneyApplication" version="1.0pre3" useFeatures="false">
+
+   <aboutInfo>
+      <image path="/net.sf.jmoney/icons/JMoney128.gif"/>
+      <text>
+         JMoney RCP
+
+Version: 1.0pre3 (20090126)
+
+(c) Copyright JMoney contributors and others 2000, 2008.  All rights reserved.
+Visit http://jmoney.sourceforge.net
+
+This product includes software developed by the
+Eclipse Foundation http://www.eclipse.org/
+      </text>
+   </aboutInfo>
+
+   <configIni use="default">
+   </configIni>
+
+   <launcherArgs>
+      <programArgs>-nl en_US</programArgs>
+   </launcherArgs>
+
+   <windowImages i16="/net.sf.jmoney/icons/JMoney16.gif" i32="/net.sf.jmoney/icons/JMoney32.gif" i128="/net.sf.jmoney/icons/JMoney128.gif"/>
+
+   <splash
+      location="net.sf.jmoney"
+      startupProgressRect="5,275,445,15"
+      startupMessageRect="7,252,445,20"
+      startupForegroundColor="000000" />
+   <launcher name="jmoney">
+      <macosx icon="/net.sf.jmoney/icons/JMoney.icns"/>
+      <solaris/>
+      <win useIco="true">
+         <ico path="/net.sf.jmoney/icons/JMoney.ico"/>
+         <bmp/>
+      </win>
+   </launcher>
+
+   <intro introId="net.sf.jmoney.intro"/>
+
+   <vm>
+   </vm>
+
+   <plugins>
+      <plugin id="com.ibm.icu"/>
+      <plugin id="com.lowagie.itext"/>
+      <plugin id="javax.activation"/>
+      <plugin id="javax.mail"/>
+      <plugin id="javax.servlet"/>
+      <plugin id="javax.servlet.jsp"/>
+      <plugin id="javax.wsdl"/>
+      <plugin id="javax.xml"/>
+      <plugin id="javax.xml.rpc"/>
+      <plugin id="javax.xml.soap"/>
+      <plugin id="net.sf.jmoney"/>
+      <plugin id="net.sf.jmoney.copier"/>
+      <plugin id="net.sf.jmoney.currencypage"/>
+      <plugin id="net.sf.jmoney.gnucashXML"/>
+      <plugin id="net.sf.jmoney.help"/>
+      <plugin id="net.sf.jmoney.jdbcdatastore"/>
+      <plugin id="net.sf.jmoney.oda"/>
+      <plugin id="net.sf.jmoney.oda.ui"/>
+      <plugin id="net.sf.jmoney.paypal"/>
+      <plugin id="net.sf.jmoney.propagators.reconciliation"/>
+      <plugin id="net.sf.jmoney.qif"/>
+      <plugin id="net.sf.jmoney.qif_stock"/>
+      <plugin id="net.sf.jmoney.reconciliation"/>
+      <plugin id="net.sf.jmoney.search"/>
+      <plugin id="net.sf.jmoney.serializeddatastore"/>
+      <plugin id="net.sf.jmoney.shoebox"/>
+      <plugin id="net.sf.jmoney.stocks"/>
+      <plugin id="org.apache.ant"/>
+      <plugin id="org.apache.axis"/>
+      <plugin id="org.apache.batik.bridge"/>
+      <plugin id="org.apache.batik.css"/>
+      <plugin id="org.apache.batik.dom"/>
+      <plugin id="org.apache.batik.dom.svg"/>
+      <plugin id="org.apache.batik.ext.awt"/>
+      <plugin id="org.apache.batik.parser"/>
+      <plugin id="org.apache.batik.svggen"/>
+      <plugin id="org.apache.batik.transcoder"/>
+      <plugin id="org.apache.batik.util"/>
+      <plugin id="org.apache.batik.util.gui"/>
+      <plugin id="org.apache.batik.xml"/>
+      <plugin id="org.apache.commons.codec"/>
+      <plugin id="org.apache.commons.discovery"/>
+      <plugin id="org.apache.commons.el"/>
+      <plugin id="org.apache.commons.logging"/>
+      <plugin id="org.apache.jasper"/>
+      <plugin id="org.apache.lucene"/>
+      <plugin id="org.apache.lucene.analysis"/>
+      <plugin id="org.apache.xerces"/>
+      <plugin id="org.apache.xml.resolver"/>
+      <plugin id="org.apache.xml.serializer"/>
+      <plugin id="org.eclipse.ant.core"/>
+      <plugin id="org.eclipse.birt.chart.engine"/>
+      <plugin id="org.eclipse.birt.core"/>
+      <plugin id="org.eclipse.birt.data"/>
+      <plugin id="org.eclipse.birt.data.aggregation"/>
+      <plugin id="org.eclipse.birt.report.data.adapter"/>
+      <plugin id="org.eclipse.birt.report.engine"/>
+      <plugin id="org.eclipse.birt.report.engine.dataextraction"/>
+      <plugin id="org.eclipse.birt.report.engine.emitter.html"/>
+      <plugin id="org.eclipse.birt.report.engine.fonts"/>
+      <plugin id="org.eclipse.birt.report.item.crosstab.core"/>
+      <plugin id="org.eclipse.birt.report.model"/>
+      <plugin id="org.eclipse.birt.report.viewer"/>
+      <plugin id="org.eclipse.core.commands"/>
+      <plugin id="org.eclipse.core.contenttype"/>
+      <plugin id="org.eclipse.core.databinding"/>
+      <plugin id="org.eclipse.core.expressions"/>
+      <plugin id="org.eclipse.core.filebuffers"/>
+      <plugin id="org.eclipse.core.filesystem"/>
+      <plugin id="org.eclipse.core.filesystem.win32.x86" fragment="true"/>
+      <plugin id="org.eclipse.core.jobs"/>
+      <plugin id="org.eclipse.core.net"/>
+      <plugin id="org.eclipse.core.net.win32.x86" fragment="true"/>
+      <plugin id="org.eclipse.core.resources"/>
+      <plugin id="org.eclipse.core.resources.compatibility" fragment="true"/>
+      <plugin id="org.eclipse.core.resources.win32.x86" fragment="true"/>
+      <plugin id="org.eclipse.core.runtime"/>
+      <plugin id="org.eclipse.core.runtime.compatibility.auth"/>
+      <plugin id="org.eclipse.core.runtime.compatibility.registry" fragment="true"/>
+      <plugin id="org.eclipse.core.variables"/>
+      <plugin id="org.eclipse.datatools.connectivity"/>
+      <plugin id="org.eclipse.datatools.connectivity.db.generic"/>
+      <plugin id="org.eclipse.datatools.connectivity.oda"/>
+      <plugin id="org.eclipse.datatools.connectivity.oda.consumer"/>
+      <plugin id="org.eclipse.datatools.connectivity.oda.design"/>
+      <plugin id="org.eclipse.datatools.connectivity.oda.design.ui"/>
+      <plugin id="org.eclipse.datatools.connectivity.oda.profile"/>
+      <plugin id="org.eclipse.datatools.connectivity.sqm.core"/>
+      <plugin id="org.eclipse.datatools.connectivity.ui"/>
+      <plugin id="org.eclipse.datatools.help"/>
+      <plugin id="org.eclipse.datatools.modelbase.dbdefinition"/>
+      <plugin id="org.eclipse.datatools.modelbase.sql"/>
+      <plugin id="org.eclipse.emf.common"/>
+      <plugin id="org.eclipse.emf.ecore"/>
+      <plugin id="org.eclipse.emf.ecore.change"/>
+      <plugin id="org.eclipse.emf.ecore.xmi"/>
+      <plugin id="org.eclipse.equinox.app"/>
+      <plugin id="org.eclipse.equinox.common"/>
+      <plugin id="org.eclipse.equinox.http.jetty"/>
+      <plugin id="org.eclipse.equinox.http.registry"/>
+      <plugin id="org.eclipse.equinox.http.servlet"/>
+      <plugin id="org.eclipse.equinox.jsp.jasper"/>
+      <plugin id="org.eclipse.equinox.jsp.jasper.registry"/>
+      <plugin id="org.eclipse.equinox.preferences"/>
+      <plugin id="org.eclipse.equinox.registry"/>
+      <plugin id="org.eclipse.equinox.security"/>
+      <plugin id="org.eclipse.equinox.security.win32.x86" fragment="true"/>
+      <plugin id="org.eclipse.help"/>
+      <plugin id="org.eclipse.help.appserver"/>
+      <plugin id="org.eclipse.help.base"/>
+      <plugin id="org.eclipse.help.ui"/>
+      <plugin id="org.eclipse.help.webapp"/>
+      <plugin id="org.eclipse.jface"/>
+      <plugin id="org.eclipse.jface.databinding"/>
+      <plugin id="org.eclipse.jface.text"/>
+      <plugin id="org.eclipse.ltk.core.refactoring"/>
+      <plugin id="org.eclipse.osgi"/>
+      <plugin id="org.eclipse.osgi.services"/>
+      <plugin id="org.eclipse.swt"/>
+      <plugin id="org.eclipse.swt.win32.win32.x86" fragment="true"/>
+      <plugin id="org.eclipse.text"/>
+      <plugin id="org.eclipse.ui"/>
+      <plugin id="org.eclipse.ui.forms"/>
+      <plugin id="org.eclipse.ui.ide"/>
+      <plugin id="org.eclipse.ui.intro"/>
+      <plugin id="org.eclipse.ui.intro.universal"/>
+      <plugin id="org.eclipse.ui.navigator"/>
+      <plugin id="org.eclipse.ui.views"/>
+      <plugin id="org.eclipse.ui.views.log"/>
+      <plugin id="org.eclipse.ui.win32" fragment="true"/>
+      <plugin id="org.eclipse.ui.workbench"/>
+      <plugin id="org.eclipse.update.configurator"/>
+      <plugin id="org.eclipse.update.core"/>
+      <plugin id="org.eclipse.update.core.win32" fragment="true"/>
+      <plugin id="org.eclipse.update.ui"/>
+      <plugin id="org.junit"/>
+      <plugin id="org.mortbay.jetty"/>
+      <plugin id="org.mozilla.rhino"/>
+      <plugin id="org.w3c.css.sac"/>
+      <plugin id="org.w3c.dom.smil"/>
+      <plugin id="org.w3c.dom.svg"/>
+      <plugin id="org.w3c.sac"/>
+   </plugins>
+
+</product>

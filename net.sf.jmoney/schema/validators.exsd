@@ -1,0 +1,110 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Schema file written by PDE -->
+<schema targetNamespace="net.sf.jmoney">
+<annotation>
+      <appInfo>
+         <meta.schema plugin="net.sf.jmoney" id="vetos" name="Datastore Change Validators"/>
+      </appInfo>
+      <documentation>
+         Many of the views in JMoney allow the user to edit the
+data without restriction.  This causes a problem because the user
+may edit data in such a way that it is inconsistent with what
+a plug-in may expect.
+
+For example, consider the plug-in that reconciles bank statements.
+Once a user has reconciled a bank statement, it is marked as such.
+Now suppose the user goes into the account entries view and edits
+the amount for an entry that has been reconciled.  The bank statement
+will be marked as reconciled but in fact the balance will no longer
+match the bank&apos;s total.
+
+The solution to this problem is to notify plug-ins of changes and
+allow them to either give warnings to the user to veto the change.
+
+A single call is made to each extension for each datastore transaction that
+is committed.  This allows the extension to consider the transaction as a whole.
+For example, if one reconciled entry were deleted and two new reconciled
+entries were inserted that add to the same amount then the reconciliation
+plug-in could decide to allow the change.
+      </documentation>
+   </annotation>
+
+   <element name="extension">
+      <complexType>
+         <sequence>
+         </sequence>
+         <attribute name="point" type="string" use="required">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="id" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="name" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="since"/>
+      </appInfo>
+      <documentation>
+         1.0
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="examples"/>
+      </appInfo>
+      <documentation>
+         &lt;extension
+         point=&quot;net.sf.jmoney.validators&quot;&gt;
+      &lt;session
+            class=&quot;[class implementing IChangeValidator]&quot;&gt;
+      &lt;/session&gt;
+   &lt;/extension&gt;
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="apiInfo"/>
+      </appInfo>
+      <documentation>
+         [Enter API information here.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="implementation"/>
+      </appInfo>
+      <documentation>
+         [Enter information about supplied implementation of this extension point.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="copyright"/>
+      </appInfo>
+      <documentation>
+         Copyright (c) 2006 Nigel Westbury (westbury@users.sourceforge.net)
+      </documentation>
+   </annotation>
+
+</schema>

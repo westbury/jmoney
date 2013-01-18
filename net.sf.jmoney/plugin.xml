@@ -1,0 +1,566 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+   <extension-point id="pages" name="Bookkeeping Pages" schema="schema/bookkeepingPages.exsd"/>
+   <extension-point id="fields" name="Extension Fields in Datastore Objects" schema="schema/fields.exsd"/>
+   <extension-point id="propagators" name="Property Propagators" schema="schema/propagators.exsd"/>
+   <extension-point id="datastores" name="Datastore Implementations" schema="schema/datastores.exsd"/>
+   <extension-point id="validators" name="Change Validators" schema="schema/validators.exsd"/>
+   <extension-point id="dropHandlers" name="Imports Dropped Files" schema="schema/dropHandlers.exsd"/>
+
+   <extension
+      point="org.eclipse.core.runtime.products"
+      id="product">
+      <product
+            application="net.sf.jmoney.JMoneyApplication"
+            name="JMoney RCP">
+         <property
+               name="appName"
+               value="JMoney RCP"/>
+         <property
+               name="aboutText"
+               value="JMoney RCP&#x0A;&#x0A;Version: 1.0pre3 (20090126)&#x0A;&#x0A;(c) Copyright JMoney contributors and others 2000, 2008.  All rights reserved.&#x0A;Visit http://jmoney.sourceforge.net&#x0A;&#x0A;This product includes software developed by the&#x0A;Eclipse Foundation http://www.eclipse.org/"/>
+         <property
+               name="aboutImage"
+               value="icons/JMoney128.gif"/>
+         <property
+               name="preferenceCustomization"
+               value="plugin_customization.ini"/>
+	      <property
+	            name="introTitle"
+	            value="Welcome to JMoney"/>
+	      <property
+	            name="introBrandingImage"
+	            value="product:jmoney.png"/>
+	      <property
+	            name="introBrandingImageText"
+	            value="JMoney.sf.net"/>
+		  <property
+				name="introDescription-firststeps"
+				value="This introduction will help you get started using JMoney. If you are already familiar with JMoney, you may close this intro. If you have used JMoney before it was switched over to be Eclipse based version then you can open your JMX files as before and, despite a different look, you should have little difficulty using this new version of JMoney."/>
+         <property
+               name="windowImages"
+               value="icons/JMoney16.gif,icons/JMoney32.gif,icons/JMoney128.gif"/>
+         <property
+               name="startupForegroundColor"
+               value="000000">
+         </property>
+         <property
+               name="startupMessageRect"
+               value="7,252,445,20">
+         </property>
+         <property
+               name="startupProgressRect"
+               value="5,275,445,15">
+         </property>
+      </product>          
+   </extension>
+    
+   <extension
+         id="JMoneyApplication"
+         name="JMoneyName"
+         point="org.eclipse.core.runtime.applications">
+      <application>
+         <run
+               class="net.sf.jmoney.JMoneyApplication">
+         </run>
+      </application>
+   </extension>
+   
+	<extension point="org.eclipse.ui.intro">
+		<introProductBinding 
+			productId="net.sf.jmoney.product"
+			introId="org.eclipse.ui.intro.universal"/>
+	</extension>
+
+    <extension
+         point="org.eclipse.ui.intro.configExtension">
+      <configExtension
+            configId="org.eclipse.ui.intro.universalConfig"
+            content="$nl$/intro/firststepsExtensionContent.xml"/>  
+   </extension>
+   
+	<extension
+          point="org.eclipse.core.runtime.preferences">
+		<initializer class="net.sf.jmoney.JMoneyPreferenceInitializer"/>
+	</extension>
+
+	<extension
+         point="org.eclipse.ui.perspectives">
+      <perspective
+            name="JMoney Accounting"
+      		icon="icons/JMoney16.gif"
+            class="net.sf.jmoney.JMoneyPerspective"
+            id="net.sf.jmoney.JMoneyPerspective">
+      </perspective>
+   </extension>
+
+   <extension
+         point="org.eclipse.ui.commands">
+      <command
+            defaultHandler="net.sf.jmoney.handlers.CloseSessionHandler"
+            id="net.sf.jmoney.closeSession"
+            name="%Commands.closeSession"/>
+      <command
+            name="%Commands.newTransaction"
+            id="net.sf.jmoney.newTransaction"/>
+      <command
+            name="%Commands.deleteTransaction"
+            id="net.sf.jmoney.deleteTransaction"/>
+      <command
+            name="%Commands.duplicateTransaction"
+            id="net.sf.jmoney.duplicateTransaction"/>
+      <command
+            name="%Commands.cutTransaction"
+            id="net.sf.jmoney.cutTransaction"/>
+      <command
+            name="%Commands.pasteCombineTransaction"
+            id="net.sf.jmoney.pasteCombineTransaction"/>
+      <command
+            name="%Commands.viewTransactionDetails"
+            id="net.sf.jmoney.transactionDetails"/>
+      <command
+            name="Open Editor"
+            id="net.sf.jmoney.command.openEditor">
+	            <commandParameter
+               id="net.sf.jmoney.openEditor.editorId"
+               name="Editor Id"
+               optional="false">
+         </commandParameter>
+      </command>
+      <command
+            name="%Commands.selectAndOpenAccount"
+            id="net.sf.jmoney.selectAndOpenAccount"/>
+   </extension>
+	   
+<extension point="org.eclipse.ui.handlers">
+    <handler
+          commandId="net.sf.jmoney.command.openEditor">
+        <enabledWhen>
+          <with variable="activeWorkbenchWindow">
+		   <test property="net.sf.jmoney.core.isSessionOpen"/>
+          </with>
+       </enabledWhen>
+        <class
+              class="net.sf.jmoney.handlers.OpenEditorHandler">
+        </class>
+    </handler>
+    <handler
+          commandId="net.sf.jmoney.selectAndOpenAccount">
+        <enabledWhen>
+          <with variable="activeWorkbenchWindow">
+		   <test property="net.sf.jmoney.core.isSessionOpen"/>
+          </with>
+       </enabledWhen>
+        <class
+              class="net.sf.jmoney.handlers.OpenAccountHandler">
+        </class>
+    </handler>
+</extension>
+
+   <extension point="org.eclipse.ui.bindings">
+      <key
+            commandId="net.sf.jmoney.newTransaction"
+            sequence="M1+N"
+            schemeId="net.sf.jmoney.accountingAcceleratorConfiguration" />
+      <key
+            commandId="net.sf.jmoney.deleteTransaction"
+ 			sequence="M1+D"
+            schemeId="net.sf.jmoney.accountingAcceleratorConfiguration"/>
+      <key
+            commandId="net.sf.jmoney.duplicateTransaction"
+            sequence="M1+U"
+            schemeId="net.sf.jmoney.accountingAcceleratorConfiguration" />
+      <key
+            commandId="net.sf.jmoney.transactionDetails"
+            sequence="M1+I"
+            schemeId="net.sf.jmoney.accountingAcceleratorConfiguration" />
+      <key
+            commandId="net.sf.jmoney.selectAndOpenAccount"
+            sequence="M1+M2+A"
+            schemeId="net.sf.jmoney.accountingAcceleratorConfiguration" />
+      <scheme
+            id="net.sf.jmoney.accountingAcceleratorConfiguration"
+            name="JMoney Scheme"
+            parentId="org.eclipse.ui.defaultAcceleratorConfiguration">
+      </scheme>
+   </extension>
+
+<!-- The toolbar contributions are made programatically.  However, there is
+a problem with the menu contributions.  They are not appearing when added
+programatically so until the problem is resolved, they are added declaratively.
+
+Note that adding items declaratively is an inferior solution because there is
+no control over the order.  It should normally only be made when plug-ins contribute
+items to an existing menu or toolbar.
+-->
+
+<extension point="org.eclipse.ui.menus">
+     <menuContribution locationURI="menu:file?after=closeSessionGroup">
+        <command
+              commandId="net.sf.jmoney.closeSession"/>
+     </menuContribution>
+
+     <menuContribution locationURI="menu:edit?after=additions">
+        <command
+              commandId="net.sf.jmoney.newTransaction"
+              icon="icons/new_entry.gif"/>
+     </menuContribution>
+
+     <menuContribution locationURI="menu:edit?after=additions">
+        <command
+              commandId="net.sf.jmoney.deleteTransaction"
+              icon="icons/delete_entry.gif"/>
+     </menuContribution>
+
+     <menuContribution locationURI="menu:edit?after=additions">
+        <command
+              commandId="net.sf.jmoney.duplicateTransaction"
+              icon="icons/duplicate_entry.gif"/>
+     </menuContribution>
+
+     <menuContribution locationURI="menu:edit?after=additions">
+        <command
+              commandId="net.sf.jmoney.cutTransaction"/>
+     </menuContribution>
+
+     <menuContribution locationURI="menu:edit?after=additions">
+        <command
+              commandId="net.sf.jmoney.pasteCombineTransaction"/>
+     </menuContribution>
+
+     <menuContribution locationURI="menu:navigate?after=openEditors">
+        <command
+              commandId="net.sf.jmoney.transactionDetails"
+              icon="icons/view_transaction.gif"/>
+     </menuContribution>
+
+     <menuContribution locationURI="menu:navigate?after=openEditors">
+        <command
+              commandId="net.sf.jmoney.selectAndOpenAccount"/>
+     </menuContribution>
+
+</extension>
+
+	<extension point="org.eclipse.ui.newWizards">
+		<wizard
+        category="net.sf.jmoney.wizards.newAccounts"
+        class="net.sf.jmoney.wizards.NewIncomeExpenseAccountWizard"
+        id="net.sf.jmoney.wizards.new.categoryaccount"
+        name="Category">
+			<description>
+				Create a new Income or Expense Account. 
+			</description>
+		</wizard>
+		<wizard
+        category="net.sf.jmoney.wizards.newAccounts"
+        class="net.sf.jmoney.wizards.NewAccountWizard"
+        id="net.sf.jmoney.wizards.new.bankaccount"
+        name="Bank Account">
+			<description>
+				Create a new Bank Account. 
+			</description>
+		</wizard>
+	</extension>
+
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            name="Preferences"
+            class="net.sf.jmoney.preferences.PreferencePage"
+            id="net.sf.jmoney.preferences.PreferencePage">
+      </page>
+   </extension>
+
+   <extension 
+   		 point="org.eclipse.ui.views">
+      <view
+            class="net.sf.jmoney.navigator.JMoneyCommonNavigator"
+            icon="icons/filenav_nav.gif"
+            id="net.sf.jmoney.navigationView"
+            name="Navigator">
+      </view>
+
+      <view
+            id="net.sf.jmoney.FeedbackView"
+            name="Feedback"
+            class="net.sf.jmoney.views.feedback.FeedbackView">
+      </view>
+   </extension>
+
+   <extension
+         point="org.eclipse.ui.editors">
+      <editor
+            id="net.sf.jmoney.accountEditor"
+            name="Account Editor"
+            icon="icons/account.gif"
+            class="net.sf.jmoney.views.AccountEditor">
+      </editor>
+   </extension>
+
+   <extension
+         point="org.eclipse.ui.elementFactories">
+        <factory 
+           id ="net.sf.jmoney.accountEditor" 
+           class="net.sf.jmoney.views.AccountEditorInputFactory">
+        </factory> 
+        <factory 
+           id ="net.sf.jmoney.sessionEditor" 
+           class="net.sf.jmoney.views.SessionEditorInputFactory">
+        </factory> 
+   </extension>
+
+   <extension
+         point="net.sf.jmoney.pages">
+<!--         
+      <node
+          id="capitalAccounts"
+	      label="%NavigationTreeModel.accounts"
+    	  icon="icons/accounts.gif"
+    	  position="100"
+    	  class="net.sf.jmoney.views.AccountsNode">
+      </node>
+
+      <node
+          id="categoriesNode"
+	      label="%NavigationTreeModel.categories"
+    	  icon="icons/category.gif"
+    	  position="200"
+    	  class="net.sf.jmoney.views.CategoriesNode">
+      </node>
+-->
+      <pages
+            class="net.sf.jmoney.pages.entries.EntriesBookkeepingPage"
+            extendable-property-set="net.sf.jmoney.currencyAccount"
+            id="entries"
+            position="1">
+      </pages>
+
+      <pages
+            class="net.sf.jmoney.pages.entries.EntriesBookkeepingPage"
+            extendable-property-set="net.sf.jmoney.categoryAccount"
+            id="categoryEntries"
+            position="1">
+      </pages>
+   </extension>
+   
+   <extension
+         point="net.sf.jmoney.fields">
+      <extendable-property-set
+      	id="session"
+          info-class="net.sf.jmoney.model2.SessionInfo">
+      </extendable-property-set>
+      <extendable-property-set
+      	id="commodity"
+          info-class="net.sf.jmoney.model2.CommodityInfo">
+      </extendable-property-set>
+      <extendable-property-set
+      	id="currency"
+          info-class="net.sf.jmoney.model2.CurrencyInfo"
+          base-property-set="net.sf.jmoney.commodity">
+      </extendable-property-set>
+      <extendable-property-set
+      	id="account"
+          info-class="net.sf.jmoney.model2.AccountInfo">
+      </extendable-property-set>
+      <extendable-property-set
+      	id="categoryAccount"
+          info-class="net.sf.jmoney.model2.IncomeExpenseAccountInfo"
+          base-property-set="net.sf.jmoney.account">
+      </extendable-property-set>
+      <extendable-property-set
+      	id="capitalAccount"
+          info-class="net.sf.jmoney.model2.CapitalAccountInfo"
+          base-property-set="net.sf.jmoney.account">
+      </extendable-property-set>
+      <extendable-property-set
+      	id="currencyAccount"
+          info-class="net.sf.jmoney.model2.CurrencyAccountInfo"
+          base-property-set="net.sf.jmoney.capitalAccount">
+      </extendable-property-set>
+      <extendable-property-set
+      	id="bankAccount"
+          info-class="net.sf.jmoney.model2.BankAccountInfo"
+          base-property-set="net.sf.jmoney.currencyAccount">
+      </extendable-property-set>
+      <extendable-property-set
+      	id="transaction"
+          info-class="net.sf.jmoney.model2.TransactionInfo">
+      </extendable-property-set>
+      <extendable-property-set
+      	id="entry"
+          info-class="net.sf.jmoney.model2.EntryInfo">
+      </extendable-property-set>
+   </extension>
+   <extension
+         point="org.eclipse.ui.navigator.viewer">
+      <viewer
+            viewerId="net.sf.jmoney.navigationView">
+          <popupMenu
+                allowsPlatformContributions="true"
+                id="net.sf.jmoney.navigator.ProjectExplorer#PopupMenu">  
+             <insertionPoint name="group.new"/>
+             <insertionPoint
+                   name="group.open"
+                   separator="true"/>
+             <insertionPoint name="group.openWith"/>   
+             <insertionPoint name="group.edit"
+                   separator="true"/>   
+             <insertionPoint name="group.reorganize" />         
+             <insertionPoint
+                   name="group.report"
+                   separator="true"/>     
+             <insertionPoint
+                   name="group.search"
+                   separator="true"/>              
+             <insertionPoint
+                   name="additions"
+                   separator="true"/>              
+             <insertionPoint
+                   name="group.properties"
+                   separator="true"/>
+             
+          </popupMenu>
+      </viewer>
+      <viewerContentBinding
+            viewerId="net.sf.jmoney.navigationView">
+         <includes>
+            <contentExtension
+                  isRoot="true"
+                  pattern="net.sf.jmoney.navigator.accountsContent">
+            </contentExtension>
+         </includes>
+      </viewerContentBinding>
+      <dragAssistant
+            class="net.sf.jmoney.navigator.AccountsDragAdapterAssistant"
+            viewerId="net.sf.jmoney.navigationView">
+      </dragAssistant>
+   </extension>
+   <extension
+         point="org.eclipse.ui.navigator.navigatorContent">
+      <navigatorContent
+            activeByDefault="true"
+            contentProvider="net.sf.jmoney.navigator.AccountsContentProvider"
+            icon="icons/accounts.gif"
+            id="net.sf.jmoney.navigator.accountsContent"
+            labelProvider="net.sf.jmoney.navigator.AccountsLabelProvider"
+            name="Accounts Content"
+            priority="high">
+         <triggerPoints>
+               <instanceof
+                     value="net.sf.jmoney.model2.DatastoreManager">
+               </instanceof>
+         </triggerPoints>
+         <possibleChildren>
+            <or>
+               <instanceof
+                     value="net.sf.jmoney.views.AccountsNode">
+               </instanceof>
+               <instanceof
+                     value="net.sf.jmoney.views.CategoriesNode">
+               </instanceof>
+               <instanceof
+                     value="net.sf.jmoney.model2.Account">
+               </instanceof>
+            </or>
+         </possibleChildren>
+         <dropAssistant
+               class="net.sf.jmoney.navigator.AccountsDropAdapterAssistant"
+               id="net.sf.jmoney.dropAssistant">
+            <possibleDropTargets>
+               <or>
+                  <instanceof
+                        value="net.sf.jmoney.model2.Account">
+                  </instanceof>
+               <instanceof
+                     value="net.sf.jmoney.views.IDynamicTreeNode">
+               </instanceof>
+               </or>
+            </possibleDropTargets>
+         </dropAssistant>
+      <actionProvider
+            class="net.sf.jmoney.navigator.AccountsActionProvider"
+            id="net.sf.jmoney.accountsActionProvider">
+      </actionProvider>
+      </navigatorContent>
+   </extension>
+
+	<extension point="org.eclipse.ui.navigator.viewer">
+	  <viewerContentBinding viewerId="net.sf.jmoney.navigationView">
+	    <includes>
+	      <contentExtension pattern="net.sf.jmoney.linkHelper"/>
+	    </includes>
+	  </viewerContentBinding>
+	</extension>
+   
+   <extension
+         point="org.eclipse.ui.navigator.linkHelper">
+      <linkHelper
+            class="net.sf.jmoney.navigator.LinkHelper"
+            id="net.sf.jmoney.linkHelper">
+         <selectionEnablement>
+            <instanceof
+                  value="net.sf.jmoney.model2.Account">
+            </instanceof>
+         </selectionEnablement>
+         <editorInputEnablement>
+            <instanceof
+                  value="net.sf.jmoney.views.AccountEditorInput">
+            </instanceof>
+         </editorInputEnablement>
+      </linkHelper>
+   </extension>
+
+
+  <extension point="org.eclipse.core.expressions.propertyTesters">
+   <propertyTester
+    	 namespace="net.sf.jmoney.core"
+       id="net.sf.jmoney.core.SessionTester"
+       properties="isSessionOpen"
+       type="org.eclipse.ui.IWorkbenchWindow"
+       class="net.sf.jmoney.SessionTester">
+     </propertyTester>
+  </extension>
+
+
+   <extension point="org.eclipse.ui.views.properties.tabbed.propertyContributor">
+      <propertyContributor
+            contributorId="net.sf.jmoney.navigationView">
+         <propertyCategory
+               category="sample">
+         </propertyCategory>
+      </propertyContributor>
+   </extension>
+
+   <extension point="org.eclipse.ui.views.properties.tabbed.propertyTabs">
+      <propertyTabs contributorId="net.sf.jmoney.navigationView">
+         <propertyTab
+            category="sample"
+               id="net.sf.jmoney.core.generalProperties"
+            label="General Properties"/>
+         <propertyTab
+            afterTab="net.sf.jmoney.core.generalProperties"
+            category="sample"
+               id="net.sf.jmoney.core.AdvancedTab"
+            label="Advanced"/>
+      </propertyTabs>
+   </extension>
+
+   <extension point="org.eclipse.ui.views.properties.tabbed.propertySections">
+      <propertySections contributorId="net.sf.jmoney.navigationView">
+         <propertySection
+               class="net.sf.jmoney.propertyPages.PropertiesSection"
+               id="net.sf.jmoney.core.generalproperties"
+               tab="net.sf.jmoney.core.generalProperties">
+            <input type="net.sf.jmoney.model2.ExtendableObject"/>
+         </propertySection>
+         <propertySection
+               class="org.eclipse.ui.views.properties.tabbed.AdvancedPropertySection"
+               id="net.sf.jmoney.core.advancedproperties"
+               tab="net.sf.jmoney.core.AdvancedTab">
+            <input type="net.sf.jmoney.model2.ExtendableObject"/>
+         </propertySection>
+      </propertySections>
+   </extension>
+</plugin>

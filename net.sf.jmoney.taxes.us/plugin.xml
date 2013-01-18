@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+	<extension point="org.eclipse.ui.exportWizards">
+		<wizard id="net.sf.jmoney.taxes.us.ExportWizard"
+			name="TXF Export"
+			class="net.sf.jmoney.taxes.us.wizards.TxfExportWizard">
+			<description>
+				Export data to a TXF (Tax Software Import) file. 
+			</description>
+		</wizard>
+	</extension>
+ 
+</plugin>

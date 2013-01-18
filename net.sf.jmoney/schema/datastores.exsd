@@ -1,0 +1,105 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Schema file written by PDE -->
+<schema targetNamespace="net.sf.jmoney">
+<annotation>
+      <appInfo>
+         <meta.schema plugin="net.sf.jmoney" id="datastores" name="Datastore Implementations"/>
+      </appInfo>
+      <documentation>
+         The JMoney datastore is implemented by a plug-in.  Plug-ins
+may be written to implement various types of datastore.
+For example, the net.sf.jmoney.serializeddata plug-in implements
+a datastore by serializing the data in XML format to a file.
+Other plug-ins may implement a datastore through JDBC, or
+perhaps using JDO, or may directly access data in some
+proprietary format.  This extension point should be extended
+by such plug-ins.  Technically a plug-in does not have
+to extend this extension point.  A plug-in can simply set
+an object that implements the Session interface into the
+JMoneyPlugin object.  However, this extension point allows
+support for additional features.  For example, the current
+session is restored from information in the preferences file
+when JMoney is re-loaded, but JMoney can only do this if
+the plug-in extended this extension point.
+      </documentation>
+   </annotation>
+
+   <element name="extension">
+      <complexType>
+         <sequence>
+         </sequence>
+         <attribute name="point" type="string" use="required">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="id" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="name" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="since"/>
+      </appInfo>
+      <documentation>
+         1.0
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="examples"/>
+      </appInfo>
+      <documentation>
+         &lt;extension
+         point=&quot;net.sf.jmoney.datastores&quot;&gt;
+      &lt;session
+            class=&quot;[class implementing ISessionManagement]&quot;&gt;
+      &lt;/session&gt;
+   &lt;/extension&gt;
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="apiInfo"/>
+      </appInfo>
+      <documentation>
+         [Enter API information here.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="implementation"/>
+      </appInfo>
+      <documentation>
+         [Enter information about supplied implementation of this extension point.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="copyright"/>
+      </appInfo>
+      <documentation>
+         Copyright (c) 2004 Nigel Westbury (westbury@users.sourceforge.net)
+      </documentation>
+   </annotation>
+
+</schema>

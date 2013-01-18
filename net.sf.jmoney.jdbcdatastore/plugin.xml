@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+   <extension
+         point="org.eclipse.ui.commands">
+    <command
+            defaultHandler="net.sf.jmoney.jdbcdatastore.handlers.OpenSessionHandler"
+            id="net.sf.jmoney.jdbcdatastore.openSession"
+            name="%MainFrame.open">
+      </command>
+   </extension>
+
+   <extension point="org.eclipse.ui.menus">
+     <menuContribution
+           locationURI="menu:file?after=sessionGroup">
+        <separator
+              name="net.sf.jmoney.jdbcdatastore.sessionGroup"
+              visible="true">
+        </separator>
+     </menuContribution>
+
+     <menuContribution locationURI="menu:file?after=net.sf.jmoney.jdbcdatastore.sessionGroup">
+        <command
+              commandId="net.sf.jmoney.jdbcdatastore.openSession"
+               icon="icons/database.gif"
+              label="Open Database..."/>
+     </menuContribution>
+     
+     <menuContribution locationURI="toolbar:main?after=openEditors">
+        <command commandId="net.sf.jmoney.jdbcdatastore.openSession"
+               icon="icons/database.gif"
+               tooltip="Open JDBC Database">
+        </command>
+     </menuContribution>
+   </extension>
+
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            name="JDBC Connection"
+            class="net.sf.jmoney.jdbcdatastore.PreferencePage"
+            id="net.sf.jmoney.jdbcdatastore.preferencepage">
+      </page>
+   </extension>
+
+	<extension 
+		point="org.eclipse.core.runtime.preferences">
+			<initializer class="net.sf.jmoney.jdbcdatastore.PreferenceInitializer"/>
+	</extension>
+
+   <extension
+         point="org.eclipse.ui.elementFactories">
+        <factory 
+           id ="net.sf.jmoney.jdbcdatastore.SessionFactory" 
+           class="net.sf.jmoney.jdbcdatastore.SessionFactory">
+        </factory> 
+   </extension>
+</plugin>

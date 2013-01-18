@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<session xmlns="http://jmoney.sf.net" xmlns:ns1="http://jmoney.sf.net/net.sf.jmoney.qif.entryProperties" xmlns:ns2="http://jmoney.sf.net/net.sf.jmoney.reconciliation.entryProperties"><commodity id="USD" propertySet="net.sf.jmoney.currency"><name>US Dollar</name><code>USD</code><decimals>2</decimals></commodity><defaultCurrency idref="USD"/></session>

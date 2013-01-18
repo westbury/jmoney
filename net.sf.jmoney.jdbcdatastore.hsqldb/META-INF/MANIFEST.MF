@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: HSQL
+Bundle-SymbolicName: net.sf.jmoney.jdbcdatastore.hsqldb
+Bundle-Version: 1.0.0.qualifier
+Fragment-Host: net.sf.jmoney.jdbcdatastore
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-ClassPath: lib/hsqldb.jar

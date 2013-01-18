@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?NLS TYPE="org.eclipse.help.toc"?>
+
+<toc label="Getting Started" link_to="toc.xml#gettingstarted"> 
+	<topic label="Importing your data"  href="html/gettingstarted/import.html"> 
+		<topic label="MS Money and Quicken" href="html/gettingstarted/import/qif.html" /> 
+		<topic label="GnuCash" href="html/gettingstarted/import/gnucash.html" /> 
+		<topic label="Database" href="html/gettingstarted/import/database.html" /> 
+		<topic label="Other Formats" href="html/gettingstarted/import/otherformat.html" /> 
+		<topic label="Manually Entering Data" href="html/gettingstarted/import/nodata.html" /> 
+		<topic label="Summary" href="html/gettingstarted/import/summary.html" /> 
+	</topic>
+</toc>

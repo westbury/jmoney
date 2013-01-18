@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<introContent>
+	<extensionContent id="net.sf.jmoney" name="JMoney RCP"
+		alt-style="css/overview.properties" style="css/overview.css" path="firststeps/@">
+		<group id="content-group" style-id="content-group">
+			<link
+				url="http://org.eclipse.ui.intro/showHelpTopic?id=/net.sf.jmoney.help/html/gettingstarted/import.html"
+				label="Importing your Data" id="import" style-id="content-link">
+				<text>If you have already been keeping accounts on your computer
+					using another application then you will probably want to try out
+					JMoney with your accounting data. The first step is therefore to
+					load your accounting data into JMoney.</text>
+			</link>
+		</group>
+	</extensionContent>
+</introContent>

@@ -1,0 +1,117 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Schema file written by PDE -->
+<schema targetNamespace="net.sf.jmoney">
+<annotation>
+      <appInfo>
+         <meta.schema plugin="net.sf.jmoney" id="propagators" name="Property Propagators"/>
+      </appInfo>
+      <documentation>
+         JMoney allows plug-ins to add properties to the various accounting objects.
+With many indepentant developers writing their own plug-ins
+and adding their own properties, it is likely there will be
+an overlap.  For example, two plug-ins may both add a property
+that holds the current interest rate being paid on an account.
+Propagators are small plug-ins, dependent on at least two other
+plug-ins, that propagate changes.  In the above example, whenever
+a change is made to the interest rate property in one plug-in,
+the property in the other plug-in is updated.  The format
+may not be the same.  For example, one property may be an
+integer holding hundredths of a percent, the other may be
+a float.  One property may map to two or more properties in
+the other plug-in, or one property may hold more detailed
+information than the other.  All property propagators extend
+this extension point.
+      </documentation>
+   </annotation>
+
+   <element name="extension">
+      <complexType>
+         <sequence>
+            <element ref="propagator" minOccurs="1" maxOccurs="unbounded"/>
+         </sequence>
+         <attribute name="point" type="string" use="required">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="id" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="name" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <element name="propagator">
+      <complexType>
+         <attribute name="class" type="string">
+            <annotation>
+               <documentation>
+                  The name of a class that contains methods
+                  to propagate values from one property set to
+                  another property set.  This is no interface
+                  that this method must implement.  Instead the
+                  methods must follow certain patterns.
+               </documentation>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="since"/>
+      </appInfo>
+      <documentation>
+         [Enter the first release in which this extension point appears.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="examples"/>
+      </appInfo>
+      <documentation>
+         [Enter extension point usage example here.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="apiInfo"/>
+      </appInfo>
+      <documentation>
+         [Enter API information here.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="implementation"/>
+      </appInfo>
+      <documentation>
+         [Enter information about supplied implementation of this extension point.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="copyright"/>
+      </appInfo>
+      <documentation>
+         Copyright (c) 2004 Nigel Westbury (westbury@users.sourceforge.net)
+      </documentation>
+   </annotation>
+
+</schema>

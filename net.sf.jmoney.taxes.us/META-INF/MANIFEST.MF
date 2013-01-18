@@ -1,0 +1,12 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Taxes - United States
+Bundle-SymbolicName: net.sf.jmoney.taxes.us;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Activator: net.sf.jmoney.taxes.us.Activator
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ net.sf.jmoney,
+ net.sf.jmoney.stocks
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

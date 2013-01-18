@@ -1,0 +1,19 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Birt Reporting ODA Plug-in
+Bundle-SymbolicName: net.sf.jmoney.oda;singleton:=true
+Bundle-Version: 1.0.0
+Bundle-Activator: net.sf.jmoney.oda.Activator
+Bundle-Localization: plugin
+Require-Bundle: org.eclipse.core.runtime,
+ org.eclipse.datatools.connectivity.oda,
+ net.sf.jmoney,
+ org.eclipse.birt.report.viewer,
+ org.eclipse.ui,
+ org.eclipse.ui.forms,
+ org.eclipse.birt.report.engine,
+ org.eclipse.birt.report.engine.emitter.html
+Export-Package: net.sf.jmoney.oda.driver
+Bundle-ActivationPolicy: lazy
+Bundle-Vendor: JMoney.sf.net
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

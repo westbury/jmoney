@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<jnlp 
+    spec="1.0+" 
+    codebase="file:///E:/jmoney-release" 
+    href="JMoney.jnlp"> <!-- URL to the site containing the jnlp application. It should match the value used on  export. Href, the name of this file -->
+  <information>
+    <!-- user readable name of the application -->
+    <title> JMoney </title>  
+    <!-- vendor name -->
+    <vendor>JMoney contributors</vendor>
+    <!-- vendor homepage --> 
+    <homepage href="jmoney.sourceforge.net" /> 
+    <!-- product description -->
+    <description>The JMoney Finance Manager</description> 
+    <icon kind="splash" href="jmoney-large.jpeg"/>
+  </information>
+ 
+  <!--request all permissions from the application. This does not change-->
+  <security>
+    <all-permissions/>
+  </security>
+ 
+  <!-- The name of the main class to execute. This does not change-->
+  <application-desc main-class="org.eclipse.core.launcher.WebStartMain">
+    <argument>-nosplash -consoleLog</argument>
+  </application-desc>
+ 
+  <resources>
+    <!-- Reference to the startup.jar. This does not change -->
+    <jar href="startup.jar"/>
+ 
+    <!-- Reference to all the plugins and features consituting the application -->
+    <!-- Here we are refering to the JMoney feature since it transitively refers to all the other plug-ins  necessary -->
+
+    <extension 
+        name="JMoney feature"
+        href="features/net.sf.jmoney_1.0.0.jnlp"/>
+ 
+    <!-- Information usually specified in the config.ini -->
+    <property 
+        name="osgi.instance.area" 
+        value="@user.home/.jmoney"/>
+    <property 
+        name="osgi.configuration.area" 
+        value="@user.home/.jmoney"/>
+    <property 
+        name="JMoney.sample-datastore" 
+        value="sample.xml"/>
+     
+    <!-- The id of the product to run, like found in the overview page of the product editor -->
+    <property 
+        name="eclipse.product" 
+        value="net.sf.jmoney.product"/>
+  </resources>
+
+  <!-- Indicate on a platform basis which JRE to use --> 
+  <resources os="Mac">
+    <j2se version="1.5+" java-vm-args="-XstartOnFirstThread"/>
+  </resources>
+  <resources os="Windows">
+    <j2se version="1.5+"/>
+  </resources>
+  <resources os="Linux">
+    <j2se version="1.5+"/>
+  </resources>
+</jnlp>
+
+
+
+
+
+
+
+
+
+

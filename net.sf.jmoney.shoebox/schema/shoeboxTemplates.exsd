@@ -1,0 +1,130 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Schema file written by PDE -->
+<schema targetNamespace="net.sf.jmoney">
+<annotation>
+      <appInfo>
+         <meta.schema plugin="net.sf.jmoney" id="templates" name="Templates for Receipt Data Entry Tabs"/>
+      </appInfo>
+      <documentation>
+         The shoebox plug-in is designed to provide a quick way of
+         entering receipts that have all been jumbled together in
+         your purse, wallet, or shoebox.  Tabs are provided at the
+         bottom that contain fields for each type of transaction.
+         
+         If you find yourself repeatedly entering the same type of
+         transaction then you might want to create a tab that is designed
+         to allow rapid entry of that particular type of transaction.
+         This extension point allows you to contribute your tab.
+      </documentation>
+   </annotation>
+
+   <element name="extension">
+      <complexType>
+         <sequence>
+            <element ref="template" minOccurs="1" maxOccurs="unbounded"/>
+         </sequence>
+         <attribute name="point" type="string" use="required">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="id" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="name" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <element name="template">
+      <complexType>
+         <attribute name="id" type="string">
+            <annotation>
+               <documentation>
+                  The id of the template contribution.
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="position" type="string">
+            <annotation>
+               <documentation>
+                  A number in the range 0 to 1000.
+                  Templates are ordered in the tab control according to this number.
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="class" type="string" use="required">
+            <annotation>
+               <documentation>
+                  Class of object that must implement ITransactionTemplate.
+               </documentation>
+               <appInfo>
+                  <meta.attribute kind="java" basedOn=":net.sf.jmoney.ITransactionTemplate"/>
+               </appInfo>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="since"/>
+      </appInfo>
+      <documentation>
+         1.0
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="examples"/>
+      </appInfo>
+      <documentation>
+         &lt;extension
+         point=&quot;net.sf.jmoney.shoebox.templates&quot;&gt;
+      &lt;session
+            class=&quot;[class implementing ISessionManagement]&quot;&gt;
+      &lt;/session&gt;
+   &lt;/extension&gt;
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="apiInfo"/>
+      </appInfo>
+      <documentation>
+         [Enter API information here.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="implementation"/>
+      </appInfo>
+      <documentation>
+         [Enter information about supplied implementation of this extension point.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appInfo>
+         <meta.section type="copyright"/>
+      </appInfo>
+      <documentation>
+         Copyright (c) 2008 Nigel Westbury (westbury@users.sourceforge.net)
+      </documentation>
+   </annotation>
+
+</schema>

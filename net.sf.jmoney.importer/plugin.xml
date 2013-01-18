@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+     <extension-point id="importdata" name="Import Data" schema="schema/importData.exsd"/>
+
+	<extension point="org.eclipse.ui.importWizards">
+		<wizard id="net.sf.jmoney.importer.ImportWizard"
+			name="%importWizard.name"
+			class="net.sf.jmoney.importer.wizards.CsvImportToAccountWizard">
+			<description>
+				Import data from CSV file downloaded from importer. 
+			</description>
+		</wizard>
+	</extension>
+
+   <extension
+         point="net.sf.jmoney.fields">
+      
+      <extension-property-set
+      	id="accountProperties"
+          info-class="net.sf.jmoney.importer.model.ImportAccountInfo"
+	      extendable-property-set="net.sf.jmoney.account">
+      </extension-property-set>
+      
+      <extension-property-set
+      	id="entryProperties"
+          info-class="net.sf.jmoney.importer.model.ReconciliationEntryInfo"
+	      extendable-property-set="net.sf.jmoney.entry">
+      </extension-property-set>
+      
+      <extension-property-set
+      	id="accountPropertiesForMatcher"
+          info-class="net.sf.jmoney.importer.model.PatternMatcherAccountInfo"
+	      extendable-property-set="net.sf.jmoney.currencyAccount">
+      </extension-property-set>
+      
+      <extendable-property-set
+      	id="memoPattern"
+          info-class="net.sf.jmoney.importer.model.MemoPatternInfo">
+      </extendable-property-set>
+      <extendable-property-set
+      	id="accountAssociation"
+          info-class="net.sf.jmoney.importer.model.AccountAssociationInfo">
+      </extendable-property-set>
+   </extension>
+
+   <extension
+         point="org.eclipse.ui.commands">
+      <command
+            id="net.sf.jmoney.importer.csvImport"
+            name="%Commands.csvImport"/>
+   </extension>
+
+   <extension
+         point="org.eclipse.ui.handlers">
+      <handler
+            class="net.sf.jmoney.importer.CsvImportHandler"
+            commandId="net.sf.jmoney.importer.csvImport">
+         <activeWhen>
+            <with
+                  variable="activeEditor">
+               <instanceof
+                     value="net.sf.jmoney.views.AccountEditor">
+               </instanceof>
+            </with>
+         </activeWhen>
+      </handler>
+   </extension>
+
+<extension point="org.eclipse.ui.menus">
+     <menuContribution locationURI="menu:file?after=additions">
+        <command
+              commandId="net.sf.jmoney.importer.csvImport"
+              label="Import Tabular Data..."/>
+     </menuContribution>
+   </extension>
+   
+   <extension point="org.eclipse.ui.views.properties.tabbed.propertyTabs">
+      <propertyTabs contributorId="net.sf.jmoney.navigationView">
+         <propertyTab
+            afterTab="org.eclipse.jmoney.core.generalProperties"
+            category="sample"
+               id="net.sf.jmoney.importer.associations"
+            label="Associated Accounts"/>
+      </propertyTabs>
+   </extension>
+
+   <extension point="org.eclipse.ui.views.properties.tabbed.propertySections">
+      <propertySections contributorId="net.sf.jmoney.navigationView">
+         <propertySection
+               class="net.sf.jmoney.importer.propertyPages.ImportFormatSection"
+               id="net.sf.jmoney.importer.formattype"
+               tab="net.sf.jmoney.importer.associations">
+            <input type="net.sf.jmoney.model2.CapitalAccount"/>
+         </propertySection>
+         <propertySection
+               afterSection="net.sf.jmoney.importer.formattype"
+               class="net.sf.jmoney.importer.propertyPages.AssociationsForImportSection"
+               id="net.sf.jmoney.importer.associations"
+               tab="net.sf.jmoney.importer.associations">
+            <input type="net.sf.jmoney.model2.CapitalAccount"/>
+         </propertySection>
+      </propertySections>
+   </extension>
+</plugin>

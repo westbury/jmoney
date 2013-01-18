@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+     <extension
+         point="org.eclipse.ui.actionSets">
+      <actionSet
+            label="net.sf.jmoney.gnucashXML"
+            visible="true"
+            id="net.sf.jmoney.gnucashXML.actionSet">
+         <action
+               label="%import.label"
+               class="net.sf.jmoney.gnucashXML.actions.GnucashXMLImportAction"
+               tooltip="%import.tooltip"
+               menubarPath="file/import/"
+               id="net.sf.jmoney.gnucashXML.actions.gnucashXMLImport"/>
+         <action
+               label="%export.label"
+               class="net.sf.jmoney.gnucashXML.actions.GnucashXMLExportAction"
+               tooltip="%export.tooltip"
+               menubarPath="file/export/"
+               id="net.sf.jmoney.gnucashXML.actions.gnucashXMLExport"/>
+      </actionSet>
+   </extension>
+     <extension
+           point="org.eclipse.ui.importWizards">
+        <wizard
+              class="net.sf.jmoney.gnucashXML.wizards.GnucashImportWizard"
+              id="net.sf.jmoney.gnucashXML.ImportWizard"
+              name="Gnucash Import">
+           <description>
+              Import data from a Gnucash file.
+           </description>
+        </wizard>
+     </extension>
+
+</plugin>

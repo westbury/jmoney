@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: BIRT Reporting ODA UI Plug-in
+Bundle-SymbolicName: net.sf.jmoney.oda.ui;singleton:=true
+Bundle-Version: 1.0.0
+Bundle-Activator: net.sf.jmoney.oda.ui.Activator
+Bundle-Localization: plugin
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.eclipse.datatools.connectivity.oda.design.ui,
+ net.sf.jmoney.oda,
+ net.sf.jmoney
+Bundle-ActivationPolicy: lazy
+Bundle-Vendor: JMoney.sf.net
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

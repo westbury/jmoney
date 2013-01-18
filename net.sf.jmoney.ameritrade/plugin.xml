@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+   <extension
+         point="net.sf.jmoney.importer.importdata">
+
+        <import-format
+           id="ameritradeimport" 
+           label="Ameritrade Data"
+           class="net.sf.jmoney.ameritrade.AmeritradeImportWizard"/>
+
+   </extension>
+
+</plugin>

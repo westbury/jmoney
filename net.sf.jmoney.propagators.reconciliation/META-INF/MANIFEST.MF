@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Reconciliation Property Propagator Plug-in
+Bundle-SymbolicName: net.sf.jmoney.propagators.reconciliation; singleton:=true
+Bundle-Version: 1.0.0
+Bundle-Activator: net.sf.jmoney.propagators.reconciliation.ReconciliationPropagatorPlugin
+Export-Package: net.sf.jmoney.propagators.reconciliation
+Require-Bundle: org.eclipse.core.runtime,
+ net.sf.jmoney,
+ net.sf.jmoney.qif,
+ net.sf.jmoney.reconciliation
+Bundle-ActivationPolicy: lazy
+Bundle-Vendor: JMoney.sf.net
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

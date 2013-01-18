@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!ELEMENT gnc-v2 ANY >
+<!ATTLIST gnc-v2
+				xmlns:gnc   	CDATA "hello"
+				xmlns:cd    	CDATA "hello"
+				xmlns:slot  	CDATA "hello"
+				xmlns:act   	CDATA "hello"
+				xmlns:cmdty 	CDATA "hello"
+				xmlns:book  	CDATA "hello"
+				xmlns:split 	CDATA "hello"
+				xmlns:trn   	CDATA "hello"
+				xmlns:ts    	CDATA "hello"
+				xmlns:price		CDATA "hello"
+>
+<!-- 
+   This small DTD is to permit to the oracle.xml.parser.v2.Parser
+   to analyse a gnucash-XML file without parsing errors.
+
+   It is _not_ the complete DTD for a gnucash XML file. This complete DTD
+   (unfortunaly) doesn't exist for the time (23 Sept. 2003)
+-->
+     
+

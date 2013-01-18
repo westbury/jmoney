@@ -1,0 +1,20 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: JMoney Stocks And Bonds Plug-in
+Bundle-SymbolicName: net.sf.jmoney.stocks; singleton:=true
+Bundle-Version: 1.0.0
+Bundle-Activator: net.sf.jmoney.stocks.StocksPlugin
+Bundle-Localization: plugin
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.eclipse.ui.forms,
+ net.sf.jmoney,
+ org.eclipse.ui.navigator,
+ org.eclipse.core.expressions,
+ org.eclipse.core.databinding.observable,
+ org.eclipse.core.databinding.property
+Bundle-ActivationPolicy: lazy
+Bundle-Vendor: JMoney.sf.net
+Export-Package: net.sf.jmoney.stocks.model
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Import-Package: org.eclipse.core.databinding

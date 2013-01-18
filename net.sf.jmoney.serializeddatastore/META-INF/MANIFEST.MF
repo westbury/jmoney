@@ -1,0 +1,18 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Serialized Datastore Plug-in
+Bundle-SymbolicName: net.sf.jmoney.serializeddatastore; singleton:=true
+Bundle-Version: 1.0.0
+Bundle-Activator: net.sf.jmoney.serializeddatastore.SerializedDatastorePlugin
+Bundle-Localization: plugin
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ net.sf.jmoney,
+ org.eclipse.core.databinding.property
+Export-Package: net.sf.jmoney.gui,
+ net.sf.jmoney.model,
+ net.sf.jmoney.serializeddatastore,
+ net.sf.jmoney.serializeddatastore.formats
+Bundle-ActivationPolicy: lazy
+Bundle-Vendor: JMoney.sf.net
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

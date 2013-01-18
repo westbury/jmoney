@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Ameritrade Plug-in
+Bundle-SymbolicName: net.sf.jmoney.ameritrade;singleton:=true
+Bundle-Version: 1.0.0
+Bundle-ClassPath: .,
+ lib/junit.jar
+Bundle-Activator: net.sf.jmoney.ameritrade.Activator
+Bundle-Localization: plugin
+Bundle-ActivationPolicy: lazy
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ net.sf.jmoney,
+ net.sf.jmoney.stocks,
+ net.sf.jmoney.importer
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

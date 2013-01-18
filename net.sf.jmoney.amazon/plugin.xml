@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+	<extension point="org.eclipse.ui.importWizards">
+		<wizard id="net.sf.jmoney.amazon.ImportItemsWizard"
+			name="Amazon Items"
+			icon="icons/PayPal_mark_37x23.gif"
+			class="net.sf.jmoney.amazon.AmazonItemImportWizard">
+			<description>
+				Import a CSV file that resulted from an export from Amazon of items. 
+			</description>
+		</wizard>
+		<wizard id="net.sf.jmoney.amazon.ImportOrdersWizard"
+			name="Amazon Orders"
+			icon="icons/PayPal_mark_37x23.gif"
+			class="net.sf.jmoney.amazon.AmazonOrderImportWizard">
+			<description>
+				Import a CSV file that resulted from an export from Amazon of orders. 
+			</description>
+		</wizard>
+	</extension>
+
+   <extension
+         point="net.sf.jmoney.fields">
+      <extension-property-set
+      	id="entryProperties"
+          info-class="net.sf.jmoney.amazon.AmazonEntryInfo"
+	      extendable-property-set="net.sf.jmoney.entry">
+      </extension-property-set>
+   </extension>
+
+</plugin>
