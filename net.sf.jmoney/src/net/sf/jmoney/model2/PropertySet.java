@@ -315,7 +315,7 @@ public abstract class PropertySet<P,S extends ExtendableObject> {
 	 * object is a credit card account and so on).
 	 */
 	@SuppressWarnings("unchecked")
-	static public <E extends ExtendableObject> ExtendablePropertySet<? extends E> getPropertySet(Class<E> propertySetClass) {
+	static public <E extends ExtendableObject> ExtendablePropertySet<E> getPropertySet(Class<E> propertySetClass) {
 		return classToPropertySetMap.get(propertySetClass);
 	}
 

@@ -26,12 +26,13 @@ import java.text.MessageFormat;
 
 import net.sf.jmoney.isolation.ObjectCollection;
 import net.sf.jmoney.isolation.TransactionManager;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.ExtendablePropertySet;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.ListPropertyAccessor;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.SessionInfo;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.SecurityInfo;
 
@@ -75,9 +76,9 @@ public class MergeDuplicatedSecurityHandler extends AbstractHandler {
 		S typedSecurity1 = extendablePropertySet.getImplementationClass().cast(security1);
 		S typedSecurity2 = extendablePropertySet.getImplementationClass().cast(security2);
 		
-		DatastoreManager sessionManager = (DatastoreManager)window.getActivePage().getInput();
+		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)window.getActivePage().getInput();
 
-		TransactionManager transaction = new TransactionManager(sessionManager);
+		TransactionManagerForAccounts transaction = new TransactionManagerForAccounts(sessionManager);
 
 		int result = new MergeDuplicatedSecurityDialog<S>(
 				shell, 

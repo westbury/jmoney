@@ -38,7 +38,7 @@ import java.util.Locale;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.CurrencyAccount;
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.TransactionInfo;
@@ -98,7 +98,7 @@ public class QifExportWizard extends Wizard implements IExportWizard {
 		// Original JMoney disabled the export menu items when no
 		// session was open.  I don't know how to do that in Eclipse,
 		// so we display a message instead.
-		DatastoreManager sessionManager = (DatastoreManager)window.getActivePage().getInput();
+		IDatastoreManager sessionManager = (IDatastoreManager)window.getActivePage().getInput();
 		if (sessionManager == null) {
 	        MessageDialog waitDialog =
 				new MessageDialog(

@@ -31,9 +31,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
+import net.sf.jmoney.isolation.AbstractDataManager;
 import net.sf.jmoney.model2.Account;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.Entry;
+import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.model2.Session;
 
 import org.eclipse.core.runtime.Assert;
@@ -53,7 +54,7 @@ import org.eclipse.ui.IWorkbenchWindow;
  * datastore implementation must provide an implementation of the
  * ISessionManager interface.
  */
-public class SessionManager extends DatastoreManager {
+public class SessionManager extends AbstractDataManager implements IDatastoreManager {
 
 	Session session = null;
 
@@ -294,10 +295,12 @@ public class SessionManager extends DatastoreManager {
 	}
 
 	private IPersistableElement persistableElement = new IPersistableElement() {
+		@Override
 		public String getFactoryId() {
 			return "net.sf.jmoney.serializeddatastore.SessionFactory"; //$NON-NLS-1$
 		}
 
+		@Override
 		public void saveState(IMemento memento) {
 			// If no session file is set then the session has never been saved.
 			// Although the canClose method will have been called prior to this
@@ -320,6 +323,7 @@ public class SessionManager extends DatastoreManager {
 	 * 
 	 * @see org.eclipse.core.runtime.IAdaptable#getAdapter(java.lang.Class)
 	 */
+	@Override
 	public Object getAdapter(Class adapter) {
 		if (adapter == IPersistableElement.class) {
 			return persistableElement;

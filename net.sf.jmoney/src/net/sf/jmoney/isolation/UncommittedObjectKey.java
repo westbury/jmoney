@@ -198,7 +198,7 @@ public class UncommittedObjectKey implements IObjectKey {
 	}
 
 	@Override
-	public DataManager getDataManager() {
+	public AbstractDataManager getDataManager() {
 		// This method is only called to get optimized datastore interfaces
 		// from the session manager adapter, and the transaction manager provides
 		// the implementation for this when the data is uncommitted.

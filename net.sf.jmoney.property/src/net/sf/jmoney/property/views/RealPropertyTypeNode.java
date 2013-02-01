@@ -26,18 +26,18 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import net.sf.jmoney.model2.Commodity;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.ExtendablePropertySet;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.property.model.RealProperty;
 import net.sf.jmoney.views.IDynamicTreeNode;
 
 public class RealPropertyTypeNode implements IDynamicTreeNode {
 
-	private DatastoreManager sessionManager;
+	private IDataManagerForAccounts sessionManager;
 	private ExtendablePropertySet<? extends RealProperty> propertySet;
 	
-	public RealPropertyTypeNode(DatastoreManager sessionManager, ExtendablePropertySet<? extends RealProperty> propertySet) {
+	public RealPropertyTypeNode(IDataManagerForAccounts sessionManager, ExtendablePropertySet<? extends RealProperty> propertySet) {
 		this.sessionManager = sessionManager;
 		this.propertySet = propertySet;
 	}

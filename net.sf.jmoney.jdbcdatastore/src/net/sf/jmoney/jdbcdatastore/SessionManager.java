@@ -47,6 +47,7 @@ import java.util.Vector;
 
 import net.sf.jmoney.JMoneyPlugin;
 import net.sf.jmoney.fields.IBlob;
+import net.sf.jmoney.isolation.AbstractDataManager;
 import net.sf.jmoney.isolation.IExtendablePropertySet;
 import net.sf.jmoney.isolation.IListManager;
 import net.sf.jmoney.isolation.IListPropertyAccessor;
@@ -61,10 +62,10 @@ import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.CurrencyAccount;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.ExtendablePropertySet;
+import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.model2.IEntryQueries;
 import net.sf.jmoney.model2.ListPropertyAccessor;
 import net.sf.jmoney.model2.PropertyAccessor;
@@ -84,7 +85,7 @@ import org.eclipse.ui.IWorkbenchWindow;
  *
  * @author Nigel Westbury
  */
-public class SessionManager extends DatastoreManager implements IEntryQueries {
+public class SessionManager extends AbstractDataManager implements IDatastoreManager, IEntryQueries {
 	
 	/**
 	 * Date format used for embedding dates in SQL statements:
@@ -349,9 +350,11 @@ public class SessionManager extends DatastoreManager implements IEntryQueries {
 
 	private IPersistableElement persistableElement 
 	= new IPersistableElement() {
+		@Override
 		public String getFactoryId() {
 			return "net.sf.jmoney.jdbcdatastore.SessionFactory";
 		}
+		@Override
 		public void saveState(IMemento memento) {
 			/*
 			 * The open session must be using the database as
@@ -366,6 +369,7 @@ public class SessionManager extends DatastoreManager implements IEntryQueries {
 		}
 	};
 	
+	@Override
 	public Object getAdapter(Class adapter) {
 		if (adapter == IPersistableElement.class) {
 			return persistableElement;
@@ -454,7 +458,7 @@ public class SessionManager extends DatastoreManager implements IEntryQueries {
 		 * session object then no such column will exist. We instead check that
 		 * all the other parent columns (if any) are null.
 		 */
-		if (listKey.listPropertyAccessor.getPropertySet() == SessionInfo.getPropertySet()) {
+		if (((ListPropertyAccessor)listKey.listPropertyAccessor).getPropertySet() == SessionInfo.getPropertySet()) {
 			String whereClause = "";
 			String separator = "";
 			for (IExtendablePropertySet<?> propertySet = finalPropertySet; propertySet != null; propertySet = propertySet.getBasePropertySet()) {
@@ -554,7 +558,7 @@ public class SessionManager extends DatastoreManager implements IEntryQueries {
 				 * then, as an optimization, there is no parent column.
 				 */
 				if (listKey.listPropertyAccessor.getElementPropertySet() == propertySet2
-						&& listKey.listPropertyAccessor.getPropertySet() != SessionInfo.getPropertySet()) {
+						&& ((ListPropertyAccessor)listKey.listPropertyAccessor).getPropertySet() != SessionInfo.getPropertySet()) {
 					String valueString = Integer.toString(listKey.parentKey.getRowId());
 					ListPropertyAccessor<?,?> listPropertyAccessor2 = (ListPropertyAccessor<?,?>)listKey.listPropertyAccessor;
 					String parentColumnName = listPropertyAccessor2.getName().replace('.', '_');
@@ -1066,13 +1070,13 @@ public class SessionManager extends DatastoreManager implements IEntryQueries {
 	private <S extends IModelObject> void deleteListElements(IDatabaseRowKey objectKey, IExtendablePropertySet<S> propertySet) throws ReferenceViolationException {
 		S extendableObject = (S)objectKey.getObject();
 		
-		for (ListPropertyAccessor<?,? super S> listProperty: propertySet.getListProperties3()) {
+		for (IListPropertyAccessor<?,? super S> listProperty: propertySet.getListProperties3()) {
 			/*
 			 * Find all elements in the list. The child elements will almost
 			 * certainly already be cached in memory so this is unlikely to
 			 * result in any queries being sent to the database.
 			 */
-			for (ExtendableObject child: listProperty.getElements(extendableObject)) {
+			for (IModelObject child: listProperty.getElements(extendableObject)) {
 				deleteFromDatabase((IDatabaseRowKey)child.getObjectKey());
 			}
 		}
@@ -1149,6 +1153,7 @@ public class SessionManager extends DatastoreManager implements IEntryQueries {
 		 * of this object.
 		 */
 		IValues<E> values = new IValues<E>() {
+			@Override
 			public <V> V getScalarValue(IScalarPropertyAccessor<V,? super E> propertyAccessor) {
 				String columnName = getColumnName((ScalarPropertyAccessor<V,?>)propertyAccessor);
 
@@ -1232,6 +1237,7 @@ public class SessionManager extends DatastoreManager implements IEntryQueries {
 				}
 			}
 			
+			@Override
 			public IObjectKey getReferencedObjectKey(IReferencePropertyAccessor<?,? super E> propertyAccessor) {
 				String columnName = getColumnName((ReferencePropertyAccessor)propertyAccessor);
 				try {
@@ -1254,6 +1260,7 @@ public class SessionManager extends DatastoreManager implements IEntryQueries {
 				}
 			}
 
+			@Override
 			public <E2 extends IModelObject> IListManager<E2> getListManager(IObjectKey listOwnerKey, IListPropertyAccessor<E2,? super E> listAccessor) {
 				return objectKey.constructListManager(listAccessor);
 			}
@@ -1888,6 +1895,7 @@ public class SessionManager extends DatastoreManager implements IEntryQueries {
 	/**
 	 * @see net.sf.jmoney.model2.IEntryQueries#sumOfAmounts(net.sf.jmoney.model2.CurrencyAccount, java.util.Date, java.util.Date)
 	 */
+	@Override
 	public long sumOfAmounts(CurrencyAccount account, Date fromDate, Date toDate) {
 		IDatabaseRowKey proxy = (IDatabaseRowKey)account.getObjectKey();
 		
@@ -1916,6 +1924,7 @@ public class SessionManager extends DatastoreManager implements IEntryQueries {
 	/* (non-Javadoc)
 	 * @see net.sf.jmoney.model2.IEntryQueries#getSortedReadOnlyCollection(net.sf.jmoney.model2.CapitalAccount, net.sf.jmoney.model2.PropertyAccessor, boolean)
 	 */
+	@Override
 	public Collection<Entry> getSortedEntries(CapitalAccount account, PropertyAccessor sortProperty, boolean descending) {
 		// TODO implement this.
 		throw new RuntimeException("must implement");
@@ -1924,6 +1933,7 @@ public class SessionManager extends DatastoreManager implements IEntryQueries {
 	/* (non-Javadoc)
 	 * @see net.sf.jmoney.model2.IEntryQueries#getEntryTotalsByMonth(int, int, int, boolean)
 	 */
+	@Override
 	public long[] getEntryTotalsByMonth(CapitalAccount account, int startYear, int startMonth, int numberOfMonths, boolean includeSubAccounts) {
 		IDatabaseRowKey proxy = (IDatabaseRowKey)account.getObjectKey();
 		

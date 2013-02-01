@@ -36,15 +36,15 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Currency;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.Entry;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.reconciliation.ReconciliationEntryInfo;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -77,7 +77,8 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 	 * The transaction manager for all changes made by the import, the
 	 * transaction being committed when the file has been fully imported.
 	 */
-	TransactionManager transactionManager;
+	// TODO change to IDataManagerForAccounts
+	TransactionManagerForAccounts transactionManager;
 	
 	/**
 	 * Session, being the version inside the transaction so changes
@@ -101,11 +102,12 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 	 * We will cache window object in order to be able to provide parent shell
 	 * for the message dialog.
 	 */
+	@Override
 	public void init(IWorkbench workbench, IStructuredSelection selection) {
 
 		this.window = workbench.getActiveWorkbenchWindow();
 
-		DatastoreManager sessionManager = (DatastoreManager)window.getActivePage().getInput();
+		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)window.getActivePage().getInput();
 
 		// Original JMoney disabled the import menu items when no
 		// session was open. I don't know how to do that in Eclipse,
@@ -127,7 +129,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 		 * be more efficiently written to the back-end datastore and it also groups
 		 * the entire import as a single change for undo/redo purposes.
 		 */
-		transactionManager = new TransactionManager(sessionManager);
+		transactionManager = new TransactionManagerForAccounts(sessionManager);
 		session = transactionManager.getSession();
 		
 		/*

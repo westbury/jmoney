@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.sf.jmoney.isolation.DataManager;
+import net.sf.jmoney.isolation.IDataManager;
 import net.sf.jmoney.isolation.SessionChangeListener;
 
 import org.eclipse.swt.SWT;
@@ -189,7 +189,7 @@ public abstract class StackBlock<T, R> extends CellBlock<T,R> {
 	protected abstract SessionChangeListener createListener(T entryData, StackControl<T,R> stackControl);
 	
 	// TODO: Do we really need this?
-	protected abstract DataManager getDataManager(T data);
+	protected abstract IDataManager getDataManager(T data);
 
 
 	/**

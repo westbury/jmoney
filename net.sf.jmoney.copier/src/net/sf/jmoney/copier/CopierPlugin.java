@@ -7,19 +7,19 @@ import java.util.ResourceBundle;
 
 import net.sf.jmoney.isolation.ObjectCollection;
 import net.sf.jmoney.isolation.ReferenceViolationException;
-import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Currency;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.ExtensionPropertySet;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.ListPropertyAccessor;
 import net.sf.jmoney.model2.PropertyAccessor;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.SessionInfo;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
@@ -33,7 +33,7 @@ public class CopierPlugin extends AbstractUIPlugin {
 	private static CopierPlugin plugin;
 	//Resource bundle.
 	private ResourceBundle resourceBundle;
-	private static DatastoreManager savedSessionManager = null;
+	private static IDataManagerForAccounts savedSessionManager = null;
 	
 	/**
 	 * The constructor.
@@ -94,14 +94,14 @@ public class CopierPlugin extends AbstractUIPlugin {
 	/**
 	 * @param sessionManager
 	 */
-	public static void setSessionManager(DatastoreManager sessionManager) {
+	public static void setSessionManager(IDataManagerForAccounts sessionManager) {
 		savedSessionManager = sessionManager;
 	}
 
 	/**
 	 * @return
 	 */
-	public static DatastoreManager getSessionManager() {
+	public static IDataManagerForAccounts getSessionManager() {
 		return savedSessionManager;
 	}
 	
@@ -125,7 +125,7 @@ public class CopierPlugin extends AbstractUIPlugin {
 		 * therefore save the default currency and delete it after the new data
 		 * has been copied in.
 		 */
-    	TransactionManager transaction = new TransactionManager(newSession.getDataManager());
+    	TransactionManagerForAccounts transaction = new TransactionManagerForAccounts(newSession.getDataManager());
     	Session newSessionInTrans = transaction.getSession();
     	
     	Currency previousDefaultCurrency = newSessionInTrans.getDefaultCurrency(); 
@@ -169,7 +169,7 @@ public class CopierPlugin extends AbstractUIPlugin {
     	// Plug-ins could change this, thus breaking this code.
 
     	// The list properties
-    	for (ListPropertyAccessor<?> listAccessor: propertySet.getListProperties3()) {
+    	for (ListPropertyAccessor<?,? super E> listAccessor: propertySet.getListProperties3()) {
     		if (!listAccessor.getPropertySet().isExtension()) {
     			if (listAccessor.getElementPropertySet().getImplementationClass().isAssignableFrom(Commodity.class)
     					|| listAccessor.getElementPropertySet().getImplementationClass().isAssignableFrom(Account.class)) {
@@ -178,7 +178,7 @@ public class CopierPlugin extends AbstractUIPlugin {
     		}
     	}
     	
-    	for (ListPropertyAccessor<?> listAccessor: propertySet.getListProperties3()) {
+    	for (ListPropertyAccessor<?, ? super E> listAccessor: propertySet.getListProperties3()) {
     		if (!listAccessor.getPropertySet().isExtension()) {
     			if (listAccessor.getElementPropertySet().getImplementationClass().isAssignableFrom(Commodity.class)
     					|| listAccessor.getElementPropertySet().getImplementationClass().isAssignableFrom(Account.class)) {
@@ -208,7 +208,7 @@ public class CopierPlugin extends AbstractUIPlugin {
 					copyScalarProperty(scalarAccessor, oldObject, newObject, objectMap);
 				} else {
 					// Property is a list property.
-					ListPropertyAccessor<?> listAccessor = (ListPropertyAccessor<?>)propertyAccessor;
+					ListPropertyAccessor<?,E> listAccessor = (ListPropertyAccessor<?,E>)propertyAccessor;
 					copyList(newObject, oldObject, listAccessor, objectMap);
 				}
     		}
@@ -232,7 +232,7 @@ public class CopierPlugin extends AbstractUIPlugin {
      * @param newObject
      * @param objectMap
      */
-    private void createObject(ExtendablePropertySet<?> propertySet, ExtendableObject oldObject, ExtendableObject newObject, Map<ExtendableObject, ExtendableObject> objectMap) {
+    private <E extends ExtendableObject> void createObject(ExtendablePropertySet<E> propertySet, E oldObject, E newObject, Map<ExtendableObject, ExtendableObject> objectMap) {
     	/*
 		 * For all non-extension properties (including properties in base
 		 * classes), read the property value from the old object and write it to
@@ -246,7 +246,7 @@ public class CopierPlugin extends AbstractUIPlugin {
 		 */
 
     	// The list properties
-    	for (ListPropertyAccessor<?> listAccessor: propertySet.getListProperties3()) {
+    	for (ListPropertyAccessor<?,? super E> listAccessor: propertySet.getListProperties3()) {
     		if (!listAccessor.getPropertySet().isExtension()) {
     			createListObjects(newObject, oldObject, listAccessor, objectMap);
     		}
@@ -257,11 +257,12 @@ public class CopierPlugin extends AbstractUIPlugin {
 		 * extensions in the old object and, for every extension that exists in
 		 * the old object, copy the properties to the new object.
 		 */
-    	for (ExtensionPropertySet<?,?> extensionPropertySet: oldObject.getExtensions()) {
+    	for (ExtensionPropertySet<?,?> extensionPropertySet1: oldObject.getExtensions()) {
+    		ExtensionPropertySet<?,E> extensionPropertySet = (ExtensionPropertySet<?,E>)extensionPropertySet1;
     		for (PropertyAccessor propertyAccessor: extensionPropertySet.getProperties1()) {
     			if (propertyAccessor.isList()) {
 					// Property is a list property.
-					ListPropertyAccessor<?> listAccessor = (ListPropertyAccessor<?>)propertyAccessor;
+					ListPropertyAccessor<?,E> listAccessor = (ListPropertyAccessor<?,E>)propertyAccessor;
 					createListObjects(newObject, oldObject, listAccessor, objectMap);
 				}
     		}
@@ -292,7 +293,7 @@ public class CopierPlugin extends AbstractUIPlugin {
 		 */
 
     	// The list properties
-    	for (ListPropertyAccessor<?> listAccessor: propertySet.getListProperties3()) {
+    	for (ListPropertyAccessor<?, ? super E> listAccessor: propertySet.getListProperties3()) {
     		if (!listAccessor.getPropertySet().isExtension()) {
    				fillListObjects(newObject, oldObject, listAccessor, objectMap);
     		}
@@ -310,14 +311,15 @@ public class CopierPlugin extends AbstractUIPlugin {
 		 * extensions in the old object and, for every extension that exists in
 		 * the old object, copy the properties to the new object.
 		 */
-    	for (ExtensionPropertySet<?,?> extensionPropertySet: oldObject.getExtensions()) {
+    	for (ExtensionPropertySet<?,?> extensionPropertySet1: oldObject.getExtensions()) {
+    		ExtensionPropertySet<?,E> extensionPropertySet = (ExtensionPropertySet<?,E>)extensionPropertySet1;
     		for (PropertyAccessor propertyAccessor: extensionPropertySet.getProperties1()) {
     			if (propertyAccessor.isScalar()) {
 					ScalarPropertyAccessor<?,E> scalarAccessor = (ScalarPropertyAccessor<?,E>)propertyAccessor;
 					copyScalarProperty(scalarAccessor, oldObject, newObject, objectMap);
 				} else {
 					// Property is a list property.
-					ListPropertyAccessor<?> listAccessor = (ListPropertyAccessor<?>)propertyAccessor;
+					ListPropertyAccessor<?,E> listAccessor = (ListPropertyAccessor<?,E>)propertyAccessor;
 					fillListObjects(newObject, oldObject, listAccessor, objectMap);
 				}
     		}
@@ -338,9 +340,9 @@ public class CopierPlugin extends AbstractUIPlugin {
 					newValue);
     }
     
-    private <E extends ExtendableObject> void copyList(ExtendableObject newParent, ExtendableObject oldParent, ListPropertyAccessor<E> listAccessor, Map<ExtendableObject, ExtendableObject> objectMap) {
-		ObjectCollection<E> newList = newParent.getListPropertyValue(listAccessor);
-		for (E oldSubObject: oldParent.getListPropertyValue(listAccessor)) {
+    private <E extends ExtendableObject, S extends ExtendableObject> void copyList(S newParent, S oldParent, ListPropertyAccessor<E,S> listAccessor, Map<ExtendableObject, ExtendableObject> objectMap) {
+		ObjectCollection<E> newList = listAccessor.getElements(newParent);
+		for (E oldSubObject: listAccessor.getElements(oldParent)) {
 			ExtendablePropertySet<? extends E> listElementPropertySet = listAccessor.getElementPropertySet().getActualPropertySet((Class<? extends E>)oldSubObject.getClass());
 			copyListItem(oldSubObject, listElementPropertySet, newList, objectMap);
 		}
@@ -364,17 +366,25 @@ public class CopierPlugin extends AbstractUIPlugin {
      * @param listAccessor
      * @param objectMap
      */
-    private <E extends ExtendableObject> void createListObjects(ExtendableObject newParent, ExtendableObject oldParent, ListPropertyAccessor<E> listAccessor, Map<ExtendableObject, ExtendableObject> objectMap) {
-		ObjectCollection<E> newList = newParent.getListPropertyValue(listAccessor);
-		for (E oldSubObject: oldParent.getListPropertyValue(listAccessor)) {
+    private <E extends ExtendableObject, S extends ExtendableObject> void createListObjects(S newParent, S oldParent, ListPropertyAccessor<E,? super S> listAccessor, Map<ExtendableObject, ExtendableObject> objectMap) {
+		ObjectCollection<E> newList = listAccessor.getElements(newParent);
+		for (E oldSubObject: listAccessor.getElements(oldParent)) {
 			ExtendablePropertySet<? extends E> listElementPropertySet = listAccessor.getElementPropertySet().getActualPropertySet((Class<? extends E>)oldSubObject.getClass());
-			ExtendableObject newSubObject = newList.createNewElement(listElementPropertySet);
-			createObject(listElementPropertySet, oldSubObject, newSubObject, objectMap);
+			createNewChildObject(newList, oldSubObject,
+					listElementPropertySet, objectMap);
 		}
     }
 
-    private <E extends ExtendableObject> void fillListObjects(ExtendableObject newParent, ExtendableObject oldParent, ListPropertyAccessor<E> listAccessor, Map<ExtendableObject, ExtendableObject> objectMap) {
-		for (E oldSubObject: oldParent.getListPropertyValue(listAccessor)) {
+	private <E extends ExtendableObject, F extends E> void createNewChildObject(
+			ObjectCollection<E> newList, E oldSubObject,
+			ExtendablePropertySet<F> listElementPropertySet,
+			Map<ExtendableObject, ExtendableObject> objectMap) {
+		F newSubObject = newList.createNewElement(listElementPropertySet);
+		createObject(listElementPropertySet, (F)oldSubObject, newSubObject, objectMap);
+	}
+
+    private <E extends ExtendableObject, S extends ExtendableObject> void fillListObjects(S newParent, S oldParent, ListPropertyAccessor<E,? super S> listAccessor, Map<ExtendableObject, ExtendableObject> objectMap) {
+		for (E oldSubObject: listAccessor.getElements(oldParent)) {
 			fillListObject(oldSubObject, listAccessor.getElementPropertySet().getActualPropertySet((Class<? extends E>)oldSubObject.getClass()), objectMap);
 		}
     }

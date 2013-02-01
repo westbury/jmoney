@@ -26,7 +26,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.model2.MalformedPluginException;
 import net.sf.jmoney.resources.Messages;
 
@@ -205,7 +205,7 @@ public class JMoneyWorkbenchWindowAdvisor extends WorkbenchWindowAdvisor {
 		 * set here.
 		 */
 		IWorkbenchWindow window = getWindowConfigurer().getWindow();
-		DatastoreManager sessionManager = (DatastoreManager)window.getActivePage().getInput();
+		IDatastoreManager sessionManager = (IDatastoreManager)window.getActivePage().getInput();
 		
 		/*
 		 * It is possible we are restoring a workbench window that has no session opened in it.

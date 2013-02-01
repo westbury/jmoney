@@ -35,7 +35,8 @@ import java.util.ResourceBundle;
 
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.CurrencyInfo;
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
+import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.model2.Propagator;
 import net.sf.jmoney.model2.PropertySet;
 import net.sf.jmoney.model2.Session;
@@ -190,8 +191,13 @@ public class JMoneyPlugin extends AbstractUIPlugin {
 		return resourceBundle;
 	}
 	
-    public DatastoreManager getSessionManager() {
-		return (DatastoreManager)PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getInput();
+	// TODO do we really need both the following?
+    public IDatastoreManager getSessionManager() {
+		return (IDatastoreManager)PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getInput();
+    }
+   
+    public IDataManagerForAccounts getSessionManager2() {
+		return (IDataManagerForAccounts)PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getInput();
     }
    
     /**
@@ -199,7 +205,7 @@ public class JMoneyPlugin extends AbstractUIPlugin {
 	 * Returns false if canceled by user or the save fails.
 	 */
 	public boolean saveOldSession(IWorkbenchWindow window) {
-		DatastoreManager sessionManager = getSessionManager();
+		IDatastoreManager sessionManager = getSessionManager();
 		if (sessionManager == null) {
 			return true;
 		} else {
@@ -210,7 +216,7 @@ public class JMoneyPlugin extends AbstractUIPlugin {
 	// Helper method
     // TODO: see if we really need this method.
     public Session getSession() {
-		DatastoreManager sessionManager = getSessionManager();
+    	IDataManagerForAccounts sessionManager = getSessionManager2();
         return sessionManager == null 
 			? null 
 			: sessionManager.getSession();
@@ -219,7 +225,7 @@ public class JMoneyPlugin extends AbstractUIPlugin {
     /**
      * Initializes a new session with stuff that all sessions must have.
      */
-    public void initializeNewSession(DatastoreManager newSessionManager) {
+    public void initializeNewSession(IDataManagerForAccounts newSessionManager) {
     	/*
     	 * JMoney depends on having at least one currency, which must also be
     	 * set as the default currency. If there is no default currency then

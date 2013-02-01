@@ -2,16 +2,13 @@ package net.sf.jmoney.isolation;
 
 import java.util.Collection;
 
-import net.sf.jmoney.model2.ListPropertyAccessor;
-import net.sf.jmoney.model2.ScalarPropertyAccessor;
-
 public interface IExtendablePropertySet<E extends IModelObject> {
 
 	Class<E> getImplementationClass();
 
-	Collection<ScalarPropertyAccessor<?,? super E>> getScalarProperties3();
+	Collection<? extends IScalarPropertyAccessor<?,? super E>> getScalarProperties3();
 
-	Collection<ListPropertyAccessor<?,? super E>> getListProperties3();
+	Collection<? extends IListPropertyAccessor<?,? super E>> getListProperties3();
 
 	E constructImplementationObject(IObjectKey objectKey, ListKey<? super E,?> parentKey, IValues<E> values);
 

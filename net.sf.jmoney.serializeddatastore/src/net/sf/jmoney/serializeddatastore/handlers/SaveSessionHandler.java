@@ -1,7 +1,7 @@
 package net.sf.jmoney.serializeddatastore.handlers;
 
 import net.sf.jmoney.JMoneyPlugin;
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.serializeddatastore.SerializedDatastorePlugin;
 import net.sf.jmoney.serializeddatastore.SessionManager;
 
@@ -20,7 +20,7 @@ public final class SaveSessionHandler extends AbstractHandler {
 			throws ExecutionException {
 		IWorkbenchWindow window = HandlerUtil.getActiveWorkbenchWindowChecked(event);
 
-		DatastoreManager datastoreManager = (DatastoreManager)window.getActivePage().getInput();
+		IDatastoreManager datastoreManager = (IDatastoreManager)window.getActivePage().getInput();
 		if (SerializedDatastorePlugin.checkSessionImplementation(datastoreManager, window)) { 
 			SessionManager myDatastoreManager = (SessionManager)JMoneyPlugin.getDefault().getSessionManager();
 			myDatastoreManager.saveSession(window);

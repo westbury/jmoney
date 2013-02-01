@@ -23,7 +23,6 @@ package net.sf.jmoney.model2;
 
 import java.lang.reflect.Field;
 
-import net.sf.jmoney.isolation.DataManager;
 import net.sf.jmoney.isolation.IObjectKey;
 
 
@@ -53,7 +52,7 @@ public abstract class ExtensionObject {
     	return baseObject.getSession();
 	}
 	
-	public DataManager getDataManager() {
+	public IDataManagerForAccounts getDataManager() {
     	return baseObject.getDataManager();
 	}
 	

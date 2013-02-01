@@ -18,7 +18,7 @@ import org.eclipse.core.databinding.property.set.ISetProperty;
 import org.eclipse.core.databinding.property.value.IValueProperty;
 import org.eclipse.swt.widgets.Composite;
 
-public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends PropertyAccessor implements IScalarPropertyAccessor<V,E> {
+public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends PropertyAccessor<E> implements IScalarPropertyAccessor<V,E> {
 
 	private IValueProperty valueProperty;
 	

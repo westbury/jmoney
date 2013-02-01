@@ -37,7 +37,7 @@ import java.util.Iterator;
  * 
  * @author Nigel Westbury
  */
-class DeltaListIterator<E extends IModelObject> implements Iterator<E> {
+public class DeltaListIterator<E extends IModelObject> implements Iterator<E> {
 	TransactionManager transactionManager;
 	boolean processingCommittedObjects = true;
 
@@ -87,7 +87,7 @@ class DeltaListIterator<E extends IModelObject> implements Iterator<E> {
 	 * 			committedListIterator.  This list contains the committed
 	 * 			object keys.
 	 */
-	DeltaListIterator(TransactionManager transactionManager, Iterator<E> committedListIterator, Collection<E> addedObjects, Collection<IObjectKey> deletedObjects) {
+	public DeltaListIterator(TransactionManager transactionManager, Iterator<E> committedListIterator, Collection<E> addedObjects, Collection<IObjectKey> deletedObjects) {
 		this.transactionManager = transactionManager;
 		subIterator = committedListIterator;
 		this.addedObjects = addedObjects;

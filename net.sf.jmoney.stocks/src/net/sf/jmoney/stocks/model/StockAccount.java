@@ -180,7 +180,7 @@ public class StockAccount extends CapitalAccount {
 		if (currencyKey != null) {
 			this.currencyKey = currencyKey;
 		} else {
-			this.currencyKey = objectKey.getDataManager().getSession().getDefaultCurrency().getObjectKey();
+			this.currencyKey = getDataManager().getSession().getDefaultCurrency().getObjectKey();
 		}
 		
         this.brokerageFirm = brokerageFirm;
@@ -206,7 +206,7 @@ public class StockAccount extends CapitalAccount {
 		// Overwrite the default name with our own default name.
 		name = "New Stock Account";
 		
-		this.currencyKey = objectKey.getDataManager().getSession().getDefaultCurrency().getObjectKey();
+		this.currencyKey = getDataManager().getSession().getDefaultCurrency().getObjectKey();
 		this.brokerageFirm = null;
 		this.accountNumber = null;
 		

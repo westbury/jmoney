@@ -1,6 +1,5 @@
 package net.sf.jmoney.isolation;
 
-import net.sf.jmoney.model2.ExtendablePropertySet;
 
 /**
  * This exception is throw when at attempt is made to delete an
@@ -15,7 +14,7 @@ import net.sf.jmoney.model2.ExtendablePropertySet;
 public class ReferenceViolationException extends Exception {
 	private static final long serialVersionUID = 5464554045939430785L;
 
-	private ExtendablePropertySet<?> propertySet;
+	private IExtendablePropertySet<?> propertySet;
 	private String sqlErrorMessage;
 	
 	/**
@@ -28,12 +27,12 @@ public class ReferenceViolationException extends Exception {
 	 *            will contain a clue as to which foreign key constraint was
 	 *            violated
 	 */
-	public ReferenceViolationException(ExtendablePropertySet<?> propertySet, String sqlErrorMessage) {
+	public ReferenceViolationException(IExtendablePropertySet<?> propertySet, String sqlErrorMessage) {
 		this.propertySet = propertySet;
 		this.sqlErrorMessage = sqlErrorMessage;
 	}
 
-	public ExtendablePropertySet<?> getPropertySet() {
+	public IExtendablePropertySet<?> getPropertySet() {
 		return propertySet;
 	}
 

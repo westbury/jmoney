@@ -10,9 +10,9 @@ import net.sf.jmoney.entrytable.FocusCellTracker;
 import net.sf.jmoney.entrytable.InvalidUserEntryException;
 import net.sf.jmoney.entrytable.RowSelectionTracker;
 import net.sf.jmoney.entrytable.VirtualRowTable;
-import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.property.model.RealPropertyAccount;
 
 import org.eclipse.swt.widgets.Composite;
@@ -102,7 +102,7 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 
 	@Override
 	protected StockEntryData createUncommittedEntryData(
-			Entry entryInTransaction, TransactionManager transactionManager) {
+			Entry entryInTransaction, TransactionManagerForAccounts transactionManager) {
 		StockEntryData entryData = new StockEntryData(entryInTransaction, transactionManager);
 		return entryData;
 	}

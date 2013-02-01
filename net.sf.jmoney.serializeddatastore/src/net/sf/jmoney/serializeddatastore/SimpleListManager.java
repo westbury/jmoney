@@ -49,17 +49,18 @@ public class SimpleListManager<E extends IModelObject> extends Vector<E> impleme
 	 * The parent object and list property accessor for this list. This field is
 	 * never null.
 	 */
-	private ListKey<E> listKey;
+	private ListKey<E,?> listKey;
 
-	public SimpleListManager(SessionManager sessionManager, ListKey<E> listKey) {
+	public SimpleListManager(SessionManager sessionManager, ListKey<E,?> listKey) {
 	 	this.sessionManager = sessionManager;
 	 	this.listKey = listKey;
 	 }
 
-	public ListKey<E> getListKey() {
+	public ListKey<E,?> getListKey() {
 		return listKey;
 	}
 
+	@Override
 	public <F extends E> F createNewElement(IExtendablePropertySet<F> propertySet) {
 		SimpleObjectKey objectKey = new SimpleObjectKey(sessionManager);
 		F extendableObject = propertySet.constructDefaultImplementationObject(objectKey, listKey);
@@ -92,7 +93,8 @@ public class SimpleListManager<E extends IModelObject> extends Vector<E> impleme
 		return extendableObject;
 	}
 
-	public <F extends E> F createNewElement(IExtendablePropertySet<F> propertySet, IValues values) {
+	@Override
+	public <F extends E> F createNewElement(IExtendablePropertySet<F> propertySet, IValues<F> values) {
 		SimpleObjectKey objectKey = new SimpleObjectKey(sessionManager);
 		F extendableObject = propertySet.constructImplementationObject(objectKey, listKey, values);
 		
@@ -124,13 +126,15 @@ public class SimpleListManager<E extends IModelObject> extends Vector<E> impleme
 		return extendableObject;
 	}
 
-	public void moveElement(E extendableObject, IListManager originalList) {
+	@Override
+	public <F extends E> void moveElement(F extendableObject, IListManager<? super F> originalList) {
 		/*
 		 * This method moves the object in the underlying datastore.  However, the datastore
 		 * is a serialized datastore, so changes are not made to the datastore at this time.
 		 */
 	}
 
+	@Override
 	public void deleteElement(E extendableObject) {
 		// If an account is removed then we
 		// clear out the list.

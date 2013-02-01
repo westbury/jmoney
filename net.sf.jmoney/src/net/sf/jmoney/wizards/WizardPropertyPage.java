@@ -110,9 +110,9 @@ public class WizardPropertyPage extends WizardPage {
 							@Override	
 							public void focusLost(FocusEvent e) {
 								// TODO: Verify this is needed.  Clean it up?
-								if (extendableObject.getDataManager().isSessionFiring()) {
-									return;
-								}
+//								if (extendableObject.getDataManager().isSessionFiring()) {
+//									return;
+//								}
 
 								propertyControl.save();
 							}

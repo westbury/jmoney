@@ -52,6 +52,8 @@ public class CsvImportWizardPage extends WizardPage  {
 	
 	private Text filePathText;
 	
+	private Button deleteCheckbox;
+	
 	/**
 	 * Create an instance of this class
 	 */
@@ -62,6 +64,7 @@ public class CsvImportWizardPage extends WizardPage  {
 		setDescription("Select the CSV file to import");
 	}
 
+	@Override
 	public void createControl(Composite parent) {
 		initializeDialogUnits(parent);
 		Composite composite = new Composite(parent, SWT.NULL);
@@ -97,9 +100,13 @@ public class CsvImportWizardPage extends WizardPage  {
 		gd.widthHint = 600;
 		label.setLayoutData(gd);
 		
+		deleteCheckbox = new Button(composite, SWT.CHECK);
+		deleteCheckbox.setText("Delete file when imported");
+		
 		setDescription("Import data from a CSV file that has been downloaded from Ameritrade.");
 		setPageComplete(false);
 		filePathText.addModifyListener(new ModifyListener() {
+			@Override
 			public void modifyText(ModifyEvent e) {
 				// TODO Validate text
 				
@@ -148,5 +155,9 @@ public class CsvImportWizardPage extends WizardPage  {
 
 	public String getFileName() {
 		return filePathText.getText();
+	}
+	
+	public boolean IsDeleteFile() {
+		return deleteCheckbox.getSelection();
 	}
 }

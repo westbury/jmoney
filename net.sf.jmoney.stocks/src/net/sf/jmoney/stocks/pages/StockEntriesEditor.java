@@ -1,6 +1,6 @@
 package net.sf.jmoney.stocks.pages;
 
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.views.AccountEditorInput;
 
@@ -34,7 +34,7 @@ public class StockEntriesEditor extends EditorPart {
 		
     	// Set the account that this page is viewing and editing.
 		AccountEditorInput input2 = (AccountEditorInput)input;
-        DatastoreManager sessionManager = (DatastoreManager)site.getPage().getInput();
+		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)site.getPage().getInput();
         account = (StockAccount)sessionManager.getSession().getAccountByFullName(input2.getFullAccountName());
 	}
 

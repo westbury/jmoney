@@ -26,18 +26,18 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import net.sf.jmoney.model2.Commodity;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.ExtendablePropertySet;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.views.IDynamicTreeNode;
 
 public class SecuritiesTypeNode implements IDynamicTreeNode {
 
-	private DatastoreManager sessionManager;
+	private IDataManagerForAccounts sessionManager;
 	private ExtendablePropertySet<? extends Security> propertySet;
 	
-	public SecuritiesTypeNode(DatastoreManager sessionManager, ExtendablePropertySet<? extends Security> propertySet) {
+	public SecuritiesTypeNode(IDataManagerForAccounts sessionManager, ExtendablePropertySet<? extends Security> propertySet) {
 		this.sessionManager = sessionManager;
 		this.propertySet = propertySet;
 	}

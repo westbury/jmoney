@@ -8,8 +8,9 @@ import net.sf.jmoney.isolation.IScalarPropertyAccessor;
 import net.sf.jmoney.isolation.SessionChangeAdapter;
 import net.sf.jmoney.isolation.SessionChangeListener;
 import net.sf.jmoney.model2.CommodityInfo;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.ExtendablePropertySet;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
+import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.model2.PropertySet;
 import net.sf.jmoney.property.model.RealProperty;
 import net.sf.jmoney.property.model.RealPropertyInfo;
@@ -23,14 +24,14 @@ import org.eclipse.swt.widgets.Display;
 
 public class RealPropertiesContentProvider implements ITreeContentProvider {
 
-	private DatastoreManager sessionManager;
+	private IDataManagerForAccounts sessionManager;
 	
 	private Map<ExtendablePropertySet<? extends RealProperty>, Object> realPropertyTypeTreeNodes = new HashMap<ExtendablePropertySet<? extends RealProperty>, Object>();
 
 	private SessionChangeListener listener = null;
 	
 	public Object[] getChildren(Object parentElement) {
-		if (parentElement instanceof DatastoreManager) {
+		if (parentElement instanceof IDatastoreManager) {
 			return realPropertyTypeTreeNodes.values().toArray();
 		}
 		if (parentElement instanceof IDynamicTreeNode) {
@@ -51,7 +52,7 @@ public class RealPropertiesContentProvider implements ITreeContentProvider {
 	}
 
 	public boolean hasChildren(Object element) {
-		if (element instanceof DatastoreManager) {
+		if (element instanceof IDatastoreManager) {
 			return true;
 		}
 		if (element instanceof IDynamicTreeNode) {
@@ -76,7 +77,7 @@ public class RealPropertiesContentProvider implements ITreeContentProvider {
 		 * to the workbench page and the input to the workbench page can't change (we replace
 		 * the page if the session changes).  Therefore no cleanup of the old input is needed.
 		 */
-		sessionManager = (DatastoreManager)newInput;
+		sessionManager = (IDataManagerForAccounts)newInput;
 		if (sessionManager != null) {
 			/*
 			 * Create the nodes that contain the real property, one node for each

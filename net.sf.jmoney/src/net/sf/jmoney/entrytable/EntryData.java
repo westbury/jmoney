@@ -25,13 +25,13 @@ package net.sf.jmoney.entrytable;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import net.sf.jmoney.isolation.DataManager;
 import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.ExtendableObject;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
 import org.eclipse.core.runtime.Assert;
@@ -53,7 +53,7 @@ public class EntryData {
 	 */
 	private final Entry entry;
 	
-	private final DataManager dataManager;
+	private final IDataManagerForAccounts dataManager;
 
 	/**
 	 * The balance before this entry is added in, so the balance shown to the
@@ -73,7 +73,7 @@ public class EntryData {
 	 *            which must be the same as the datastore manager for the entry
 	 *            parameter if the entry parameter is non-null
 	 */
-	public EntryData(Entry entry, DataManager dataManager) {
+	public EntryData(Entry entry, IDataManagerForAccounts dataManager) {
 		this.entry = entry;
 		this.dataManager = dataManager;
 	}
@@ -135,7 +135,7 @@ public class EntryData {
 		return entry;
 	}
 
-	public DataManager getBaseSessionManager() {
+	public IDataManagerForAccounts getBaseSessionManager() {
 		return dataManager;
 	}
 

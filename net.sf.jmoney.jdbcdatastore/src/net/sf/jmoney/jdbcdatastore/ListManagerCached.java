@@ -46,9 +46,8 @@ import net.sf.jmoney.model2.ListPropertyAccessor;
  */
 public class ListManagerCached<E extends IModelObject, S extends IModelObject> implements IListManager<E> {
 
-	private static final long serialVersionUID = 867883048050895954L;
-
 	private SessionManager sessionManager;
+
 	private DatabaseListKey<E,S> listKey;
 	
 	/**
@@ -78,6 +77,7 @@ public class ListManagerCached<E extends IModelObject, S extends IModelObject> i
 		}
 	}
 
+	@Override
 	public <F extends E> F createNewElement(IExtendablePropertySet<F> propertySet) {
 		// We must create the object before we persist it to the database.
 		// The reason why we must do this, and not simply write the
@@ -113,6 +113,7 @@ public class ListManagerCached<E extends IModelObject, S extends IModelObject> i
 		return extendableObject;
 	}
 
+	@Override
 	public <F extends E> F createNewElement(IExtendablePropertySet<F> propertySet, IValues<F> values) {
 		// We must create the object before we persist it to the database.
 		// The reason why we must do this, and not simply write the
@@ -148,6 +149,7 @@ public class ListManagerCached<E extends IModelObject, S extends IModelObject> i
 		return extendableObject;
 	}
 
+	@Override
 	public void deleteElement(E extendableObject) throws ReferenceViolationException {
 		if (elements == null) {
 			buildCachedList();
@@ -163,10 +165,12 @@ public class ListManagerCached<E extends IModelObject, S extends IModelObject> i
 		sessionManager.deleteFromDatabase(key);
 	}
 
-	public void moveElement(E extendableObject, IListManager originalListManager) {
+	@Override
+	public <F extends E> void moveElement(F extendableObject, IListManager<? super F> originalListManager) {
 		sessionManager.reparentInDatabase(extendableObject, listKey);
 	}
 
+	@Override
 	public boolean add(E extendableObject) {
 		if (elements != null) {
 			elements.add(extendableObject);
@@ -180,6 +184,7 @@ public class ListManagerCached<E extends IModelObject, S extends IModelObject> i
 		return true;
 	}
 
+	@Override
 	public boolean remove(Object o) {
 		if (elements != null) {
 			return elements.remove(o);
@@ -195,14 +200,17 @@ public class ListManagerCached<E extends IModelObject, S extends IModelObject> i
 		}
 	}
 
+	@Override
 	public boolean addAll(Collection<? extends E> arg0) {
 		throw new RuntimeException("Method not supported");
 	}
 
+	@Override
 	public void clear() {
 		throw new RuntimeException("Method not supported");
 	}
 
+	@Override
 	public boolean contains(Object arg0) {
 		if (elements == null) {
 			buildCachedList();
@@ -210,6 +218,7 @@ public class ListManagerCached<E extends IModelObject, S extends IModelObject> i
 		return elements.contains(arg0);
 	}
 
+	@Override
 	public boolean containsAll(Collection<?> arg0) {
 		if (elements == null) {
 			buildCachedList();
@@ -217,6 +226,7 @@ public class ListManagerCached<E extends IModelObject, S extends IModelObject> i
 		return elements.containsAll(arg0);
 	}
 
+	@Override
 	public boolean isEmpty() {
 		if (elements == null) {
 			buildCachedList();
@@ -224,6 +234,7 @@ public class ListManagerCached<E extends IModelObject, S extends IModelObject> i
 		return elements.isEmpty();
 	}
 
+	@Override
 	public Iterator<E> iterator() {
 		if (elements == null) {
 			buildCachedList();
@@ -231,14 +242,17 @@ public class ListManagerCached<E extends IModelObject, S extends IModelObject> i
 		return elements.iterator();
 	}
 
+	@Override
 	public boolean removeAll(Collection<?> arg0) {
 		throw new RuntimeException("Method not supported");
 	}
 
+	@Override
 	public boolean retainAll(Collection<?> arg0) {
 		throw new RuntimeException("Method not supported");
 	}
 
+	@Override
 	public int size() {
 		if (elements == null) {
 			buildCachedList();
@@ -246,6 +260,7 @@ public class ListManagerCached<E extends IModelObject, S extends IModelObject> i
 		return elements.size();
 	}
 
+	@Override
 	public Object[] toArray() {
 		if (elements == null) {
 			buildCachedList();
@@ -253,6 +268,7 @@ public class ListManagerCached<E extends IModelObject, S extends IModelObject> i
 		return elements.toArray();
 	}
 
+	@Override
 	public <T> T[] toArray(T[] arg0) {
 		if (elements == null) {
 			buildCachedList();

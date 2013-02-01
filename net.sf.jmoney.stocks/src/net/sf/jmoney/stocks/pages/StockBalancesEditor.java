@@ -32,9 +32,10 @@ import net.sf.jmoney.isolation.IListPropertyAccessor;
 import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IScalarPropertyAccessor;
 import net.sf.jmoney.isolation.SessionChangeAdapter;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
+import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.stocks.ShowStockDetailsHandler;
 import net.sf.jmoney.stocks.model.Stock;
 import net.sf.jmoney.stocks.model.StockAccount;
@@ -184,7 +185,7 @@ public class StockBalancesEditor extends EditorPart {
 		
     	// Set the account that this page is viewing and editing.
 		AccountEditorInput input2 = (AccountEditorInput)input;
-        DatastoreManager sessionManager = (DatastoreManager)site.getPage().getInput();
+		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)site.getPage().getInput();
         account = (StockAccount)sessionManager.getSession().getAccountByFullName(input2.getFullAccountName());
         
         sessionManager.addChangeListener(sessionListener);
@@ -192,7 +193,7 @@ public class StockBalancesEditor extends EditorPart {
 
 	@Override
 	public void dispose() {
-        DatastoreManager sessionManager = (DatastoreManager)getSite().getPage().getInput();
+        IDatastoreManager sessionManager = (IDatastoreManager)getSite().getPage().getInput();
         sessionManager.removeChangeListener(sessionListener);
 	}
 

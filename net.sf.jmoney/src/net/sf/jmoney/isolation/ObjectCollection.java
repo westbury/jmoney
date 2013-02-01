@@ -101,11 +101,18 @@ public class ObjectCollection<E extends IModelObject> implements Collection<E> {
 	 * Moves the given object into this collection, removing it from its
 	 * current parent.
 	 */
-	public void moveElement(final E extendableObject) {
+	public <F extends E> void moveElement(final F extendableObject) {
 		Assert.isTrue(listKey.getParentKey().getDataManager() == extendableObject.getDataManager());
 		
-		final ListKey originalListKey = extendableObject.getParentListKey();
+		ListKey<? super F,?> originalListKey = extendableObject.getParentListKey();
 		
+		moveIt(extendableObject, originalListKey);
+		
+		listKey.getParentKey().getDataManager().getChangeManager().processObjectMove(extendableObject, originalListKey);
+	}
+	
+	private  <F extends E, S extends IModelObject> void moveIt(final F extendableObject,
+			final ListKey<? super F, S> originalListKey) {
 		/*
 		 * Note that if the parent object is not materialized (meaning that the
 		 * getObject method in the following line needs to materialize the
@@ -113,8 +120,8 @@ public class ObjectCollection<E extends IModelObject> implements Collection<E> {
 		 * from the parent's list. However, there is no API for this, and the
 		 * extra code for such a small optimization is not worth it.
 		 */
-		ObjectCollection originalCollection = originalListKey.getListPropertyAccessor().getElements(originalListKey.getParentKey().getObject());
-		IListManager originalListManager = originalCollection.listManager;
+		ObjectCollection<? super F> originalCollection = originalListKey.getListPropertyAccessor().getElements((S)originalListKey.getParentKey().getObject());
+		IListManager<? super F> originalListManager = originalCollection.listManager;
 
 		// Move in the underlying datastore.
 		listManager.moveElement(extendableObject, originalListManager);
@@ -136,10 +143,8 @@ public class ObjectCollection<E extends IModelObject> implements Collection<E> {
 						);
 					}
 				});
-		
-		listKey.getParentKey().getDataManager().getChangeManager().processObjectMove(extendableObject, originalListKey);
 	}
-	
+
 	@Override
 	public int size() {
 		return listManager.size();

@@ -53,7 +53,6 @@ import net.sf.jmoney.entrytable.StackBlock;
 import net.sf.jmoney.entrytable.StackControl;
 import net.sf.jmoney.entrytable.VerticalBlock;
 import net.sf.jmoney.fields.IAmountFormatter;
-import net.sf.jmoney.isolation.DataManager;
 import net.sf.jmoney.isolation.IListPropertyAccessor;
 import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IScalarPropertyAccessor;
@@ -63,6 +62,7 @@ import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.ExtendableObject;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionInfo;
@@ -958,7 +958,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 					}
 
 					@Override
-					protected DataManager getDataManager(StockEntryData data) {
+					protected IDataManagerForAccounts getDataManager(StockEntryData data) {
 						return data.getEntry().getDataManager();
 					}
 				},

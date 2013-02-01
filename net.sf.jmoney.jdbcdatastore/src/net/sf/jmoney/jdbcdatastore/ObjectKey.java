@@ -27,7 +27,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.MessageFormat;
 
-import net.sf.jmoney.isolation.DataManager;
+import net.sf.jmoney.isolation.AbstractDataManager;
 import net.sf.jmoney.isolation.IExtendablePropertySet;
 import net.sf.jmoney.isolation.IListManager;
 import net.sf.jmoney.isolation.IListPropertyAccessor;
@@ -343,7 +343,7 @@ public class ObjectKey implements IDatabaseRowKey {
 		sessionManager.updateProperties((ExtendablePropertySet<?>)actualPropertySet, rowId, oldValues, newValues);
 	}
 
-	public DataManager getDataManager() {
+	public AbstractDataManager getDataManager() {
 		return sessionManager;
 	}
 

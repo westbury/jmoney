@@ -22,29 +22,17 @@
 
 package net.sf.jmoney.isolation;
 
-import java.util.AbstractCollection;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import net.sf.jmoney.JMoneyPlugin;
-import net.sf.jmoney.model2.Account;
-import net.sf.jmoney.model2.Entry;
-import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.Session;
-import net.sf.jmoney.model2.SessionInfo;
-import net.sf.jmoney.model2.Transaction;
-import net.sf.jmoney.model2.TransactionInfo;
 
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.commands.operations.IOperationHistory;
 import org.eclipse.core.commands.operations.IUndoContext;
 import org.eclipse.core.commands.operations.IUndoableOperation;
-import org.eclipse.core.runtime.Assert;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 
@@ -62,13 +50,9 @@ import org.eclipse.core.runtime.Status;
  * 
  * @author Nigel Westbury
  */
-public class TransactionManager extends DataManager {
-	private DataManager baseDataManager;
+public abstract class TransactionManager extends AbstractDataManager {
+	private IDataManager baseDataManager;
 
-	// TODO: At some time, review this and ensure that we
-	// really do need the session object here.
-	private Session uncommittedSession;
-	
 	/**
 	 * Maps IObjectKey to Map, where IObjectKey is the key in the comitted
 	 * datastore and each Map maps PropertyAccessor to the value of that
@@ -98,7 +82,7 @@ public class TransactionManager extends DataManager {
 	// (Of course, the complications now need to be added to the listener code
 	// that needs to keep the objects in allObjects map up to date
 	// and tell our listeners.
-	Map<IObjectKey, ModifiedObject> modifiedObjects = new HashMap<IObjectKey, ModifiedObject>();
+	protected Map<IObjectKey, ModifiedObject> modifiedObjects = new HashMap<IObjectKey, ModifiedObject>();
 	
 	/**
 	 * Every extendable object that exists in the base data manager and that has
@@ -124,7 +108,7 @@ public class TransactionManager extends DataManager {
 	 * manager to easily find the added and deleted objects when committing
 	 * the changes.
 	 */
-	Set<DeltaListManager> modifiedLists = new HashSet<DeltaListManager>();
+	public Set<DeltaListManager> modifiedLists = new HashSet<DeltaListManager>();
 
 	/**
 	 * true if a nested transaction is in the process of applying its
@@ -159,9 +143,8 @@ public class TransactionManager extends DataManager {
 	 *  
 	 * @param session the session object from the committed datastore
 	 */
-	public TransactionManager(DataManager baseDataManager) {
+	public TransactionManager(IDataManager baseDataManager) {
 		this.baseDataManager = baseDataManager;
-		this.uncommittedSession = getCopyInTransaction(baseDataManager.getSession());
 		
 		/*
 		 * Listen for changes to the base data. Note that a weak reference is
@@ -171,15 +154,6 @@ public class TransactionManager extends DataManager {
 		 * longer being used.
 		 */
 		baseDataManager.addChangeListenerWeakly(baseSessionChangeListener);
-	}
-
-	/**
-	 * @return a session object representing an uncommitted
-	 * 			session object managed by this transaction manager
-	 */
-    @Override	
-	public Session getSession() {
-		return uncommittedSession;
 	}
 
 	/**
@@ -213,7 +187,6 @@ public class TransactionManager extends DataManager {
      * 			of the object in this transaction, or null if the
      * 			given object has been deleted in this transaction 
      */
-    @SuppressWarnings("unchecked???")
     public <E extends IModelObject> E getCopyInTransaction(final E committedObject) {
     	/*
 		 * As a convenience to the caller, this method accepts null objects. If
@@ -327,24 +300,6 @@ public class TransactionManager extends DataManager {
 
     	return copyInTransaction;
     }
-
-    /**
-	 * @param account
-	 * @return
-	 */
-    @Override	
-	public boolean hasEntries(Account account) {
-		return !new ModifiedAccountEntriesList(account).isEmpty();
-	}
-
-	/**
-	 * @param account
-	 * @return
-	 */
-    @Override	
-	public Collection<Entry> getEntries(Account account) {
-		return new ModifiedAccountEntriesList(account);
-	}
 
 	/**
 	 * Apply the changes that are stored in this transaction manager.
@@ -752,127 +707,6 @@ public class TransactionManager extends DataManager {
 		}
 	}
 
-	private class ModifiedAccountEntriesList extends AbstractCollection<Entry> {
-		
-		Account account;
-		
-		ModifiedAccountEntriesList(Account account) {
-			this.account = account;
-		}
-		
-		@Override
-		public int size() {
-			Vector<Entry> addedEntries = new Vector<Entry>();
-			Vector<IObjectKey> removedEntries = new Vector<IObjectKey>();
-			buildAddedAndRemovedEntryLists(addedEntries, removedEntries);
-			
-			IObjectKey committedAccountKey = ((UncommittedObjectKey)account.getObjectKey()).getCommittedObjectKey();
-			if (committedAccountKey == null) {
-				// This is a new account created in this transaction
-				Assert.isTrue(removedEntries.isEmpty());
-				return addedEntries.size();
-			} else {
-				Account committedAccount = (Account)committedAccountKey.getObject();
-				Collection<Entry> committedCollection = committedAccount.getEntries();
-				return committedCollection.size() + addedEntries.size() - removedEntries.size();
-			}
-		}
-
-		@Override
-		public Iterator<Entry> iterator() {
-			// Build the list of differences between the committed
-			// list and the list in this transaction.
-			
-			// This is done each time an iterator is requested.
-			
-			Vector<Entry> addedEntries = new Vector<Entry>();
-			Vector<IObjectKey> removedEntries = new Vector<IObjectKey>();
-			buildAddedAndRemovedEntryLists(addedEntries, removedEntries);
-			
-			IObjectKey committedAccountKey = ((UncommittedObjectKey)account.getObjectKey()).getCommittedObjectKey();
-			if (committedAccountKey == null) {
-				// This is a new account created in this transaction
-				Assert.isTrue(removedEntries.isEmpty());
-				return addedEntries.iterator();
-			} else {
-				Account committedAccount = (Account)committedAccountKey.getObject();
-				Collection<Entry> committedCollection = committedAccount.getEntries();
-				return new DeltaListIterator<Entry>(TransactionManager.this, committedCollection.iterator(), addedEntries, removedEntries);
-			}
-		}
-
-		private void buildAddedAndRemovedEntryLists(Vector<Entry> addedEntries,	Vector<IObjectKey> removedEntries) {
-			// Process all the new objects added within this transaction
-			for (DeltaListManager<?,?> modifiedList: modifiedLists) {
-				
-				// Find all entries added to existing transactions
-				if (modifiedList.listAccessor == TransactionInfo.getEntriesAccessor()) {
-					for (IModelObject newObject: modifiedList.getAddedObjects()) {
-						Entry newEntry = (Entry)newObject;
-						if (account.equals(newEntry.getAccount())) {
-							addedEntries.add(newEntry);
-						}
-					}
-				}
-
-				// Find all entries in new transactions.
-				if (modifiedList.listAccessor == SessionInfo.getTransactionsAccessor()) {
-					for (IModelObject newObject: modifiedList.getAddedObjects()) {
-						Transaction newTransaction = (Transaction)newObject;
-						for (Entry newEntry: newTransaction.getEntryCollection()) {
-							if (account.equals(newEntry.getAccount())) {
-								addedEntries.add(newEntry);
-							}
-						}
-					}
-				}
-			}
-			
-			/*
-			 * Process all the changed and deleted objects. (Deleted objects are
-			 * processed here and not from the deletedObjects list in modified
-			 * lists in the above code. This ensures that objects that are
-			 * deleted due to the deletion of the parent are also processed).
-			 */
-			for (Map.Entry<IObjectKey, ModifiedObject> mapEntry: modifiedObjects.entrySet()) {
-				IObjectKey committedKey = mapEntry.getKey();
-				ModifiedObject newValues = mapEntry.getValue();
-				
-				IModelObject committedObject = committedKey.getObject();
-				
-				if (committedObject instanceof Entry) {
-					Entry entry = (Entry)committedObject;
-					if (!newValues.isDeleted()) {
-						Map<IScalarPropertyAccessor, Object> propertyMap = newValues.getMap();
-						
-						// Object has changed property values.
-						if (propertyMap.containsKey(EntryInfo.getAccountAccessor())) {
-							boolean wasInIndex = account.equals(entry.getAccount());
-							boolean nowInIndex = account.equals(((IObjectKey)propertyMap.get(EntryInfo.getAccountAccessor())).getObject());
-							if (wasInIndex) {
-								if (!nowInIndex) {
-									removedEntries.add(entry.getObjectKey());
-								}
-							} else {
-								if (nowInIndex) {
-									// Note that addedEntries must contain objects that
-									// are being managed by the transaction manager
-									// (not the committed versions).
-									addedEntries.add(getCopyInTransaction(entry));
-								}
-							}
-						}
-					} else {
-						// Object has been deleted.
-						if (entry.getAccount().equals(account)) {
-							removedEntries.add(entry.getObjectKey());
-						}
-					}
-				}
-			}
-		}
-	}
-
 	/**
 	 * This method is called when a nested transaction manager is about to apply its
 	 * changes to our data.
@@ -1011,12 +845,6 @@ public class TransactionManager extends DataManager {
 		public void performRefresh() {
 			// TODO Auto-generated method stub
 			
-		}
-
-		public void sessionReplaced(Session oldSession, Session newSession) {
-			// TODO This method is not applicable here.
-			// Do we need a version of this listener that does
-			// not have this method???
 		}
 
 		@Override

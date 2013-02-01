@@ -57,16 +57,16 @@ import net.sf.jmoney.entrytable.StackBlock;
 import net.sf.jmoney.entrytable.StackControl;
 import net.sf.jmoney.entrytable.VerticalBlock;
 import net.sf.jmoney.fields.IAmountFormatter;
-import net.sf.jmoney.isolation.DataManager;
+import net.sf.jmoney.isolation.IDataManager;
 import net.sf.jmoney.isolation.IListPropertyAccessor;
 import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IScalarPropertyAccessor;
 import net.sf.jmoney.isolation.SessionChangeAdapter;
 import net.sf.jmoney.isolation.SessionChangeListener;
 import net.sf.jmoney.isolation.TransactionManager;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionInfo;
@@ -130,7 +130,7 @@ public class AssetDetailsEditor extends EditorPart {
 		
     	// Set the account that this page is viewing and editing.
 		AccountEditorInput input2 = (AccountEditorInput)input;
-        DatastoreManager sessionManager = (DatastoreManager)site.getPage().getInput();
+		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)site.getPage().getInput();
         account = (RealPropertyAccount)sessionManager.getSession().getAccountByFullName(input2.getFullAccountName());
 	}
 
@@ -659,7 +659,7 @@ public class AssetDetailsEditor extends EditorPart {
 					}
 
 					@Override
-					protected DataManager getDataManager(StockEntryData data) {
+					protected IDataManager getDataManager(StockEntryData data) {
 						return data.getEntry().getDataManager();
 					}
 				},

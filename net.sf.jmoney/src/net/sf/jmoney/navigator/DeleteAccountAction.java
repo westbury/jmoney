@@ -6,6 +6,7 @@ package net.sf.jmoney.navigator;
 import net.sf.jmoney.isolation.AbstractDataOperation;
 import net.sf.jmoney.isolation.ReferenceViolationException;
 import net.sf.jmoney.model2.Account;
+import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.resources.Messages;
 
@@ -55,7 +56,7 @@ class DeleteAccountAction extends BaseSelectionListenerAction {
 					session.deleteAccount(account);
 				} catch (ReferenceViolationException e) {
 					MessageDialog.openError(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), "Delete Failed", "The account is in use.  "
-							+ "The reference is a reference to this account in its capacity as a '" + e.getPropertySet().getObjectDescription()
+							+ "The reference is a reference to this account in its capacity as a '" + ((ExtendablePropertySet)e.getPropertySet()).getObjectDescription()
 							+ "'.  Further information: " + e.getSqlErrorMessage());
 					return Status.CANCEL_STATUS;
 				}

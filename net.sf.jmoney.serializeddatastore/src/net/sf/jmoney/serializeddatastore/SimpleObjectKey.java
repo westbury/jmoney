@@ -23,17 +23,17 @@
 package net.sf.jmoney.serializeddatastore;
 
 import net.sf.jmoney.JMoneyPlugin;
-import net.sf.jmoney.isolation.DataManager;
+import net.sf.jmoney.isolation.AbstractDataManager;
 import net.sf.jmoney.isolation.IExtendablePropertySet;
 import net.sf.jmoney.isolation.IListManager;
 import net.sf.jmoney.isolation.IListPropertyAccessor;
 import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IObjectKey;
+import net.sf.jmoney.isolation.IScalarPropertyAccessor;
 import net.sf.jmoney.isolation.ListKey;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
 /**
  * This class provides the IObjectKey implementation.
@@ -52,6 +52,7 @@ public class SimpleObjectKey implements IObjectKey {
 		this.sessionManager = sessionManager;
 	}
 	
+	@Override
 	public IModelObject getObject() {
 		return extendableObject;
 	}
@@ -61,12 +62,13 @@ public class SimpleObjectKey implements IObjectKey {
 		this.extendableObject = extendableObject;
 	}
 
+	@Override
 	public void updateProperties(IExtendablePropertySet<?> actualPropertySet, Object[] oldValues, Object[] newValues) {
 		// If the account property of an entry is changed then we
 		// must update the lists of entries in each account.
 		if (extendableObject instanceof Entry) {
 			int i = 0;
-			for (ScalarPropertyAccessor propertyAccessor2: actualPropertySet.getScalarProperties3()) {
+			for (IScalarPropertyAccessor propertyAccessor2: actualPropertySet.getScalarProperties3()) {
 				if (propertyAccessor2 == EntryInfo.getAccountAccessor()) {
 					if (!JMoneyPlugin.areEqual(oldValues[i], newValues[i])) {
 						if (oldValues[i] != null) {
@@ -90,11 +92,13 @@ public class SimpleObjectKey implements IObjectKey {
 		sessionManager.setModified();
 	}
 
-	public DataManager getDataManager() {
+	@Override
+	public AbstractDataManager getDataManager() {
 		return sessionManager;
 	}
 
-	public <E extends IModelObject> IListManager<E> constructListManager(IListPropertyAccessor<E> listAccessor) {
-		return new SimpleListManager<E>(sessionManager, new ListKey<E>(this, listAccessor));
+	@Override
+	public <E extends IModelObject, S extends IModelObject> IListManager<E> constructListManager(IListPropertyAccessor<E,S> listAccessor) {
+		return new SimpleListManager<E>(sessionManager, new ListKey<E,S>(this, listAccessor));
 	}
 }

@@ -27,9 +27,9 @@ import java.util.Collection;
 
 /**
  * This interface is the interface to all objects that manage
- * the sets of values that are the values of a multi-valued
- * property.  For example, the set of all accounts in a session
- * are managed by an object that implements this interface.
+ * a list of child objects within the model.  That is, whenever
+ * an object in the model contains a list of child objects, that
+ * list is managed by an implementation of this interface.
  * 
  * @param E type of the elements in this list
  */
@@ -83,5 +83,5 @@ public interface IListManager<E extends IModelObject> extends Collection<E> {
 	 * @param extendableObject
 	 * @param originalList 
 	 */
-	void moveElement(E extendableObject, IListManager originalList);
+	<F extends E> void moveElement(F extendableObject, IListManager<? super F> originalList);
 }

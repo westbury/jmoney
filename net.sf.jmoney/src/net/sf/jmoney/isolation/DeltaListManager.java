@@ -54,7 +54,7 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 
 	IObjectKey uncommittedParentKey;
 
-	IListPropertyAccessor<E,? super S> listAccessor;
+	public IListPropertyAccessor<E,? super S> listAccessor;
 
 	/**
 	 * The modified list.
@@ -213,7 +213,7 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 	}
 
 	@Override
-	public void moveElement(E extendableObject, IListManager originalListManager) {
+	public <F extends E> void moveElement(F extendableObject, IListManager<? super F> originalList) {
 		/*
 		 * It is fairly complex to implement this inside a transaction.
 		 * Therefore we do not support this.
@@ -286,7 +286,7 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 	 * @return collection of elements of type IModelObject, being the
 	 *         uncommitted versions of the objects being added
 	 */
-	Collection<E> getAddedObjects() {
+	public Collection<E> getAddedObjects() {
 		return addedObjects;
 	}
 

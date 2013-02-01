@@ -7,6 +7,7 @@ import net.sf.jmoney.isolation.ReferenceViolationException;
 import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.Transaction;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.resources.Messages;
 
 import org.eclipse.core.commands.AbstractHandler;
@@ -42,7 +43,7 @@ public class DeleteTransactionHandler extends AbstractHandler {
     			// in a callback.
 
 				try {
-	    			TransactionManager transactionManager = new TransactionManager(selectedEntry.getDataManager());
+	    			TransactionManager transactionManager = new TransactionManagerForAccounts(selectedEntry.getDataManager());
 	    			Entry selectedEntry2 = transactionManager.getCopyInTransaction(selectedEntry); 
 	    			Transaction transaction = selectedEntry2.getTransaction();
 	    			transaction.getSession().deleteTransaction(transaction);

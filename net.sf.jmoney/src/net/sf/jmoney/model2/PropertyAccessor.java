@@ -46,9 +46,9 @@ package net.sf.jmoney.model2;
 * 
 * @author  Nigel Westbury
 */
-public abstract class PropertyAccessor {
+public abstract class PropertyAccessor<E extends ExtendableObject> {
    
-   protected PropertySet<?,?> propertySet;
+   protected PropertySet<?,E> propertySet;
    
    protected String localName;    
    
@@ -62,7 +62,7 @@ public abstract class PropertyAccessor {
 	 */
    protected int indexIntoConstructorParameters = -1;
 	
-   public PropertyAccessor(PropertySet propertySet, String localName, String displayName) {
+   public PropertyAccessor(PropertySet<?,E> propertySet, String localName, String displayName) {
 	   this.propertySet = propertySet;
 	   this.localName = localName;
 	   this.displayName = displayName;
@@ -77,7 +77,7 @@ public abstract class PropertyAccessor {
 	 * @param displayName
 	 * @param propertyDependency
 	 */
-   public PropertyAccessor(PropertySet propertySet, String localName, String displayName, Class<? extends ExtendableObject> listItemClass) {
+   public PropertyAccessor(PropertySet<?,E> propertySet, String localName, String displayName, Class<? extends ExtendableObject> listItemClass) {
 	   this.propertySet = propertySet;
 	   this.localName = localName;
 	   this.displayName = displayName;
@@ -90,7 +90,7 @@ public abstract class PropertyAccessor {
 	// that for extension property sets, the property set being
 	// extended should be returned.  This saves the caller from having
 	// to test the property set.
-	public PropertySet getPropertySet() {
+	public PropertySet<?,E> getPropertySet() {
        return propertySet;
    }
 	

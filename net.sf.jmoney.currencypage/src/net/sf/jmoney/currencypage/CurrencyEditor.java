@@ -25,8 +25,8 @@ import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.CurrencyAccount;
 import net.sf.jmoney.model2.CurrencyInfo;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.Entry;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.SessionInfo;
@@ -275,7 +275,7 @@ public class CurrencyEditor extends EditorPart {
 		 * input (no session set) because the command is not enabled if no
 		 * session is set. 
 		 */
-		DatastoreManager manager = (DatastoreManager)getSite().getPage().getInput();
+		IDataManagerForAccounts manager = (IDataManagerForAccounts)getSite().getPage().getInput();
 		session = manager.getSession();
 
 		Composite container = toolkit.createComposite(parent, SWT.NONE);

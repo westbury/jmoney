@@ -29,8 +29,8 @@ import javax.mail.internet.MimeMultipart;
 
 import net.sf.jmoney.email.Activator;
 import net.sf.jmoney.email.IMailReader;
-import net.sf.jmoney.isolation.TransactionManager;
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDatastoreManager;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.resources.Messages;
 
 import org.eclipse.core.commands.AbstractHandler;
@@ -68,11 +68,12 @@ public class EmailImportHandler extends AbstractHandler {
 	 * the command has been executed, so extract extract the needed information
 	 * from the application context.
 	 */
+	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		Shell shell = HandlerUtil.getActiveShellChecked(event);
 		IWorkbenchWindow window = HandlerUtil.getActiveWorkbenchWindowChecked(event);
 
-		DatastoreManager sessionManager = (DatastoreManager)window.getActivePage().getInput();
+		IDatastoreManager sessionManager = (IDatastoreManager)window.getActivePage().getInput();
 		if (sessionManager == null) {
 			MessageDialog.openWarning(
 					shell,
@@ -217,7 +218,7 @@ public class EmailImportHandler extends AbstractHandler {
 		}
 	}
 
-	public void transform(DatastoreManager datastoreManager, Message[] messages, List<IMailReader> importers) {
+	public void transform(IDatastoreManager datastoreManager, Message[] messages, List<IMailReader> importers) {
 
 		for (int i = 47; i < messages.length; i++) {
 			try {
@@ -240,7 +241,7 @@ public class EmailImportHandler extends AbstractHandler {
 				 * be more efficiently written to the back-end datastore and it also groups
 				 * the entire import as a single change for undo/redo purposes.
 				 */
-				TransactionManager transactionManager = new TransactionManager(datastoreManager);
+				TransactionManagerForAccounts transactionManager = new TransactionManagerForAccounts(datastoreManager);
 				net.sf.jmoney.model2.Session sessionInTransaction = transactionManager.getSession();
 				
 				boolean anyProcessed = false;

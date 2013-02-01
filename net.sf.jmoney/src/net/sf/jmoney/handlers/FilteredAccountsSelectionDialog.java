@@ -25,8 +25,8 @@ package net.sf.jmoney.handlers;
 import java.util.Comparator;
 
 import net.sf.jmoney.JMoneyPlugin;
-import net.sf.jmoney.isolation.DataManager;
 import net.sf.jmoney.model2.Account;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -57,7 +57,7 @@ public class FilteredAccountsSelectionDialog extends FilteredItemsSelectionDialo
 
 	private static final String SHOW_CATEGORIES = "ShowCategories"; //$NON-NLS-1$
 
-	private DataManager sessionManager;
+	private IDataManagerForAccounts sessionManager;
 	
 	private ShowCategoriesAction showCategoriesAction;
 
@@ -75,7 +75,7 @@ public class FilteredAccountsSelectionDialog extends FilteredItemsSelectionDialo
 	 * @param sessionManager
 	 *            the session from which accounts are to be selected
 	 */
-	public FilteredAccountsSelectionDialog(Shell shell, DataManager sessionManager) {
+	public FilteredAccountsSelectionDialog(Shell shell, IDataManagerForAccounts sessionManager) {
 		super(shell, true);
 
 		this.sessionManager = sessionManager;

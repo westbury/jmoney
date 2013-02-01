@@ -26,12 +26,12 @@ package net.sf.jmoney.property.wizards;
 import java.util.HashSet;
 import java.util.Set;
 
-import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.isolation.UncommittedObjectKey;
 import net.sf.jmoney.model2.CommodityInfo;
 import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.property.model.RealProperty;
 import net.sf.jmoney.property.model.RealPropertyInfo;
 import net.sf.jmoney.wizards.WizardPropertyPage;
@@ -49,7 +49,7 @@ public class NewPropertyWizard extends Wizard {
 	
 	private ExtendablePropertySet<? extends RealProperty> realAssetPropertySet;
 
-	private TransactionManager transactionManager;
+	private TransactionManagerForAccounts transactionManager;
 	
 	private RealProperty newUncommittedAccount;
 	
@@ -69,7 +69,7 @@ public class NewPropertyWizard extends Wizard {
 		this.setWindowTitle("Create a New Stock");
 		this.setHelpAvailable(true);
 		
-		transactionManager = new TransactionManager(session.getDataManager());
+		transactionManager = new TransactionManagerForAccounts(session.getDataManager());
 		
 		Session session2 = transactionManager.getSession();
 		newUncommittedAccount = session2.createCommodity(realAssetPropertySet);

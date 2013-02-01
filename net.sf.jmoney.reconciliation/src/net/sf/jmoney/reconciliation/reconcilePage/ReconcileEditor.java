@@ -22,14 +22,15 @@ import net.sf.jmoney.importer.model.PatternMatcherAccount;
 import net.sf.jmoney.importer.model.PatternMatcherAccountInfo;
 import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.CurrencyAccount;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.ExtendableObject;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionInfo;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.reconciliation.BankStatement;
 import net.sf.jmoney.reconciliation.IBankStatementSource;
 import net.sf.jmoney.reconciliation.ReconciliationEntryInfo;
@@ -116,7 +117,7 @@ public class ReconcileEditor extends EditorPart {
 		
     	// Set the account that this page is viewing and editing.
 		AccountEditorInput input2 = (AccountEditorInput)input;
-        DatastoreManager sessionManager = (DatastoreManager)site.getPage().getInput();
+        IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)site.getPage().getInput();
         account = (CurrencyAccount)sessionManager.getSession().getAccountByFullName(input2.getFullAccountName());
         
         // Create our own transaction manager.
@@ -321,7 +322,7 @@ public class ReconcileEditor extends EditorPart {
 					 * be more efficiently written to the back-end datastore and it also groups
 					 * the entire import as a single change for undo/redo purposes.
 					 */
-					TransactionManager transactionManager = new TransactionManager(account.getDataManager());
+					TransactionManager transactionManager = new TransactionManagerForAccounts(account.getDataManager());
 					CurrencyAccount accountInTransaction = transactionManager.getCopyInTransaction((account));
 					Session sessionInTransaction = accountInTransaction.getSession();
 
@@ -615,7 +616,7 @@ public class ReconcileEditor extends EditorPart {
 				 * be more efficiently written to the back-end datastore and it also groups
 				 * the entire import as a single change for undo/redo purposes.
 				 */
-				TransactionManager transactionManager = new TransactionManager(account.getDataManager());
+				TransactionManager transactionManager = new TransactionManagerForAccounts(account.getDataManager());
 				CurrencyAccount accountInTransaction = transactionManager.getCopyInTransaction((account));
 				Session sessionInTransaction = accountInTransaction.getSession();
 

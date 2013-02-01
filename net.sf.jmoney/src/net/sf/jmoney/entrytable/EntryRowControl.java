@@ -22,9 +22,9 @@
 
 package net.sf.jmoney.entrytable;
 
-import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.pages.entries.ForeignCurrencyDialog;
 
 import org.eclipse.swt.widgets.Composite;
@@ -39,7 +39,7 @@ public class EntryRowControl extends BaseEntryRowControl<EntryData, EntryRowCont
 
 	@Override
 	protected EntryData createUncommittedEntryData(Entry entryInTransaction,
-			TransactionManager transactionManager) {
+			TransactionManagerForAccounts transactionManager) {
 		EntryData entryData = new EntryData(entryInTransaction, transactionManager);
 		return entryData;
 	}

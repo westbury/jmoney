@@ -37,13 +37,13 @@ import net.sf.jmoney.importer.matcher.PatternMatchingDialog;
 import net.sf.jmoney.importer.model.PatternMatcherAccount;
 import net.sf.jmoney.importer.model.PatternMatcherAccountInfo;
 import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
-import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.CurrencyAccount;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.Entry;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.Session;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.qif.QIFPlugin;
 import net.sf.jmoney.qif.parser.AmbiguousDateException;
 import net.sf.jmoney.qif.parser.InvalidQifFileException;
@@ -119,7 +119,7 @@ public class QifBankDownloadImportWizard extends Wizard implements IImportWizard
 		// Original JMoney disabled the import menu items when no
 		// session was open. I don't know how to do that in Eclipse,
 		// so we display a message instead.
-		DatastoreManager sessionManager = (DatastoreManager)window.getActivePage().getInput();
+		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)window.getActivePage().getInput();
 		if (sessionManager == null) {
 			MessageDialog.openError(
 					window.getShell(),
@@ -163,7 +163,7 @@ public class QifBankDownloadImportWizard extends Wizard implements IImportWizard
 			 * be more efficiently written to the back-end datastore and it also groups
 			 * the entire import as a single change for undo/redo purposes.
 			 */
-			TransactionManager transactionManager = new TransactionManager(session.getDataManager());
+			TransactionManagerForAccounts transactionManager = new TransactionManagerForAccounts(session.getDataManager());
 			Session sessionInTransaction = transactionManager.getSession();
 			CurrencyAccount accountInTransaction = transactionManager.getCopyInTransaction(currencyAccount);
 			

@@ -54,6 +54,7 @@ public class ListManagerUncached<E extends IModelObject, S extends IModelObject>
 		this.listKey = listKey;
 	}
 	
+	@Override
 	public <F extends E> F createNewElement(IExtendablePropertySet<F> propertySet) {
  		/*
 		 * First build the in-memory object. Even though the object is not
@@ -79,6 +80,7 @@ public class ListManagerUncached<E extends IModelObject, S extends IModelObject>
 		return extendableObject;
 	}
 	
+	@Override
 	public <F extends E> F createNewElement(IExtendablePropertySet<F> propertySet, IValues<F> values) {
  		/*
 		 * First build the in-memory object. Even though the object is not
@@ -103,16 +105,19 @@ public class ListManagerUncached<E extends IModelObject, S extends IModelObject>
 		return extendableObject;
 	}
 
+	@Override
 	public void deleteElement(E extendableObject) throws ReferenceViolationException {
 		// Delete this object from the database.
 		IDatabaseRowKey key = (IDatabaseRowKey)extendableObject.getObjectKey();
 		sessionManager.deleteFromDatabase(key);
 	}
 
-	public void moveElement(E extendableObject, IListManager originalListManager) {
+	@Override
+	public <F extends E> void moveElement(F extendableObject, IListManager<? super F> originalListManager) {
 		sessionManager.reparentInDatabase(extendableObject, listKey);
 	}
 
+	@Override
 	public int size() {
 		try {
 			ListPropertyAccessor<?,?> listPropertyAccessor2 = (ListPropertyAccessor<?,?>)listKey.listPropertyAccessor;
@@ -139,14 +144,17 @@ public class ListManagerUncached<E extends IModelObject, S extends IModelObject>
 		}
 	}
 	
+	@Override
 	public boolean isEmpty() {
 		throw new RuntimeException("method not implemented");
 	}
 
+	@Override
 	public boolean contains(Object o) {
 		throw new RuntimeException("method not implemented");
 	}
 
+	@Override
 	public Iterator<E> iterator() {
 		/*
 		 * We execute a SQL statement and pass the result set to an
@@ -164,6 +172,7 @@ public class ListManagerUncached<E extends IModelObject, S extends IModelObject>
 		 * and the associated statement.
 		 */		
 		ResultSet rs = sessionManager.runWithReconnect(new IRunnableSql<ResultSet>() {
+			@Override
 			public ResultSet execute(Connection connection) throws SQLException {
 				// Although the connection is passed, it is not really necessary because it
 				// is taken from the session manager, and that would be the same connection.
@@ -175,14 +184,17 @@ public class ListManagerUncached<E extends IModelObject, S extends IModelObject>
 		return new UncachedObjectIterator<E>(rs, listKey.listPropertyAccessor.getElementPropertySet(), listKey, sessionManager);
 	}
 
+	@Override
 	public Object[] toArray() {
 		throw new RuntimeException("method not implemented");
 	}
 
+	@Override
 	public <T> T[] toArray(T[] arg0) {
 		throw new RuntimeException("method not implemented");
 	}
 
+	@Override
 	public boolean add(E extendableObject) {
 		/*
 		 * This list is not cached so there is nothing to do. The object has
@@ -192,6 +204,7 @@ public class ListManagerUncached<E extends IModelObject, S extends IModelObject>
 		return true;
 	}
 
+	@Override
 	public boolean remove(Object o) {
 		/*
 		 * This list is not cached so there is nothing to do. The object has
@@ -201,22 +214,27 @@ public class ListManagerUncached<E extends IModelObject, S extends IModelObject>
 		return true;
 	}
 
+	@Override
 	public boolean containsAll(Collection<?> arg0) {
 		throw new RuntimeException("method not implemented");
 	}
 
+	@Override
 	public boolean addAll(Collection<? extends E> arg0) {
 		throw new RuntimeException("method not implemented");
 	}
 
+	@Override
 	public boolean removeAll(Collection<?> arg0) {
 		throw new RuntimeException("method not implemented");
 	}
 
+	@Override
 	public boolean retainAll(Collection<?> arg0) {
 		throw new RuntimeException("method not implemented");
 	}
 
+	@Override
 	public void clear() {
 		throw new RuntimeException("method not implemented");
 	}

@@ -24,7 +24,7 @@ package net.sf.jmoney.property.pages;
 
 import net.sf.jmoney.IBookkeepingPageFactory;
 import net.sf.jmoney.model2.Commodity;
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.property.ShowPropertyDetailsHandler;
 import net.sf.jmoney.property.model.RealProperty;
 import net.sf.jmoney.views.AccountEditor;
@@ -48,7 +48,7 @@ public class ListOfRealPropertyPage implements IBookkeepingPageFactory {
 		editor.addPage(entriesEditor, "Entries");
 		
 		AccountEditorInput input2 = (AccountEditorInput)input;
-        DatastoreManager sessionManager = (DatastoreManager)editor.getSite().getPage().getInput();
+		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)editor.getSite().getPage().getInput();
 
 		/*
 		 * In addition to the main page that shows the currency balance, a page may be

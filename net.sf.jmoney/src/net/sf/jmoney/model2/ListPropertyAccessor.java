@@ -9,7 +9,7 @@ import net.sf.jmoney.isolation.IListPropertyAccessor;
  *
  * @param <E> the type of the elements in the list
  */
-public abstract class ListPropertyAccessor<E extends ExtendableObject, S extends ExtendableObject> extends PropertyAccessor implements IListPropertyAccessor<E,S> {
+public abstract class ListPropertyAccessor<E extends ExtendableObject, S extends ExtendableObject> extends PropertyAccessor<S> implements IListPropertyAccessor<E,S> {
 
 	/**
 	 * 
@@ -19,7 +19,7 @@ public abstract class ListPropertyAccessor<E extends ExtendableObject, S extends
 	 */
 	private ExtendablePropertySet<E> elementPropertySet;
 
-	public ListPropertyAccessor(PropertySet parentPropertySet, String localName, String displayName, ExtendablePropertySet<E> elementPropertySet) {
+	public ListPropertyAccessor(PropertySet<?,S> parentPropertySet, String localName, String displayName, ExtendablePropertySet<E> elementPropertySet) {
 		super(parentPropertySet, localName, displayName, elementPropertySet.classOfObject);
 
 		this.elementPropertySet = elementPropertySet;

@@ -52,6 +52,7 @@ import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionInfo;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.resources.Messages;
 
 import org.eclipse.jface.dialogs.Dialog;
@@ -125,7 +126,7 @@ public class TransactionDialog extends Dialog {
 		 * All changes within this dialog are made within a transaction, so canceling
 		 * is trivial (the transaction is simply not committed).
 		 */
-		transactionManager = new TransactionManager(originalEntry.getDataManager());
+		transactionManager = new TransactionManagerForAccounts(originalEntry.getDataManager());
     	
     	topEntry = transactionManager.getCopyInTransaction(originalEntry);
     	

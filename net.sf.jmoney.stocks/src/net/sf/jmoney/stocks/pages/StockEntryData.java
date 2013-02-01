@@ -6,7 +6,6 @@ import java.util.Iterator;
 
 import net.sf.jmoney.entrytable.EntryData;
 import net.sf.jmoney.entrytable.InvalidUserEntryException;
-import net.sf.jmoney.isolation.DataManager;
 import net.sf.jmoney.isolation.IListPropertyAccessor;
 import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IScalarPropertyAccessor;
@@ -19,6 +18,7 @@ import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Transaction.EntryCollection;
 import net.sf.jmoney.stocks.model.Security;
@@ -91,7 +91,7 @@ public class StockEntryData extends EntryData {
 	 */
 	private IObservableValue<Long> tax2 = new WritableValue<Long>();
 
-	public StockEntryData(Entry entry, DataManager dataManager) {
+	public StockEntryData(Entry entry, IDataManagerForAccounts dataManager) {
 		super(entry, dataManager);
 
 

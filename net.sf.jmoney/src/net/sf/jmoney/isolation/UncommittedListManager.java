@@ -89,7 +89,7 @@ public class UncommittedListManager<E extends IModelObject> extends Vector<E> im
 	}
 
 	@Override
-	public void moveElement(E extendableObject, IListManager originalListManager) {
+	public <F extends E> void moveElement(F extendableObject, IListManager<? super F> originalList) {
 		/*
 		 * It is fairly complex to implement this inside a transaction.
 		 * Therefore we do not support this.

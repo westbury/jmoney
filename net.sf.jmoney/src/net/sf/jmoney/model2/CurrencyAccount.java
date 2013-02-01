@@ -77,7 +77,7 @@ public abstract class CurrencyAccount extends CapitalAccount {
 		if (currencyKey != null) {
 			this.currencyKey = currencyKey;
 		} else {
-			this.currencyKey = objectKey.getDataManager().getSession().getDefaultCurrency().getObjectKey();
+			this.currencyKey = getDataManager().getSession().getDefaultCurrency().getObjectKey();
 		}
 
 		this.startBalance = startBalance;
@@ -99,7 +99,7 @@ public abstract class CurrencyAccount extends CapitalAccount {
 		this.name = Messages.CurrencyAccount_Name;
 		
 		// Set the currency to the session default currency.
-		this.currencyKey = objectKey.getDataManager().getSession().getDefaultCurrency().getObjectKey();
+		this.currencyKey = getDataManager().getSession().getDefaultCurrency().getObjectKey();
 		
         this.startBalance = 0;
 	}

@@ -26,16 +26,16 @@ package net.sf.jmoney.wizards;
 import java.util.HashSet;
 import java.util.Set;
 
-import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.isolation.UncommittedObjectKey;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.AccountInfo;
 import net.sf.jmoney.model2.BankAccountInfo;
 import net.sf.jmoney.model2.CapitalAccount;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.ExtendablePropertySet;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.resources.Messages;
 
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -57,7 +57,7 @@ public class NewAccountWizard extends Wizard implements INewWizard {
 	
 	private ExtendablePropertySet<? extends Account> accountPropertySet;
 
-	private TransactionManager transactionManager;
+	private TransactionManagerForAccounts transactionManager;
 	
 	private Account newUncommittedAccount;
 	
@@ -94,7 +94,7 @@ public class NewAccountWizard extends Wizard implements INewWizard {
 
 	private void createAccount(Session session, CapitalAccount parentAccount,
 			ExtendablePropertySet<? extends CapitalAccount> accountPropertySet) {
-		transactionManager = new TransactionManager(session.getDataManager());
+		transactionManager = new TransactionManagerForAccounts(session.getDataManager());
 		
 		CapitalAccount parentAccount2 = transactionManager.getCopyInTransaction(parentAccount);
 		if (parentAccount2 == null) {
@@ -109,7 +109,7 @@ public class NewAccountWizard extends Wizard implements INewWizard {
 	@Override
 	public void init(IWorkbench workbench, IStructuredSelection selection) {
 		IWorkbenchWindow window = workbench.getActiveWorkbenchWindow();
-		DatastoreManager datastoreManager = (DatastoreManager)window.getActivePage().getInput();
+		IDataManagerForAccounts datastoreManager = (IDataManagerForAccounts)window.getActivePage().getInput();
 		if (datastoreManager == null) {
 			MessageDialog.openError(window.getShell(), "Unavailable", "You must open an accounting session before you can create an account.");
 			return;

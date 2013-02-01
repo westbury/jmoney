@@ -5,8 +5,8 @@ import java.util.Vector;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.CapitalAccountInfo;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.ExtendablePropertySet;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.Session;
 
 import org.eclipse.jface.action.Action;
@@ -44,7 +44,7 @@ public class AccountsActionProvider extends CommonActionProvider {
 
 		drillDownAdapter = new DrillDownAdapter((TreeViewer) site
 				.getStructuredViewer());
-		DatastoreManager sessionManager = (DatastoreManager)site.getStructuredViewer().getInput();
+		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)site.getStructuredViewer().getInput();
 		
 		makeActions(sessionManager.getSession());
 	}

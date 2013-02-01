@@ -146,6 +146,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 			this.prefix = prefix;
 		}
 
+		@Override
 		public String generateId(ExtendableObject object) {
 			return prefix + new Integer(nextId++).toString();
 		}
@@ -153,6 +154,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 	
 	class CurrencyIdGenerator implements IdGenerator {
 		
+		@Override
 		public String generateId(ExtendableObject object) {
 			return ((Currency)object).getCode();
 		}
@@ -184,6 +186,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 	 *         the given session manager, false if the user cancelled the
 	 *         operation or if a failure occurred
 	 */
+	@Override
 	public boolean readSession(final File sessionFile,
 			final SessionManager sessionManager, final IWorkbenchWindow window) {
 		try {
@@ -196,6 +199,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 			} else {
 				IRunnableWithProgress readSessionRunnable = new IRunnableWithProgress() {
 
+					@Override
 					public void run(IProgressMonitor monitor)
 							throws InvocationTargetException {
 						// Set the number of work units in the monitor where
@@ -691,7 +695,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 		 * Key to the list that contains the object being parsed. This is saved
 		 * because we will need it when the object is constructed.
 		 */
-		ListKey<? super E> listKey;
+		ListKey<? super E,?> listKey;
 
 		/**
 		 * The list of parameters to be passed to the constructor of this
@@ -714,7 +718,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 		 */
 		@SuppressWarnings("unchecked")
 		ObjectProcessor(SessionManager sessionManager, ObjectProcessor parent,
-				ListKey<? super E> listKey, IExtendablePropertySet<E> propertySet, String id) {
+				ListKey<? super E,?> listKey, IExtendablePropertySet<E> propertySet, String id) {
 			super(sessionManager, parent);
 			this.listKey = listKey;
 			this.propertySet = propertySet;
@@ -731,9 +735,9 @@ public class JMoneyXmlFormat implements IFileDatastore {
 				idToObjectMap.put(id, objectKey);
 			}
 
-			for (ListPropertyAccessor propertyAccessor : propertySet
+			for (IListPropertyAccessor propertyAccessor : propertySet
 					.getListProperties3()) {
-				propertyValueMap.put(propertyAccessor, new SimpleListManager(
+				propertyValueMap.put((ListPropertyAccessor)propertyAccessor, new SimpleListManager(
 						sessionManager,
 						new ListKey(objectKey, propertyAccessor)));
 			}
@@ -851,7 +855,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 							sessionManager, this, propertyClass);
 				}
 			} else {
-				ListPropertyAccessor<?> listProperty = (ListPropertyAccessor<?>) propertyAccessor;
+				ListPropertyAccessor<?,?> listProperty = (ListPropertyAccessor<?,?>) propertyAccessor;
 				ExtendablePropertySet<?> typedPropertySet = listProperty
 						.getElementPropertySet();
 				Class propertyClass = typedPropertySet.getImplementationClass();
@@ -923,6 +927,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 			IValues values = new IValues<E>() {
 
+				@Override
 				public <V> V getScalarValue(
 						IScalarPropertyAccessor<V, ? super E> propertyAccessor) {
 					if (propertyValueMap.containsKey(propertyAccessor)) {
@@ -933,6 +938,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 					}
 				}
 
+				@Override
 				public IObjectKey getReferencedObjectKey(
 						IReferencePropertyAccessor<?,? super E> propertyAccessor) {
 					if (propertyValueMap.containsKey(propertyAccessor)) {
@@ -942,9 +948,10 @@ public class JMoneyXmlFormat implements IFileDatastore {
 					}
 				}
 
+				@Override
 				public <E2 extends IModelObject> IListManager<E2> getListManager(
 						IObjectKey listOwnerKey,
-						IListPropertyAccessor<E2> listAccessor) {
+						IListPropertyAccessor<E2,? super E> listAccessor) {
 					return (IListManager<E2>) propertyValueMap.get(listAccessor);
 				}
 
@@ -1280,6 +1287,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 	/**
 	 * Write session to file.
 	 */
+	@Override
 	public void writeSession(final SessionManager sessionManager,
 			final File sessionFile, IWorkbenchWindow window) {
 		// If there is any modified data in the controls in any of the
@@ -1297,6 +1305,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 			} else {
 				IRunnableWithProgress writeSessionRunnable = new IRunnableWithProgress() {
 
+					@Override
 					public void run(IProgressMonitor monitor)
 							throws InvocationTargetException {
 						// Set the number of work units in the monitor where
@@ -1425,11 +1434,11 @@ public class JMoneyXmlFormat implements IFileDatastore {
 	 *            inspecting the adder and remover methods.
 	 * @throws SAXException
 	 */
-	void writeObject(TransformerHandler hd, ExtendableObject object,
-			String elementName, Class propertyType) throws SAXException {
+	<E extends ExtendableObject> void writeObject(TransformerHandler hd, E object,
+			String elementName, Class<E> propertyType) throws SAXException {
 		// Find the property set information for this object.
-		ExtendablePropertySet<?> propertySet = PropertySet
-				.getPropertySet(object.getClass());
+		ExtendablePropertySet<E> propertySet = PropertySet
+				.getPropertySet((Class<E>)object.getClass());
 
 		AttributesImpl atts = new AttributesImpl();
 
@@ -1485,19 +1494,9 @@ public class JMoneyXmlFormat implements IFileDatastore {
 		 * TODO: we cannot rely on this mechanism to ensure all idref's are
 		 * written before they are used.
 		 */
-		for (ListPropertyAccessor<?> listAccessor : propertySet
+		for (ListPropertyAccessor<?,? super E> listAccessor : propertySet
 				.getListProperties3()) {
-			PropertySet<?,?> propertySet2 = listAccessor.getPropertySet();
-			if (!propertySet2.isExtension()
-					|| object.getExtension(
-							(ExtensionPropertySet<?,?>) propertySet2, false) != null) {
-				for (ExtendableObject listElement : object
-						.getListPropertyValue(listAccessor)) {
-					writeObject(hd, listElement, listAccessor.getLocalName(),
-							listAccessor.getElementPropertySet()
-									.getImplementationClass());
-				}
-			}
+			writeList(hd, object, listAccessor);
 		}
 
 		for (ScalarPropertyAccessor propertyAccessor : propertySet
@@ -1558,6 +1557,20 @@ public class JMoneyXmlFormat implements IFileDatastore {
 		}
 
 		hd.endElement("", "", elementName); //$NON-NLS-1$ //$NON-NLS-2$
+	}
+
+	private <E extends ExtendableObject, S extends ExtendableObject> void writeList(TransformerHandler hd, S object,
+			ListPropertyAccessor<E, ? super S> listAccessor) throws SAXException {
+		PropertySet<?,? super S> propertySet2 = listAccessor.getPropertySet();
+		if (!propertySet2.isExtension()
+				|| object.getExtension(
+						(ExtensionPropertySet<?,? super S>) propertySet2, false) != null) {
+			for (E listElement : listAccessor.getElements(object)) {
+				writeObject(hd, listElement, listAccessor.getLocalName(),
+						listAccessor.getElementPropertySet()
+								.getImplementationClass());
+			}
+		}
 	}
 
 	private String getId(ExtendablePropertySet<?> propertySet,

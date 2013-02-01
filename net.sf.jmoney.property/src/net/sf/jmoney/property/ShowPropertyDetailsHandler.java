@@ -23,7 +23,7 @@
 package net.sf.jmoney.property;
 
 import net.sf.jmoney.model2.Account;
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.property.model.RealProperty;
 import net.sf.jmoney.property.model.RealPropertyAccount;
 import net.sf.jmoney.property.pages.AssetDetailsEditor;
@@ -50,7 +50,7 @@ public class ShowPropertyDetailsHandler extends AbstractHandler {
 		Shell shell = HandlerUtil.getActiveShellChecked(event);
 
         AccountEditorInput cInput = (AccountEditorInput)editor.getEditorInput();
-        DatastoreManager sessionManager = (DatastoreManager)editor.getSite().getPage().getInput();
+        IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)editor.getSite().getPage().getInput();
         Account account = sessionManager.getSession().getAccountByFullName(cInput.getFullAccountName());
 		RealPropertyAccount stockAccount = (RealPropertyAccount)account;
 

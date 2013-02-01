@@ -9,7 +9,6 @@ import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
 import net.sf.jmoney.importer.wizards.CsvImportWizard;
 import net.sf.jmoney.importer.wizards.ImportException;
 import net.sf.jmoney.isolation.ReferenceViolationException;
-import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.BankAccount;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
@@ -17,6 +16,7 @@ import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 
 import org.eclipse.ui.IImportWizard;
 
@@ -56,7 +56,7 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 
 
 	@Override
-	protected void startImport(TransactionManager transactionManager) throws ImportException {
+	protected void startImport(TransactionManagerForAccounts transactionManager) throws ImportException {
 	}
 
 	@Override

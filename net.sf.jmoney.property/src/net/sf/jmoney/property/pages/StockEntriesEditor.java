@@ -1,6 +1,6 @@
 package net.sf.jmoney.property.pages;
 
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.property.model.RealPropertyAccount;
 import net.sf.jmoney.views.AccountEditorInput;
 
@@ -34,7 +34,7 @@ public class StockEntriesEditor extends EditorPart {
 		
     	// Set the account that this page is viewing and editing.
 		AccountEditorInput input2 = (AccountEditorInput)input;
-        DatastoreManager sessionManager = (DatastoreManager)site.getPage().getInput();
+		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)site.getPage().getInput();
         account = (RealPropertyAccount)sessionManager.getSession().getAccountByFullName(input2.getFullAccountName());
 	}
 

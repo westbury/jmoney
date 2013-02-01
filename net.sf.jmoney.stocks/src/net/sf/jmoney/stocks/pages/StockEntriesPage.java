@@ -24,7 +24,7 @@ package net.sf.jmoney.stocks.pages;
 
 import net.sf.jmoney.IBookkeepingPageFactory;
 import net.sf.jmoney.model2.Commodity;
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.stocks.ShowStockDetailsHandler;
 import net.sf.jmoney.stocks.model.Stock;
 import net.sf.jmoney.views.AccountEditor;
@@ -51,7 +51,7 @@ public class StockEntriesPage implements IBookkeepingPageFactory {
 		editor.addPage(balancesEditor, "Balances");
 		
 		AccountEditorInput input2 = (AccountEditorInput)input;
-        DatastoreManager sessionManager = (DatastoreManager)editor.getSite().getPage().getInput();
+		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)editor.getSite().getPage().getInput();
 
 		/*
 		 * In addition to the main page that shows the currency balance, a page may be

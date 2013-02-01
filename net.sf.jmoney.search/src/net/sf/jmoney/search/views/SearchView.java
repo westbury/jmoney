@@ -22,9 +22,9 @@ import net.sf.jmoney.entrytable.PropertyBlock;
 import net.sf.jmoney.entrytable.RowControl;
 import net.sf.jmoney.entrytable.RowSelectionTracker;
 import net.sf.jmoney.entrytable.SingleOtherEntryPropertyBlock;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.TransactionInfo;
 import net.sf.jmoney.resources.Messages;
@@ -97,7 +97,7 @@ public class SearchView extends ViewPart {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void createPartControl(Composite parent) {
-		DatastoreManager manager = (DatastoreManager)getSite().getPage().getInput();
+		IDataManagerForAccounts manager = (IDataManagerForAccounts)getSite().getPage().getInput();
 		if (manager == null) {
 			// TODO put up some message, or can we stop the user from opening this
 			// view when there is no session open?

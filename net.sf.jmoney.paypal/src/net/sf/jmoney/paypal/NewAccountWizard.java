@@ -26,13 +26,13 @@ import java.util.HashSet;
 import java.util.Set;
 
 import net.sf.jmoney.JMoneyPlugin;
-import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.isolation.UncommittedObjectKey;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.AccountInfo;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.resources.Messages;
 import net.sf.jmoney.wizards.WizardPropertyPage;
 
@@ -50,7 +50,7 @@ import org.eclipse.ui.IWorkbenchWizard;
 
 public class NewAccountWizard extends Wizard implements IWorkbenchWizard {
 	
-	private TransactionManager transactionManager;
+	private TransactionManagerForAccounts transactionManager;
 	
 	private PaypalAccount newUncommittedAccount;
 	
@@ -78,7 +78,7 @@ public class NewAccountWizard extends Wizard implements IWorkbenchWizard {
 		this.setWindowTitle(Messages.NewAccountWizard_WindowTitleCategory);
 		this.setHelpAvailable(true);
 		
-		transactionManager = new TransactionManager(session.getDataManager());
+		transactionManager = new TransactionManagerForAccounts(session.getDataManager());
 		
 		CapitalAccount parentAccount2 = transactionManager.getCopyInTransaction(parentAccount);
 		if (parentAccount2 == null) {
@@ -89,6 +89,7 @@ public class NewAccountWizard extends Wizard implements IWorkbenchWizard {
 		}
 	}
 	
+	@Override
 	public void init(IWorkbench workbench, IStructuredSelection selection) {
 		// TODO Auto-generated method stub
 	}
@@ -137,6 +138,7 @@ public class NewAccountWizard extends Wizard implements IWorkbenchWizard {
 			setMessage(Messages.NewAccountWizard_SummaryPageMessage);
 		}
 		
+		@Override
 		public void createControl(Composite parent) {
 			Composite container = new Composite(parent, SWT.NONE);
 			

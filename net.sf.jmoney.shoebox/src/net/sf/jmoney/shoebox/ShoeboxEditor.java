@@ -28,9 +28,9 @@ import net.sf.jmoney.entrytable.VerticalBlock;
 import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.UncommittedObjectKey;
 import net.sf.jmoney.model2.Currency;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionInfo;
@@ -92,7 +92,7 @@ public class ShoeboxEditor extends EditorPart {
         // This ensures that uncommitted changes
     	// made by this page are isolated from datastore usage outside
     	// of this page.
-		DatastoreManager sessionManager = (DatastoreManager)getSite().getPage().getInput();
+		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)getSite().getPage().getInput();
 		session = sessionManager.getSession();
 
 //        transactionManager = new TransactionManager(sessionManager);

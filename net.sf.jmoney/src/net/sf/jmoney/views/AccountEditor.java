@@ -32,8 +32,8 @@ import net.sf.jmoney.isolation.SessionChangeAdapter;
 import net.sf.jmoney.isolation.SessionChangeListener;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.AccountInfo;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.ExtendablePropertySet;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.PageEntry;
 import net.sf.jmoney.model2.PropertySet;
 
@@ -60,7 +60,7 @@ public class AccountEditor extends FormEditor {
 
     protected SessionChangeListener accountNameChangeListener = null;
 
-	private DatastoreManager sessionManager;
+	private IDataManagerForAccounts sessionManager;
 
 	private Account account;
     
@@ -103,7 +103,7 @@ public class AccountEditor extends FormEditor {
 
         final AccountEditorInput cInput = (AccountEditorInput) input;
 
-        sessionManager = (DatastoreManager)site.getPage().getInput();
+        sessionManager = (IDataManagerForAccounts)site.getPage().getInput();
         
         account = sessionManager.getSession().getAccountByFullName(cInput.getFullAccountName());
         if (account == null) {

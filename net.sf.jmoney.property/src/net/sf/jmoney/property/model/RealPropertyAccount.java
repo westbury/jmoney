@@ -86,7 +86,7 @@ public class RealPropertyAccount extends CapitalAccount {
 		if (currencyKey != null) {
 			this.currencyKey = currencyKey;
 		} else {
-			this.currencyKey = objectKey.getDataManager().getSession().getDefaultCurrency().getObjectKey();
+			this.currencyKey = getDataManager().getSession().getDefaultCurrency().getObjectKey();
 		}
 	}
 
@@ -98,7 +98,7 @@ public class RealPropertyAccount extends CapitalAccount {
 		// Overwrite the default name with our own default name.
 		name = "New Stock Account";
 		
-		this.currencyKey = objectKey.getDataManager().getSession().getDefaultCurrency().getObjectKey();
+		this.currencyKey = getDataManager().getSession().getDefaultCurrency().getObjectKey();
 	}
 
 	@Override

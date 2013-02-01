@@ -113,7 +113,7 @@ public interface IObjectKey {
 	/**
 	 * @return
 	 */
-	DataManager getDataManager();
+	IDataManager getDataManager();
 
 	/**
 	 * Constructs a list manager that is suitable for managing a list

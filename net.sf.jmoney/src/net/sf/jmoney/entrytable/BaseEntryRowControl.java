@@ -25,12 +25,12 @@ package net.sf.jmoney.entrytable;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.Transaction;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.resources.Messages;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -87,7 +87,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	 * created when the contents are set into this object and remains usable for
 	 * the rest of the time that this object represents a visible row.
 	 */
-	TransactionManager transactionManager = null;
+	TransactionManagerForAccounts transactionManager = null;
 
 	/**
 	 * The EntryData object on which this row is based. This will contain the
@@ -234,7 +234,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 		// Perhaps we should have separate derived classes for the regular rows
 		// and
 		// the new entry row.
-		transactionManager = new TransactionManager(committedEntryData
+		transactionManager = new TransactionManagerForAccounts(committedEntryData
 				.getBaseSessionManager());
 		Entry entryInTransaction;
 		if (committedEntryData.getEntry() == null) {
@@ -256,7 +256,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	}
 
 	protected abstract T createUncommittedEntryData(Entry entryInTransaction,
-			TransactionManager transactionManager);
+			TransactionManagerForAccounts transactionManager);
 
 	@Override
 	protected void setSelected(boolean isSelected) {
@@ -350,7 +350,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 
 					// TODO: Some of this code is duplicated below.
 
-					transactionManager = new TransactionManager(
+					transactionManager = new TransactionManagerForAccounts(
 							committedEntryData.getBaseSessionManager());
 					Entry entryInTransaction;
 					if (committedEntryData.getEntry() == null) {

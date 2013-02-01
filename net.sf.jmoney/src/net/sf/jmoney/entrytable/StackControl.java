@@ -26,7 +26,7 @@ package net.sf.jmoney.entrytable;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.sf.jmoney.isolation.DataManager;
+import net.sf.jmoney.isolation.IDataManager;
 import net.sf.jmoney.isolation.SessionChangeListener;
 import net.sf.jmoney.model2.IPropertyControl;
 
@@ -100,7 +100,7 @@ public class StackControl<T, R> extends Composite implements IPropertyControl<T>
 	public void load(final T entryData) {
 		// TODO: this should be done in a 'row release' method??
 		if (this.entryData != null) {
-			DataManager dataManager = stackBlock.getDataManager(this.entryData);
+			IDataManager dataManager = stackBlock.getDataManager(this.entryData);
 			dataManager.removeChangeListener(transactionChangeListener);
 		}
 		
@@ -110,7 +110,7 @@ public class StackControl<T, R> extends Composite implements IPropertyControl<T>
 		Block<? super T, ? super R> topBlock = stackBlock.getTopBlock(entryData);
 		setTopBlock(topBlock);
 
-		DataManager dataManager = stackBlock.getDataManager(entryData);
+		IDataManager dataManager = stackBlock.getDataManager(entryData);
 		transactionChangeListener = stackBlock.createListener(entryData, this);
 		dataManager.addChangeListener(transactionChangeListener);
 	}

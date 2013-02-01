@@ -1,6 +1,6 @@
 package net.sf.jmoney.stocks.navigator;
 
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.Session;
 
 import org.eclipse.jface.action.IMenuManager;
@@ -26,7 +26,7 @@ public class SecuritiesActionProvider extends CommonActionProvider {
 	public void init(ICommonActionExtensionSite site) {
 		super.init(site);
 
-		DatastoreManager sessionManager = (DatastoreManager)site.getStructuredViewer().getInput();
+		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)site.getStructuredViewer().getInput();
 		
 		makeActions(sessionManager.getSession());
 	}

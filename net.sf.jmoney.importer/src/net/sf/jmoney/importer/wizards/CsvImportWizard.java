@@ -32,9 +32,9 @@ import java.text.ParseException;
 import java.util.Date;
 
 import net.sf.jmoney.importer.Activator;
-import net.sf.jmoney.isolation.TransactionManager;
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.Session;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -92,19 +92,30 @@ public abstract class CsvImportWizard extends Wizard {
 		String fileName = mainPage.getFileName();
 		if (fileName != null) {
 			File csvFile = new File(fileName);
-			importFile(csvFile);
+			;
+			boolean allImported = importFile(csvFile);
+			
+			if (allImported && mainPage.IsDeleteFile()) {
+				boolean isDeleted = csvFile.delete();
+				if (!isDeleted) {
+					MessageDialog.openWarning(window.getShell(), "OFX file not deleted", 
+							MessageFormat.format(
+									"All entries in {0} have been imported and an attempt was made to delete the file.  However the file deletion failed.", 
+									csvFile.getName()));
+				}
+			}
 		}
 
 		return true;
 	}
 
 
-	public void importFile(File file) {
+	public boolean importFile(File file) {
 
-		DatastoreManager datastoreManager = (DatastoreManager)window.getActivePage().getInput();
+		IDataManagerForAccounts datastoreManager = (IDataManagerForAccounts)window.getActivePage().getInput();
 		if (datastoreManager == null) {
 			MessageDialog.openError(window.getShell(), "Unavailable", "You must open an accounting session before you can create an account.");
-			return;
+			return false;
 		}
 		
 		try {
@@ -113,7 +124,7 @@ public abstract class CsvImportWizard extends Wizard {
 			 * be more efficiently written to the back-end datastore and it also groups
 			 * the entire import as a single change for undo/redo purposes.
 			 */
-			TransactionManager transactionManager = new TransactionManager(datastoreManager);
+			TransactionManagerForAccounts transactionManager = new TransactionManagerForAccounts(datastoreManager);
 			Session session = transactionManager.getSession();
 
 			startImport(transactionManager);
@@ -140,7 +151,7 @@ public abstract class CsvImportWizard extends Wizard {
     				if (!headerRow[columnIndex].trim().equals(expectedColumns[columnIndex].getName())) {
     					MessageDialog.openError(getShell(), "Unexpected Data", "Expected '" + expectedColumns[columnIndex].getName()
     							+ "' in row 1, column " + columnIndex + " but found '" + headerRow[columnIndex] + "'.");
-    					return;
+    					return false;
     				}
     				expectedColumns[columnIndex].setColumnIndex(columnIndex);
     			}
@@ -193,6 +204,7 @@ public abstract class CsvImportWizard extends Wizard {
 			String transactionDescription = MessageFormat.format("Import {0}", file.getName());
 			transactionManager.commit(transactionDescription);									
 
+			return true;
 		} catch (FileNotFoundException e) {
 			// This should not happen because the file dialog only allows selection of existing files.
 			throw new RuntimeException(e);
@@ -202,9 +214,11 @@ public abstract class CsvImportWizard extends Wizard {
 		} catch (ImportException e) {
 			// There is data in the import file that we are unable to process
 			MessageDialog.openError(window.getShell(), "Errors in the downloaded file", e.getMessage());
+			return false;
 		} catch (Exception e) {
 			// There is data in the import file that we are unable to process
 			MessageDialog.openError(window.getShell(), "Errors in the downloaded file", e.getMessage());
+			return false;
 		}
 	}
 
@@ -365,7 +379,7 @@ public abstract class CsvImportWizard extends Wizard {
 		}
 	}
 
-	protected abstract void startImport(TransactionManager transactionManager) throws ImportException;
+	protected abstract void startImport(TransactionManagerForAccounts transactionManager) throws ImportException;
 
 	protected abstract void importLine(String[] line) throws ImportException;
 

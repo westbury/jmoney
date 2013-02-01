@@ -38,8 +38,10 @@ import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.AccountCellEditor;
 import net.sf.jmoney.model2.ExtendableObject;
+import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.reconciliation.ReconciliationPlugin;
 
 import org.eclipse.jface.dialogs.Dialog;
@@ -132,7 +134,7 @@ public class ImportOptionsDialog extends Dialog {
 		 * All changes within this dialog are made within a transaction, so canceling
 		 * is trivial (the transaction is simply not committed).
 		 */
-		transactionManager = new TransactionManager(account.getDataManager());
+		transactionManager = new TransactionManagerForAccounts(account.getDataManager());
 		ExtendableObject accountInTransaction = transactionManager.getCopyInTransaction(account.getBaseObject()); 
 		this.account = accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
 
@@ -527,7 +529,7 @@ public class ImportOptionsDialog extends Dialog {
 						 */
 						viewer.refresh(false);
 					} catch (ReferenceViolationException e1) {
-						MessageDialog.openError(getShell(), "Pattern in Use", "The pattern cannot be removed because it is in use else where.  " + e1.getLocalizedMessage() + "  The object referencing is " + e1.getPropertySet().getObjectDescription());
+						MessageDialog.openError(getShell(), "Pattern in Use", "The pattern cannot be removed because it is in use else where.  " + e1.getLocalizedMessage() + "  The object referencing is " + ((ExtendablePropertySet)e1.getPropertySet()).getObjectDescription());
 					}
 				}		
 			}

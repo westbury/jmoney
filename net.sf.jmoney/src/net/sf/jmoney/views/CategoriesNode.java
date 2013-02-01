@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.Session;
 
@@ -37,9 +37,9 @@ public class CategoriesNode implements IDynamicTreeNode {
 
     public static final String ID = "net.sf.jmoney.categoriesNode"; //$NON-NLS-1$
 
-    private DatastoreManager sessionManager;
+    private IDataManagerForAccounts sessionManager;
     
-    public CategoriesNode(DatastoreManager sessionManager) {
+    public CategoriesNode(IDataManagerForAccounts sessionManager) {
     	this.sessionManager = sessionManager;
     }
     

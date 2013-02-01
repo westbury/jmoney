@@ -49,13 +49,14 @@ import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.BankAccount;
 import net.sf.jmoney.model2.Commodity;
-import net.sf.jmoney.model2.DatastoreManager;
 import net.sf.jmoney.model2.Entry;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Session.NoAccountFoundException;
 import net.sf.jmoney.model2.Session.SeveralAccountsFoundException;
 import net.sf.jmoney.model2.Transaction;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.ofx.model.OfxEntryInfo;
 import net.sf.jmoney.ofx.parser.SimpleDOMParser;
 import net.sf.jmoney.ofx.parser.SimpleElement;
@@ -94,7 +95,7 @@ public class OfxImporter {
 	 * 			and have never previously been imported
 	 */
 	public boolean importFile(File file) {
-		DatastoreManager sessionManager = (DatastoreManager)window.getActivePage().getInput();
+		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)window.getActivePage().getInput();
 		if (sessionManager == null) {
 			MessageDialog waitDialog = new MessageDialog(
 					window.getShell(),
@@ -114,7 +115,7 @@ public class OfxImporter {
 			 * be more efficiently written to the back-end datastore and it also groups
 			 * the entire import as a single change for undo/redo purposes.
 			 */
-			TransactionManager transactionManager = new TransactionManager(sessionManager);
+			TransactionManagerForAccounts transactionManager = new TransactionManagerForAccounts(sessionManager);
 
 			buffer = new BufferedReader(new FileReader(file));
 
@@ -210,7 +211,9 @@ public class OfxImporter {
 	 * @return true if all the entries were imported, false if entries were not imported
 	 * @throws TagNotFoundException
 	 */
-	private boolean importBankStatement(TransactionManager transactionManager,
+	// TODO change first parameter to be IDataManagerForAccounts and quit all this in and out
+	// of transaction stuff.
+	private boolean importBankStatement(TransactionManagerForAccounts transactionManager,
 			SimpleElement rootElement, Session session,
 			Session sessionOutsideTransaction,
 			SimpleElement statementResultElement,
@@ -279,8 +282,9 @@ public class OfxImporter {
 		Collection<OfxEntryData> importedEntries = new ArrayList<OfxEntryData>();
 
 		/**
-		 * A 'matcher' that will match if either the Fitid matches or if the entry
-		 * appears to match based on date, amount, and check number.
+		 * A 'matcher' that will match if an entry has not already been matched
+		 * to an imported entry and if the entry appears to match based on date,
+		 * amount, and check number.
 		 */
 		MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
 			@Override
@@ -381,7 +385,7 @@ public class OfxImporter {
 					Entry entryInTrans = transactionManager.getCopyInTransaction(match);
 					entryInTrans.setValuta(postedDate);
 					entryInTrans.setCheck(checkNumber);
-					OfxEntryInfo.getFitidAccessor().setValue(match, fitid);
+					OfxEntryInfo.getFitidAccessor().setValue(entryInTrans, fitid);
 				} else {
 					/*
 					 * No existing entry matches, either on FITID or by matching dates and amounts,

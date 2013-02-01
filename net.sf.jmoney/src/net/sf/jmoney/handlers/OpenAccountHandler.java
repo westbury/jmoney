@@ -23,7 +23,7 @@
 package net.sf.jmoney.handlers;
 
 import net.sf.jmoney.model2.Account;
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.views.AccountEditor;
 import net.sf.jmoney.views.AccountEditorInput;
 
@@ -44,7 +44,7 @@ public class OpenAccountHandler extends AbstractHandler {
 		Shell shell = HandlerUtil.getActiveShellChecked(event);
 		IWorkbenchWindow window = HandlerUtil.getActiveWorkbenchWindowChecked(event);
 
-        DatastoreManager sessionManager = (DatastoreManager)window.getActivePage().getInput();
+		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)window.getActivePage().getInput();
 		
 		final FilteredAccountsSelectionDialog dialog = new FilteredAccountsSelectionDialog(shell, sessionManager);
 		final int resultCode = dialog.open();

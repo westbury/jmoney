@@ -10,8 +10,8 @@ import net.sf.jmoney.entrytable.FocusCellTracker;
 import net.sf.jmoney.entrytable.InvalidUserEntryException;
 import net.sf.jmoney.entrytable.RowSelectionTracker;
 import net.sf.jmoney.entrytable.VirtualRowTable;
-import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Entry;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.stocks.model.RatesTable;
 import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.pages_new.DefaultProvidingContext;
@@ -408,7 +408,7 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 
 	@Override
 	protected StockEntryData createUncommittedEntryData(
-			Entry entryInTransaction, TransactionManager transactionManager) {
+			Entry entryInTransaction, TransactionManagerForAccounts transactionManager) {
 		
 		// If this is a new entry (this uncommitted entry is the new entry row) then
 		// we must set the currency to the default currency for the account.

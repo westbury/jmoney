@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Vector;
 
 import net.sf.jmoney.JMoneyPlugin;
-import net.sf.jmoney.isolation.DataManager;
 import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.IReferencePropertyAccessor;
@@ -188,21 +187,21 @@ public abstract class ExtendableObject implements IModelObject, IAdaptable {
 	 * @return The session containing this object
 	 */
 	public Session getSession() {
-		// The key must contain the session and so there is no reason
+		// The data manager contains the session and so there is no reason
 		// for the extendable objects to also contain a session field.
-		// Get the session from the key.
-		return objectKey.getDataManager().getSession();
+		// Get the session from the data manager.
+		return getDataManager().getSession();
 	}
 	
 	/**
 	 * @return The data manager containing this object
 	 */
 	@Override
-	public DataManager getDataManager() {
+	public IDataManagerForAccounts getDataManager() {
 		// The key must contain the data manager and so there is no reason
 		// for the extendable objects to also contain a data manager field.
 		// Get the data manager from the key.
-		return objectKey.getDataManager();
+		return (IDataManagerForAccounts)objectKey.getDataManager();
 	}
 	
 	/**

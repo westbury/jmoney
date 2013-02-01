@@ -24,7 +24,7 @@ package net.sf.jmoney.copier.actions;
 
 import net.sf.jmoney.JMoneyPlugin;
 import net.sf.jmoney.copier.CopierPlugin;
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDatastoreManager;
 
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -57,7 +57,7 @@ public class CutSessionAction implements IWorkbenchWindowActionDelegate {
 	 * @see IWorkbenchWindowActionDelegate#run
 	 */
 	public void run(IAction action) {
-		DatastoreManager sessionManager = JMoneyPlugin.getDefault().getSessionManager();
+		IDatastoreManager sessionManager = (IDatastoreManager)JMoneyPlugin.getDefault().getSessionManager2();
 		
 		if (sessionManager == null) {
 			MessageDialog waitDialog =

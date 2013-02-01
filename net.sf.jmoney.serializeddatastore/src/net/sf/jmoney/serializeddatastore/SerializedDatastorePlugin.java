@@ -27,7 +27,7 @@ import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.Vector;
 
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.model2.Session;
 
 import org.eclipse.core.runtime.CoreException;
@@ -228,7 +228,7 @@ public class SerializedDatastorePlugin extends AbstractUIPlugin {
 	 * 			or if the current session was created by
 	 * 			another plug-in that also implements a datastore.
 	 */
-	public static boolean checkSessionImplementation(DatastoreManager datastoreManager, IWorkbenchWindow window) {
+	public static boolean checkSessionImplementation(IDatastoreManager datastoreManager, IWorkbenchWindow window) {
 		if (datastoreManager == null) {
 			MessageDialog dialog =
 				new MessageDialog(

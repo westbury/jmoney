@@ -84,7 +84,7 @@ public class Bond extends Security {
 		if (currencyKey != null) {
 			this.currencyKey = currencyKey;
 		} else {
-			this.currencyKey = objectKey.getDataManager().getSession().getDefaultCurrency().getObjectKey();
+			this.currencyKey = getDataManager().getSession().getDefaultCurrency().getObjectKey();
 		}
 		
 		this.interestRate = interestRate;
@@ -102,7 +102,7 @@ public class Bond extends Security {
 		super(objectKey, parentKey);
 		
 		// Set the currency to the session default currency.
-		this.currencyKey = objectKey.getDataManager().getSession().getDefaultCurrency().getObjectKey();
+		this.currencyKey = getDataManager().getSession().getDefaultCurrency().getObjectKey();
 		
 		this.interestRate = 0;
 		this.maturityDate = null;

@@ -3,7 +3,7 @@ package net.sf.jmoney.isolation;
 
 public interface IModelObject {
 
-	DataManager getDataManager();
+	IDataManager getDataManager();
 
 	IObjectKey getObjectKey();
 	

@@ -1,6 +1,6 @@
 package net.sf.jmoney.handlers;
 
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.resources.Messages;
 
 import org.eclipse.core.commands.AbstractHandler;
@@ -24,7 +24,7 @@ public class CloseSessionHandler extends AbstractHandler {
 		Shell shell = HandlerUtil.getActiveShellChecked(event);
 		IWorkbenchWindow window = HandlerUtil.getActiveWorkbenchWindowChecked(event);
 		
-		DatastoreManager sessionManager = (DatastoreManager)window.getActivePage().getInput();
+		IDatastoreManager sessionManager = (IDatastoreManager)window.getActivePage().getInput();
 		if (sessionManager == null) {
 			MessageDialog.openWarning(
 					shell,

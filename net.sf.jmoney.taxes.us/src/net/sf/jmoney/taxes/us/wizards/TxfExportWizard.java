@@ -47,7 +47,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import net.sf.jmoney.model2.Commodity;
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.TransactionInfo;
 import net.sf.jmoney.stocks.model.Security;
@@ -131,7 +131,7 @@ public class TxfExportWizard extends Wizard implements IExportWizard {
 		// Original JMoney disabled the export menu items when no
 		// session was open.  I don't know how to do that in Eclipse,
 		// so we display a message instead.
-		DatastoreManager sessionManager = (DatastoreManager)window.getActivePage().getInput();
+		IDatastoreManager sessionManager = (IDatastoreManager)window.getActivePage().getInput();
 		if (sessionManager == null) {
 			MessageDialog.openError(
 					window.getShell(), 

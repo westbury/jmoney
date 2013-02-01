@@ -23,7 +23,7 @@
 package net.sf.jmoney.stocks;
 
 import net.sf.jmoney.model2.Account;
-import net.sf.jmoney.model2.DatastoreManager;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.stocks.model.Stock;
 import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.pages.StockDetailsEditor;
@@ -51,7 +51,7 @@ public class ShowStockDetailsHandler extends AbstractHandler {
 		Shell shell = HandlerUtil.getActiveShellChecked(event);
 
         AccountEditorInput cInput = (AccountEditorInput)editor.getEditorInput();
-        DatastoreManager sessionManager = (DatastoreManager)editor.getSite().getPage().getInput();
+        IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)editor.getSite().getPage().getInput();
         Account account = sessionManager.getSession().getAccountByFullName(cInput.getFullAccountName());
 		StockAccount stockAccount = (StockAccount)account;
 		

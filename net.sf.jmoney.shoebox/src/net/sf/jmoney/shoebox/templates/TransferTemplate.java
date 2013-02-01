@@ -36,13 +36,13 @@ import net.sf.jmoney.fields.TextComposite;
 import net.sf.jmoney.fields.TextControlWithMruList;
 import net.sf.jmoney.fields.TextControlWithSimpleTextbox;
 import net.sf.jmoney.isolation.IObjectKey;
-import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.swt.SWT;
@@ -224,6 +224,7 @@ public class TransferTemplate implements ITransactionTemplate {
 			Button addButton = new Button(buttonArea, SWT.PUSH);
 			addButton.setText("Enter");
 			addButton.addSelectionListener(new SelectionAdapter() {
+				@Override
 				public void widgetSelected(SelectionEvent e) {
 					addTransaction(ourEntryList);
 				}
@@ -232,6 +233,7 @@ public class TransferTemplate implements ITransactionTemplate {
 			Button clearButton = new Button(buttonArea, SWT.PUSH);
 			clearButton.setText("Clear");
 			clearButton.addSelectionListener(new SelectionAdapter() {
+				@Override
 				public void widgetSelected(SelectionEvent e) {
 				}
 			});
@@ -309,7 +311,7 @@ public class TransferTemplate implements ITransactionTemplate {
 		    amountControl.rememberChoice();
 		    
 	        // Create our own transaction manager.
-	        TransactionManager transactionManager = new TransactionManager(session.getDataManager());
+		    TransactionManagerForAccounts transactionManager = new TransactionManagerForAccounts(session.getDataManager());
 	    	
 	    	// Set the account that this page is viewing and editing.
 	    	// We set an account object that is managed by our own

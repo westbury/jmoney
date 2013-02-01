@@ -12,7 +12,6 @@ import java.util.List;
 import net.sf.jmoney.importer.wizards.CsvImportWizard;
 import net.sf.jmoney.importer.wizards.ImportException;
 import net.sf.jmoney.importer.wizards.MultiRowTransaction;
-import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.BankAccount;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Currency;
@@ -20,6 +19,7 @@ import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.widgets.Shell;
@@ -73,7 +73,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 	//	}
 
 	@Override
-	protected void startImport(TransactionManager transactionManager) throws ImportException {
+	protected void startImport(TransactionManagerForAccounts transactionManager) throws ImportException {
 		this.session = transactionManager.getSession();
 	}
 
@@ -297,6 +297,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 			this.orderId = orderId;
 		}
 
+		@Override
 		public boolean processCurrentRow(Session session) throws ImportException {
 			if (orderId.equals(column_orderId.getText())
 					&& shipmentDate.equals(column_shipmentDate.getDate())) {
@@ -342,6 +343,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 			}
 		}
 
+		@Override
 		public boolean isDone() {
 			return done;
 		}
@@ -362,6 +364,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 			this.matchingEntry = matchingEntry;
 		}
 
+		@Override
 		public void createTransaction(Session session) throws ImportException {
 			// Modify the existing transaction
 			Transaction trans = matchingEntry.getTransaction();
@@ -396,6 +399,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 			super(unmatchedAccount, unknownAmazonPurchaseAccount, date, orderId);
 		}
 
+		@Override
 		public void createTransaction(Session session) throws ImportException {
 			// Start a new transaction
 			Transaction trans = session.createTransaction();
