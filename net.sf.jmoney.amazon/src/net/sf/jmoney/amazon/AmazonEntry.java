@@ -43,7 +43,15 @@ public class AmazonEntry extends EntryExtension {
 	private String orderId = null;
 	
 	/**
-	 * the shipment date which is not necessarily the same as the order date
+	 * the carrier and tracking number, being used when importing items and
+	 * orders to match the items to the orders
+	 */
+	private String trackingNumber = null;
+	
+	/**
+	 * the shipment date which is not necessarily the same as the order date,
+	 * this field being also used to match items and orders because sometimes
+	 * the tracking number is blank
 	 */
 	private Date shipmentDate = null;
 
@@ -71,9 +79,10 @@ public class AmazonEntry extends EntryExtension {
 	 * This constructor is called by the datastore to construct
 	 * the extension objects when loading data.
 	 */
-	public AmazonEntry(ExtendableObject extendedObject, String orderId, Date shipmentDate, String asinOrIsbn, IBlob picture) {
+	public AmazonEntry(ExtendableObject extendedObject, String orderId, String trackingNumber, Date shipmentDate, String asinOrIsbn, IBlob picture) {
 		super(extendedObject);
 		this.orderId = orderId;
+		this.trackingNumber = trackingNumber;
 		this.shipmentDate = shipmentDate;
 		this.asinOrIsbn = asinOrIsbn;
 		this.picture = picture;
@@ -89,6 +98,18 @@ public class AmazonEntry extends EntryExtension {
 
 		// Notify the change manager.
 		processPropertyChange(AmazonEntryInfo.getOrderIdAccessor(), oldOrderId, orderId);
+	}
+	
+	public String getTrackingNumber() {
+		return trackingNumber;
+	}
+	
+	public void setTrackingNumber(String trackingNumber) {
+		String oldTrackingNumber = this.trackingNumber;
+		this.trackingNumber = trackingNumber;
+
+		// Notify the change manager.
+		processPropertyChange(AmazonEntryInfo.getTrackingNumberAccessor(), oldTrackingNumber, trackingNumber);
 	}
 	
 	public Date getShipmentDate() {

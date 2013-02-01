@@ -196,7 +196,7 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
     			if (expectedColumns[columnIndex] != null) {
     				if (!headerRow[columnIndex].trim().equals(expectedColumns[columnIndex].getName())) {
     					MessageDialog.openError(getShell(), "Unexpected Data", "Expected '" + expectedColumns[columnIndex].getName()
-    							+ "' in row 1, column " + columnIndex + " but found '" + headerRow[columnIndex] + "'.");
+    							+ "' in row 1, column " + (columnIndex+1) + " but found '" + headerRow[columnIndex] + "'.");
     					return false;
     				}
     				expectedColumns[columnIndex].setColumnIndex(columnIndex);
@@ -240,12 +240,9 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 				assert (currentLine[0].equals("***END OF FILE***"));
 			}
 
-			if (currentMultiRowProcessor != null) {
+			for (MultiRowTransaction currentMultiRowProcessor : currentMultiRowProcessors) {
 				currentMultiRowProcessor.createTransaction(session);
 			}
-			
-
-			
 			
 			/*
 			 * Import the entries using the matcher dialog
@@ -294,11 +291,13 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 			// This is probably not likely to happen so the default error handling is adequate.
 			throw new RuntimeException(e);
 		} catch (ImportException e) {
-			// There is data in the import file that we are unable to process
+			// There are data in the import file that we are unable to process
+			e.printStackTrace();
 			MessageDialog.openError(window.getShell(), "Errors in the downloaded file", e.getMessage());
 			return false;
 		} catch (Exception e) {
-			// There is data in the import file that we are unable to process
+			// There are data in the import file that we are unable to process
+			e.printStackTrace();
 			MessageDialog.openError(window.getShell(), "Errors in the downloaded file", e.getMessage());
 			return false;
 		}

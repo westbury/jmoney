@@ -29,7 +29,9 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
@@ -54,7 +56,7 @@ import au.com.bytecode.opencsv.CSVReader;
 public abstract class CsvImportWizard extends Wizard {
 
 	protected IWorkbenchWindow window;
-	
+
 	protected CsvImportWizardPage mainPage;
 
 	/**
@@ -65,7 +67,7 @@ public abstract class CsvImportWizard extends Wizard {
 
 	protected CSVReader reader;
 
-	protected MultiRowTransaction currentMultiRowProcessor = null;
+	protected List<MultiRowTransaction> currentMultiRowProcessors = new ArrayList<MultiRowTransaction>();
 
 	/**
 	 * This form of the constructor is used when being called from
@@ -84,6 +86,7 @@ public abstract class CsvImportWizard extends Wizard {
 		this.window = workbench.getActiveWorkbenchWindow();
 
 		mainPage = new CsvImportWizardPage(window);
+
 		addPage(mainPage);
 	}
 
@@ -94,7 +97,7 @@ public abstract class CsvImportWizard extends Wizard {
 			File csvFile = new File(fileName);
 			;
 			boolean allImported = importFile(csvFile);
-			
+
 			if (allImported && mainPage.IsDeleteFile()) {
 				boolean isDeleted = csvFile.delete();
 				if (!isDeleted) {
@@ -117,7 +120,7 @@ public abstract class CsvImportWizard extends Wizard {
 			MessageDialog.openError(window.getShell(), "Unavailable", "You must open an accounting session before you can create an account.");
 			return false;
 		}
-		
+
 		try {
 			/*
 			 * Create a transaction to be used to import the entries.  This allows the entries to
@@ -128,42 +131,42 @@ public abstract class CsvImportWizard extends Wizard {
 			Session session = transactionManager.getSession();
 
 			startImport(transactionManager);
-			
-        	reader = new CSVReader(new FileReader(file));
 
-    		/*
-    		 * Get the list of expected columns, validate the header row, and set the column indexes
-    		 * into the column objects.  It would be possible to allow the columns to be in any order or
-    		 * to allow columns to be optional, setting the column indexes here based on the column in
-    		 * which the matching header was found.
-    		 * 
-    		 * At this time, however, there is no known requirement for that, so we simply validate that
-    		 * the first row contains exactly these columns in this order and set the indexes sequentially.
-    		 * 
-    		 * We trim the text in the header.  This is helpful because some banks add spaces.  For example
-    		 * Paypal puts a space before the text in each header cell.
-    		 */
+			reader = new CSVReader(new FileReader(file));
+
+			/*
+			 * Get the list of expected columns, validate the header row, and set the column indexes
+			 * into the column objects.  It would be possible to allow the columns to be in any order or
+			 * to allow columns to be optional, setting the column indexes here based on the column in
+			 * which the matching header was found.
+			 * 
+			 * At this time, however, there is no known requirement for that, so we simply validate that
+			 * the first row contains exactly these columns in this order and set the indexes sequentially.
+			 * 
+			 * We trim the text in the header.  This is helpful because some banks add spaces.  For example
+			 * Paypal puts a space before the text in each header cell.
+			 */
 			String headerRow[] = readHeaderRow();
-			
-    		ImportedColumn[] expectedColumns = getExpectedColumns();
-    		for (int columnIndex = 0; columnIndex < expectedColumns.length; columnIndex++) {
-    			if (expectedColumns[columnIndex] != null) {
-    				if (!headerRow[columnIndex].trim().equals(expectedColumns[columnIndex].getName())) {
-    					MessageDialog.openError(getShell(), "Unexpected Data", "Expected '" + expectedColumns[columnIndex].getName()
-    							+ "' in row 1, column " + columnIndex + " but found '" + headerRow[columnIndex] + "'.");
-    					return false;
-    				}
-    				expectedColumns[columnIndex].setColumnIndex(columnIndex);
-    			}
-    		}
+
+			ImportedColumn[] expectedColumns = getExpectedColumns();
+			for (int columnIndex = 0; columnIndex < expectedColumns.length; columnIndex++) {
+				if (expectedColumns[columnIndex] != null) {
+					if (!headerRow[columnIndex].trim().equals(expectedColumns[columnIndex].getName())) {
+						MessageDialog.openError(getShell(), "Unexpected Data", "Expected '" + expectedColumns[columnIndex].getName()
+								+ "' in row 1, column " + (columnIndex+1) + " but found '" + headerRow[columnIndex] + "'.");
+						return false;
+					}
+					expectedColumns[columnIndex].setColumnIndex(columnIndex);
+				}
+			}
 
 			/*
 			 * Read the data
 			 */
-			
+
 			currentLine = readNext();
 			while (currentLine != null) {
-				
+
 				/*
 				 * If it contains a single empty string then we ignore this line but we don't terminate.
 				 * Nationwide Building Society puts such a line after the header.
@@ -172,7 +175,7 @@ public abstract class CsvImportWizard extends Wizard {
 					currentLine = readNext();
 					continue;
 				}
-				
+
 				/*
 				 * There may be extra columns in the file that we ignore, but if there are
 				 * fewer columns than expected then we can't import the row.
@@ -180,22 +183,22 @@ public abstract class CsvImportWizard extends Wizard {
 				if (currentLine.length < expectedColumns.length) {
 					break;
 				}
-				
+
 				importLine(currentLine);
-		        
-		        currentLine = readNext();
-		    }
-			
+
+				currentLine = readNext();
+			}
+
 			if (currentLine != null) {
 				// Ameritrade contains this.
 				assert (currentLine.length == 1);
 				assert (currentLine[0].equals("***END OF FILE***"));
 			}
 
-			if (currentMultiRowProcessor != null) {
+			for (MultiRowTransaction currentMultiRowProcessor : currentMultiRowProcessors) {
 				currentMultiRowProcessor.createTransaction(session);
 			}
-			
+
 			/*
 			 * All entries have been imported and all the properties
 			 * have been set and should be in a valid state, so we
@@ -212,11 +215,13 @@ public abstract class CsvImportWizard extends Wizard {
 			// This is probably not likely to happen so the default error handling is adequate.
 			throw new RuntimeException(e);
 		} catch (ImportException e) {
-			// There is data in the import file that we are unable to process
+			// There are data in the import file that we are unable to process
+			e.printStackTrace();
 			MessageDialog.openError(window.getShell(), "Errors in the downloaded file", e.getMessage());
 			return false;
 		} catch (Exception e) {
-			// There is data in the import file that we are unable to process
+			// There are data in the import file that we are unable to process
+			e.printStackTrace();
 			MessageDialog.openError(window.getShell(), "Errors in the downloaded file", e.getMessage());
 			return false;
 		}
@@ -237,7 +242,7 @@ public abstract class CsvImportWizard extends Wizard {
 	protected String[] readHeaderRow() throws IOException, ImportException {
 		return readNext();
 	}
-	
+
 	/**
 	 * This method gets the next row.  It is not normally called
 	 * by derived classes because this class reads each row.  However
@@ -250,20 +255,20 @@ public abstract class CsvImportWizard extends Wizard {
 	final protected String[] readNext() throws IOException {
 		return reader.readNext();
 	}
-	
+
 	public abstract class ImportedColumn {
-		
+
 		/**
 		 * Text in the header row that identifies this column
 		 */
 		private String name;
-		
+
 		protected int columnIndex;
 
 		ImportedColumn(String name) {
 			this.name = name;
 		}
-		
+
 		/**
 		 * @return text in the header row that identifies this column
 		 */
@@ -290,12 +295,12 @@ public abstract class CsvImportWizard extends Wizard {
 	public class ImportedDateColumn extends ImportedColumn {
 
 		private DateFormat dateFormat;
-		
+
 		public ImportedDateColumn(String name, DateFormat dateFormat) {
 			super(name);
 			this.dateFormat = dateFormat;
 		}
-		
+
 		public Date getDate() throws ImportException {
 			if (currentLine[columnIndex].isEmpty()) {
 				return null;
@@ -318,10 +323,10 @@ public abstract class CsvImportWizard extends Wizard {
 		public ImportedAmountColumn(String name) {
 			super(name);
 		}
-		
+
 		public Long getAmount() throws ImportException {
 			String amountString = currentLine[columnIndex];
-			
+
 			if (amountString.trim().length() == 0) {
 				// If amount is blank, return null
 				return null;
@@ -334,27 +339,35 @@ public abstract class CsvImportWizard extends Wizard {
 			if (amountString.startsWith("£")) {
 				amountString = amountString.substring(1);
 			}
-			
+			if (amountString.startsWith("$")) {
+				amountString = amountString.substring(1);
+			}
+
 			// remove any commas
 			amountString = amountString.replace(",", "");
-			
+
 			boolean negate = amountString.startsWith("-");
 			if (negate) {
 				amountString = amountString.substring(1);
 			}
-			
-			String parts [] = amountString.split("\\.");
-			long amount = Long.parseLong(parts[0]) * 100;
-			if (parts.length > 1) {
-				if (parts[1].length() == 1) {
-					parts[1] = parts[1] + "0";
+
+			try {
+				String parts [] = amountString.split("\\.");
+				long amount = Long.parseLong(parts[0]) * 100;
+				if (parts.length > 1) {
+					if (parts[1].length() == 1) {
+						parts[1] = parts[1] + "0";
+					}
+					if (parts[1].length() != 2) {
+						throw new ImportException("Unexpected number of digits after point in " + amountString);
+					}
+					amount += Long.parseLong(parts[1]);
 				}
-				if (parts[1].length() != 2) {
-					throw new ImportException("Unexpected number of digits after point in " + amountString);
-				}
-				amount += Long.parseLong(parts[1]);
+
+				return negate ? -amount : amount;
+			} catch (NumberFormatException e) {
+				throw new ImportException("Unexpected currency amount " + currentLine[columnIndex] + " found.");
 			}
-			return negate ? -amount : amount;
 		}
 	}
 
@@ -363,18 +376,18 @@ public abstract class CsvImportWizard extends Wizard {
 		public ImportedNumberColumn(String name) {
 			super(name);
 		}
-		
+
 		public long getAmount() throws ImportException {
 			String numberString = currentLine[columnIndex];
-			
+
 			if (numberString.trim().length() == 0) {
 				// Amount cannot be blank
 				throw new ImportException("Number cannot be blank.");
 			}
-			
+
 			// remove any commas
 			numberString = numberString.replace(",", "");
-			
+
 			return Long.parseLong(numberString);
 		}
 	}
