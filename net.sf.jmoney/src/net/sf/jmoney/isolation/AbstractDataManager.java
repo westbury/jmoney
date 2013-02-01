@@ -43,8 +43,6 @@ public abstract class AbstractDataManager implements IDataManager {
 	
 	private ChangeManager changeManager = new ChangeManager();
 
-	private IUndoContext undoContext = new UndoContext();
-
     private Vector<WeakReference<SessionChangeListener>> sessionChangeListenerRefs = new Vector<WeakReference<SessionChangeListener>>();
 
     private Vector<SessionChangeListener> sessionChangeListeners = new Vector<SessionChangeListener>();
@@ -254,15 +252,19 @@ public abstract class AbstractDataManager implements IDataManager {
 	/**
 	 * JMoney supports undo/redo using a context that is based on the data
 	 * manager.
-	 * 
+	 * <P>
 	 * The underlying data manager (supported by the underlying datastore) and
 	 * the transaction manager session objects each have a different context.
-	 * 
+	 * <P>
 	 * Changes within a transaction manager have a separate context. This is
 	 * necessary because if a view is making changes to an through a transaction
 	 * manager to an uncommitted version of the datastore then the undo/redo
 	 * menu needs to show those changes for the view.
-	 * 
+	 * <P>
+	 * By default this implementation returns the platform undo/redo
+	 * context.  The TransactionManager implementation overrides this
+	 * method to provide a more specific context.
+	 *   
 	 * @return the undo/redo context to be used for changes made to this session
 	 */
 	@Override
@@ -271,10 +273,6 @@ public abstract class AbstractDataManager implements IDataManager {
 		// This may need some tidying up, but by using a common context,
 		// this allows undo/redo to work even across a closing or
 		// opening of a session.  There may be a better way of doing this.
-		if (this instanceof TransactionManager) {
-			return undoContext;
-		} else {
-			return PlatformUI.getWorkbench().getOperationSupport().getUndoContext();
-		}
+		return PlatformUI.getWorkbench().getOperationSupport().getUndoContext();
 	}
 }

@@ -27,7 +27,7 @@ import java.util.Map;
 
 /**
  * An instance of this class contains the changes that have been made to an
- * extendable object. These changes consist of either a map containing an entry
+ * model object. These changes consist of either a map containing an entry
  * for each property whose value has changed, or an indication that the object
  * has been deleted.
  * <P>

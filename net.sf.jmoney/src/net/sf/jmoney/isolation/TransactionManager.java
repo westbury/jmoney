@@ -33,13 +33,15 @@ import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.commands.operations.IOperationHistory;
 import org.eclipse.core.commands.operations.IUndoContext;
 import org.eclipse.core.commands.operations.IUndoableOperation;
+import org.eclipse.core.commands.operations.UndoContext;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.ui.PlatformUI;
 
 /**
  * A transaction manager must be set before the datastore can be modified.
  * An exception will be throw if an attempt is made to modify the datastore
- * (setting a property, or creating or deleting an extendable object) when
+ * (setting a property, or creating or deleting an object) when
  * no transaction manager is set in the session.
  * <P>
  * Changes to the datastore are stored in the transaction manager.  They
@@ -85,7 +87,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 	protected Map<IObjectKey, ModifiedObject> modifiedObjects = new HashMap<IObjectKey, ModifiedObject>();
 	
 	/**
-	 * Every extendable object that exists in the base data manager and that has
+	 * Every model object that exists in the base data manager and that has
 	 * already had a copy created in this data manager will be put in this map.
 	 * This is required because all DataManager objects must guarantee that
 	 * there is only ever a single instance of an object in existence.
@@ -129,6 +131,8 @@ public abstract class TransactionManager extends AbstractDataManager {
 	 * it to be garbage collected as long as this transaction manager exists.
 	 */
 	private MySessionChangeListener baseSessionChangeListener = new MySessionChangeListener();
+
+	private IUndoContext undoContext = new UndoContext();
 
     /**
 	 * Construct a transaction manager for use with the given session.
@@ -804,11 +808,11 @@ public abstract class TransactionManager extends AbstractDataManager {
 			 */
 
 			// TODO For the time being, this does, but it is imperfect.
-			IModelObject extendableObject = getCopyInTransaction(changedObject);
+			IModelObject modelObject = getCopyInTransaction(changedObject);
 			if (newValue instanceof IModelObject) {
 				newValue = getCopyInTransaction((IModelObject)newValue);
 			}
-			changedProperty.setValue(extendableObject, newValue);
+			changedProperty.setValue(modelObject, newValue);
 		}
 
 		@Override
@@ -861,5 +865,10 @@ public abstract class TransactionManager extends AbstractDataManager {
 			 * not conflict with the move.
 			 */
 		}
+	}
+	
+	@Override
+	public IUndoContext getUndoContext() {
+		return undoContext;
 	}
 }

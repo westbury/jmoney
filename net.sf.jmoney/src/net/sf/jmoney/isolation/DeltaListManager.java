@@ -41,7 +41,7 @@ import java.util.LinkedList;
  * This class keeps lists of inserted and deleted objects. It is ok for this
  * object to maintain these lists because all data managers must guarantee that
  * only a single instance of the same object is returned, and as
- * DeltaListManager objects are held by extendable objects, we can be sure that
+ * DeltaListManager objects are held by model objects, we can be sure that
  * only a single instance of this object will exist for a given list.
  * 
  * @author Nigel Westbury
@@ -94,7 +94,7 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 	}
 
 	/**
-	 * Create a new extendable object in the list represented by this object.
+	 * Create a new model object in the list represented by this object.
 	 * <P>
 	 * This method does not create the object in the underlying committed list,
 	 * because if it did that then other views would see the object before it is
@@ -106,11 +106,11 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 	@Override
 	public <F extends E> F createNewElement(IExtendablePropertySet<F> propertySet) {
 		UncommittedObjectKey objectKey = new UncommittedObjectKey(transactionManager);
-		F extendableObject = propertySet.constructDefaultImplementationObject(objectKey, new ListKey<E,S>(uncommittedParentKey, listAccessor));
+		F element = propertySet.constructDefaultImplementationObject(objectKey, new ListKey<E,S>(uncommittedParentKey, listAccessor));
 		
-		objectKey.setObject(extendableObject);
+		objectKey.setObject(element);
 		
-		addedObjects.add(extendableObject);
+		addedObjects.add(element);
 		
 		/*
 		 * Ensure this list is in the list of lists that have been
@@ -118,11 +118,11 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 		 */
 		transactionManager.modifiedLists.add(this);
 		
-		return extendableObject;
+		return element;
 	}
 
 	/**
-	 * Create a new extendable object in the list represented by this object.
+	 * Create a new model object in the list represented by this object.
 	 * This version of this method takes an array of values of the properties in
 	 * the object.
 	 * <P>
@@ -143,11 +143,11 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 		UncommittedObjectKey objectKey = new UncommittedObjectKey(transactionManager);
 
 		// We can now create the object.
-		F extendableObject = propertySet.constructImplementationObject(objectKey, new ListKey<E,S>(uncommittedParentKey, listAccessor), values);
+		F newObject = propertySet.constructImplementationObject(objectKey, new ListKey<E,S>(uncommittedParentKey, listAccessor), values);
 		
-		objectKey.setObject(extendableObject);
+		objectKey.setObject(newObject);
 
-		addedObjects.add(extendableObject);
+		addedObjects.add(newObject);
 		
 		/*
 		 * Ensure this list is in the list of lists that have been
@@ -155,7 +155,7 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 		 */
 		transactionManager.modifiedLists.add(this);
 		
-		return extendableObject;
+		return newObject;
 	}
 
 	/**
@@ -163,12 +163,12 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 	 * when an attempt is made to commit the transaction.
 	 */
 	@Override
-	public void deleteElement(E extendableObject) throws ReferenceViolationException {
+	public void deleteElement(E element) throws ReferenceViolationException {
 		boolean isRemoved;
 		
-		UncommittedObjectKey uncommittedKey = (UncommittedObjectKey)extendableObject.getObjectKey();
+		UncommittedObjectKey uncommittedKey = (UncommittedObjectKey)element.getObjectKey();
 		if (uncommittedKey.isNewObject()) {
-			isRemoved = addedObjects.remove(extendableObject);
+			isRemoved = addedObjects.remove(element);
 		} else {
 			if (deletedObjects.contains(uncommittedKey.getCommittedObjectKey())) {
 				isRemoved = false;
@@ -201,7 +201,7 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 		 */
 		// TODO: This code may not be necessary.  It is probably better to flag the object itself
 		// when an object is deleted.
-		IObjectKey committedObjectKey = ((UncommittedObjectKey)extendableObject.getObjectKey()).getCommittedObjectKey();
+		IObjectKey committedObjectKey = ((UncommittedObjectKey)element.getObjectKey()).getCommittedObjectKey();
 		if (committedObjectKey != null) {
 			ModifiedObject modifiedObject = transactionManager.modifiedObjects.get(committedObjectKey);
 			if (modifiedObject == null) {
@@ -213,7 +213,7 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 	}
 
 	@Override
-	public <F extends E> void moveElement(F extendableObject, IListManager<? super F> originalList) {
+	public <F extends E> void moveElement(F element, IListManager<? super F> originalList) {
 		/*
 		 * It is fairly complex to implement this inside a transaction.
 		 * Therefore we do not support this.

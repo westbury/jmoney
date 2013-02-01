@@ -26,7 +26,7 @@ package net.sf.jmoney.isolation;
 
 /**
  * Interface into a key object that holds the data required to
- * obtain an extendable data object.
+ * obtain an object in the model.
  * <P>
  * JMoney data storage is implemented in plug-ins.  This allows
  * a choice of methods of data storage.  Some data storage implementations
@@ -34,16 +34,13 @@ package net.sf.jmoney.isolation;
  * An example of this type of datastore plug-in is the XML serialized data
  * storage plug-in.  Other plug-ins, however, may only load data on demand.
  * An example is a plug-in that stores the data in a JDBC database.
- * The JDBC database plug-in, for example, constructs an <code>Entry</code> object 
- * only when the user requests an account entry list view of the account in
- * which the <code>Entry</code> occurs.
  * <P>
  * In order to support this, the data model implementation classes do not
- * directly contain references to other classes in the data model.
+ * directly contain references to other objects in the data model.
  * Instead, they contain a reference to an object that
  * implements the <code>IObjectKey</code> interface.  The
  * object key implements the <code>getObject</code>
- * method which returns a reference to the actual extendable 
+ * method which returns a reference to the actual model 
  * object.  This method should be called when and only when
  * a reference to the property object is required.  The <code>getObject</code> method
  * should be called by the getter for the property.
@@ -64,7 +61,7 @@ package net.sf.jmoney.isolation;
  */
 public interface IObjectKey {
 	/**
-	 * Returns a reference to the actual extendable 
+	 * Returns a reference to the actual model 
 	 * object.  This method should be called when and only when
 	 * a reference to the property object is required.  The <code>getObject</code> method
 	 * should be called by the getter for the property.
@@ -72,21 +69,24 @@ public interface IObjectKey {
 	 * Implementations of this method may construct the object
 	 * every time the method is called.  Construction of the object
 	 * may require reading data from a database.  Users of this method
-	 * must therefore be aware that
+	 * must therefore be aware that:
 	 * <LI>
 	 * <UL>This method may not be efficient.  Users of this method should
 	 * 		therefore cache values returned by this method.
 	 * </UL>
 	 * <UL>This method may return an object with a different java identity
-	 * 		each time it is called.  However, every call of this method on
+	 * 		each time it is called.  However a weak reference map of all objects is maintained and
+	 * this ensures that an object with a different Java identity can be returned only if there are no
+	 * references anywhere in the JVM to the original instance of the object.  So this should not be an issue.
+	 * Every call of this method on
 	 * 		a given IObjectKey object will return objects that all are
-	 * 		equal when using the <code>equals</code> method.
+	 * 		equal when using the <code>equals</code> method and all have the same hashcode.
 	 * </UL>
 	 * <UL>This method is used when getting property values using the getter methods.
 	 * 		users of getter methods that return references to objects in the data model
 	 * 		must therefore also be aware of the above two points.
 	 * </UL>
-	 * @return a reference to the actual extendable object
+	 * @return a reference to the actual model object
 	 */
 	IModelObject getObject();
 
@@ -119,7 +119,8 @@ public interface IObjectKey {
 	 * Constructs a list manager that is suitable for managing a list
 	 * property in the object represented by this object key.
 	 * 
-	 * @param <E>
+	 * @param <E> type of elements in the list
+	 * @param <S> type of the model object that defines this list 
 	 * @param listAccessor a list property, which must be a property of
 	 * 			the object represented by this object key
 	 * @return

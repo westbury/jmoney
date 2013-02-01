@@ -61,7 +61,7 @@ public class UncommittedObjectKey implements IObjectKey {
 	// exists in the committed datastore.
 	
 	// If a newly created object is committed then
-	// extendableObject is set to null and any requests for
+	// modelObject is set to null and any requests for
 	// the object will then be carried out by instantiating
 	// the committed object and applying any changes to
 	// the scalar properties before instantiating the version
@@ -70,7 +70,7 @@ public class UncommittedObjectKey implements IObjectKey {
 	// must be visible.
 	
 	private IObjectKey committedObjectKey = null;
-	private IModelObject extendableObject = null;
+	private IModelObject modelObject = null;
 	
 	/**
 	 * This constructor is used to create an object key for an object that
@@ -86,7 +86,7 @@ public class UncommittedObjectKey implements IObjectKey {
 
 	/**
 	 * This constructor is used to create an object key for an object that is
-	 * being returned by a getter for a property referencing another extendable
+	 * being returned by a getter for a property referencing another model
 	 * object or is being returned by a list property iterator or is being
 	 * created from a given object in the datastore. In all these cases way, the
 	 * object key from the datastore is available.
@@ -102,9 +102,9 @@ public class UncommittedObjectKey implements IObjectKey {
 
 	// TODO: make this default protection
 	// Called only when this object constructed with the single parameter constructor.
-	public void setObject(IModelObject extendableObject) {
-		Assert.isNotNull(extendableObject);
-		this.extendableObject = extendableObject;
+	public void setObject(IModelObject modelObject) {
+		Assert.isNotNull(modelObject);
+		this.modelObject = modelObject;
 	}
 
     @Override	
@@ -116,12 +116,12 @@ public class UncommittedObjectKey implements IObjectKey {
 				return false;
 			}
 
-			if (this.extendableObject != null && otherKey.extendableObject != null) {
+			if (this.modelObject != null && otherKey.modelObject != null) {
 				// These are new objects, never previously committed to the datastore,
 				// so there can be only one instance and we can use the default
 				// compare.
 				return (this == otherKey);
-			} else if (this.extendableObject != null || otherKey.extendableObject != null) {
+			} else if (this.modelObject != null || otherKey.modelObject != null) {
 				// One is new, one is not, so cannot be equal
 				return false;
 			} else {
@@ -134,7 +134,7 @@ public class UncommittedObjectKey implements IObjectKey {
 	
     @Override	
 	public int hashCode() {
-		if (extendableObject != null) {
+		if (modelObject != null) {
 			// These are new objects, never previously committed to the datastore,
 			// so there can be only one instance and we can use the default
 			// hashCode.
@@ -152,8 +152,8 @@ public class UncommittedObjectKey implements IObjectKey {
 		// We then would not need this 'switch' construct.
 		if (committedObjectKey != null) {
 			return transactionManager.getCopyInTransaction(committedObjectKey.getObject());
-		} else if (extendableObject != null) {
-			return extendableObject;
+		} else if (modelObject != null) {
+			return modelObject;
 		} else {
 			throw new RuntimeException("bad case"); //$NON-NLS-1$
 		}
@@ -233,7 +233,7 @@ public class UncommittedObjectKey implements IObjectKey {
 	 *         datastore
 	 */
 	public IObjectKey getCommittedObjectKey() {
-		if (extendableObject != null) {
+		if (modelObject != null) {
 			// This is a new object created in this transaction
 			return null;
 		} else {
@@ -254,7 +254,7 @@ public class UncommittedObjectKey implements IObjectKey {
 	 */
 	public void setCommittedObject(IModelObject committedObject) {
 		Assert.isTrue(committedObjectKey == null);
-		Assert.isNotNull(extendableObject);
+		Assert.isNotNull(modelObject);
 		
 		committedObjectKey = committedObject.getObjectKey();
 		
@@ -262,7 +262,7 @@ public class UncommittedObjectKey implements IObjectKey {
 		// datastore, we do not cache the object.  This is important
 		// because once the object is committed, others can change it
 		// and so we can not longer keep a cached version.
-		extendableObject = null;
+		modelObject = null;
 	}
 
 	@Override

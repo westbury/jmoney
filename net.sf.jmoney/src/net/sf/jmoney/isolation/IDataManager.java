@@ -3,6 +3,17 @@ package net.sf.jmoney.isolation;
 import org.eclipse.core.commands.operations.IUndoContext;
 import org.eclipse.swt.widgets.Control;
 
+/**
+ * Interface to be implemented by all data managers.
+ * <P>
+ * A 'data manager' manages a version of the model.  There will
+ * be a data manager that manages the persisted version of the model.
+ * If changes are being to the model inside a transaction then that
+ * 'copy' of the model will also have a data manager.
+ *
+ * @author Nigel Westbury
+ *
+ */
 public interface IDataManager {
 
 	void addChangeListener(SessionChangeListener listener);

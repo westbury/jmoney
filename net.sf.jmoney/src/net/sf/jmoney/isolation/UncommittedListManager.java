@@ -46,18 +46,18 @@ public class UncommittedListManager<E extends IModelObject> extends Vector<E> im
 	 }
 
 	/**
-	 * Create a new extendable object in the list represented by this object.
+	 * Create a new model object in the list represented by this object.
 	 */
 	@Override
 	public <F extends E> F createNewElement(IExtendablePropertySet<F> propertySet) {
 		UncommittedObjectKey objectKey = new UncommittedObjectKey(transactionManager);
-		F extendableObject = propertySet.constructDefaultImplementationObject(objectKey, listKey);
+		F newObject = propertySet.constructDefaultImplementationObject(objectKey, listKey);
 
-		objectKey.setObject(extendableObject);
+		objectKey.setObject(newObject);
 
-		add(extendableObject);
+		add(newObject);
 		
-		return extendableObject;
+		return newObject;
 	}
 
 	/*
@@ -67,13 +67,13 @@ public class UncommittedListManager<E extends IModelObject> extends Vector<E> im
 	@Override
 	public <F extends E> F createNewElement(IExtendablePropertySet<F> propertySet, IValues<F> values) {
 		UncommittedObjectKey objectKey = new UncommittedObjectKey(transactionManager);
-		F extendableObject = propertySet.constructImplementationObject(objectKey, listKey, values);
+		F newObject = propertySet.constructImplementationObject(objectKey, listKey, values);
 
-		objectKey.setObject(extendableObject);
+		objectKey.setObject(newObject);
 
-		add(extendableObject);
+		add(newObject);
 		
-		return extendableObject;
+		return newObject;
 	}
 
 	/*
@@ -81,15 +81,15 @@ public class UncommittedListManager<E extends IModelObject> extends Vector<E> im
 	 * its changes into this transaction manager.
 	 */
 	@Override
-	public void deleteElement(E extendableObject) {
-		boolean found = remove(extendableObject);
+	public void deleteElement(E element) {
+		boolean found = remove(element);
 		if (!found) {
 			throw new RuntimeException("internal error - element not in list");
 		}
 	}
 
 	@Override
-	public <F extends E> void moveElement(F extendableObject, IListManager<? super F> originalList) {
+	public <F extends E> void moveElement(F element, IListManager<? super F> originalList) {
 		/*
 		 * It is fairly complex to implement this inside a transaction.
 		 * Therefore we do not support this.

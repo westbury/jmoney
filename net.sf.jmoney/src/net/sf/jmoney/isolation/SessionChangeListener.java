@@ -32,7 +32,7 @@ import java.util.EventListener;
  */
 public interface SessionChangeListener extends EventListener {
 	/**
-	 * An extendable object has been added to the datastore.
+	 * An object has been added to the datastore.
 	 * <P>
 	 * If an object with child objects is added to the datastore as a single
 	 * transaction then this method is called only for the object itself and not
@@ -64,7 +64,7 @@ public interface SessionChangeListener extends EventListener {
 	void objectInserted(IModelObject newObject);
 
 	/**
-	 * An extendable object has been added to the datastore.
+	 * An object has been added to the datastore.
 	 * <P>
 	 * If an object with child objects is added to the datastore then this
 	 * method is called for the inserted object and all its descendent objects.
@@ -75,12 +75,12 @@ public interface SessionChangeListener extends EventListener {
 	 * Listeners should put code in this method if it needs to process new objects in
 	 * the same way regardless of how the object was added.
 	 * 
-	 * @param extendableObject
+	 * @param newObject
 	 */
 	void objectCreated(IModelObject newObject);
 
 	/**
-	 * An extendable object has been deleted.
+	 * An object has been deleted.
 	 * 
 	 * If an object with child objects is deleted from the datastore as a single
 	 * transaction then this method is called only for the object itself and not
@@ -93,12 +93,12 @@ public interface SessionChangeListener extends EventListener {
 	 * Listeners should put code in this method to avoid complications that can
 	 * arise if objects and there children are removed piecemeal.
 	 * 
-	 * @param extendableObject
+	 * @param deletedObject
 	 */
     void objectRemoved(IModelObject deletedObject);
 
 	/**
-	 * An extendable object has been deleted.
+	 * An object has been deleted.
 	 * 
 	 * If an object with child objects is deleted from the datastore then this method is called for the object itself and
 	 * for all the descendent objects. For example, if a Transaction object is deleted
@@ -108,17 +108,17 @@ public interface SessionChangeListener extends EventListener {
 	 * Listeners should put code in this method if it needs to process deleted objects in
 	 * the same way regardless of how the object was deleted.
 	 * 
-	 * @param extendableObject
+	 * @param deletedObject
 	 */
     void objectDestroyed(IModelObject deletedObject);
 
     /**
-	 * A scalar property in an extendable object has been changed.
+	 * A scalar property in an object has been changed.
 	 */
     void objectChanged(IModelObject changedObject, IScalarPropertyAccessor changedProperty, Object oldValue, Object newValue);
 
     /**
-	 * An extendable object has been moved from one list property to another list property.
+	 * An object has been moved from one list property to another list property.
 	 * The contents of the object, including the contents of any list properties in it, remain
 	 * intact.  References to the object also remain intact.
 	 */

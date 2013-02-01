@@ -116,7 +116,7 @@ public class ChangeManager {
 
 	/**
 	 * A ChangeEntry object for an update to a scalar property (excluding
-	 * scalar properties that are references to extendable objects).
+	 * scalar properties that are references to model objects).
 	 *
 	 * @param <V>
 	 */
@@ -141,7 +141,7 @@ public class ChangeManager {
 
 	/**
 	 * A ChangeEntry object for an update to a scalar property that is a
-	 * reference to an extendable object.
+	 * reference to an model object.
 	 *
 	 * @param <E>
 	 */
@@ -248,7 +248,7 @@ public class ChangeManager {
 				Object value = propertyAccessor.getValue(oldObject);
 				if (value instanceof IModelObject) {
 					/*
-					 * We can't store extendable objects or even the object keys
+					 * We can't store model objects or even the object keys
 					 * because those may not remain valid (the referenced object may
 					 * be deleted). We store instead a KeyProxy. If the referenced
 					 * object is later deleted, then un-deleted using an undo
@@ -374,7 +374,7 @@ public class ChangeManager {
 			IScalarPropertyAccessor<V,?> propertyAccessor, V oldValue, V newValue) {
 
 		/*
-		 * If the property value is an extendable object then we need special processing to
+		 * If the property value is a model object then we need special processing to
 		 * ensure everything works correctly.  The keys are replaced by proxy keys so all
 		 * will work correctly.  
 		 * 

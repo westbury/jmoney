@@ -101,17 +101,17 @@ public class ObjectCollection<E extends IModelObject> implements Collection<E> {
 	 * Moves the given object into this collection, removing it from its
 	 * current parent.
 	 */
-	public <F extends E> void moveElement(final F extendableObject) {
-		Assert.isTrue(listKey.getParentKey().getDataManager() == extendableObject.getDataManager());
+	public <F extends E> void moveElement(final F element) {
+		Assert.isTrue(listKey.getParentKey().getDataManager() == element.getDataManager());
 		
-		ListKey<? super F,?> originalListKey = extendableObject.getParentListKey();
+		ListKey<? super F,?> originalListKey = element.getParentListKey();
 		
-		moveIt(extendableObject, originalListKey);
+		moveIt(element, originalListKey);
 		
-		listKey.getParentKey().getDataManager().getChangeManager().processObjectMove(extendableObject, originalListKey);
+		listKey.getParentKey().getDataManager().getChangeManager().processObjectMove(element, originalListKey);
 	}
 	
-	private  <F extends E, S extends IModelObject> void moveIt(final F extendableObject,
+	private  <F extends E, S extends IModelObject> void moveIt(final F element,
 			final ListKey<? super F, S> originalListKey) {
 		/*
 		 * Note that if the parent object is not materialized (meaning that the
@@ -124,18 +124,18 @@ public class ObjectCollection<E extends IModelObject> implements Collection<E> {
 		IListManager<? super F> originalListManager = originalCollection.listManager;
 
 		// Move in the underlying datastore.
-		listManager.moveElement(extendableObject, originalListManager);
+		listManager.moveElement(element, originalListManager);
 
-		listManager.add(extendableObject);
-		originalListManager.remove(extendableObject);
-		extendableObject.replaceParentListKey(listKey);
+		listManager.add(element);
+		originalListManager.remove(element);
+		element.replaceParentListKey(listKey);
 
 		listKey.getParentKey().getDataManager().fireEvent(
 				new ISessionChangeFirer() {
 					@Override
 					public void fire(SessionChangeListener listener) {
 						listener.objectMoved(
-								extendableObject, 
+								element, 
 								originalListKey.getParentKey().getObject(),
 								listKey.getParentKey().getObject(),
 								originalListKey.getListPropertyAccessor(),
@@ -206,8 +206,8 @@ public class ObjectCollection<E extends IModelObject> implements Collection<E> {
 	 * @throws RuntimeException
 	 *             if the object does not exist in the collection
 	 */
-	public void deleteElement(E extendableObject) throws ReferenceViolationException {
-		if (extendableObject.getDataManager() != listKey.getParentKey().getDataManager()) {
+	public void deleteElement(E element) throws ReferenceViolationException {
+		if (element.getDataManager() != listKey.getParentKey().getDataManager()) {
     		throw new RuntimeException("Invalid call to remove.  The object passed does not belong to the data manager that is the base data manager of this collection."); //$NON-NLS-1$
 		}
 		
@@ -215,11 +215,11 @@ public class ObjectCollection<E extends IModelObject> implements Collection<E> {
 		 * Check that the object is in the list.  It is in this list if the parent
 		 * object is the same and the list property is the same.
 		 */
-		if (!extendableObject.getParentListKey().equals(listKey)) {
+		if (!element.getParentListKey().equals(listKey)) {
 			throw new RuntimeException("Passed object is not in the list.");
 		}
 		
-		final E objectToRemove = listKey.getListPropertyAccessor().getElementPropertySet().getImplementationClass().cast(extendableObject);
+		final E objectToRemove = listKey.getListPropertyAccessor().getElementPropertySet().getImplementationClass().cast(element);
 
 		/*
 		 * Deletion events are fired before the object is removed from the

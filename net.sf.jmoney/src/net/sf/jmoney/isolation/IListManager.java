@@ -70,18 +70,18 @@ public interface IListManager<E extends IModelObject> extends Collection<E> {
 	 * to/from a file then the implementation must check for references before
 	 * attempting the delete.
 	 * 
-	 * @param extendableObject
+	 * @param element
 	 * @return true if the element was deleted, false if it could not be deleted
 	 *         because there were references to it
 	 */
-	void deleteElement(E extendableObject) throws ReferenceViolationException;
+	void deleteElement(E element) throws ReferenceViolationException;
 	
 	/**
 	 * Moves the given object into this list, removing it from its
 	 * original list.
 	 * 
-	 * @param extendableObject
+	 * @param element
 	 * @param originalList 
 	 */
-	<F extends E> void moveElement(F extendableObject, IListManager<? super F> originalList);
+	<F extends E> void moveElement(F element, IListManager<? super F> originalList);
 }
