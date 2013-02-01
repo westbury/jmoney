@@ -25,9 +25,10 @@ package net.sf.jmoney.jdbcdatastore;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Vector;
+import java.util.List;
 
 import net.sf.jmoney.isolation.IExtendablePropertySet;
 import net.sf.jmoney.isolation.IListManager;
@@ -56,7 +57,7 @@ public class ListManagerCached<E extends IModelObject, S extends IModelObject> i
 	 * from the database (an empty list indicates that we know there
 	 * are no elements in this list)
 	 */
-	private Vector<E> elements = null;
+	private List<E> elements = null;
 	
 	/**
 	 * 
@@ -73,7 +74,7 @@ public class ListManagerCached<E extends IModelObject, S extends IModelObject> i
 		this.listKey = listKey;
 		
 		if (isEmpty) {
-			this.elements = new Vector<E>();
+			this.elements = new ArrayList<E>();
 		}
 	}
 
@@ -278,7 +279,7 @@ public class ListManagerCached<E extends IModelObject, S extends IModelObject> i
 
 
 	private void buildCachedList() {
-		elements = new Vector<E>();
+		elements = new ArrayList<E>();
 
 		/*
 		 * If the type of object held by the list is a type from which property
