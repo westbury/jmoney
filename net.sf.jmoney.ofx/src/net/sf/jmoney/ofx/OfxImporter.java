@@ -380,7 +380,7 @@ public class OfxImporter {
 				 * transaction at all. We just update a few properties in the
 				 * existing entry.
 				 */
-				Entry match = matchFinder.findMatch(accountOutsideTransaction, amount, transactionDate, checkNumber);
+				Entry match = matchFinder.findMatch(accountOutsideTransaction, amount, transactionDate, 5, checkNumber);
 				if (match != null) {
 					Entry entryInTrans = transactionManager.getCopyInTransaction(match);
 					entryInTrans.setValuta(postedDate);
@@ -619,7 +619,7 @@ public class OfxImporter {
 						return OfxEntryInfo.getFitidAccessor().getValue(entry) != null;
 					}
 				};
-				Entry matchedEntryOutsideTransaction = matchFinder.findMatch(accountOutsideTransaction, amount, postedDate, checkNumber);
+				Entry matchedEntryOutsideTransaction = matchFinder.findMatch(accountOutsideTransaction, amount, postedDate, 5, checkNumber);
 				if (matchedEntryOutsideTransaction != null) {
 					Entry matchedEntry = transactionManager.getCopyInTransaction(matchedEntryOutsideTransaction);
 					matchedEntry.setValuta(postedDate);

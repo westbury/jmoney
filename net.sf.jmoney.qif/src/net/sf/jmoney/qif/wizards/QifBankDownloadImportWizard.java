@@ -215,7 +215,7 @@ public class QifBankDownloadImportWizard extends Wizard implements IImportWizard
 							String uniqueId = Long.toString(date.getTime())
 									+ '~' + amount;
 							
-							Entry match = matchFinder.findMatch(currencyAccount, amount, date, qifTransaction.getCheckNumber());
+							Entry match = matchFinder.findMatch(currencyAccount, amount, date, 5, qifTransaction.getCheckNumber());
 							if (match != null) {
 								Entry entryInTrans = transactionManager.getCopyInTransaction(match);
 								entryInTrans.setValuta(date);

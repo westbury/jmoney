@@ -170,7 +170,7 @@ public class ImportMatcher {
 				return entry.getPropertyValue(ReconciliationEntryInfo.getUniqueIdAccessor()) != null;
 			}
 		};
-		Entry matchedEntry = matchFinder.findMatch(account.getBaseObject(), entryData.amount, importedDate, entryData.check);
+		Entry matchedEntry = matchFinder.findMatch(account.getBaseObject(), entryData.amount, importedDate, 5, entryData.check);
 		if (matchedEntry != null) {
 			matchedEntry.setValuta(importedDate);
 			matchedEntry.setCheck(entryData.check);

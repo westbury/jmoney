@@ -1,5 +1,14 @@
 package net.sf.jmoney.amazon;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
@@ -7,6 +16,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import net.sf.jmoney.importer.wizards.CsvImportWizard;
 import net.sf.jmoney.importer.wizards.ImportException;
@@ -51,33 +63,18 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 	private ImportedTextColumn column_trackingNumber = new ImportedTextColumn("Carrier Name & Tracking Number");
 	private ImportedAmountColumn column_subtotal = new ImportedAmountColumn("Item Subtotal");
 
-	//	Pattern patternCheque;
-	//	Pattern patternWithdrawalDate;
-
-	//	private ImportMatcher matcher;
-
-	//	@Override
-	//	protected void setAccount(Account accountInsideTransaction)	throws ImportException {
-	//		if (!(accountInsideTransaction instanceof BankAccount)) {
-	//			throw new ImportException("Bad configuration: This import can be used for bank accounts only.");
-	//		}
-	//
-	//		this.account = (BankAccount)accountInsideTransaction;
-	//		this.session = accountInsideTransaction.getSession();
-	//
-	//		try {
-	//			patternCheque = Pattern.compile("Cheque (\\d\\d\\d\\d\\d\\d)\\.");
-	//			patternWithdrawalDate = Pattern.compile("(.*) Withdrawal Date (\\d\\d  [A-Z][a-z][a-z] 20\\d\\d)");
-	//		} catch (PatternSyntaxException e) {
-	//			throw new RuntimeException("pattern failed", e); 
-	//		}
-	//
-	//		matcher = new ImportMatcher(account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true));
-	//	}
+	Pattern imageUrlPattern;
 
 	@Override
 	protected void startImport(TransactionManagerForAccounts transactionManager) throws ImportException {
 		this.session = transactionManager.getSession();
+
+		try {
+			// src="(http:\/\/ecx\.images\-amazon\.com\/images\/[A-Z]\/[A-Z,a-z,0-9]*\._AA160_\.jpg)" class="productImage" alt="Product Details"
+			imageUrlPattern = Pattern.compile("src=\"(http:\\/\\/ecx\\.images\\-amazon\\.com\\/images\\/[A-Z]\\/[A-Z,a-z,0-9]*\\._AA160_\\.jpg)\" class=\"productImage\" alt=\"Product Details\"");
+		} catch (PatternSyntaxException e) {
+			throw new RuntimeException("pattern failed", e); 
+		}
 	}
 
 	@Override
@@ -415,19 +412,51 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 				itemEntry.setShipmentDate(shipmentDate);
 				itemEntry.setAsinOrIsbn(rowItem2.id);
 			
-				/*
-				 * See http://superuser.com/questions/123911/how-to-get-the-full-image-when-the-shopping-site-like-amazon-shows-you-only-a-pa
-				 */
-				String urlString = MessageFormat.format(
-						"http://z2-ec2.images-amazon.com/images/P/{0}.01._SX_SCRMZZZZZZZ_V217104471.jpg",
-						rowItem2.id);
+//				/**
+//				 * Submit a search for the ASIN to Amazon, then we look at the html
+//				 * that comes back and find in it the URL to the picture. 
+//				 */
+//				String urlString2 = MessageFormat.format(
+//						"http://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords={0}",
+//						rowItem2.id);
 //				try {
-//					URL picture = new URL(urlString);
+//					URL searchResultsPage = new URL(urlString2);
+//					InputStream is = searchResultsPage.openStream();
+//					String sourceHtml = convertStreamToString(is);
+//					Matcher m = imageUrlPattern.matcher(sourceHtml);
+//					if (!m.find()) {
+//						throw new RuntimeException("no image found");
+//					}	
+//					String imageUrlString = m.group(1);
+//					if (m.find()) {
+//						throw new RuntimeException("more than one image found");
+//					}	
+//					System.out.println(imageUrlString);
+//					URL picture = new URL(imageUrlString);
 //					itemEntry.setPicture(new UrlBlob(picture));
 //				} catch (MalformedURLException e) {
 //					// Should not happen so convert to an unchecked exception
 //					throw new RuntimeException(e);
+//				} catch (IOException e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
 //				}
+
+				/*
+				 * See http://superuser.com/questions/123911/how-to-get-the-full-
+				 * image-when-the-shopping-site-like-amazon-shows-you-only-a-pa
+				 * and also http://aaugh.com/imageabuse.html
+				 */
+				String urlString = MessageFormat
+						.format("http://z2-ec2.images-amazon.com/images/P/{0}.01._SX_SCRMZZZZZZZ_V217104471.jpg",
+								rowItem2.id);
+				try {
+					URL picture = new URL(urlString);
+					itemEntry.setPicture(new UrlBlob(picture));
+				} catch (MalformedURLException e) {
+					// Should not happen so convert to an unchecked exception
+					throw new RuntimeException(e);
+				}
 			}
 		}
 
@@ -456,11 +485,6 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 		public void createTransaction(Session session) throws ImportException {
 			// Modify the existing transaction
 			Transaction trans = matchingEntry.getTransaction();
-
-			// TODO worry about shipping and handling and stuff like that.
-
-			// Distribute the shipping and handling amount
-			//			distribute(shippingAndHandlingAmount, rowItems);
 
 			addItemsToTransaction(trans);
 
@@ -510,12 +534,14 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 
 			assertValid(trans);
 		}
-
 	}
 
-	private void assertValid(Transaction trans) {
+	static void assertValid(Transaction trans) {
 		long total = 0;
+		System.out.println("" );
+
 		for (Entry entry : trans.getEntryCollection()) {
+			System.out.println("" + entry.getAmount());
 			total += entry.getAmount();
 		}
 		if (total != 0) {
@@ -529,5 +555,27 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 		public long quantity;
 		public long unitPrice; 
 		public long subtotal;
+	}
+
+	private String convertStreamToString(InputStream is) throws IOException {
+		/*
+		 * To convert the InputStream to String we use the Reader.read(char[]
+		 * buffer) method. We iterate until the Reader return -1 which means
+		 * there's no more data to read. We use the StringWriter class to
+		 * produce the string.
+		 */
+		Writer writer = new StringWriter();
+		char[] buffer = new char[1024];
+		try {
+			Reader reader = new BufferedReader(new InputStreamReader(is,
+					"UTF-8"));
+			int n;
+			while ((n = reader.read(buffer)) != -1) {
+				writer.write(buffer, 0, n);
+			}
+		} finally {
+			is.close();
+		}
+		return writer.toString();
 	}
 }

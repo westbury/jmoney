@@ -39,17 +39,21 @@ public abstract class MatchingEntryFinder {
 	 * 
 	 * @param account
 	 * @param amount
-	 * @param postedDate
+	 * @param startSearchDate
+	 * @param numberOfDays the number of days following the given postedDate
+	 * 		to look for the entry (this value is ignored when a check number
+	 * 		is present in which case 20 days are always allowed)
 	 * @param checkNumber
 	 * @return the matching entry if one is found, otherwise null
 	 */
-	public Entry findMatch(CapitalAccount account, long amount, Date postedDate, String checkNumber) {
+	public Entry findMatch(CapitalAccount account, long amount, Date startSearchDate, int numberOfDays, String checkNumber) {
 		Collection<Entry> possibleMatches = new ArrayList<Entry>();
 		for (Entry entry : account.getEntries()) {
 			if (!alreadyMatched(entry)
 					&& entry.getAmount() == amount) {
+				Date date = entry.getTransaction().getDate();
 				if (entry.getCheck() == null) {
-					if (entry.getTransaction().getDate().equals(postedDate)) {
+					if (date.equals(startSearchDate)) {
 						possibleMatches.add(entry);
 
 						/*
@@ -61,14 +65,14 @@ public abstract class MatchingEntryFinder {
 						 */
 						break;
 					} else {
-						Calendar fiveDaysLater = Calendar.getInstance();
-						fiveDaysLater.setTime(entry.getTransaction().getDate());
-						fiveDaysLater.add(Calendar.DAY_OF_MONTH, 5);
+						Calendar calendar = Calendar.getInstance();
+						calendar.setTime(startSearchDate);
+						calendar.add(Calendar.DAY_OF_MONTH, numberOfDays);
+						Date endSearchDate = calendar.getTime();
 
 						if ((checkNumber == null || checkNumber.length() == 0) 
-								&& (postedDate.equals(entry.getTransaction().getDate())
-										|| postedDate.after(entry.getTransaction().getDate()))
-										&& postedDate.before(fiveDaysLater.getTime())) {
+								&& !date.before(startSearchDate)
+										&& !date.after(endSearchDate)) {
 							// Auto-reconcile
 							possibleMatches.add(entry);
 						}
@@ -76,13 +80,13 @@ public abstract class MatchingEntryFinder {
 				} else {
 					// A check number is present
 					Calendar twentyDaysLater = Calendar.getInstance();
-					twentyDaysLater.setTime(entry.getTransaction().getDate());
+					twentyDaysLater.setTime(date);
 					twentyDaysLater.add(Calendar.DAY_OF_MONTH, 20);
 
 					if (entry.getCheck().equals(checkNumber)
-							&& (postedDate.equals(entry.getTransaction().getDate())
-									|| postedDate.after(entry.getTransaction().getDate()))
-									&& postedDate.before(twentyDaysLater.getTime())) {
+							&& (startSearchDate.equals(date)
+									|| startSearchDate.after(date))
+									&& startSearchDate.before(twentyDaysLater.getTime())) {
 						// Auto-reconcile
 						possibleMatches.add(entry);
 

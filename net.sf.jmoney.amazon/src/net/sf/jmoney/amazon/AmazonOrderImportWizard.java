@@ -1,17 +1,15 @@
 package net.sf.jmoney.amazon;
 
+import java.text.DateFormat;
+import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
 
 import net.sf.jmoney.importer.MatchingEntryFinder;
-import net.sf.jmoney.importer.matcher.EntryData;
-import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
 import net.sf.jmoney.importer.wizards.CsvImportWizard;
 import net.sf.jmoney.importer.wizards.ImportException;
-import net.sf.jmoney.importer.wizards.CsvImportWizard.ImportedTextColumn;
 import net.sf.jmoney.isolation.ReferenceViolationException;
-import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.BankAccount;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Currency;
@@ -20,13 +18,12 @@ import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
-import net.sf.jmoney.model2.Session.NoAccountFoundException;
-import net.sf.jmoney.model2.Session.SeveralAccountsFoundException;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
+import net.sf.jmoney.reconciliation.BankStatement;
+import net.sf.jmoney.reconciliation.ReconciliationEntryInfo;
 
 import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IImportWizard;
 
 /**
@@ -60,36 +57,11 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 	private ImportedTextColumn column_status = new ImportedTextColumn("Shipment/Order Condition");
 	private ImportedTextColumn column_trackingNumber = new ImportedTextColumn("Carrier Name & Tracking Number");
 	private ImportedAmountColumn column_subtotal = new ImportedAmountColumn("Subtotal");
-	private ImportedAmountColumn column_shippingAmount = new ImportedAmountColumn("Shipping Charge");
-	private ImportedAmountColumn column_promotion = new ImportedAmountColumn("Total Promotions");
 	private ImportedAmountColumn column_totalCharged = new ImportedAmountColumn("Total Charged");
-
-	private Account promotionalAccount;
-	private Account shippingAccount;
 
 	@Override
 	protected void startImport(TransactionManagerForAccounts transactionManager) throws ImportException {
 		this.session = transactionManager.getSession();
-
-		try {
-			promotionalAccount = session.getAccountByShortName("Amazon promotional discounts");
-		} catch (NoAccountFoundException e) {
-			MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "No account exists called 'Amazon promotional discounts'");
-			throw new RuntimeException(e); 
-		} catch (SeveralAccountsFoundException e) {
-			MessageDialog.openError(Display.getDefault().getActiveShell(), "Multiple Accounts Set Up", "Multiple accounts exists called 'Amazon promotional discounts'");
-			throw new RuntimeException(e); 
-		}
-
-		try {
-			shippingAccount = session.getAccountByShortName("Amazon shipping");
-		} catch (NoAccountFoundException e) {
-			MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "No account exists called 'Amazon shipping'");
-			throw new RuntimeException(e); 
-		} catch (SeveralAccountsFoundException e) {
-			MessageDialog.openError(Display.getDefault().getActiveShell(), "Multiple Accounts Set Up", "Multiple accounts exists called 'Amazon shipping'");
-			throw new RuntimeException(e); 
-		}
 	}
 
 	@Override
@@ -110,9 +82,9 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 				column_status,
 				column_trackingNumber,
 				column_subtotal,
-				column_shippingAmount,
 				null,
-				column_promotion,
+				null,
+				null,
 				null,
 				column_totalCharged,
 		};
@@ -124,6 +96,9 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 		String trackingNumber = column_trackingNumber.getText();
 		Date shipmentDate = column_shipmentDate.getDate();
 
+		if (orderId.equals("104-6557509-2207433")) {
+			System.out.println("here");
+		}
 		String status = column_status.getText();
 		if (!status.equals("Shipped")) {
 //			if (status.equals("Cancelled")) {
@@ -185,47 +160,45 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 
 		long totalCharged = column_totalCharged.getAmount();
 		
-		long shipping = column_shippingAmount.getAmount();
-		long promotion = column_promotion.getAmount();
-		
-		/*
-		 * If the promotional discount is the same as the shipping charge
-		 * then it's just a free shipping deal.  They cancel each other out
-		 * so we just ignore both (i.e. don't create an entry for either).
-		 */
-		if (shipping == -promotion) {
-			shipping = 0;
-			promotion = 0;
-		}
-
 		/*
 		 * Auto-match the new entry in the charge account the same way that any other
 		 * entry would be auto-matched.  This combines the entry if the entry already exists in the
 		 * charge account (typically because transactions have been downloaded from the bank and imported).
+		 *
+		 * An entry in the charge account has already been matched to an
+		 * Amazon order if it has an order id set.  This matcher will not return
+		 * entries that have already been matched.
+		 * 
+		 * Although we have already eliminated orders that have already been imported,
+		 * this test ensures we don't mess up when more than one order can match to the
+		 * same debit in the charge account.  This is not likely but two orders of the same
+		 * amount and the same or very close dates may cause this.
+		 * 
+		 * Note that we search ten days ahead for a matching entry in the charge account.
+		 * Although Amazon usually charge on the day of shipment there have been cases where
+		 * the change appears at the bank seven days later. 
 		 */
-		EntryData entryData = new EntryData();
-		entryData.amount = -totalCharged;
-		entryData.valueDate = column_shipmentDate.getDate();
-		
-		Date importedDate = (entryData.valueDate != null)
-		? entryData.valueDate
-				: entryData.clearedDate;
-
-		// TODO is the alreadyMatched rule correct?
 		MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
 			@Override
 			protected boolean alreadyMatched(Entry entry) {
-				return entry.getPropertyValue(ReconciliationEntryInfo.getUniqueIdAccessor()) != null;
+				return entry.getPropertyValue(AmazonEntryInfo.getOrderIdAccessor()) != null;
 			}
 		};
-		Entry matchedEntryInChargeAccount = matchFinder.findMatch(chargedAccount, entryData.amount, importedDate, null);
+		Entry matchedEntryInChargeAccount = matchFinder.findMatch(chargedAccount, -totalCharged, shipmentDate, 10, null);
 
-		Transaction trans;
+		/*
+		 * Although Amazon never charge until the order is shipped, other retailers
+		 * often charge when the order is made.  So if we don't find the entry in the
+		 * charge account try again starting at the order date.
+		 */
+		if (matchedEntryInChargeAccount == null) {
+			matchedEntryInChargeAccount = matchFinder.findMatch(chargedAccount, -totalCharged, column_orderDate.getDate(), 10, null);
+		}
 		
 		if (matchingEntry == null) {
 			// Create new transaction
 			
-			trans = session.createTransaction();
+			Transaction trans = session.createTransaction();
 			trans.setDate(column_orderDate.getDate());
 
 			// Create a single entry in the "unmatched entries" account
@@ -235,7 +208,8 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 				unmatchedEntry = trans.createEntry().getExtension(AmazonEntryInfo.getPropertySet(), true);
 
 				// Create a single entry in the charge account
-				AmazonEntry chargeAccountEntry = trans.createEntry().getExtension(AmazonEntryInfo.getPropertySet(), true);
+				matchedEntryInChargeAccount = trans.createEntry();
+				AmazonEntry chargeAccountEntry = matchedEntryInChargeAccount.getExtension(AmazonEntryInfo.getPropertySet(), true);
 				chargeAccountEntry.setAccount(chargedAccount);
 				chargeAccountEntry.setAmount(-totalCharged);
 				chargeAccountEntry.setOrderId(orderId);
@@ -252,8 +226,6 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 				matchedEntryInChargeAccount.getTransaction().deleteEntry(otherMatchedEntry);
 				
 				unmatchedEntry = matchedEntryInChargeAccount.getTransaction().createEntry().getExtension(AmazonEntryInfo.getPropertySet(), true);
-
-				
 			}
 
 			unmatchedEntry.setAccount(unmatchedAccount);
@@ -270,41 +242,98 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 				throw new ImportException("the total price of the items in the matching transaction does not match the 'Subtotal' amount in the order table.");
 			}
 			 
-			trans = matchingEntry.getTransaction();
-			
 			if (matchedEntryInChargeAccount != null) {
 				if (matchedEntryInChargeAccount.getTransaction().hasMoreThanTwoEntries()) {
-					throw new ImportException("matched entry in charge account has more than one other entry");
-				}
+					/*
+					 * In this case we just don't merge the transactions.  We leave both the original
+					 * transaction with the user-entered data and the transaction imported from
+					 * Amazon.  
+					 * 
+					 * We could try to match the entries in each transaction but that would
+					 * be difficult and risky.  As long as users get into the habit of importing from
+					 * Amazon before manually editing the data then this should not happen.
+					 * 
+					 */
+					DateFormat df = new SimpleDateFormat("dd-MMM-yyyy");
+					MessageDialog.openWarning(getShell(), "Unmerged Transaction", 
+							MessageFormat.format(
+									"A transaction was found in the {0} account on {1} that matches an Amazon import.  However that transaction has split entries and cannot be automatically merged with the Amazon data.", 
+									chargedAccount.getName(), 
+									df.format(matchedEntryInChargeAccount.getTransaction().getDate())));
+					
+					/* Put the Amazon transaction into the charge account, and reconcile
+					 it in lieu of the original transaction.  The user then has the least
+					amount of work to tidy this up.
+					*/
+					matchingEntry.setAccount(chargedAccount);
+					
+					// TODO make this an optional dependency on the reconciliation plugin.
+					BankStatement statement = ReconciliationEntryInfo.getStatementAccessor().getValue(matchedEntryInChargeAccount);
+					ReconciliationEntryInfo.getStatementAccessor().setValue(matchedEntryInChargeAccount, null);
+					ReconciliationEntryInfo.getStatementAccessor().setValue(matchingEntry.getBaseObject(), statement);
 
-				// Copy across the properties
-				for (ScalarPropertyAccessor<?,? super Entry> propertyAccessor : EntryInfo.getPropertySet().getScalarProperties3()) {
-					copyProperty(matchingEntry, matchedEntryInChargeAccount,
-							propertyAccessor);
-				}
-				
-				// Set our own properties
-				matchingEntry.setOrderId(orderId);
-				matchingEntry.setTrackingNumber(trackingNumber);
-				matchingEntry.setShipmentDate(shipmentDate);
-				
-				/*
-				 * If the charge account entry does not have a 'value' date then
-				 * we put the transaction date from the existing charge account
-				 * entry as the 'value' date. This is done because that
-				 * transaction was most likely created when the entries were
-				 * imported from the bank's server and will therefore be the
-				 * date that the charge was debited by the bank.
-				 */
-				if (matchingEntry.getValuta() == null) {
-					matchingEntry.setValuta(matchedEntryInChargeAccount.getTransaction().getDate());
-				}
-				
-				// Delete the original transaction from the charge account
-				try {
-					matchedEntryInChargeAccount.getSession().deleteTransaction(matchedEntryInChargeAccount.getTransaction());
-				} catch (ReferenceViolationException e) {
-					throw new ImportException("exception from database", e);
+					/*
+					 * If the charge account entry does not have a 'value' date then
+					 * we put the transaction date from the existing charge account
+					 * entry as the 'value' date. This is done because that
+					 * transaction was most likely created when the entries were
+					 * imported from the bank's server and will therefore be the
+					 * date that the charge was debited by the bank.
+					 */
+					if (matchingEntry.getValuta() == null) {
+						matchingEntry.setValuta(matchedEntryInChargeAccount.getTransaction().getDate());
+					}
+
+					// We distribute the costs and discounts on the items transaction,
+					// so set this accordingly.
+					matchedEntryInChargeAccount = matchingEntry.getBaseObject();
+				} else {
+
+					// Copy across the properties
+					for (ScalarPropertyAccessor<?,? super Entry> propertyAccessor : EntryInfo.getPropertySet().getScalarProperties3()) {
+						copyProperty(matchingEntry,
+								matchedEntryInChargeAccount, propertyAccessor);
+					}
+
+					/*
+					 * If the other entry has an account that is not the default
+					 * then we want to keep that account and also anything in the
+					 * memo. If the item import contained more than one item (so is
+					 * a split transaction) then put into all entries.
+					 */
+					Entry otherEntry = matchedEntryInChargeAccount.getTransaction().getOther(matchedEntryInChargeAccount);
+					if (!otherEntry.getAccount().getName().startsWith("unreconciled")) {
+						for (Entry itemEntry : matchingEntry.getTransaction().getEntryCollection()) {
+							if (itemEntry != matchingEntry.getBaseObject()) {
+								itemEntry.setAccount(otherEntry.getAccount());
+								itemEntry.setMemo("" + itemEntry.getMemo() + " - " + otherEntry.getMemo()); 
+							}
+						}
+					}
+
+					// Set our own properties
+					matchingEntry.setOrderId(orderId);
+					matchingEntry.setTrackingNumber(trackingNumber);
+					matchingEntry.setShipmentDate(shipmentDate);
+
+					/*
+					 * If the charge account entry does not have a 'value' date then
+					 * we put the transaction date from the existing charge account
+					 * entry as the 'value' date. This is done because that
+					 * transaction was most likely created when the entries were
+					 * imported from the bank's server and will therefore be the
+					 * date that the charge was debited by the bank.
+					 */
+					if (matchingEntry.getValuta() == null) {
+						matchingEntry.setValuta(matchedEntryInChargeAccount.getTransaction().getDate());
+					}
+
+					// Delete the original transaction from the charge account
+					try {
+						matchedEntryInChargeAccount.getSession().deleteTransaction(matchedEntryInChargeAccount.getTransaction());
+					} catch (ReferenceViolationException e) {
+						throw new ImportException("exception from database", e);
+					}
 				}
 			} else {
 				/*
@@ -314,26 +343,77 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 				 * is imported from the bank's server.
 				 */
 				matchingEntry.setAccount(chargedAccount);
+				
+				/*
+				 * We also change the amount from the 'Subtotal' amount to
+				 * the 'Total Charged' amount.  The subtotal is the total of all
+				 * the items and that is what will have been put by the item import.
+				 * The total charged adds in any shipping amount and deducts
+				 * any promotional discount.  Entries for those two amounts are added
+				 * later so the transaction should then still balance.
+				 */
+				matchingEntry.setAmount(-totalCharged);
+			}
+			
+			matchedEntryInChargeAccount = matchingEntry.getBaseObject();
+		}
+
+		distribute(matchedEntryInChargeAccount);
+
+		AmazonItemImportWizard.assertValid(matchedEntryInChargeAccount.getTransaction());
+	}
+
+	/**
+	 * We distribute the shipping and promotional discounts among the items in proportion
+	 * to the price of each item.
+	 * <P>
+	 * An attempt had been made to separate out the shipping and promotional discounts into
+	 * separate entries.  However that approach did not work out very well.  The various adjustments
+	 * in the CSV files exported by Amazon just are not consistent and in some cases just don't add up.
+	 * 
+	 * @throws ImportException 
+	 */
+	private void distribute(Entry fixedEntry) throws ImportException {
+		if (fixedEntry.getAmount() == 0) {
+			throw new ImportException("Can't cope with zero amount charged.");
+		}
+		
+		long netTotal = 0;
+		for (Entry itemEntry : fixedEntry.getTransaction().getEntryCollection()) {
+			if (itemEntry != fixedEntry) {
+				if ((itemEntry.getAmount() < 0) == (fixedEntry.getAmount() < 0)) {
+					throw new ImportException("Can't have positive and negative items.");
+				}
+				netTotal += itemEntry.getAmount();
 			}
 		}
-		
-		if (promotion != 0) {
-			AmazonEntry promotionalEntry = trans.createEntry().getExtension(AmazonEntryInfo.getPropertySet(), true);
-			promotionalEntry.setAmount(-promotion);
-			promotionalEntry.setAccount(promotionalAccount);
-			promotionalEntry.setOrderId(orderId);
-			promotionalEntry.setTrackingNumber(trackingNumber);
-			promotionalEntry.setShipmentDate(shipmentDate);
+
+		long toDistribute = - (netTotal + fixedEntry.getAmount());
+		long leftToDistribute = toDistribute;
+
+		for (Entry itemEntry : fixedEntry.getTransaction().getEntryCollection()) {
+			if (itemEntry != fixedEntry) {
+				long amount = toDistribute * itemEntry.getAmount() / netTotal;
+				itemEntry.setAmount(itemEntry.getAmount() + amount);
+				leftToDistribute -= amount;
+			}
 		}
-		
-		if (promotion != 0) {
-			AmazonEntry shippingEntry = trans.createEntry().getExtension(AmazonEntryInfo.getPropertySet(), true);
-			shippingEntry.setAmount(shipping);
-			shippingEntry.setAccount(shippingAccount);
-			shippingEntry.setOrderId(orderId);
-			shippingEntry.setTrackingNumber(trackingNumber);
-			shippingEntry.setShipmentDate(shipmentDate);
+
+		// We have rounded down, so we may be under.  We now distribute
+		// a penny to each until we get a balanced transaction.
+		for (Entry itemEntry : fixedEntry.getTransaction().getEntryCollection()) {
+			if (itemEntry != fixedEntry) {
+				if (leftToDistribute > 0) {
+					itemEntry.setAmount(itemEntry.getAmount() + 1);
+					leftToDistribute--;
+				} else if (leftToDistribute < 0) {
+					itemEntry.setAmount(itemEntry.getAmount() - 1);
+					leftToDistribute++;
+				}
+			}
 		}
+
+		assert(leftToDistribute == 0);
 	}
 
 	private <T> void copyProperty(AmazonEntry destinationEntry,
