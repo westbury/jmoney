@@ -25,6 +25,7 @@ package net.sf.jmoney.stocks;
 import java.text.MessageFormat;
 
 import net.sf.jmoney.isolation.ObjectCollection;
+import net.sf.jmoney.isolation.ReferenceViolationException;
 import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.ExtendablePropertySet;
@@ -81,15 +82,24 @@ public class MergeDuplicatedSecurityHandler extends AbstractHandler {
 
 		TransactionManagerForAccounts transaction = new TransactionManagerForAccounts(sessionManager);
 
+		S security1InTransaction = transaction.getCopyInTransaction(typedSecurity1);
+		S security2InTransaction = transaction.getCopyInTransaction(typedSecurity2);
+
 		int result = new MergeDuplicatedSecurityDialog<S>(
 				shell,
 				extendablePropertySet,
-				transaction.getCopyInTransaction(typedSecurity1),
-				transaction.getCopyInTransaction(typedSecurity2))
+				security1InTransaction,
+				security2InTransaction)
 				.open();
 		if (result == IDialogConstants.OK_ID) {
-			replaceSecondWithFirst(transaction, SessionInfo.getPropertySet(), transaction.getSession(), extendablePropertySet, typedSecurity1, typedSecurity2);
-			transaction.commit("Merge Securities");
+			replaceSecondWithFirst(transaction, SessionInfo.getPropertySet(), transaction.getSession(), extendablePropertySet, security1InTransaction, security2InTransaction);
+			try {
+				transaction.getSession().getCommodityCollection().deleteElement(security2InTransaction);
+				transaction.commit("Merge Securities");
+			} catch (ReferenceViolationException e) {
+				// This should not happen because we replaced all references
+				throw new RuntimeException(e);
+			}
 		}
 	}
 
@@ -112,12 +122,10 @@ public class MergeDuplicatedSecurityHandler extends AbstractHandler {
 		/*
 		 * Pass through all the list properties
 		 */
-
 		for (ListPropertyAccessor<?,? super E> listAccessor: extendablePropertySet.getListProperties3()) {
 			processChildElement(transaction, session,
 					propertySet1, security1, security2, listAccessor);
 		}
-
 	}
 
 	private <S extends Security, E extends ExtendableObject, C extends ExtendableObject> void processChildElement(TransactionManager transaction,

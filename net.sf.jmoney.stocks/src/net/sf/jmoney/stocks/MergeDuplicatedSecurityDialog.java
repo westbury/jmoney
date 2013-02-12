@@ -24,13 +24,13 @@ import org.eclipse.swt.widgets.Shell;
 public class MergeDuplicatedSecurityDialog<S extends Security> extends Dialog {
 
 	private ExtendablePropertySet<S> propertySet;
-	
+
 	private S security1;
 
 	private S security2;
 
 	private List<IPropertyControl<? super S>> properties;
-	
+
 	protected MergeDuplicatedSecurityDialog(Shell parentShell, ExtendablePropertySet<S> propertySet, S security1, S security2) {
 		super(parentShell);
 		this.propertySet = propertySet;
@@ -44,7 +44,7 @@ public class MergeDuplicatedSecurityDialog<S extends Security> extends Dialog {
 			for (IPropertyControl propertyControl : properties) {
 				propertyControl.save();
 			}
-			
+
 			/*
 			 * Merge list properties.  This is a very simple implementation because securities don't
 			 * currently have lists except in an experimental plug-in that keeps price history.
@@ -103,7 +103,7 @@ public class MergeDuplicatedSecurityDialog<S extends Security> extends Dialog {
 		for (ScalarPropertyAccessor<?, ? super S> accessor : propertySet.getScalarProperties3()) {
 			setDefaultValue(accessor);
 		}
-		
+
 		for (IPropertyControl<? super S> propertyControl : properties) {
 			propertyControl.load(security1);
 		}
@@ -114,7 +114,7 @@ public class MergeDuplicatedSecurityDialog<S extends Security> extends Dialog {
 
 	/**
 	 * For the given property, sets the default value of the merged security.
-	 * 
+	 *
 	 * @param propertyAccessor
 	 */
 	private <V> void setDefaultValue(
@@ -133,7 +133,7 @@ public class MergeDuplicatedSecurityDialog<S extends Security> extends Dialog {
 	private Control createPropertiesArea(Composite parent) {
 		Composite composite = new Composite(parent, SWT.NONE);
 		composite.setLayout(new GridLayout(4, false));
-		
+
 		properties = new ArrayList<IPropertyControl<? super S>>();
 
 		for (ScalarPropertyAccessor<?, ? super S> accessor : propertySet.getScalarProperties3()) {
@@ -141,22 +141,22 @@ public class MergeDuplicatedSecurityDialog<S extends Security> extends Dialog {
 			label.setText(accessor.getDisplayName() + ":"); //$NON-NLS-1$
 
 			final IPropertyControl<? super S> propertyControl = accessor.createPropertyControl(composite);
-			propertyControl.getControl().setLayoutData(new GridData(accessor.getMinimumWidth(), SWT.DEFAULT));
+			propertyControl.getControl().setLayoutData(new GridData(accessor.getMinimumWidth() + accessor.getWeight() * 50, SWT.DEFAULT));
 
 			Label value1Label = new Label(composite, SWT.LEFT);
 			value1Label.setText(accessor.formatValueForTable(security1));
-			
+
 			Label value2Label = new Label(composite, SWT.LEFT);
 			value2Label.setText(accessor.formatValueForTable(security2));
-			
+
 			properties.add(propertyControl);
 		}
-		
+
 		return composite;
 	}
 
 	protected void setErrorMessage(String string) {
 		// TODO:
-		
+
 	}
 }
