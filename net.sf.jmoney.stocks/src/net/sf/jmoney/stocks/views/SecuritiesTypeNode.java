@@ -1,24 +1,24 @@
 /*
-*
-*  JMoney - A Personal Finance Manager
-*  Copyright (c) 2004 Nigel Westbury <westbury@users.sourceforge.net>
-*
-*
-*  This program is free software; you can redistribute it and/or modify
-*  it under the terms of the GNU General Public License as published by
-*  the Free Software Foundation; either version 2 of the License, or
-*  (at your option) any later version.
-*
-*  This program is distributed in the hope that it will be useful,
-*  but WITHOUT ANY WARRANTY; without even the implied warranty of
-*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*  GNU General Public License for more details.
-*
-*  You should have received a copy of the GNU General Public License
-*  along with this program; if not, write to the Free Software
-*  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-*
-*/
+ *
+ *  JMoney - A Personal Finance Manager
+ *  Copyright (c) 2004 Nigel Westbury <westbury@users.sourceforge.net>
+ *
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
 
 package net.sf.jmoney.stocks.views;
 
@@ -34,14 +34,15 @@ import net.sf.jmoney.views.IDynamicTreeNode;
 
 public class SecuritiesTypeNode implements IDynamicTreeNode {
 
-	private IDataManagerForAccounts sessionManager;
-	private ExtendablePropertySet<? extends Security> propertySet;
-	
+	private final IDataManagerForAccounts sessionManager;
+	private final ExtendablePropertySet<? extends Security> propertySet;
+
 	public SecuritiesTypeNode(IDataManagerForAccounts sessionManager, ExtendablePropertySet<? extends Security> propertySet) {
 		this.sessionManager = sessionManager;
 		this.propertySet = propertySet;
 	}
 
+	@Override
 	public boolean hasChildren() {
 		Session session = sessionManager.getSession();
 		for (Commodity commodity: session.getCommodityCollection()) {
@@ -52,6 +53,7 @@ public class SecuritiesTypeNode implements IDynamicTreeNode {
 		return false;
 	}
 
+	@Override
 	public Collection<Object> getChildren() {
 		Session session = sessionManager.getSession();
 		ArrayList<Object> children = new ArrayList<Object>();

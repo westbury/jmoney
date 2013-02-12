@@ -63,21 +63,21 @@ public class FilteredStocksSelectionDialog extends FilteredItemsSelectionDialog 
 
 	private static final String HIDE_STOCK_NO_LONGER_OWNED = "HideSoldStock"; //$NON-NLS-1$
 
-	private StockAccount account;
-	
+	private final StockAccount account;
+
 	private HideSoldStockAction hideSoldStockAction;
 
-	private StockInListLabelProvider stockInListLabelProvider;
+	private final StockInListLabelProvider stockInListLabelProvider;
 
-	private StockInStatusLineLabelProvider stockInStatusLineLabelProvider;
+	private final StockInStatusLineLabelProvider stockInStatusLineLabelProvider;
 
 	private boolean isHidingSoldStock;
 
 	private class StockSummary {
 		public long total = 0;
 	}
-	
-	private Map<Stock, StockSummary> totals = new HashMap<Stock, StockSummary>();
+
+	private final Map<Stock, StockSummary> totals = new HashMap<Stock, StockSummary>();
 
 	/**
 	 * Creates a new instance of the class
@@ -91,7 +91,7 @@ public class FilteredStocksSelectionDialog extends FilteredItemsSelectionDialog 
 		super(shell, true);
 
 		this.account = stockAccount;
-		
+
 		setSelectionHistory(new StockSelectionHistory());
 
 		setTitle("Show Stock Details");
@@ -120,7 +120,7 @@ public class FilteredStocksSelectionDialog extends FilteredItemsSelectionDialog 
 						stockWrapper = new StockSummary();
 						totals.put(stock, stockWrapper);
 					}
-					
+
 					stockWrapper.total += entry.getAmount();
 				}
 			}
@@ -242,10 +242,11 @@ public class FilteredStocksSelectionDialog extends FilteredItemsSelectionDialog 
 			 * @see java.util.Comparator#compare(java.lang.Object,
 			 *      java.lang.Object)
 			 */
+			@Override
 			public int compare(Object element1, Object element2) {
 				Stock stock1 = (Stock) element1;
 				Stock stock2 = (Stock) element2;
-				
+
 				String name1 = stock1.getName();
 				String name2 = stock2.getName();
 				int nameComparison = name1.compareToIgnoreCase(name2);
@@ -256,8 +257,8 @@ public class FilteredStocksSelectionDialog extends FilteredItemsSelectionDialog 
 				String symbol1 = stock1.getSymbol();
 				String symbol2 = stock2.getSymbol();
 				return symbol1 == null
-				? symbol2 == null ? 0 : 1
-						: symbol2 == null ? -1 : symbol1.compareToIgnoreCase(symbol2);
+						? symbol2 == null ? 0 : 1
+								: symbol2 == null ? -1 : symbol1.compareToIgnoreCase(symbol2);
 			}
 		};
 	}
@@ -272,7 +273,7 @@ public class FilteredStocksSelectionDialog extends FilteredItemsSelectionDialog 
 	@Override
 	protected void fillContentProvider(AbstractContentProvider contentProvider,
 			ItemsFilter itemsFilter, IProgressMonitor progressMonitor)
-			throws CoreException {
+					throws CoreException {
 
 		for (Stock stock : totals.keySet()) {
 			contentProvider.add(stock, itemsFilter);
@@ -339,16 +340,17 @@ public class FilteredStocksSelectionDialog extends FilteredItemsSelectionDialog 
 			Stock stock = (Stock) element;
 			return stock.getName();
 		}
-		
+
 		/* (non-Javadoc)
 		 * @see org.eclipse.jface.viewers.DelegatingStyledCellLabelProvider.IStyledLabelProvider#getStyledText(java.lang.Object)
 		 */
+		@Override
 		public StyledString getStyledText(Object element) {
 			Stock stock = (Stock) element;
 			// We seem to get a null element here after restricting selection to stock
 			// that is still owned.  Not sure why.
 			if (stock == null) return new StyledString("null value!!!");
-			
+
 			return new StyledString(stock.getName());
 		}
 
@@ -377,14 +379,14 @@ public class FilteredStocksSelectionDialog extends FilteredItemsSelectionDialog 
 		@Override
 		public String getText(Object element) {
 			Stock stock = (Stock) element;
-			
+
 			StringBuffer text = new StringBuffer();
 			text.append(stock.getName());
-			
+
 			if (stock.getSymbol() != null) {
 				text.append(" (").append(stock.getSymbol()).append(")");
 			}
-			
+
 			if (stock.getNominalValue() != null) {
 				text.append(" at ").append(stock.getNominalValue());
 			}
@@ -395,7 +397,7 @@ public class FilteredStocksSelectionDialog extends FilteredItemsSelectionDialog 
 			} else {
 				text.append(" (").append(stock.format(wrapper.total)).append(" shares in account)");
 			}
-			
+
 			return text.toString();
 		}
 	}
@@ -441,7 +443,7 @@ public class FilteredStocksSelectionDialog extends FilteredItemsSelectionDialog 
 			if (isFilterHidingSoldStock && wrapper.total == 0) {
 				return false;
 			}
-			
+
 			return matches(stock.getName());
 		}
 
@@ -511,7 +513,7 @@ public class FilteredStocksSelectionDialog extends FilteredItemsSelectionDialog 
 					}
 				}
 			}
-        		
+
 			return null;
 		}
 

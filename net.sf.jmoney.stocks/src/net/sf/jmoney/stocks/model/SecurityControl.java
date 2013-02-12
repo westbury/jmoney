@@ -60,28 +60,28 @@ import org.eclipse.swt.widgets.Text;
  * <P>
  * This control contains both a text box and a list box that appears when the
  * text box gains focus.
- * 
+ *
  * @author Nigel Westbury
  */
 public class SecurityControl<A extends Security> extends Composite {
 
 	Text textControl;
-	
+
 	private Session session;
 	private Class<A> securityClass;
-	
+
     /**
      * List of securities put into security list.
      */
     private Vector<A> allSecurities;
-    
+
 	/**
 	 * Currently selected security, or null if no security selected
 	 */
 	private A security;
-	
-	private Vector<SelectionListener> listeners = new Vector<SelectionListener>();
-	
+
+	private final Vector<SelectionListener> listeners = new Vector<SelectionListener>();
+
 	/**
 	 * @param parent
 	 * @param style
@@ -92,9 +92,9 @@ public class SecurityControl<A extends Security> extends Composite {
 		this.securityClass = securityClass;
 
 		setBackgroundMode(SWT.INHERIT_FORCE);
-		
+
 		setLayout(new FillLayout(SWT.VERTICAL));
-		
+
 		textControl = new Text(this, SWT.LEFT);
 
 		textControl.addKeyListener(new KeyAdapter() {
@@ -104,16 +104,16 @@ public class SecurityControl<A extends Security> extends Composite {
 				if (e.keyCode == SWT.ARROW_DOWN) {
 					openSecuritiesShell(parent, securityClass);
 				}
-				
+
 			}
 
 			@Override
 			public void keyReleased(KeyEvent e) {
 				// TODO Auto-generated method stub
-				
+
 			}
 		});
-		
+
 //		textControl.addFocusListener(new FocusAdapter() {
 //
 //			@Override
@@ -155,21 +155,21 @@ public class SecurityControl<A extends Security> extends Composite {
 				}
 			}
         });
-        
+
         // Important we use the field for the session and stockClass.  We do not use the parameters
         // (the parameters may be null, but fields should always have been set by
         // the time control gets focus).
         allSecurities = new Vector<A>();
         addSecurities("", SecurityControl.this.session.getCommodityCollection(), listControl, SecurityControl.this.securityClass);
-        
+
 //        shell.setSize(listControl.computeSize(SWT.DEFAULT, listControl.getItemHeight()*10));
-        
+
         // Set the currently set security into the list control.
         listControl.select(allSecurities.indexOf(security));
-        
+
         listControl.addSelectionListener(
         		new SelectionAdapter() {
-        		    @Override	
+        		    @Override
 					public void widgetSelected(SelectionEvent e) {
 						int selectionIndex = listControl.getSelectionIndex();
 						security = allSecurities.get(selectionIndex);
@@ -181,8 +181,8 @@ public class SecurityControl<A extends Security> extends Composite {
 		listControl.addKeyListener(new KeyAdapter() {
 			String pattern;
 			int lastTime = 0;
-			
-		    @Override	
+
+		    @Override
 			public void keyPressed(KeyEvent e) {
 				if (Character.isLetterOrDigit(e.character)) {
 					if ((e.time - lastTime) < 1000) {
@@ -191,9 +191,9 @@ public class SecurityControl<A extends Security> extends Composite {
 						pattern = String.valueOf(Character.toUpperCase(e.character));
 					}
 					lastTime = e.time;
-					
+
 					/*
-					 * 
+					 *
 					 Starting at the currently selected security,
 					 search for a security starting with these characters.
 					 */
@@ -201,7 +201,7 @@ public class SecurityControl<A extends Security> extends Composite {
 					if (startIndex == -1) {
 						startIndex = 0;
 					}
-					
+
 					int match = -1;
 					int i = startIndex;
 					do {
@@ -209,27 +209,27 @@ public class SecurityControl<A extends Security> extends Composite {
 							match = i;
 							break;
 						}
-						
+
 						i++;
 						if (i == allSecurities.size()) {
 							i = 0;
 						}
 					} while (i != startIndex);
-					
+
 					if (match != -1) {
 						security = allSecurities.get(match);
 						listControl.select(match);
 						listControl.setTopIndex(match);
 						textControl.setText(security.getName());
 					}
-					
+
 					e.doit = false;
 				}
 			}
 		});
 
 		shell.pack();
-        
+
         /*
 		 * Position the shell below the text box, unless the
 		 * control is so near the bottom of the display that the shell
@@ -264,9 +264,9 @@ public class SecurityControl<A extends Security> extends Composite {
         		shell.close();
         	}
         };
-        
+
         parentShell.addShellListener(parentActivationListener);
-        
+
         shell.addShellListener(new ShellAdapter() {
 			@Override
 			public void shellClosed(ShellEvent e) {
@@ -280,7 +280,7 @@ public class SecurityControl<A extends Security> extends Composite {
 			listener.widgetSelected(null);
 		}
 	}
-	
+
 	private void addSecurities(String prefix, Collection<? extends Commodity> securities, List listControl, Class<A> securityClass) {
     	Vector<A> matchingSecurities = new Vector<A>();
         for (Commodity security: securities) {
@@ -288,19 +288,20 @@ public class SecurityControl<A extends Security> extends Composite {
         		matchingSecurities.add(securityClass.cast(security));
         	}
         }
-		
+
 		// Sort the securities by name.
 		Collections.sort(matchingSecurities, new Comparator<Security>() {
+			@Override
 			public int compare(Security security1, Security security2) {
 				return security1.getName().compareTo(security2.getName());
 			}
 		});
-		
+
 		for (A matchingSecurity: matchingSecurities) {
     		allSecurities.add(matchingSecurity);
 			listControl.add(prefix + matchingSecurity.getName());
 		}
-        
+
     }
 
     /**

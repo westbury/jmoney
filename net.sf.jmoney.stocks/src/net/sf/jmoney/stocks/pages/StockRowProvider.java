@@ -36,46 +36,49 @@ import org.eclipse.swt.widgets.Composite;
 
 public class StockRowProvider implements IRowProvider<StockEntryData> {
 
-	private Block<StockEntryData, StockEntryRowControl> rootBlock;
+	private final Block<StockEntryData, StockEntryRowControl> rootBlock;
 
 	private VirtualRowTable rowTable;
-	
+
 	private RowSelectionTracker rowSelectionTracker;
-	
+
 	private FocusCellTracker focusCellTracker;
-	
+
 	/**
 	 * a list of row objects of rows that had been in use but are no longer
 	 * visible. These a free for re-use, thus avoiding the need to create new
 	 * controls.
 	 */
-	private LinkedList<BaseEntryRowControl<StockEntryData, ?>> spareRows = new LinkedList<BaseEntryRowControl<StockEntryData, ?>>();
+	private final LinkedList<BaseEntryRowControl<StockEntryData, ?>> spareRows = new LinkedList<BaseEntryRowControl<StockEntryData, ?>>();
 
 	public StockRowProvider(Block<StockEntryData, StockEntryRowControl> rootBlock) {
 		this.rootBlock = rootBlock;
 	}
-	
+
+	@Override
 	public void init(VirtualRowTable rowTable, RowSelectionTracker rowSelectionTracker, FocusCellTracker focusCellTracker) {
 		this.rowTable = rowTable;
 		this.rowSelectionTracker = rowSelectionTracker;
 		this.focusCellTracker = focusCellTracker;
 	}
-	
+
+	@Override
 	public BaseEntryRowControl getNewRow(Composite parent, StockEntryData entryData) {
 		BaseEntryRowControl<StockEntryData, ?> rowControl;
-		
+
 		if (spareRows.size() > 0) {
 			rowControl = spareRows.removeFirst();
 			rowControl.setVisible(true);
 		} else {
 			rowControl = new StockEntryRowControl(parent, SWT.NONE, rowTable, rootBlock, rowSelectionTracker, focusCellTracker);
 		}
-		
+
 		rowControl.setContent(entryData);
-		
+
 		return rowControl;
 	}
-	
+
+	@Override
 	public void releaseRow(BaseEntryRowControl<StockEntryData, ?> rowControl) {
 		rowControl.setVisible(false);
 		spareRows.add(rowControl);

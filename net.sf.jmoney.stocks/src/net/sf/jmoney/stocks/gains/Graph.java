@@ -44,7 +44,7 @@ public class Graph {
 		 * object contains all the activity for a security on a single day, an ActivityNode object contains just a single
 		 * type of activity, e.g. if there are purchases and sales on the same day then two objects will be created, a purchase
 		 * object and a sale object.  This simplifies the processing because we can define the assumed order of transactions that
-		 * took place on the same day and then process one thing at a time. 
+		 * took place on the same day and then process one thing at a time.
 		 */
 		TreeMap<Date, StockActivity> stockEntries = CapitalGainsCalculator.getStockActivity(account, stock, result);
 		long newStockBalance = 0;
@@ -100,7 +100,7 @@ public class Graph {
 			Collection<ActivityNode> activities = allActivityNodes.get(eachKey);
 
 			if (activities.size() > 1) {
-				Status status = new Status(IStatus.ERROR, StocksPlugin.PLUGIN_ID, 
+				Status status = new Status(IStatus.ERROR, StocksPlugin.PLUGIN_ID,
 						MessageFormat.format(
 								"Two or more transactions involving {0} took place on {1} and these transactions took place in different but connected accounts.  This scenario is not currently supported.",
 								stock.getName(),
@@ -142,7 +142,7 @@ public class Graph {
 			//					} else {
 			//						purchasesNotPreviouslyCovered = activity.purchaseQuantity;
 			//					}
-			//					
+			//
 			//					long intraDayMatchingQuantity = Math.min(purchasesNotPreviouslyCovered, salesNotPreviouslyCovered);
 			//					if (intraDayMatchingQuantity > 0) {
 			//						activity.saleQuantity -= intraDayMatchingQuantity;
@@ -170,7 +170,7 @@ public class Graph {
 			 * then that sale is not a taxable event. Likewise if there is
 			 * an insufficient short position to cover a purchase then that
 			 * purchase is not a taxable event.
-			 * 
+			 *
 			 * There can be at most a taxable sale (if a prior long
 			 * position) or a taxable purchase (if a prior short position).
 			 */
@@ -191,12 +191,12 @@ public class Graph {
 				/*
 				 * The security was previously long.  Match sales made this
 				 * date, but only up to the previously long position.
-				 * 
+				 *
 				 * or
-				 * 
+				 *
 				 * The security was previously short.  Match purchases made this
 				 * date, but only up to the previously short position.
-				 * 
+				 *
 				 */
 
 				/**
@@ -209,7 +209,7 @@ public class Graph {
 				 * Negative if this is a sale that we are matching to previous purchases,
 				 * positive if this is a purchase that we are matching to previous (short)
 				 * sales.
-				 * 
+				 *
 				 * NO - ALWAYS POSITIVE
 				 */
 				long amountLeftToMatch = quantityLeftToMatch;
@@ -248,7 +248,7 @@ public class Graph {
 						 * will always be zero.  And when the balance reaches zero, all securities
 						 * will be matched.
 						 */
-						Status status = new Status(IStatus.ERROR, StocksPlugin.PLUGIN_ID, 
+						Status status = new Status(IStatus.ERROR, StocksPlugin.PLUGIN_ID,
 								MessageFormat.format(
 										"An internal error has occured.  A manual determination must be made for the cost basis for the sale of {0} which took place on {1}.",
 										stock.getName(),
@@ -266,7 +266,7 @@ public class Graph {
 					 * Processing now depends on whether we are matching a sale
 					 * to a previously long position or a purchase to a
 					 * previously short position.
-					 * 
+					 *
 					 * Prior entries will already have been matched if possible.
 					 * So if we are matching a sale and we find a previous sale,
 					 * we may as well stop right there. The previous sale had no
@@ -306,7 +306,7 @@ public class Graph {
 					assert(purchaseQuantity > 0);
 
 					long balancePriorToThisPurchase = priorActivity.newBalance*multiplier - purchaseQuantity;
-					
+
 					/*
 					 * If the prior balance was short (long) then something
 					 * is wrong because some or all of this purchase (sale)
@@ -322,7 +322,7 @@ public class Graph {
 						long thisCostBasis = (long)
 						((double)quantityMatchedToThisPurchase
 						* (double)priorActivity.getCost()
-						/ (double)priorActivity.getQuantity());
+						/ priorActivity.getQuantity());
 
 						// Reduce both the sale and the purchase amounts
 						amountLeftToMatch -= quantityMatchedToThisPurchase;
@@ -344,7 +344,7 @@ public class Graph {
 							break;
 						}
 					}
-					
+
 					activity = priorActivity;
 				} while (true);
 			}

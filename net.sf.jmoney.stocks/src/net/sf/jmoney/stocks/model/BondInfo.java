@@ -62,14 +62,16 @@ public class BondInfo implements IPropertySetInfo {
 
 	private static ExtendablePropertySet<Bond> propertySet = PropertySet.addDerivedFinalPropertySet(Bond.class, "Bond", SecurityInfo.getPropertySet(), new IExtendableObjectConstructors<Bond>() {
 
+		@Override
 		public Bond construct(IObjectKey objectKey, ListKey parentKey) {
 			return new Bond(objectKey, parentKey);
 		}
 
+		@Override
 		public Bond construct(IObjectKey objectKey,	ListKey<? super Bond,?> parentKey, IValues<Bond> values) {
 			return new Bond(
-					objectKey, 
-					parentKey, 
+					objectKey,
+					parentKey,
 					values.getScalarValue(CommodityInfo.getNameAccessor()),
 					values.getScalarValue(SecurityInfo.getCusipAccessor()),
 					values.getScalarValue(SecurityInfo.getSymbolAccessor()),
@@ -86,6 +88,7 @@ public class BondInfo implements IPropertySetInfo {
 	private static ScalarPropertyAccessor<Date,Bond> maturityDateAccessor;
 	private static ScalarPropertyAccessor<Long,Bond> redemptionValueAccessor;
 
+	@Override
 	public PropertySet registerProperties() {
 
 		IPropertyControlFactory<Integer> integerControlFactory = new IntegerControlFactory();
@@ -93,6 +96,7 @@ public class BondInfo implements IPropertySetInfo {
 		IPropertyControlFactory<Date> dateControlFactory = new DateControlFactory();
 
 		IReferenceControlFactory<Bond,Currency> currencyControlFactory = new CurrencyControlFactory<Bond>() {
+			@Override
 			public IObjectKey getObjectKey(Bond parentObject) {
 				return parentObject.currencyKey;
 			}
@@ -110,6 +114,7 @@ public class BondInfo implements IPropertySetInfo {
 				return ((Bond)extendableObject).getCurrency();
 			}
 
+			@Override
 			public IPropertyControl createPropertyControl(Composite parent,
 					ScalarPropertyAccessor<Long,?> propertyAccessor) {
 				final AmountEditor editor = new AmountEditor(parent, propertyAccessor, this);
@@ -145,7 +150,7 @@ public class BondInfo implements IPropertySetInfo {
 		interestRateAccessor = propertySet.addProperty("interestRate", StocksPlugin.getResourceString("PropertyDesc.interestRate"), Integer.class, 1, 15, integerControlFactory, null);
 		maturityDateAccessor = propertySet.addProperty("maturityDate", StocksPlugin.getResourceString("PropertyDesc.maturityDate"), Date.class, 1, 20, dateControlFactory, null);
 		redemptionValueAccessor = propertySet.addProperty("redemptionValue", StocksPlugin.getResourceString("PropertyDesc.redemptionValue"), Long.class, 2, 20, amountControlFactory, null);
-		
+
 		return propertySet;
 	}
 

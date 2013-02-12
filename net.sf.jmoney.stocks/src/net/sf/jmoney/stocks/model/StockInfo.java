@@ -41,17 +41,19 @@ import net.sf.jmoney.stocks.StocksPlugin;
  * @author Nigel Westbury
  */
 public class StockInfo implements IPropertySetInfo {
-	
+
 	private static ExtendablePropertySet<Stock> propertySet = PropertySet.addDerivedFinalPropertySet(Stock.class, "Stock", SecurityInfo.getPropertySet(), new IExtendableObjectConstructors<Stock>() {
 
+		@Override
 		public Stock construct(IObjectKey objectKey, ListKey parentKey) {
 			return new Stock(objectKey, parentKey);
 		}
 
+		@Override
 		public Stock construct(IObjectKey objectKey, ListKey<? super Stock,?> parentKey, IValues<Stock> values) {
 			return new Stock(
-					objectKey, 
-					parentKey, 
+					objectKey,
+					parentKey,
 					values.getScalarValue(CommodityInfo.getNameAccessor()),
 					values.getScalarValue(SecurityInfo.getCusipAccessor()),
 					values.getScalarValue(SecurityInfo.getSymbolAccessor()),
@@ -61,13 +63,14 @@ public class StockInfo implements IPropertySetInfo {
 	});
 
 	private static ScalarPropertyAccessor<String,Stock> nominalValueAccessor;
-	
+
+	@Override
 	public PropertySet registerProperties() {
 
 		IPropertyControlFactory<String> textControlFactory = new TextControlFactory();
 
 		nominalValueAccessor = propertySet.addProperty("nominalValue", StocksPlugin.getResourceString("PropertyDesc.nominalValue"), String.class, 2, 20, textControlFactory, null);
-		
+
 		return propertySet;
 	}
 
@@ -83,5 +86,5 @@ public class StockInfo implements IPropertySetInfo {
 	 */
 	public static ScalarPropertyAccessor<String,Stock> getNominalValueAccessor() {
 		return nominalValueAccessor;
-	}	
+	}
 }

@@ -43,33 +43,33 @@ import org.eclipse.swt.widgets.Control;
  * and go down in percentage terms as the amount goes up.  This
  * editor allows rates to be entered that go up or down as the
  * amount goes up.
- * 
+ *
  * @author  Nigel Westbury
  */
 public class RatesEditor implements IPropertyControl<ExtendableObject> {
-    
-    private StockAccount account = null;
-    
-    private ScalarPropertyAccessor<RatesTable,?> ratesPropertyAccessor;
-    
-    private Button propertyControl;
+
+	private StockAccount account = null;
+
+	private final ScalarPropertyAccessor<RatesTable,?> ratesPropertyAccessor;
+
+	private final Button propertyControl;
 
 	public RatesEditor(Composite parent, ScalarPropertyAccessor<RatesTable,?> propertyAccessor) {
-    	this.ratesPropertyAccessor = propertyAccessor;
+		this.ratesPropertyAccessor = propertyAccessor;
 
-    	propertyControl = new Button(parent, SWT.PUSH);
-    	propertyControl.setText("Setup...");
-    	propertyControl.addSelectionListener(new SelectionAdapter() {
+		propertyControl = new Button(parent, SWT.PUSH);
+		propertyControl.setText("Setup...");
+		propertyControl.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-		    	
+
 				Object[] messageArgs = new Object[] {
 						"commission/tax",
-						account.getName() 
+						account.getName()
 				};
-				String title = new MessageFormat("Setup {0} rates for {1}", java.util.Locale.US).format(messageArgs); 
+				String title = new MessageFormat("Setup {0} rates for {1}", java.util.Locale.US).format(messageArgs);
 
-				
+
 				RatesDialog dialog = new RatesDialog(propertyControl.getShell(), title, account.getPropertyValue(ratesPropertyAccessor), account.getCurrency());
 				if (dialog.open() == Window.OK) {
 					account.setPropertyValue(ratesPropertyAccessor, dialog.getRates());
@@ -77,36 +77,39 @@ public class RatesEditor implements IPropertyControl<ExtendableObject> {
 			}
 		});
 	}
-    
-    /**
-     * Load the control with the value from the given account.
-     */
-    public void load(ExtendableObject object) {
-    	account = (StockAccount)object;
+
+	/**
+	 * Load the control with the value from the given account.
+	 */
+	@Override
+	public void load(ExtendableObject object) {
+		account = (StockAccount)object;
 
 //    	propertyControl.setRatesTable();
 
 		propertyControl.setEnabled(true);
-    }
-    
-    /**
-     * Save the value from the control back into the account object.
-     *
-     * Editors may update the property on a regular basis, not just when
-     * the framework calls the <code>save</code> method.  However, the only time
-     * that editors must update the property is when the framework calls this method.
-     *
-     * The framework should never call this method when no account is selected
-     * so we can assume that <code>account</code> is not null.
-     */
-    public void save() {
+	}
+
+	/**
+	 * Save the value from the control back into the account object.
+	 *
+	 * Editors may update the property on a regular basis, not just when
+	 * the framework calls the <code>save</code> method.  However, the only time
+	 * that editors must update the property is when the framework calls this method.
+	 *
+	 * The framework should never call this method when no account is selected
+	 * so we can assume that <code>account</code> is not null.
+	 */
+	@Override
+	public void save() {
 //    	RatesTable ratesTable = propertyControl.getRatesTable();
 //		account.setPropertyValue(ratesPropertyAccessor, ratesTable);
-    }
+	}
 
 	/**
 	 * @return The underlying SWT widget.
 	 */
+	@Override
 	public Control getControl() {
 		return propertyControl;
 	}

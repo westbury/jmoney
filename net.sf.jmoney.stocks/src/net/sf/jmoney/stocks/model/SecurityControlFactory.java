@@ -15,35 +15,41 @@ import org.eclipse.swt.widgets.Control;
  */
 public abstract class SecurityControlFactory<P> extends PropertyControlFactory<Security> implements IReferenceControlFactory<P, Security> {
 
+	@Override
 	public IPropertyControl createPropertyControl(Composite parent, final ScalarPropertyAccessor<Security,?> propertyAccessor) {
 
 		final SecurityControl<Security> control = new SecurityControl<Security>(parent, null, Security.class);
-		
+
 		return new IPropertyControl<ExtendableObject>() {
 
 			private ExtendableObject fObject;
 
+			@Override
 			public Control getControl() {
 				return control;
 			}
 
+			@Override
 			public void load(ExtendableObject object) {
-		        fObject = object;
-		        
-		        control.setSession(object.getSession(), propertyAccessor.getClassOfValueObject());
-		        control.setSecurity(object.getPropertyValue(propertyAccessor));
+				fObject = object;
+
+				control.setSession(object.getSession(), propertyAccessor.getClassOfValueObject());
+				control.setSecurity(object.getPropertyValue(propertyAccessor));
 			}
 
+			@Override
 			public void save() {
 				Security stock = control.getSecurity();
 				fObject.setPropertyValue(propertyAccessor, stock);
 			}};
 	}
 
+	@Override
 	public Security getDefaultValue() {
 		return null;
 	}
 
+	@Override
 	public boolean isEditable() {
 		return true;
 	}

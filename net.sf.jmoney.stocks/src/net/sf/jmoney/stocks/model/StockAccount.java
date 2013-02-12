@@ -79,7 +79,7 @@ public class StockAccount extends CapitalAccount {
 	 * account are entered.
 	 */
 	IObjectKey withholdingTaxAccountKey;
-	
+
 	/**
 	 * The expense account into which all buy and sell commissions
 	 * are entered.
@@ -92,7 +92,7 @@ public class StockAccount extends CapitalAccount {
 	 * "Transfer Stamp".
 	 */
 	protected String tax1Name = "Tax 1";
-	
+
 	/**
 	 * A table that allows a tax to be calculated from the
 	 * amount of any purchase.  Null indicates no rate table
@@ -109,14 +109,14 @@ public class StockAccount extends CapitalAccount {
 	 * tax 1 are entered.
 	 */
 	IObjectKey tax1AccountKey;
-	
+
 	/**
 	 * The name of this tax.  For example, in the UK a PTM Levy
 	 * is charged so you might want to call this tax
 	 * "PTM Levy".
 	 */
 	protected String tax2Name = "Tax 2";
-	
+
 	/**
 	 * A table that allows a tax to be calculated from the
 	 * amount of any purchase.  Null indicates no rate table
@@ -127,13 +127,13 @@ public class StockAccount extends CapitalAccount {
 	 * on every purchase/sale.
 	 */
 	protected RatesTable tax2Rates;
-	
+
 	/**
 	 * The expense account into which all amounts of
 	 * tax 1 are entered.
 	 */
 	IObjectKey tax2AccountKey;
-	
+
 	/**
 	 * The full constructor for a StockAccount object.  This constructor is called
 	 * only be the datastore when loading data from the datastore.  The properties
@@ -164,11 +164,11 @@ public class StockAccount extends CapitalAccount {
 			RatesTable sellCommissionRates,
 			RatesTable tax1Rates,
 			RatesTable tax2Rates,
-			
+
 			IValues extensionValues) {
-			
+
 		super(objectKey, parentKey, name, subAccounts, abbreviation, comment, extensionValues);
-		
+
 		/*
 		 * The currency for this account is not allowed to be null, because
 		 * users of this class may assume it to be non-null and would not know
@@ -182,16 +182,16 @@ public class StockAccount extends CapitalAccount {
 		} else {
 			this.currencyKey = getDataManager().getSession().getDefaultCurrency().getObjectKey();
 		}
-		
-        this.brokerageFirm = brokerageFirm;
-        this.accountNumber = accountNumber;
-        this.dividendAccountKey = dividendAccountKey;
-        this.withholdingTaxAccountKey = withholdingTaxAccountKey;
-        this.tax1Name = tax1Name;
-        this.tax2Name = tax2Name;
-        this.commissionAccountKey = commissionAccountKey;
-        this.tax1AccountKey = tax1AccountKey;
-        this.tax2AccountKey = tax2AccountKey;
+
+		this.brokerageFirm = brokerageFirm;
+		this.accountNumber = accountNumber;
+		this.dividendAccountKey = dividendAccountKey;
+		this.withholdingTaxAccountKey = withholdingTaxAccountKey;
+		this.tax1Name = tax1Name;
+		this.tax2Name = tax2Name;
+		this.commissionAccountKey = commissionAccountKey;
+		this.tax1AccountKey = tax1AccountKey;
+		this.tax2AccountKey = tax2AccountKey;
 		this.buyCommissionRates = buyCommissionRates;
 		this.sellCommissionRates = sellCommissionRates;
 		this.tax1Rates = tax1Rates;
@@ -199,17 +199,17 @@ public class StockAccount extends CapitalAccount {
 	}
 
 	public StockAccount(
-			IObjectKey objectKey, 
-			ListKey parent) { 
+			IObjectKey objectKey,
+			ListKey parent) {
 		super(objectKey, parent);
-		
+
 		// Overwrite the default name with our own default name.
 		name = "New Stock Account";
-		
+
 		this.currencyKey = getDataManager().getSession().getDefaultCurrency().getObjectKey();
 		this.brokerageFirm = null;
 		this.accountNumber = null;
-		
+
 		this.buyCommissionRates = new RatesTable();
 		this.sellCommissionRates = new RatesTable();
 		this.tax1Rates = new RatesTable();
@@ -220,9 +220,9 @@ public class StockAccount extends CapitalAccount {
 	protected String getExtendablePropertySetId() {
 		return "net.sf.jmoney.stocks.stockAccount";
 	}
-	
+
 	public Currency getCurrency() {
-        return (Currency)currencyKey.getObject();
+		return (Currency)currencyKey.getObject();
 	}
 
 	/**
@@ -243,7 +243,7 @@ public class StockAccount extends CapitalAccount {
 		 */
 		return entry.getCommodity();
 	}
-	
+
 	/**
 	 * @return the bank name of this account.
 	 */
@@ -271,33 +271,33 @@ public class StockAccount extends CapitalAccount {
 	 * 		stock in this account
 	 */
 	public IncomeExpenseAccount getDividendAccount() {
-        return dividendAccountKey == null
-        ? null
-        		: (IncomeExpenseAccount)dividendAccountKey.getObject();
+		return dividendAccountKey == null
+				? null
+						: (IncomeExpenseAccount)dividendAccountKey.getObject();
 	}
 
 	public IncomeExpenseAccount getWithholdingTaxAccount() {
-        return withholdingTaxAccountKey == null
-        ? null
-        		: (IncomeExpenseAccount)withholdingTaxAccountKey.getObject();
+		return withholdingTaxAccountKey == null
+				? null
+						: (IncomeExpenseAccount)withholdingTaxAccountKey.getObject();
 	}
 
 	public IncomeExpenseAccount getCommissionAccount() {
-        return commissionAccountKey == null
-        ? null
-        		: (IncomeExpenseAccount)commissionAccountKey.getObject();
+		return commissionAccountKey == null
+				? null
+						: (IncomeExpenseAccount)commissionAccountKey.getObject();
 	}
 
 	public IncomeExpenseAccount getTax1Account() {
-        return tax1AccountKey == null
-        ? null
-        		: (IncomeExpenseAccount)tax1AccountKey.getObject();
+		return tax1AccountKey == null
+				? null
+						: (IncomeExpenseAccount)tax1AccountKey.getObject();
 	}
 
 	public IncomeExpenseAccount getTax2Account() {
-        return tax2AccountKey == null
-        ? null
-        		: (IncomeExpenseAccount)tax2AccountKey.getObject();
+		return tax2AccountKey == null
+				? null
+						: (IncomeExpenseAccount)tax2AccountKey.getObject();
 	}
 
 	public RatesTable getBuyCommissionRates() {
@@ -317,8 +317,8 @@ public class StockAccount extends CapitalAccount {
 	}
 
 	public void setCurrency(Currency aCurrency) {
-	    if (aCurrency == null) throw new IllegalArgumentException();
-        Currency oldCurrency = getCurrency();
+		if (aCurrency == null) throw new IllegalArgumentException();
+		Currency oldCurrency = getCurrency();
 		currencyKey = aCurrency.getObjectKey();
 
 		// Notify the change manager.
@@ -330,7 +330,7 @@ public class StockAccount extends CapitalAccount {
 	 */
 
 	public void setBrokerageFirm(String brokerageFirm) {
-        String oldBrokerageFirm = this.brokerageFirm;
+		String oldBrokerageFirm = this.brokerageFirm;
 		this.brokerageFirm = brokerageFirm;
 
 		// Notify the change manager.
@@ -338,24 +338,24 @@ public class StockAccount extends CapitalAccount {
 	}
 
 	public void setAccountNumber(String accountNumber) {
-        String oldAccountNumber = this.accountNumber;
-        this.accountNumber = accountNumber;
+		String oldAccountNumber = this.accountNumber;
+		this.accountNumber = accountNumber;
 
 		// Notify the change manager.
 		processPropertyChange(StockAccountInfo.getAccountNumberAccessor(), oldAccountNumber, accountNumber);
 	}
 
 	public void setTax1Name(String newTaxName) {
-        String oldTaxName = this.tax1Name;
-        this.tax1Name = newTaxName;
+		String oldTaxName = this.tax1Name;
+		this.tax1Name = newTaxName;
 
 		// Notify the change manager.
 		processPropertyChange(StockAccountInfo.getTax1NameAccessor(), oldTaxName, newTaxName);
 	}
 
 	public void setTax2Name(String newTaxName) {
-        String oldTaxName = this.tax2Name;
-        this.tax2Name = newTaxName;
+		String oldTaxName = this.tax2Name;
+		this.tax2Name = newTaxName;
 
 		// Notify the change manager.
 		processPropertyChange(StockAccountInfo.getTax2NameAccessor(), oldTaxName, newTaxName);
@@ -402,7 +402,7 @@ public class StockAccount extends CapitalAccount {
 	}
 
 	public void setBuyCommissionRates(RatesTable newCommissionRates) {
-        RatesTable oldCommissionRates = this.buyCommissionRates;
+		RatesTable oldCommissionRates = this.buyCommissionRates;
 		this.buyCommissionRates = newCommissionRates;
 
 		// Notify the change manager.
@@ -410,7 +410,7 @@ public class StockAccount extends CapitalAccount {
 	}
 
 	public void setSellCommissionRates(RatesTable newCommissionRates) {
-        RatesTable oldCommissionRates = this.sellCommissionRates;
+		RatesTable oldCommissionRates = this.sellCommissionRates;
 		this.sellCommissionRates = newCommissionRates;
 
 		// Notify the change manager.
@@ -418,7 +418,7 @@ public class StockAccount extends CapitalAccount {
 	}
 
 	public void setTax1Rates(RatesTable newTaxRates) {
-        RatesTable oldTaxRates = this.tax1Rates;
+		RatesTable oldTaxRates = this.tax1Rates;
 		this.tax1Rates = newTaxRates;
 
 		// Notify the change manager.
@@ -426,7 +426,7 @@ public class StockAccount extends CapitalAccount {
 	}
 
 	public void setTax2Rates(RatesTable newTaxRates) {
-        RatesTable oldTaxRates = this.tax2Rates;
+		RatesTable oldTaxRates = this.tax2Rates;
 		this.tax2Rates = newTaxRates;
 
 		// Notify the change manager.
@@ -440,19 +440,21 @@ public class StockAccount extends CapitalAccount {
 		// There is currently only one implementation.  We may need to extend this
 		// if there is a requirement to have different formatters for stock depending
 		// on the currency/exchange of the stock.
-		
+
 		// This implementation formats all prices with four decimal places.
 		final int SCALE_FACTOR = 10000;
 		final NumberFormat numberFormat = NumberFormat.getNumberInstance();
 		numberFormat.setMaximumFractionDigits(4);
 		numberFormat.setMinimumFractionDigits(0);
-		
+
 		return new IAmountFormatter() {
+			@Override
 			public String format(long amount) {
 				double a = ((double) amount) / SCALE_FACTOR;
 				return numberFormat.format(a);
 			}
 
+			@Override
 			public long parse(String amountString) {
 				Number amount = new Double(0);
 				try {
@@ -477,19 +479,21 @@ public class StockAccount extends CapitalAccount {
 		// There is currently only one implementation.  We may need to extend this
 		// if there is a requirement to have different formatters for stock depending
 		// on the currency/exchange of the stock.
-		
+
 		// This implementation formats all quantities as numbers with three decimal places.
 		final int SCALE_FACTOR = 1000;
 		final NumberFormat numberFormat = NumberFormat.getNumberInstance();
 		numberFormat.setMaximumFractionDigits(3);
 		numberFormat.setMinimumFractionDigits(0);
-		
+
 		return new IAmountFormatter() {
+			@Override
 			public String format(long amount) {
 				double a = ((double) amount) / SCALE_FACTOR;
 				return numberFormat.format(a);
 			}
 
+			@Override
 			public long parse(String amountString) {
 				Number amount;
 				try {

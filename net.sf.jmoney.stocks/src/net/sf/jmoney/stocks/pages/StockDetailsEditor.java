@@ -108,20 +108,20 @@ import org.eclipse.ui.part.EditorPart;
 
 public class StockDetailsEditor extends EditorPart {
 
-//	static public final String ID = "net.sf.jmoney.stocks.stockDetailsEditor";
-	
+	//	static public final String ID = "net.sf.jmoney.stocks.stockDetailsEditor";
+
 	/**
 	 * The account being shown in this page.
 	 */
 	private StockAccount account;
-    
+
 	/**
 	 * The stock being shown in this page.
 	 */
-	private Stock stock;
-    
-    private EntriesTable<StockEntryData> fEntriesControl;
-    
+	private final Stock stock;
+
+	private EntriesTable<StockEntryData> fEntriesControl;
+
 	public StockDetailsEditor(Stock stock) {
 		this.stock = stock;
 	}
@@ -129,14 +129,14 @@ public class StockDetailsEditor extends EditorPart {
 	@Override
 	public void init(IEditorSite site, IEditorInput input)
 			throws PartInitException {
-		
+
 		setSite(site);
 		setInput(input);
-		
-    	// Set the account that this page is viewing and editing.
+
+		// Set the account that this page is viewing and editing.
 		AccountEditorInput input2 = (AccountEditorInput)input;
 		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)site.getPage().getInput();
-        account = (StockAccount)sessionManager.getSession().getAccountByFullName(input2.getFullAccountName());
+		account = (StockAccount)sessionManager.getSession().getAccountByFullName(input2.getFullAccountName());
 	}
 
 	@Override
@@ -162,38 +162,38 @@ public class StockDetailsEditor extends EditorPart {
 
 	@Override
 	public void createPartControl(Composite parent) {
-        FormToolkit toolkit = new FormToolkit(parent.getDisplay());
-    	ScrolledForm form = toolkit.createScrolledForm(parent);
-        form.getBody().setLayout(new GridLayout());
-        
+		FormToolkit toolkit = new FormToolkit(parent.getDisplay());
+		ScrolledForm form = toolkit.createScrolledForm(parent);
+		form.getBody().setLayout(new GridLayout());
+
 		SectionPart section = new SectionPart(form.getBody(), toolkit, ExpandableComposite.TITLE_BAR);
-        section.getSection().setText("All Entries");
-        section.getSection().setLayoutData(new GridData(GridData.FILL_BOTH));
+		section.getSection().setText("All Entries");
+		section.getSection().setLayoutData(new GridData(GridData.FILL_BOTH));
 
-        Composite contents = createContents(section.getSection());
-        
+		Composite contents = createContents(section.getSection());
+
 		// Activate the handlers
-//		IHandler handler = new NewTransactionHandler(rowTracker, fEntriesControl);
-//		handlerService.activateHandler("net.sf.jmoney.newTransaction", handler);		
+		//		IHandler handler = new NewTransactionHandler(rowTracker, fEntriesControl);
+		//		handlerService.activateHandler("net.sf.jmoney.newTransaction", handler);
 
-        section.getSection().setClient(contents);
-        toolkit.paintBordersFor(contents);
-        section.refresh();  // ?????
+		section.getSection().setClient(contents);
+		toolkit.paintBordersFor(contents);
+		section.refresh();  // ?????
 
-        
-        
-        StringBuffer formTitle = new StringBuffer();
-        formTitle.append("Activity for ").append(stock.getName());
-        if (stock.getSymbol() != null) {
-        	formTitle.append(" (").append(stock.getSymbol()).append(")");
-        }
-        form.setText(formTitle.toString());
+
+
+		StringBuffer formTitle = new StringBuffer();
+		formTitle.append("Activity for ").append(stock.getName());
+		if (stock.getSymbol() != null) {
+			formTitle.append(" (").append(stock.getSymbol()).append(")");
+		}
+		form.setText(formTitle.toString());
 	}
- 	
+
 	private Composite createContents(Composite parent) {
 		Composite composite = new Composite(parent, SWT.None);
 		composite.setLayout(new GridLayout());
-		
+
 		/*
 		 * Setup the layout structure of the header and rows.
 		 */
@@ -209,7 +209,7 @@ public class StockDetailsEditor extends EditorPart {
 				control.add("dividend");
 				control.add("transfer");
 				control.add("custom");
-				
+
 				control.addSelectionListener(new SelectionAdapter(){
 					@Override
 					public void widgetSelected(SelectionEvent e) {
@@ -231,17 +231,19 @@ public class StockDetailsEditor extends EditorPart {
 							coordinator.getUncommittedEntryData().forceTransactionToCustom();
 							break;
 						}
-						
+
 						coordinator.fireTransactionTypeChange();
 					}
 				});
-				
+
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
 
+					@Override
 					public Control getControl() {
 						return control;
 					}
 
+					@Override
 					public void load(StockEntryData data) {
 						if (data.getTransactionType() == null) {
 							control.deselectAll();
@@ -269,20 +271,23 @@ public class StockDetailsEditor extends EditorPart {
 						}
 					}
 
+					@Override
 					public void save() {
 						// TODO Auto-generated method stub
-						
+
 					}
 
+					@Override
 					public void setSelected() {
 						control.setBackground(RowControl.selectedCellColor);
 					}
 
+					@Override
 					public void setUnselected() {
 						control.setBackground(null);
 					}
 				};
-				
+
 				FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, cellControl);
 
 				/*
@@ -295,24 +300,26 @@ public class StockDetailsEditor extends EditorPart {
 
 				return cellControl;
 			}
-		};  
+		};
 
 		IndividualBlock<StockEntryData, StockEntryRowControl> shareNameColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Stock", 50, 1) {
 
 			@Override
 			public IPropertyControl<StockEntryData> createCellControl(Composite parent, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final SecurityControl<Security> control = new SecurityControl<Security>(parent, null, Security.class);
-				
+
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
 					private StockEntryData data;
-					
+
+					@Override
 					public Control getControl() {
 						return control;
 					}
 
+					@Override
 					public void load(StockEntryData data) {
 						this.data = data;
-						
+
 						/*
 						 * We have to find the appropriate entry in the transaction that contains
 						 * the stock.
@@ -320,7 +327,7 @@ public class StockDetailsEditor extends EditorPart {
 						 * - If this is a purchase or sale, then the stock will be set as the commodity
 						 * for one of the entries.  We find this entry.
 						 * - If this is a dividend payment then the stock will be set as an additional
-						 * field in the dividend category. 
+						 * field in the dividend category.
 						 */
 						Security security;
 						if (data.isPurchaseOrSale()) {
@@ -333,15 +340,16 @@ public class StockDetailsEditor extends EditorPart {
 							security = null;
 							control.setEnabled(false);
 						}
-						
-				        control.setSession(data.getEntry().getSession(), Security.class);
-						
+
+						control.setSession(data.getEntry().getSession(), Security.class);
+
 						control.setSecurity(security);
 					}
 
+					@Override
 					public void save() {
 						Security security = control.getSecurity();
-					
+
 						if (data.isPurchaseOrSale()) {
 							Entry entry = data.getPurchaseOrSaleEntry();
 							StockEntry stockEntry = entry.getExtension(StockEntryInfo.getPropertySet(), true);
@@ -352,10 +360,12 @@ public class StockDetailsEditor extends EditorPart {
 						}
 					}
 
+					@Override
 					public void setSelected() {
 						control.setBackground(RowControl.selectedCellColor);
 					}
 
+					@Override
 					public void setUnselected() {
 						control.setBackground(null);
 					}
@@ -371,9 +381,10 @@ public class StockDetailsEditor extends EditorPart {
 				 */
 				addFocusListenerRecursively(cellControl.getControl(), controlFocusListener);
 
-				
+
 				coordinator.addTransactionTypeChangeListener(new ITransactionTypeChangeListener() {
 
+					@Override
 					public void transactionTypeChanged() {
 						/*
 						 * If the user changes the transaction type, the stock control remains
@@ -401,7 +412,7 @@ public class StockDetailsEditor extends EditorPart {
 						}
 					}
 				});
-				
+
 				return cellControl;
 			}
 
@@ -413,28 +424,31 @@ public class StockDetailsEditor extends EditorPart {
 					}
 				}
 			}
-		};  
+		};
 
 		IndividualBlock<StockEntryData, StockEntryRowControl> priceColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Price", 60, 1) {
 
 			@Override
 			public IPropertyControl<StockEntryData> createCellControl(Composite parent, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final Text control = new Text(parent, SWT.RIGHT);
-				
+
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
 
+					@Override
 					public Control getControl() {
 						return control;
 					}
 
+					@Override
 					public void load(StockEntryData data) {
 						assert(data.isPurchaseOrSale());
 						// TODO:This is a bit funny.  We are passed the data object but
 						// the co-ordinator is keeping track of the share price?
 						setControlValue(coordinator.getSharePrice());
-						
+
 						// Listen for changes in the stock price
 						coordinator.addStockPriceChangeListener(new IPropertyChangeListener<BigDecimal>() {
+							@Override
 							public void propertyChanged(BigDecimal newValue) {
 								setControlValue(newValue);
 							}
@@ -443,16 +457,17 @@ public class StockDetailsEditor extends EditorPart {
 
 					private void setControlValue(BigDecimal sharePrice) {
 						if (sharePrice != null) {
-							long lPrice = sharePrice.movePointRight(4).longValue(); 
+							long lPrice = sharePrice.movePointRight(4).longValue();
 							control.setText(account.getPriceFormatter().format(lPrice));
 						} else {
 							control.setText("");
 						}
 					}
 
+					@Override
 					public void save() {
 						long amount = account.getPriceFormatter().parse(control.getText());
-						
+
 						coordinator.setSharePrice(new BigDecimal(amount).movePointLeft(4));
 						/*
 						 * The share price is a calculated amount so is not
@@ -462,45 +477,49 @@ public class StockDetailsEditor extends EditorPart {
 						 * saved and also because other values may need to be
 						 * adjusted as a result of the new share price.
 						 */
-//						coordinator.sharePriceChanged();
+						//						coordinator.sharePriceChanged();
 					}
 
+					@Override
 					public void setSelected() {
 						control.setBackground(RowControl.selectedCellColor);
 					}
 
+					@Override
 					public void setUnselected() {
 						control.setBackground(null);
 					}
 				};
-				
+
 				FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, cellControl);
 				control.addFocusListener(controlFocusListener);
-				
+
 				return cellControl;
-				
+
 			}
-		};  
+		};
 
 		IndividualBlock<StockEntryData, StockEntryRowControl> shareNumberColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Quantity", EntryInfo.getAmountAccessor().getMinimumWidth(), EntryInfo.getAmountAccessor().getWeight()) {
 
 			@Override
 			public IPropertyControl<StockEntryData> createCellControl(Composite parent, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final Text control = new Text(parent, SWT.RIGHT);
-				
+
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
 
 					private StockEntryData data;
-					
+
+					@Override
 					public Control getControl() {
 						return control;
 					}
 
+					@Override
 					public void load(StockEntryData data) {
 						this.data = data;
 
 						IAmountFormatter formatter = getFormatter();
-						
+
 						long quantity = data.getPurchaseOrSaleEntry().getAmount();
 						if (data.getTransactionType() == TransactionType.Sell) {
 							quantity = -quantity;
@@ -525,35 +544,38 @@ public class StockDetailsEditor extends EditorPart {
 						return formatter;
 					}
 
+					@Override
 					public void save() {
 						IAmountFormatter formatter = getFormatter();
 						long quantity = formatter.parse(control.getText());
-//						if (data.getTransactionType() == TransactionType.Sell) {
-//							quantity = -quantity;
-//						}
+						//						if (data.getTransactionType() == TransactionType.Sell) {
+						//							quantity = -quantity;
+						//						}
 
 						data.setQuantity(quantity);
-//						Entry entry = data.getPurchaseOrSaleEntry();
-//						entry.setAmount(quantity);
-//						
-//						coordinator.quantityChanged();
+						//						Entry entry = data.getPurchaseOrSaleEntry();
+						//						entry.setAmount(quantity);
+						//
+						//						coordinator.quantityChanged();
 					}
 
+					@Override
 					public void setSelected() {
 						control.setBackground(RowControl.selectedCellColor);
 					}
 
+					@Override
 					public void setUnselected() {
 						control.setBackground(null);
 					}
 				};
-				
+
 				FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, cellControl);
 				control.addFocusListener(controlFocusListener);
-				
+
 				return cellControl;
 			}
-		};  
+		};
 
 		final IndividualBlock<StockEntryData, StockEntryRowControl> withholdingTaxColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Commission", EntryInfo.getAmountAccessor().getMinimumWidth(), EntryInfo.getAmountAccessor().getWeight()) {
 
@@ -563,28 +585,32 @@ public class StockDetailsEditor extends EditorPart {
 
 				final ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
 
-					private StockEntryData data;						
-					
+					private StockEntryData data;
+
+					@Override
 					public Control getControl() {
 						return control;
 					}
 
+					@Override
 					public void load(final StockEntryData data) {
 						this.data = data;
-						
+
 						assert(data.isPurchaseOrSale());
 						setControlValue(data.getCommission());
 
 						// Listen for changes in the amount
 						final IValueChangeListener<Long> listener = new IValueChangeListener<Long>() {
+							@Override
 							public void handleValueChange(ValueChangeEvent<Long> event) {
 								setControlValue(event.diff.getNewValue());
 							}
 						};
-						
+
 						data.commission().addValueChangeListener(listener);
-						
+
 						control.addDisposeListener(new DisposeListener() {
+							@Override
 							public void widgetDisposed(DisposeEvent e) {
 								data.commission().removeValueChangeListener(listener);
 							}
@@ -593,23 +619,26 @@ public class StockDetailsEditor extends EditorPart {
 
 					private void setControlValue(Long commission) {
 						if (commission != null) {
-							// Format the commission amount using the appropriate currency object as the formatter. 
+							// Format the commission amount using the appropriate currency object as the formatter.
 							control.setText(account.getCommissionAccount().getCurrency().format(commission));
 						} else {
 							control.setText("");
 						}
 					}
 
+					@Override
 					public void save() {
-						// Parse the commission amount using the appropriate currency object as the parser. 
+						// Parse the commission amount using the appropriate currency object as the parser.
 						long amount = account.getCommissionAccount().getCurrency().parse(control.getText());
 						data.setCommission(amount);
 					}
 
+					@Override
 					public void setSelected() {
 						control.setBackground(RowControl.selectedCellColor);
 					}
 
+					@Override
 					public void setUnselected() {
 						control.setBackground(null);
 					}
@@ -621,10 +650,10 @@ public class StockDetailsEditor extends EditorPart {
 				return cellControl;
 
 			}
-		};  
+		};
 
 		List<Block<? super StockEntryData, ? super StockEntryRowControl>> expenseColumns = new ArrayList<Block<? super StockEntryData, ? super StockEntryRowControl>>();
-		
+
 		if (account.getCommissionAccount() != null) {
 			IndividualBlock<StockEntryData, StockEntryRowControl> commissionColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Commission", EntryInfo.getAmountAccessor().getMinimumWidth(), EntryInfo.getAmountAccessor().getWeight()) {
 
@@ -634,28 +663,32 @@ public class StockDetailsEditor extends EditorPart {
 
 					final ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
 
-						private StockEntryData data;						
-						
+						private StockEntryData data;
+
+						@Override
 						public Control getControl() {
 							return control;
 						}
 
+						@Override
 						public void load(final StockEntryData data) {
 							this.data = data;
-							
+
 							assert(data.isPurchaseOrSale());
 							setControlValue(data.getCommission());
 
 							// Listen for changes in the amount
 							final IValueChangeListener<Long> listener = new IValueChangeListener<Long>() {
+								@Override
 								public void handleValueChange(ValueChangeEvent<Long> event) {
 									setControlValue(event.diff.getNewValue());
 								}
 							};
-							
+
 							data.commission().addValueChangeListener(listener);
-							
+
 							control.addDisposeListener(new DisposeListener() {
+								@Override
 								public void widgetDisposed(DisposeEvent e) {
 									data.commission().removeValueChangeListener(listener);
 								}
@@ -664,23 +697,26 @@ public class StockDetailsEditor extends EditorPart {
 
 						private void setControlValue(Long commission) {
 							if (commission != null) {
-								// Format the commission amount using the appropriate currency object as the formatter. 
+								// Format the commission amount using the appropriate currency object as the formatter.
 								control.setText(account.getCommissionAccount().getCurrency().format(commission));
 							} else {
 								control.setText("");
 							}
 						}
 
+						@Override
 						public void save() {
-							// Parse the commission amount using the appropriate currency object as the parser. 
+							// Parse the commission amount using the appropriate currency object as the parser.
 							long amount = account.getCommissionAccount().getCurrency().parse(control.getText());
 							data.setCommission(amount);
 						}
 
+						@Override
 						public void setSelected() {
 							control.setBackground(RowControl.selectedCellColor);
 						}
 
+						@Override
 						public void setUnselected() {
 							control.setBackground(null);
 						}
@@ -692,10 +728,10 @@ public class StockDetailsEditor extends EditorPart {
 					return cellControl;
 
 				}
-			};  
+			};
 			expenseColumns.add(commissionColumn);
 		}
-		
+
 		if (account.getTax1Name() != null) {
 			IndividualBlock<StockEntryData, StockEntryRowControl> tax1Column = new IndividualBlock<StockEntryData, StockEntryRowControl>(account.getTax1Name(), 60, 1) {
 
@@ -705,28 +741,32 @@ public class StockDetailsEditor extends EditorPart {
 
 					final ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
 
-						private StockEntryData data;						
-						
+						private StockEntryData data;
+
+						@Override
 						public Control getControl() {
 							return control;
 						}
 
+						@Override
 						public void load(final StockEntryData data) {
 							this.data = data;
-							
+
 							assert(data.isPurchaseOrSale());
 							setControlValue(data.getTax1Amount() == 0 ? null : data.getTax1Amount());
 
 							// Listen for changes in the amount
 							final IValueChangeListener<Long> listener = new IValueChangeListener<Long>() {
+								@Override
 								public void handleValueChange(ValueChangeEvent<Long> event) {
 									setControlValue(event.diff.getNewValue());
 								}
 							};
-							
+
 							data.tax1().addValueChangeListener(listener);
-							
+
 							control.addDisposeListener(new DisposeListener() {
+								@Override
 								public void widgetDisposed(DisposeEvent e) {
 									data.tax1().removeValueChangeListener(listener);
 								}
@@ -735,23 +775,26 @@ public class StockDetailsEditor extends EditorPart {
 
 						private void setControlValue(Long tax1Amount) {
 							if (tax1Amount != null) {
-								// Format the amount using the appropriate currency object as the formatter. 
+								// Format the amount using the appropriate currency object as the formatter.
 								control.setText(account.getTax1Account().getCurrency().format(tax1Amount));
 							} else {
 								control.setText("");
 							}
 						}
 
+						@Override
 						public void save() {
-							// Parse the amount using the appropriate currency object as the parser. 
+							// Parse the amount using the appropriate currency object as the parser.
 							long amount = account.getTax1Account().getCurrency().parse(control.getText());
 							data.setTax1Amount(amount);
 						}
 
+						@Override
 						public void setSelected() {
 							control.setBackground(RowControl.selectedCellColor);
 						}
 
+						@Override
 						public void setUnselected() {
 							control.setBackground(null);
 						}
@@ -763,10 +806,10 @@ public class StockDetailsEditor extends EditorPart {
 					return cellControl;
 
 				}
-			};  
+			};
 			expenseColumns.add(tax1Column);
 		}
-		
+
 		if (account.getTax2Name() != null) {
 			IndividualBlock<StockEntryData, StockEntryRowControl> tax2Column = new IndividualBlock<StockEntryData, StockEntryRowControl>(account.getTax2Name(), 60, 1) {
 
@@ -776,28 +819,32 @@ public class StockDetailsEditor extends EditorPart {
 
 					final ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
 
-						private StockEntryData data;						
-						
+						private StockEntryData data;
+
+						@Override
 						public Control getControl() {
 							return control;
 						}
 
+						@Override
 						public void load(final StockEntryData data) {
 							this.data = data;
-							
+
 							assert(data.isPurchaseOrSale());
 							setControlValue(data.getTax2Amount() == 0 ? null : data.getTax2Amount());
 
 							// Listen for changes in the amount
 							final IValueChangeListener<Long> listener = new IValueChangeListener<Long>() {
+								@Override
 								public void handleValueChange(ValueChangeEvent<Long> event) {
 									setControlValue(event.diff.getNewValue());
 								}
 							};
-							
+
 							data.tax2().addValueChangeListener(listener);
-							
+
 							control.addDisposeListener(new DisposeListener() {
+								@Override
 								public void widgetDisposed(DisposeEvent e) {
 									data.tax2().removeValueChangeListener(listener);
 								}
@@ -806,23 +853,26 @@ public class StockDetailsEditor extends EditorPart {
 
 						private void setControlValue(Long tax2Amount) {
 							if (tax2Amount != null) {
-								// Format the amount using the appropriate currency object as the formatter. 
+								// Format the amount using the appropriate currency object as the formatter.
 								control.setText(account.getTax2Account().getCurrency().format(tax2Amount));
 							} else {
 								control.setText("");
 							}
 						}
 
+						@Override
 						public void save() {
-							// Parse the amount using the appropriate currency object as the parser. 
+							// Parse the amount using the appropriate currency object as the parser.
 							long amount = account.getTax2Account().getCurrency().parse(control.getText());
 							data.setTax2Amount(amount);
 						}
 
+						@Override
 						public void setSelected() {
 							control.setBackground(RowControl.selectedCellColor);
 						}
 
+						@Override
 						public void setUnselected() {
 							control.setBackground(null);
 						}
@@ -834,40 +884,40 @@ public class StockDetailsEditor extends EditorPart {
 					return cellControl;
 
 				}
-			};  
+			};
 			expenseColumns.add(tax2Column);
 		}
-		
+
 		final Block<StockEntryData, StockEntryRowControl> purchaseOrSaleInfoColumn = new VerticalBlock<StockEntryData, StockEntryRowControl>(
 				// TEMP
 				new VerticalBlock<StockEntryData, StockEntryRowControl>(
 						priceColumn,
 						shareNumberColumn
-				),
-				new HorizontalBlock<StockEntryData, StockEntryRowControl>(
-						expenseColumns
-				)
-		);
+						),
+						new HorizontalBlock<StockEntryData, StockEntryRowControl>(
+								expenseColumns
+								)
+				);
 
 		final IndividualBlock<StockEntryData, RowControl> transferAccountColumn = new PropertyBlock<StockEntryData, RowControl>(EntryInfo.getAccountAccessor(), "transferAccount", "Transfer Account") {
 			@Override
 			public ExtendableObject getObjectContainingProperty(StockEntryData data) {
 				return data.getTransferEntry();
 			}
-		};		
+		};
 
 		final Block<EntryData, BaseEntryRowControl> customTransactionColumn = new OtherEntriesBlock(
 				new HorizontalBlock<Entry, ISplitEntryContainer>(
 						new SingleOtherEntryPropertyBlock(EntryInfo.getAccountAccessor()),
 						new SingleOtherEntryPropertyBlock(EntryInfo.getMemoAccessor(), Messages.EntriesSection_EntryDescription),
 						new SingleOtherEntryPropertyBlock(EntryInfo.getAmountAccessor())
-				)
-		);
-		
+						)
+				);
+
 		CellBlock<EntryData, BaseEntryRowControl> debitColumnManager = DebitAndCreditColumns.createDebitColumn(account.getCurrency());
 		CellBlock<EntryData, BaseEntryRowControl> creditColumnManager = DebitAndCreditColumns.createCreditColumn(account.getCurrency());
-    	CellBlock<EntryData, BaseEntryRowControl> balanceColumnManager = new BalanceColumn(account.getCurrency());
-		
+		CellBlock<EntryData, BaseEntryRowControl> balanceColumnManager = new BalanceColumn(account.getCurrency());
+
 		RowSelectionTracker<EntryRowControl> rowTracker = new RowSelectionTracker<EntryRowControl>();
 
 		Block<StockEntryData, StockEntryRowControl> rootBlock = new HorizontalBlock<StockEntryData, StockEntryRowControl>(
@@ -876,15 +926,15 @@ public class StockDetailsEditor extends EditorPart {
 						new HorizontalBlock<StockEntryData, StockEntryRowControl>(
 								actionColumn,
 								shareNameColumn
+								),
+								PropertyBlock.createEntryColumn(EntryInfo.getMemoAccessor())
 						),
-						PropertyBlock.createEntryColumn(EntryInfo.getMemoAccessor())
-				),
-				new StackBlock<StockEntryData, StockEntryRowControl>(
-						withholdingTaxColumn,
-						purchaseOrSaleInfoColumn,
-						transferAccountColumn,
-						customTransactionColumn
-				) {
+						new StackBlock<StockEntryData, StockEntryRowControl>(
+								withholdingTaxColumn,
+								purchaseOrSaleInfoColumn,
+								transferAccountColumn,
+								customTransactionColumn
+								) {
 
 					@Override
 					protected Block<? super StockEntryData, ? super StockEntryRowControl> getTopBlock(StockEntryData data) {
@@ -906,16 +956,17 @@ public class StockDetailsEditor extends EditorPart {
 							}
 						}
 					}
-					
-				    @Override	
+
+					@Override
 					public IPropertyControl<StockEntryData> createCellControl(Composite parent, final RowControl rowControl, final StockEntryRowControl coordinator) {
 						final StackControl<StockEntryData, StockEntryRowControl> control = new StackControl<StockEntryData, StockEntryRowControl>(parent, rowControl, coordinator, this);
-						
+
 						coordinator.addTransactionTypeChangeListener(new ITransactionTypeChangeListener() {
 
+							@Override
 							public void transactionTypeChanged() {
 								Block<? super StockEntryData, ? super StockEntryRowControl> topBlock = getTopBlock(coordinator.getUncommittedEntryData());
-								
+
 								// Set this block in the control
 								control.setTopBlock(topBlock);
 
@@ -929,7 +980,7 @@ public class StockDetailsEditor extends EditorPart {
 								// TODO: It is a bit funny using the coordinator here
 								// This needs to be cleaned up.
 								fEntriesControl.table.refreshSize(coordinator);
-								
+
 								/*
 								 * The above method will re-size the height of the row
 								 * to its preferred height, but it won't layout the child
@@ -940,9 +991,9 @@ public class StockDetailsEditor extends EditorPart {
 								rowControl.layout(true);
 							}
 						});
-						
+
 						return control;
-				    }
+					}
 
 					@Override
 					public SessionChangeListener createListener(
@@ -954,25 +1005,25 @@ public class StockDetailsEditor extends EditorPart {
 									IScalarPropertyAccessor changedProperty, Object oldValue,
 									Object newValue) {
 								// TODO Auto-generated method stub
-								
+
 							}
 
 							@Override
 							public void objectCreated(IModelObject newObject) {
 								// TODO Auto-generated method stub
-								
+
 							}
 
 							@Override
 							public void objectDestroyed(IModelObject deletedObject) {
 								// TODO Auto-generated method stub
-								
+
 							}
 
 							@Override
 							public void objectInserted(IModelObject newObject) {
 								// TODO Auto-generated method stub
-								
+
 							}
 
 							@Override
@@ -981,19 +1032,19 @@ public class StockDetailsEditor extends EditorPart {
 									IListPropertyAccessor originalParentListProperty,
 									IListPropertyAccessor newParentListProperty) {
 								// TODO Auto-generated method stub
-								
+
 							}
 
 							@Override
 							public void objectRemoved(IModelObject deletedObject) {
 								// TODO Auto-generated method stub
-								
+
 							}
 
 							@Override
 							public void performRefresh() {
 								// TODO Auto-generated method stub
-								
+
 							}
 						};
 					}
@@ -1006,10 +1057,11 @@ public class StockDetailsEditor extends EditorPart {
 				debitColumnManager,
 				creditColumnManager,
 				balanceColumnManager
-		);
+				);
 
 		IEntriesContent entriesProvider = new IEntriesContent() {
 
+			@Override
 			public Collection<Entry> getEntries() {
 				/*
 				 * We want only cash entries, not stock entries.  This is providing
@@ -1023,22 +1075,24 @@ public class StockDetailsEditor extends EditorPart {
 						entries.add(entry);
 					}
 				}
-				
+
 				return entries;
 			}
 
+			@Override
 			public boolean isEntryInTable(Entry entry) {
 				/*
 				 * Entry must be in right account AND be an entry that affects or is related
 				 * to the given stock.
 				 */
 				return account == entry.getAccount()
-					&& entry.getCommodityInternal() == stock;
+						&& entry.getCommodityInternal() == stock;
 			}
 
 			/* (non-Javadoc)
 			 * @see net.sf.jmoney.pages.entries.IEntriesContent#filterEntry(net.sf.jmoney.pages.entries.EntriesTable.DisplayableTransaction)
 			 */
+			@Override
 			public boolean filterEntry(EntryData data) {
 				return true;
 			}
@@ -1046,10 +1100,12 @@ public class StockDetailsEditor extends EditorPart {
 			/* (non-Javadoc)
 			 * @see net.sf.jmoney.pages.entries.IEntriesContent#getStartBalance()
 			 */
+			@Override
 			public long getStartBalance() {
-		        return 0; 
+				return 0;
 			}
 
+			@Override
 			public Entry createNewEntry(Transaction newTransaction) {
 				/*
 				 * For stock entries, we create a single entry only.
@@ -1066,9 +1122,9 @@ public class StockDetailsEditor extends EditorPart {
 				return entryInTransaction;
 			}
 		};
-		
+
 		// Create the table control.
-	    IRowProvider<StockEntryData> rowProvider = new StockRowProvider(rootBlock);
+		IRowProvider<StockEntryData> rowProvider = new StockRowProvider(rootBlock);
 		fEntriesControl = new EntriesTable<StockEntryData>(composite, rootBlock, entriesProvider, rowProvider, account.getSession(), transactionDateColumn, rowTracker) {
 			@Override
 			protected StockEntryData createEntryRowInput(Entry entry) {
@@ -1079,30 +1135,30 @@ public class StockDetailsEditor extends EditorPart {
 			protected StockEntryData createNewEntryRowInput() {
 				return new StockEntryData(null, session.getDataManager());
 			}
-		}; 
-		
+		};
+
 		fEntriesControl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-		
+
 		// Activate the handlers
 		IHandlerService handlerService = (IHandlerService) getSite().getService(IHandlerService.class);
-		
+
 		IHandler handler = new NewTransactionHandler(rowTracker, fEntriesControl);
-		handlerService.activateHandler("net.sf.jmoney.newTransaction", handler);		
+		handlerService.activateHandler("net.sf.jmoney.newTransaction", handler);
 
 		handler = new DeleteTransactionHandler(rowTracker);
-		handlerService.activateHandler("net.sf.jmoney.deleteTransaction", handler);		
+		handlerService.activateHandler("net.sf.jmoney.deleteTransaction", handler);
 
 		handler = new DuplicateTransactionHandler(rowTracker, fEntriesControl);
-		handlerService.activateHandler("net.sf.jmoney.duplicateTransaction", handler);		
+		handlerService.activateHandler("net.sf.jmoney.duplicateTransaction", handler);
 
 		handler = new OpenTransactionDialogHandler(rowTracker);
-		handlerService.activateHandler("net.sf.jmoney.transactionDetails", handler);		
+		handlerService.activateHandler("net.sf.jmoney.transactionDetails", handler);
 
 		handler = new CutTransactionHandler(rowTracker);
-		handlerService.activateHandler("net.sf.jmoney.cutTransaction", handler);		
+		handlerService.activateHandler("net.sf.jmoney.cutTransaction", handler);
 
 		handler = new PasteCombineTransactionHandler(rowTracker);
-		handlerService.activateHandler("net.sf.jmoney.pasteCombineTransaction", handler);		
+		handlerService.activateHandler("net.sf.jmoney.pasteCombineTransaction", handler);
 
 		return composite;
 	}

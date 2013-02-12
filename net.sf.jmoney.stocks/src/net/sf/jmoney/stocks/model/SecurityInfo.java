@@ -37,19 +37,20 @@ import net.sf.jmoney.stocks.StocksPlugin;
  * @author Nigel Westbury
  */
 public class SecurityInfo implements IPropertySetInfo {
-	
+
 	private static ExtendablePropertySet<Security> propertySet = PropertySet.addDerivedAbstractPropertySet(Security.class, "Security", CommodityInfo.getPropertySet());
 
 	private static ScalarPropertyAccessor<String,Security> cusipAccessor;
 	private static ScalarPropertyAccessor<String,Security> symbolAccessor;
-	
+
+	@Override
 	public PropertySet registerProperties() {
 
 		IPropertyControlFactory<String> textControlFactory = new TextControlFactory();
 
 		cusipAccessor = propertySet.addProperty("cusip", StocksPlugin.getResourceString("PropertyDesc.cusip"), String.class, 2, 20, textControlFactory, null);
 		symbolAccessor = propertySet.addProperty("symbol", StocksPlugin.getResourceString("PropertyDesc.symbol"), String.class, 2, 20, textControlFactory, null);
-		
+
 		return propertySet;
 	}
 
@@ -65,12 +66,12 @@ public class SecurityInfo implements IPropertySetInfo {
 	 */
 	public static ScalarPropertyAccessor<String,Security> getCusipAccessor() {
 		return cusipAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ScalarPropertyAccessor<String,Security> getSymbolAccessor() {
 		return symbolAccessor;
-	}	
+	}
 }

@@ -40,35 +40,36 @@ import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.handlers.HandlerUtil;
 
 public class ShowStockDetailsHandler extends AbstractHandler {
-	
-	private AccountEditor editor;
+
+	private final AccountEditor editor;
 
 	public ShowStockDetailsHandler(AccountEditor editor) {
 		this.editor = editor;
 	}
-	
+
+	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		Shell shell = HandlerUtil.getActiveShellChecked(event);
 
-        AccountEditorInput cInput = (AccountEditorInput)editor.getEditorInput();
-        IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)editor.getSite().getPage().getInput();
-        Account account = sessionManager.getSession().getAccountByFullName(cInput.getFullAccountName());
+		AccountEditorInput cInput = (AccountEditorInput)editor.getEditorInput();
+		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)editor.getSite().getPage().getInput();
+		Account account = sessionManager.getSession().getAccountByFullName(cInput.getFullAccountName());
 		StockAccount stockAccount = (StockAccount)account;
-		
+
 		final FilteredStocksSelectionDialog dialog = new FilteredStocksSelectionDialog(shell, stockAccount);
 		final int resultCode = dialog.open();
 		if (resultCode == Window.OK) {
 			Object[] result = dialog.getResult();
-				for (Object selectedObject : result) {
-					Stock stock = (Stock) selectedObject;
-					try {
-						showStockDetails(editor, stock);
-					} catch (PartInitException e) {
-						throw new ExecutionException("Cannot create editor for " + stock.getName() + " details", e);
-					}
+			for (Object selectedObject : result) {
+				Stock stock = (Stock) selectedObject;
+				try {
+					showStockDetails(editor, stock);
+				} catch (PartInitException e) {
+					throw new ExecutionException("Cannot create editor for " + stock.getName() + " details", e);
 				}
+			}
 		}
-		
+
 		return null;
 	}
 

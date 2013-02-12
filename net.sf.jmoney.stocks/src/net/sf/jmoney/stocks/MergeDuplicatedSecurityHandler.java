@@ -47,6 +47,7 @@ import org.eclipse.ui.handlers.HandlerUtil;
 
 public class MergeDuplicatedSecurityHandler extends AbstractHandler {
 
+	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		Shell shell = HandlerUtil.getActiveShellChecked(event);
 		IStructuredSelection selection = (IStructuredSelection)HandlerUtil.getCurrentSelectionChecked(event);
@@ -65,27 +66,27 @@ public class MergeDuplicatedSecurityHandler extends AbstractHandler {
 		processSecuritiesOfSameType(
 				shell,
 				window,
-				propertySet1, 
-				security1, 
+				propertySet1,
+				security1,
 				security2);
-		
+
 		return null;
 	}
 
 	private <S extends Security> void processSecuritiesOfSameType(Shell shell, IWorkbenchWindow window, ExtendablePropertySet<S> extendablePropertySet, Security security1, Security security2) {
 		S typedSecurity1 = extendablePropertySet.getImplementationClass().cast(security1);
 		S typedSecurity2 = extendablePropertySet.getImplementationClass().cast(security2);
-		
+
 		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)window.getActivePage().getInput();
 
 		TransactionManagerForAccounts transaction = new TransactionManagerForAccounts(sessionManager);
 
 		int result = new MergeDuplicatedSecurityDialog<S>(
-				shell, 
-				extendablePropertySet, 
-				transaction.getCopyInTransaction(typedSecurity1), 
+				shell,
+				extendablePropertySet,
+				transaction.getCopyInTransaction(typedSecurity1),
 				transaction.getCopyInTransaction(typedSecurity2))
-		.open();
+				.open();
 		if (result == IDialogConstants.OK_ID) {
 			replaceSecondWithFirst(transaction, SessionInfo.getPropertySet(), transaction.getSession(), extendablePropertySet, typedSecurity1, typedSecurity2);
 			transaction.commit("Merge Securities");

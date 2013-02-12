@@ -14,7 +14,7 @@ import org.eclipse.ui.navigator.IDescriptionProvider;
 
 public class SecuritiesLabelProvider extends LabelProvider implements ILabelProvider, IDescriptionProvider {
 
-	@Override	
+	@Override
 	public Image getImage(Object element) {
 		if (element instanceof ExtendableObject) {
 			ExtendableObject extendableObject = (ExtendableObject)element;
@@ -26,16 +26,17 @@ public class SecuritiesLabelProvider extends LabelProvider implements ILabelProv
 	@Override
 	public String getText(Object element) {
 		if (element instanceof SecuritiesTypeNode) {
-//			return Messages.NavigationTreeNode_stocks;
+			//			return Messages.NavigationTreeNode_stocks;
 			return ((SecuritiesTypeNode)element).getLabel();
 		} else if (element instanceof ExtendableObject) {
 			return ((ExtendableObject)element).toString();
 		}
-		
+
 		// We should not get here.
 		return "Unnamed Node"; //$NON-NLS-1$
 	}
 
+	@Override
 	public String getDescription(Object element) {
 		if (element instanceof Stock) {
 			return NLS.bind(Messages.NavigationTree_stockDescription,((Stock)element).getName());

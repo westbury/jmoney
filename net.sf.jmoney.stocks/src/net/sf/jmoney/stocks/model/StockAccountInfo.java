@@ -52,24 +52,26 @@ import org.eclipse.swt.widgets.Composite;
  * This class implements an extension to the net.sf.jmoney.fields
  * extension point.  It registers the StockAccount model class.
  * 
- * @author Nigel Westbury 
+ * @author Nigel Westbury
  */
 public class StockAccountInfo implements IPropertySetInfo {
 
 	private static ExtendablePropertySet<StockAccount> propertySet = PropertySet.addDerivedFinalPropertySet(StockAccount.class, "Stock Account", CapitalAccountInfo.getPropertySet(), new IExtendableObjectConstructors<StockAccount>() {
 
+		@Override
 		public StockAccount construct(IObjectKey objectKey, ListKey parentKey) {
 			return new StockAccount(
-					objectKey, 
+					objectKey,
 					parentKey
-			);
+					);
 		}
 
+		@Override
 		public StockAccount construct(IObjectKey objectKey,
 				ListKey<? super StockAccount,?> parentKey, IValues<StockAccount> values) {
 			return new StockAccount(
-					objectKey, 
-					parentKey, 
+					objectKey,
+					parentKey,
 					values.getScalarValue(AccountInfo.getNameAccessor()),
 					values.getListManager(objectKey, CapitalAccountInfo.getSubAccountAccessor()),
 					values.getScalarValue(CapitalAccountInfo.getAbbreviationAccessor()),
@@ -89,7 +91,7 @@ public class StockAccountInfo implements IPropertySetInfo {
 					values.getScalarValue(StockAccountInfo.getTax1RatesAccessor()),
 					values.getScalarValue(StockAccountInfo.getTax2RatesAccessor()),
 					values
-			);
+					);
 		}
 	});
 
@@ -108,80 +110,93 @@ public class StockAccountInfo implements IPropertySetInfo {
 	private static ScalarPropertyAccessor<RatesTable,StockAccount> tax1RatesAccessor = null;
 	private static ScalarPropertyAccessor<RatesTable,StockAccount> tax2RatesAccessor = null;
 
+	@Override
 	public PropertySet registerProperties() {
 
 		IPropertyControlFactory<String> textControlFactory = new TextControlFactory();
 
 		IReferenceControlFactory<StockAccount,Currency> currencyControlFactory = new CurrencyControlFactory<StockAccount>() {
+			@Override
 			public IObjectKey getObjectKey(StockAccount parentObject) {
 				return parentObject.currencyKey;
 			}
 		};
 
 		IPropertyControlFactory<RatesTable> ratesControlFactory =
-			new IPropertyControlFactory<RatesTable>() {
+				new IPropertyControlFactory<RatesTable>() {
+			@Override
 			public IPropertyControl createPropertyControl(Composite parent, ScalarPropertyAccessor<RatesTable,?> propertyAccessor) {
 				return new RatesEditor(parent, propertyAccessor);
 			}
 
+			@Override
 			public String formatValueForMessage(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends RatesTable,?> propertyAccessor) {
 				RatesTable ratesTable = extendableObject.getPropertyValue(propertyAccessor);
 				if (ratesTable == null) {
-					return "none"; 
+					return "none";
 				} else {
 					return "rates table";
 				}
 			}
 
+			@Override
 			public String formatValueForTable(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends RatesTable,?> propertyAccessor) {
 				RatesTable ratesTable = extendableObject.getPropertyValue(propertyAccessor);
 				if (ratesTable == null) {
-					return ""; 
+					return "";
 				} else {
 					return "rates table";
 				}
 			}
 
+			@Override
 			public boolean isEditable() {
 				// TODO Should this be set to allow control editing?
 				return false;
 			}
 
+			@Override
 			public Comparator<RatesTable> getComparator() {
 				// TODO Auto-generated method stub
 				return null;
 			}
 
+			@Override
 			public RatesTable getDefaultValue() {
 				return null;
 			}
 		};
 
 		IReferenceControlFactory<StockAccount,IncomeExpenseAccount> dividendAccountControlFactory = new AccountControlFactory<StockAccount,IncomeExpenseAccount>() {
+			@Override
 			public IObjectKey getObjectKey(StockAccount parentObject) {
 				return parentObject.dividendAccountKey;
 			}
 		};
 
 		IReferenceControlFactory<StockAccount,IncomeExpenseAccount> withholdingTaxAccountControlFactory = new AccountControlFactory<StockAccount,IncomeExpenseAccount>() {
+			@Override
 			public IObjectKey getObjectKey(StockAccount parentObject) {
 				return parentObject.withholdingTaxAccountKey;
 			}
 		};
 
 		IReferenceControlFactory<StockAccount,IncomeExpenseAccount> commissionAccountControlFactory = new AccountControlFactory<StockAccount,IncomeExpenseAccount>() {
+			@Override
 			public IObjectKey getObjectKey(StockAccount parentObject) {
 				return parentObject.commissionAccountKey;
 			}
 		};
 
 		IReferenceControlFactory<StockAccount,IncomeExpenseAccount> tax1AccountControlFactory = new AccountControlFactory<StockAccount,IncomeExpenseAccount>() {
+			@Override
 			public IObjectKey getObjectKey(StockAccount parentObject) {
 				return parentObject.tax1AccountKey;
 			}
 		};
 
 		IReferenceControlFactory<StockAccount,IncomeExpenseAccount> tax2AccountControlFactory = new AccountControlFactory<StockAccount,IncomeExpenseAccount>() {
+			@Override
 			public IObjectKey getObjectKey(StockAccount parentObject) {
 				return parentObject.tax2AccountKey;
 			}
@@ -214,88 +229,88 @@ public class StockAccountInfo implements IPropertySetInfo {
 	 */
 	public static ReferencePropertyAccessor<Currency,StockAccount> getCurrencyAccessor() {
 		return currencyAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ScalarPropertyAccessor<String,StockAccount> getBrokerageFirmAccessor() {
 		return brokerageFirmAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ScalarPropertyAccessor<String,StockAccount> getAccountNumberAccessor() {
 		return accountNumberAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ScalarPropertyAccessor<String,StockAccount> getTax1NameAccessor() {
 		return tax1NameAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ScalarPropertyAccessor<String,StockAccount> getTax2NameAccessor() {
 		return tax2NameAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ReferencePropertyAccessor<IncomeExpenseAccount,StockAccount> getDividendAccountAccessor() {
 		return dividendAccountAccessor;
-	}	
+	}
 
 	public static ReferencePropertyAccessor<IncomeExpenseAccount,StockAccount> getWithholdingTaxAccountAccessor() {
 		return withholdingTaxAccountAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ReferencePropertyAccessor<IncomeExpenseAccount,StockAccount> getCommissionAccountAccessor() {
 		return commissionAccountAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ReferencePropertyAccessor<IncomeExpenseAccount,StockAccount> getTax1AccountAccessor() {
 		return tax1AccountAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ReferencePropertyAccessor<IncomeExpenseAccount,StockAccount> getTax2AccountAccessor() {
 		return tax2AccountAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ScalarPropertyAccessor<RatesTable,StockAccount> getBuyCommissionRatesAccessor() {
 		return buyCommissionRatesAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ScalarPropertyAccessor<RatesTable,StockAccount> getSellCommissionRatesAccessor() {
 		return sellCommissionRatesAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ScalarPropertyAccessor<RatesTable,StockAccount> getTax1RatesAccessor() {
 		return tax1RatesAccessor;
-	}	
+	}
 
 	/**
 	 * @return

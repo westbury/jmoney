@@ -26,11 +26,12 @@ import org.eclipse.swt.widgets.Display;
 public class SecuritiesContentProvider implements ITreeContentProvider {
 
 	private IDataManagerForAccounts sessionManager;
-	
-	private Map<ExtendablePropertySet<? extends Security>, Object> securitiesTypeTreeNodes = new HashMap<ExtendablePropertySet<? extends Security>, Object>();
+
+	private final Map<ExtendablePropertySet<? extends Security>, Object> securitiesTypeTreeNodes = new HashMap<ExtendablePropertySet<? extends Security>, Object>();
 
 	private SessionChangeListener listener = null;
-	
+
+	@Override
 	public Object[] getChildren(Object parentElement) {
 		if (parentElement instanceof IDatastoreManager) {
 			return securitiesTypeTreeNodes.values().toArray();
@@ -41,6 +42,7 @@ public class SecuritiesContentProvider implements ITreeContentProvider {
 		return new Object[0];
 	}
 
+	@Override
 	public Object getParent(Object element) {
 		if (element instanceof IDynamicTreeNode) {
 			return sessionManager;
@@ -52,6 +54,7 @@ public class SecuritiesContentProvider implements ITreeContentProvider {
 		return null;  // Should never happen
 	}
 
+	@Override
 	public boolean hasChildren(Object element) {
 		if (element instanceof IDatastoreManager) {
 			return true;
@@ -62,16 +65,19 @@ public class SecuritiesContentProvider implements ITreeContentProvider {
 		return false;
 	}
 
+	@Override
 	public Object[] getElements(Object inputElement) {
 		return getChildren(inputElement);
 	}
 
+	@Override
 	public void dispose() {
 		if (listener != null) {
 			sessionManager.removeChangeListener(listener);
 		}
 	}
 
+	@Override
 	public void inputChanged(Viewer viewer, Object oldInput, Object newInput) {
 		/*
 		 * The input never changes because the input to this viewer is the same as the input
@@ -86,22 +92,22 @@ public class SecuritiesContentProvider implements ITreeContentProvider {
 			 */
 			securitiesTypeTreeNodes.clear();
 			for (ExtendablePropertySet<? extends Security> propertySet : SecurityInfo.getPropertySet().getDerivedPropertySets()) {
-				securitiesTypeTreeNodes.put(propertySet, new SecuritiesTypeNode(sessionManager, propertySet)); 
+				securitiesTypeTreeNodes.put(propertySet, new SecuritiesTypeNode(sessionManager, propertySet));
 			}
-		
+
 			listener = new MyCurrentSessionChangeListener((TreeViewer)viewer);
 			sessionManager.addChangeListener(listener);
 		}
 	}
 
 	private class MyCurrentSessionChangeListener extends SessionChangeAdapter {
-		private TreeViewer viewer;
-		
+		private final TreeViewer viewer;
+
 		MyCurrentSessionChangeListener(TreeViewer viewer) {
 			this.viewer = viewer;
 		}
-		
-		@Override	
+
+		@Override
 		public void objectInserted(IModelObject newObject) {
 			if (newObject instanceof Security) {
 				Security securityElement = (Security)newObject;
@@ -111,7 +117,7 @@ public class SecuritiesContentProvider implements ITreeContentProvider {
 			}
 		}
 
-		@Override	
+		@Override
 		public void objectRemoved(final IModelObject deletedObject) {
 			if (deletedObject instanceof Stock) {
 				/*
@@ -122,6 +128,7 @@ public class SecuritiesContentProvider implements ITreeContentProvider {
 				 * until after the object is deleted.
 				 */
 				Display.getCurrent().asyncExec(new Runnable() {
+					@Override
 					public void run() {
 						viewer.remove(deletedObject);
 					}
@@ -129,7 +136,7 @@ public class SecuritiesContentProvider implements ITreeContentProvider {
 			}
 		}
 
-		@Override	
+		@Override
 		public void objectChanged(IModelObject changedObject, IScalarPropertyAccessor propertyAccessor, Object oldValue, Object newValue) {
 			if (changedObject instanceof Stock
 					&& propertyAccessor == CommodityInfo.getNameAccessor()) {

@@ -42,17 +42,18 @@ import org.eclipse.ui.handlers.IHandlerService;
  */
 public class StockEntriesPage implements IBookkeepingPageFactory {
 
+	@Override
 	public void createPages(AccountEditor editor, IEditorInput input,
 			IMemento memento) throws PartInitException {
 		IEditorPart entriesEditor = new StockEntriesEditor();
 		editor.addPage(entriesEditor, "Entries");
-		
+
 		IEditorPart balancesEditor = new StockBalancesEditor(editor);
 		editor.addPage(balancesEditor, "Balances");
-		
+
 		IEditorPart gainsEditor = new StockGainsEditor(editor);
 		editor.addPage(gainsEditor, "Gains & Losses");
-		
+
 		AccountEditorInput input2 = (AccountEditorInput)input;
 		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)editor.getSite().getPage().getInput();
 
@@ -61,28 +62,28 @@ public class StockEntriesPage implements IBookkeepingPageFactory {
 		 * created to show activity related to a specific stock held in the account and
 		 * the running balance of the number of the stock held in the account.
 		 */
-        if (memento != null) {
-        	for (IMemento stockMemento : memento.getChildren("stock")) {
-        		String symbol = stockMemento.getString("symbol");
-        		if (symbol != null) {
-        			for (Commodity commodity: sessionManager.getSession().getCommodityCollection()) {
-        				if (commodity instanceof Stock) {
-        					Stock stock = (Stock)commodity;
-        					if (stock.getSymbol().equals(symbol)) {
-        						IEditorPart stockDetailsEditor = new StockDetailsEditor(stock);
-        						editor.addPage(stockDetailsEditor, stock.getName());
-        					}
-        				}
-        			}
-        		}
-        	}
-        }
-		
+		if (memento != null) {
+			for (IMemento stockMemento : memento.getChildren("stock")) {
+				String symbol = stockMemento.getString("symbol");
+				if (symbol != null) {
+					for (Commodity commodity: sessionManager.getSession().getCommodityCollection()) {
+						if (commodity instanceof Stock) {
+							Stock stock = (Stock)commodity;
+							if (stock.getSymbol().equals(symbol)) {
+								IEditorPart stockDetailsEditor = new StockDetailsEditor(stock);
+								editor.addPage(stockDetailsEditor, stock.getName());
+							}
+						}
+					}
+				}
+			}
+		}
+
 		// Get the handler service and pass it on so that handlers can be activated as appropriate
 		IHandlerService handlerService = (IHandlerService)editor.getSite().getService(IHandlerService.class);
 
 		IHandler handler = new ShowStockDetailsHandler(editor);
-		handlerService.activateHandler("net.sf.jmoney.stock.showStockDetails", handler);		
+		handlerService.activateHandler("net.sf.jmoney.stock.showStockDetails", handler);
 
 
 	}
