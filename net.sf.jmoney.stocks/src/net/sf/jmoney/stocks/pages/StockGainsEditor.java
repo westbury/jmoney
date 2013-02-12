@@ -88,12 +88,12 @@ public class StockGainsEditor extends EditorPart {
 	static private DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
 
 	private AccountEditor accountEditor;
-	
+
 	/**
 	 * The account being shown in this page.
 	 */
 	private StockAccount account;
-    
+
 	private TableViewer gainsViewer;
 
 	private DateControl startDateControl;
@@ -108,24 +108,24 @@ public class StockGainsEditor extends EditorPart {
 			if (changedObject instanceof Entry) {
 				Entry changedEntry = (Entry)changedObject;
 				if (changedEntry.getAccount() == account
-						&& changedEntry.getCommodityInternal() instanceof Stock 
+						&& changedEntry.getCommodityInternal() instanceof Stock
 						&& changedProperty == EntryInfo.getAmountAccessor()) {
-				
+
 				}
 			}
-			
+
 		}
 
 		@Override
 		public void objectCreated(IModelObject newObject) {
 			// TODO Auto-generated method stub
-			
+
 		}
 
 		@Override
 		public void objectDestroyed(IModelObject deletedObject) {
 			// TODO Auto-generated method stub
-			
+
 		}
 
 		@Override
@@ -140,13 +140,13 @@ public class StockGainsEditor extends EditorPart {
 				IListPropertyAccessor originalParentListProperty,
 				IListPropertyAccessor newParentListProperty) {
 			// TODO Auto-generated method stub
-			
+
 		}
 
 		@Override
 		public void objectRemoved(IModelObject deletedObject) {
 			// TODO Auto-generated method stub
-			
+
 		}
 
 		@Override
@@ -155,13 +155,13 @@ public class StockGainsEditor extends EditorPart {
 			calculateTotals();
 		}
 	};
-	
+
 	/**
 	 * Currently this editor can be created only when given an AccountEditor.
 	 * This editor is a child editor of the AccountEditor (a multi-page editor),
 	 * though this class does not make that assumption.  The AccountEditor is used
 	 * for certain actions such as opening stock details pages.
-	 * 
+	 *
 	 * @param editor
 	 */
 	public StockGainsEditor(AccountEditor accountEditor) {
@@ -171,15 +171,15 @@ public class StockGainsEditor extends EditorPart {
 	@Override
 	public void init(IEditorSite site, IEditorInput input)
 			throws PartInitException {
-		
+
 		setSite(site);
 		setInput(input);
-		
+
     	// Set the account that this page is viewing and editing.
 		AccountEditorInput input2 = (AccountEditorInput)input;
 		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)site.getPage().getInput();
         account = (StockAccount)sessionManager.getSession().getAccountByFullName(input2.getFullAccountName());
-        
+
         sessionManager.addChangeListener(sessionListener);
 	}
 
@@ -215,7 +215,7 @@ public class StockGainsEditor extends EditorPart {
         FormToolkit toolkit = new FormToolkit(parent.getDisplay());
     	ScrolledForm form = toolkit.createScrolledForm(parent);
         form.getBody().setLayout(new FillLayout());
-        
+
 		// Get the handler service and pass it on so that handlers can be activated as appropriate
 		IHandlerService handlerService = (IHandlerService) getSite().getService(IHandlerService.class);
 
@@ -243,36 +243,36 @@ public class StockGainsEditor extends EditorPart {
 
         startDateControl.setDate(new Date());
         endDateControl.setDate(new Date());
-        
+
 		calculateTotals();
-		
+
 		// Activate the handlers
 //		IHandler handler = new NewTransactionHandler(rowTracker, fEntriesControl);
-//		handlerService.activateHandler("net.sf.jmoney.newTransaction", handler);		
+//		handlerService.activateHandler("net.sf.jmoney.newTransaction", handler);
 
         toolkit.paintBordersFor(contents);
-        
+
         form.setText("Investment Account Gains and Losses");
 	}
-	
+
 	private Composite createContents(Composite parent) {
 		Composite composite = new Composite(parent, SWT.None);
 		composite.setLayout(new GridLayout());
 
 		createConfigurationControls(composite);
-		
+
 		Control table = createTable(composite);
 		table.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-		
+
 		return composite;
 	}
 
 	private void calculateTotals() {
 		Date startDate = startDateControl.getDate();
 		Date endDate = endDateControl.getDate();
-		
+
 		Collection<StockPurchaseAndSale> matchedPurchasesAndSales = new ArrayList<StockPurchaseAndSale>();
-		
+
 				IStatus status;
 				try {
 					status = CapitalGainsCalculator.exportCapitalGains(account, startDate, endDate, matchedPurchasesAndSales);
@@ -291,32 +291,32 @@ public class StockGainsEditor extends EditorPart {
 	private Control createConfigurationControls(Composite parent) {
 		Composite composite = new Composite(parent, SWT.NONE);
 		composite.setLayout(new GridLayout(2, false));
-		
+
 		createStartDateControl(composite);
 		createEndDateControl(composite);
-		
+
 		return composite;
 	}
 
 	private Control createStartDateControl(Composite parent) {
 		Composite composite = new Composite(parent, SWT.NONE);
 		composite.setLayout(new GridLayout(2, false));
-		
+
 		new Label(composite, SWT.NONE).setText("Start Date:");
-		
+
 		startDateControl = new DateControl(composite);
-		
+
 		return composite;
 	}
 
 	private Control createEndDateControl(Composite parent) {
 		Composite composite = new Composite(parent, SWT.NONE);
 		composite.setLayout(new GridLayout(2, false));
-		
+
 		new Label(composite, SWT.NONE).setText("End Date:");
-		
+
 		endDateControl = new DateControl(composite);
-		
+
 		return composite;
 	}
 
@@ -325,17 +325,17 @@ public class StockGainsEditor extends EditorPart {
 		composite.setLayout(new GridLayout());
 
 		gainsViewer = new TableViewer(composite, SWT.BORDER | SWT.V_SCROLL | SWT.H_SCROLL | SWT.FULL_SELECTION);
-		
+
 		GridData gridData = new GridData(SWT.FILL, SWT.FILL, true, true);
 		gridData.widthHint = 300;
 		gridData.heightHint = 100;
 		gainsViewer.getTable().setLayoutData(gridData);
-		
+
 		gainsViewer.getTable().setHeaderVisible(true);
 		gainsViewer.getTable().setLinesVisible(true);
 
 		gainsViewer.setContentProvider(ArrayContentProvider.getInstance());
-		
+
 		// Sort by sell date
 		gainsViewer.setComparator(new ViewerComparator() {
 			@Override
@@ -353,7 +353,7 @@ public class StockGainsEditor extends EditorPart {
 				}
 			}
 		});
-		
+
 		TableViewerColumn stockNameColumn = new TableViewerColumn(gainsViewer, SWT.LEFT);
 		stockNameColumn.getColumn().setText("Stock");
 		stockNameColumn.getColumn().setWidth(200);
@@ -386,15 +386,15 @@ public class StockGainsEditor extends EditorPart {
 			@Override
 			public void update(ViewerCell cell) {
 				StockPurchaseAndSale stockWrapper = (StockPurchaseAndSale)cell.getElement();
-				cell.setText(dateFormat.format(stockWrapper.getBuyDate()));
+				cell.setText(dateFormat.format(stockWrapper.getSellDate()));
 			}
 		});
 
-		TableViewerColumn balanceColumn = new TableViewerColumn(gainsViewer, SWT.LEFT);
-		balanceColumn.getColumn().setText("Number of Shares");
-		balanceColumn.getColumn().setWidth(100);
+		TableViewerColumn quantityColumn = new TableViewerColumn(gainsViewer, SWT.LEFT);
+		quantityColumn.getColumn().setText("Number of Shares");
+		quantityColumn.getColumn().setWidth(100);
 
-		balanceColumn.setLabelProvider(new CellLabelProvider() {
+		quantityColumn.setLabelProvider(new CellLabelProvider() {
 			@Override
 			public void update(ViewerCell cell) {
 				StockPurchaseAndSale stockWrapper = (StockPurchaseAndSale)cell.getElement();
@@ -422,7 +422,8 @@ public class StockGainsEditor extends EditorPart {
 			@Override
 			public void update(ViewerCell cell) {
 				StockPurchaseAndSale stockWrapper = (StockPurchaseAndSale)cell.getElement();
-				account.getCurrency().format(stockWrapper.getProceeds());			}
+				cell.setText(account.getCurrency().format(stockWrapper.getProceeds()));
+			}
 		});
 
 		TableViewerColumn gainColumn = new TableViewerColumn(gainsViewer, SWT.LEFT);
@@ -433,7 +434,7 @@ public class StockGainsEditor extends EditorPart {
 			@Override
 			public void update(ViewerCell cell) {
 				StockPurchaseAndSale stockWrapper = (StockPurchaseAndSale)cell.getElement();
-				account.getCurrency().format(stockWrapper.getProceeds() - stockWrapper.getBasis());
+				cell.setText(account.getCurrency().format(stockWrapper.getProceeds() - stockWrapper.getBasis()));
 			}
 		});
 
@@ -444,11 +445,11 @@ public class StockGainsEditor extends EditorPart {
 		menuMgr.add(new ShowDetailsAction(gainsViewer));
 		menuMgr.add(new GroupMarker(IWorkbenchActionConstants.MB_ADDITIONS));
 		getSite().registerContextMenu(menuMgr, gainsViewer);
-			
+
 		Control control = gainsViewer.getControl();
 		Menu menu = menuMgr.createContextMenu(control);
-		control.setMenu(menu);		
-		
+		control.setMenu(menu);
+
 		return composite;
 	}
 
@@ -456,11 +457,11 @@ public class StockGainsEditor extends EditorPart {
 	public void setFocus() {
 		// Don't bother to do anything.  User can select as required.
 	}
-	
+
 	public class ShowDetailsAction extends Action {
 
 		private ISelectionProvider selectionProvider;
-		
+
 		public ShowDetailsAction(ISelectionProvider selectionProvider) {
 			super("Show Stock Gain/Loss Details");
 			this.selectionProvider = selectionProvider;

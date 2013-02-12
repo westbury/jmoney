@@ -40,11 +40,11 @@ public class StockActivity implements Comparable<StockActivity> {
 
 	long securitySaleQuantity = 0;
 
-	long saleCost = 0;
+	long saleProceeds = 0;
 
 	/**
 	 * All securities, other than this one, that were acquired or disposed of
-	 * on this day. 
+	 * on this day.
 	 */
 	Map<Security,Long> exchangedSecurities = new HashMap<Security,Long>();
 
@@ -56,12 +56,12 @@ public class StockActivity implements Comparable<StockActivity> {
 
 	/**
 	 * Adds a purchase or sale to today's activity.
-	 * 
+	 *
 	 * @param securityQuantity
 	 *            positive for purchase, negative for sale, cannot be zero
 	 * @param currencyAmount
 	 *            negative for purchase, positive for sale, cannot be zero
-	 * @throws UnsupportedDataException 
+	 * @throws UnsupportedDataException
 	 */
 	public void addPurchaseOrSale(long securityQuantity, long currencyAmount) throws UnsupportedDataException {
 		if (securityQuantity > 0 && currencyAmount < 0) {
@@ -69,20 +69,36 @@ public class StockActivity implements Comparable<StockActivity> {
 			this.purchaseCost += -currencyAmount;
 		} else if (securityQuantity < 0 && currencyAmount > 0) {
 			this.securitySaleQuantity += -securityQuantity;
-			this.saleCost += currencyAmount;
+			this.saleProceeds += currencyAmount;
 		} else {
-			Status status = new Status(IStatus.WARNING, StocksPlugin.PLUGIN_ID, 
+			Status status = new Status(IStatus.WARNING, StocksPlugin.PLUGIN_ID,
 					MessageFormat.format(
 							"Bad data on {0}.",
 							CapitalGainsCalculator.userDateFormat.format(date)
 					),
 					null);
-			throw new UnsupportedDataException(status); 
+			throw new UnsupportedDataException(status);
 		}
 	}
 
 	@Override
 	public int compareTo(StockActivity otherActivity) {
 		return date.compareTo(otherActivity.date);
+	}
+
+	@Override
+	public String toString() {
+		StringBuffer buffer = new StringBuffer()
+		.append("Purchase Quantity: ").append(securityPurchaseQuantity).append("/n")
+		.append("Purchase Cost: ").append(purchaseCost).append("/n")
+		.append("Sale Quantity: ").append(securitySaleQuantity).append("/n")
+		.append("Sale Proceeds: ").append(saleProceeds).append("/n");
+		if (!exchangedSecurities.isEmpty()) {
+			buffer.append("Exchanged Securities:\n");
+			for (Security exchangedSecurity : exchangedSecurities.keySet()) {
+				buffer.append("   ").append(exchangedSecurity.getName()).append(" in amount ").append(exchangedSecurities.get(exchangedSecurity)).append("/n");
+			}
+		}
+		return buffer.toString();
 	}
 }

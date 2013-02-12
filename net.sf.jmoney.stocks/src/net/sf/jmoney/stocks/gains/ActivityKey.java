@@ -32,4 +32,11 @@ public class ActivityKey implements Comparable<ActivityKey> {
 		int typeOrder = orderSequence - otherNode.orderSequence;
 		return typeOrder;
 	}
+
+	@Override
+	public String toString() {
+		return new StringBuffer()
+		.append(date)
+		.append("(").append(orderSequence).append(")").toString();
+	}
 }

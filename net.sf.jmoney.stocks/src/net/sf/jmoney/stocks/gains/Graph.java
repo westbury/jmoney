@@ -46,12 +46,14 @@ public class Graph {
 		 * object and a sale object.  This simplifies the processing because we can define the assumed order of transactions that
 		 * took place on the same day and then process one thing at a time.
 		 */
-		TreeMap<Date, StockActivity> stockEntries = CapitalGainsCalculator.getStockActivity(account, stock, result);
+		TreeMap<Date, StockActivity> stockEntries = CapitalGainsCalculator.getStockActivity(account, stock, date, result);
 		long newStockBalance = 0;
 
 		ActivityNode previousActivity = null;
 		for (Date eachDate : stockEntries.keySet()) {
 			StockActivity activityThisDay = stockEntries.get(eachDate);
+
+			System.out.println(eachDate + ": " + activityThisDay.toString());
 
 			newStockBalance += activityThisDay.securityPurchaseQuantity - activityThisDay.securitySaleQuantity;
 
@@ -70,7 +72,7 @@ public class Graph {
 
 			// Security sale
 			if (activityThisDay.securitySaleQuantity != 0) {
-				ActivityNode node = new SaleActivityNode(eachDate, newStockBalance, activityThisDay.securitySaleQuantity, activityThisDay.saleCost);
+				ActivityNode node = new SaleActivityNode(eachDate, newStockBalance, activityThisDay.securitySaleQuantity, activityThisDay.saleProceeds);
 				allActivityNodes.add(node);
 				if (previousActivity != null) {
 					previousActivity.addNextNode(node);
@@ -98,6 +100,8 @@ public class Graph {
 
 		for (ActivityKey eachKey : allActivityNodes.keySet()) {
 			Collection<ActivityNode> activities = allActivityNodes.get(eachKey);
+
+			System.out.println(eachKey.date + "(" + eachKey.orderSequence + "):/n" + activities.toString());
 
 			if (activities.size() > 1) {
 				Status status = new Status(IStatus.ERROR, StocksPlugin.PLUGIN_ID,
@@ -252,7 +256,7 @@ public class Graph {
 								MessageFormat.format(
 										"An internal error has occured.  A manual determination must be made for the cost basis for the sale of {0} which took place on {1}.",
 										stock.getName(),
-										CapitalGainsCalculator.userDateFormat.format(eachKey)
+										CapitalGainsCalculator.userDateFormat.format(eachKey.date)
 								),
 								null);
 						result.add(status);
@@ -279,7 +283,7 @@ public class Graph {
 					 * continue down any other branches.
 					 */
 
-					if (multiplier == 1 && priorActivity instanceof SaleActivityNode) {
+					if (multiplier == 1 && priorActivity instanceof SaleActivityNode && priorActivity.quantity != 0) {
 						/*
 						 * We have a previous sale that was not fully matched, so stop this
 						 * branch right now.
@@ -288,7 +292,7 @@ public class Graph {
 						// if a short position is being passed from that branch.
 						throw new RuntimeException("internal error");
 					}
-					if (multiplier == -1 && priorActivity instanceof PurchaseActivityNode) {
+					if (multiplier == -1 && priorActivity instanceof PurchaseActivityNode && priorActivity.quantity != 0) {
 						/*
 						 * We have a previous purchase that was not fully matched, so stop this
 						 * branch right now.
@@ -302,7 +306,7 @@ public class Graph {
 					 * Purchase quantity (or sale quantity if a prior short sale), but always
 					 * positive regardless of which.
 					 */
-					long purchaseQuantity = priorActivity.getQuantity() * multiplier;
+					long purchaseQuantity = priorActivity.getQuantity(); // * multiplier;
 					assert(purchaseQuantity > 0);
 
 					long balancePriorToThisPurchase = priorActivity.newBalance*multiplier - purchaseQuantity;
@@ -324,9 +328,29 @@ public class Graph {
 						* (double)priorActivity.getCost()
 						/ priorActivity.getQuantity());
 
+						// Calculate the portion of the sales proceeds that matches this purchase.
+						long thisSalesProceeds = (long)
+						((double)quantityMatchedToThisPurchase
+						* (double)activity.getCost()
+						/ activity.getQuantity());
+
 						// Reduce both the sale and the purchase amounts
 						amountLeftToMatch -= quantityMatchedToThisPurchase;
 						priorActivity.matchAmount(quantityMatchedToThisPurchase, thisCostBasis);
+						activity.matchAmount(quantityMatchedToThisPurchase, thisSalesProceeds);
+
+						// This is a hack.  We want to adjust the 'newBalance' property for all nodes
+						// from priorActivity to activity.  This is not easy in the general case, I don't
+						// think, as there could be multiple previous or next nodes.  This code assumes
+						// there is never more than one.
+						ActivityNode node = priorActivity;
+						while (node != activity) {
+							node.newBalance -= quantityMatchedToThisPurchase * multiplier;
+							if (node.nextNodes.size() != 1) {
+								throw new RuntimeException("too complex");
+							}
+							node = node.nextNodes.iterator().next();
+						}
 
 						/*
 						 * If there is no later activity then this activity is the one of interest.

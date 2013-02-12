@@ -162,11 +162,22 @@ public class CapitalGainsCalculator {
 							),
 							null);
 
+					System.out.println(MessageFormat.format(
+							"Sale of {2} of {0} took place on {1}.",
+							stock.getName(),
+							userDateFormat.format(entry.getTransaction().getDate()),
+							formatQuantity(saleQuantity)
+					));
+
+					if (stock.getName().startsWith("Laird")) {
+						System.out.println("Laird found");
+					}
+
 					try {
 
 						/*
 						 * We build a set of all currencies, securities, and other commodities
-						 * that were acquired or lost if this transaction.  If there are multiple
+						 * that were acquired or lost in this transaction.  If there are multiple
 						 * entries for the same commodity, the amounts are added together.
 						 * We end up with a map of commodities to the amounts.  This map excludes
 						 * the initial entry representing the disposal of stock.
@@ -299,10 +310,13 @@ public class CapitalGainsCalculator {
 	 *
 	 * Status messages may be added to the given multi-status.  This method will return a result
 	 * even if an error status is set, leaving it up to the caller to check and handle appropriately.
+	 *
+	 * @param date the date of the taxable event, so no transactions after this date are
+	 * 				considered
 	 * @throws UnsupportedDataException
 	 */
 
-	static TreeMap<Date, StockActivity> getStockActivity(StockAccount account, Stock stock, MultiStatus result) throws UnsupportedDataException {
+	static TreeMap<Date, StockActivity> getStockActivity(StockAccount account, Stock stock, Date dateOfTaxableEvent, MultiStatus result) throws UnsupportedDataException {
 		TreeMap<Date, StockActivity> stockEntries = new TreeMap<Date, StockActivity>();
 
 		/*
@@ -313,7 +327,7 @@ public class CapitalGainsCalculator {
 		long totalStock = 0;
 
 		for (Entry entry2 : account.getEntries()) {
-			if (entry2.getCommodityInternal() == stock) {
+			if (entry2.getCommodityInternal() == stock && !entry2.getTransaction().getDate().after(dateOfTaxableEvent)) {
 				// Have an acquisition or disposal of this stock
 
 				long currencyAmount2 = 0;

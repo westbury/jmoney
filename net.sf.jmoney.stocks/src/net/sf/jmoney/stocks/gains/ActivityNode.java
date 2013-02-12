@@ -8,12 +8,12 @@ public abstract class ActivityNode {
 
 	private ActivityKey key;
 
-	/** 
+	/**
 	 * quantity of security purchased or sold, never zero or negative
 	 */
 	long quantity;
 
-	/** 
+	/**
 	 * cost of or proceeds from security purchased or sold, never zero or negative
 	 */
 	long cost;
@@ -28,7 +28,7 @@ public abstract class ActivityNode {
 	 * of the stock quantity of a purchase that has been matched to
 	 * a sale.
 	 * <P>
-	 * This field is not applicable if the node is not a purchase (or a short sale). 
+	 * This field is not applicable if the node is not a purchase (or a short sale).
 	 */
 	public long securityAmountMatched = 0;
 
@@ -38,10 +38,10 @@ public abstract class ActivityNode {
 	/**
 	 * Create a node that represents a purchase (if quantity is positive and amount is negative)
 	 * or a sale (if quantity is negative and amount is positive) of the security.
-	 * 
+	 *
 	 * @param purchaseQuantity
-	 * @param newStockBalance 
-	 * @param saleProceeds 
+	 * @param newStockBalance
+	 * @param saleProceeds
 	 */
 	public ActivityNode(Date date, long newStockBalance) {
 		this.key = new ActivityKey(date, this.getOrderSequence());
@@ -49,7 +49,7 @@ public abstract class ActivityNode {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param quantityMatched the quantity which has been matched, always positive regardless
 	 * 			of whether this is a purchase and a sale is being matched to it or this
 	 * 			is a short sale and a purchase is being matched to it
@@ -84,5 +84,25 @@ public abstract class ActivityNode {
 
 	public ActivityKey getKey() {
 		return key;
+	}
+
+	@Override
+	public String toString() {
+		StringBuffer buffer = new StringBuffer()
+		.append("Quantity: ").append(quantity).append("/n")
+		.append("Cost: ").append(cost).append("/n")
+		.append("New Balance: ").append(newBalance).append("/n")
+		.append("Amount Matched: ").append(securityAmountMatched).append("/n");
+
+		buffer.append("Previous Nodes: ");
+		for (ActivityNode node : previousNodes) {
+			buffer.append(node.getKey().toString()).append(",");
+		}
+		buffer.append("/nNext Nodes: ");
+		for (ActivityNode node : nextNodes) {
+			buffer.append(node.getKey().toString()).append(",");
+		}
+
+		return buffer.toString();
 	}
 }
