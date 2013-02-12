@@ -24,6 +24,7 @@ package net.sf.jmoney.stocks;
 
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
+import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.Stock;
 import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.pages.StockDetailsEditor;
@@ -73,7 +74,7 @@ public class ShowStockDetailsHandler extends AbstractHandler {
 		return null;
 	}
 
-	public static void showStockDetails(AccountEditor editor, Stock stock) throws PartInitException {
+	public static void showStockDetails(AccountEditor editor, Security stock) throws PartInitException {
 		/*
 		 * This may not be the best way.  Inputs are not set for the editors within
 		 * the multi-page editor, so they all match the input for the containing editor.

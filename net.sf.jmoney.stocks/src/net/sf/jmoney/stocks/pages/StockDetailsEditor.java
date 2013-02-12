@@ -118,11 +118,11 @@ public class StockDetailsEditor extends EditorPart {
 	/**
 	 * The stock being shown in this page.
 	 */
-	private final Stock stock;
+	private final Security stock;
 
 	private EntriesTable<StockEntryData> fEntriesControl;
 
-	public StockDetailsEditor(Stock stock) {
+	public StockDetailsEditor(Security stock) {
 		this.stock = stock;
 	}
 
@@ -323,7 +323,7 @@ public class StockDetailsEditor extends EditorPart {
 						/*
 						 * We have to find the appropriate entry in the transaction that contains
 						 * the stock.
-						 * 
+						 *
 						 * - If this is a purchase or sale, then the stock will be set as the commodity
 						 * for one of the entries.  We find this entry.
 						 * - If this is a dividend payment then the stock will be set as an additional
@@ -389,7 +389,7 @@ public class StockDetailsEditor extends EditorPart {
 						/*
 						 * If the user changes the transaction type, the stock control remains
 						 * the same as it was in the previous transaction type.
-						 * 
+						 *
 						 * For example, suppose an entry is a purchase of stock in Foo company.
 						 * The user changes the entry to a dividend.  The entry will then
 						 * be a dividend from stock in Foo company.  The user changes the stock
@@ -1173,7 +1173,7 @@ public class StockDetailsEditor extends EditorPart {
 	 * if an editor page already exists for a stock.  There may be another
 	 * way of doing this, perhaps by setting the stock through an editor input.
 	 */
-	public Stock getStock() {
+	public Security getStock() {
 		return stock;
 	}
 }

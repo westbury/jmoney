@@ -37,10 +37,9 @@ import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.stocks.ShowStockDetailsHandler;
+import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.Stock;
 import net.sf.jmoney.stocks.model.StockAccount;
-import net.sf.jmoney.stocks.model.StockEntry;
-import net.sf.jmoney.stocks.model.StockEntryInfo;
 import net.sf.jmoney.views.AccountEditor;
 import net.sf.jmoney.views.AccountEditorInput;
 
@@ -91,16 +90,16 @@ public class StockBalancesEditor extends EditorPart {
 	private StockAccount account;
 
 	private class StockWrapper {
-		private final Stock stock;
+		private final Security stock;
 		public long total = 0;
 
-		public StockWrapper(Stock stock) {
+		public StockWrapper(Security stock) {
 			this.stock = stock;
 		}
 
 	}
 
-	private Map<Stock, StockWrapper> totals;
+	private Map<Security, StockWrapper> totals;
 
 	private TableViewer balancesViewer;
 
@@ -285,21 +284,19 @@ public class StockBalancesEditor extends EditorPart {
 	private void calculateTotals() {
 		Date asOf = balanceDateControl.getDate();
 
-		totals = new HashMap<Stock, StockWrapper>();
+		totals = new HashMap<Security, StockWrapper>();
 
 		for (Entry entry : account.getEntries()) {
-			if (!entry.getTransaction().getDate().after(asOf)) {
-				StockEntry entry2 = entry.getExtension(StockEntryInfo.getPropertySet(), false);
-				if (entry2 != null && entry2.getCommodity() instanceof Stock) {
-					Stock stock = (Stock)entry2.getCommodity();
-					StockWrapper stockWrapper = totals.get(stock);
-					if (stockWrapper == null) {
-						stockWrapper = new StockWrapper(stock);
-						totals.put(stock, stockWrapper);
-					}
-
-					stockWrapper.total += entry.getAmount();
+			if (!entry.getTransaction().getDate().after(asOf)
+					 && entry.getCommodity() instanceof Security) {
+				Security security = (Security)entry.getCommodity();
+				StockWrapper securityWrapper = totals.get(security);
+				if (securityWrapper == null) {
+					securityWrapper = new StockWrapper(security);
+					totals.put(security, securityWrapper);
 				}
+
+				securityWrapper.total += entry.getAmount();
 			}
 		}
 
@@ -418,7 +415,7 @@ public class StockBalancesEditor extends EditorPart {
 			IStructuredSelection selection = (IStructuredSelection)selectionProvider.getSelection();
 			Object element = selection.getFirstElement();
 			if (element instanceof StockWrapper) {
-				Stock stock = ((StockWrapper)element).stock;
+				Security stock = ((StockWrapper)element).stock;
 				try {
 					ShowStockDetailsHandler.showStockDetails(accountEditor, stock);
 				} catch (PartInitException e) {
