@@ -50,6 +50,9 @@ public class StockEntriesPage implements IBookkeepingPageFactory {
 		IEditorPart balancesEditor = new StockBalancesEditor(editor);
 		editor.addPage(balancesEditor, "Balances");
 		
+		IEditorPart gainsEditor = new StockGainsEditor(editor);
+		editor.addPage(gainsEditor, "Gains & Losses");
+		
 		AccountEditorInput input2 = (AccountEditorInput)input;
 		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)editor.getSite().getPage().getInput();
 
