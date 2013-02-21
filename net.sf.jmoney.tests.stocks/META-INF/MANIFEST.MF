@@ -1,0 +1,12 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Stocks
+Bundle-SymbolicName: net.sf.jmoney.tests.stocks
+Bundle-Version: 1.0.0.qualifier
+Require-Bundle: org.eclipse.core.runtime,
+ org.junit4;bundle-version="4.8.0",
+ net.sf.jmoney,
+ net.sf.jmoney.serializeddatastore
+Fragment-Host: net.sf.jmoney.stocks
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
