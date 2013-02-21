@@ -51,7 +51,7 @@ import org.eclipse.swt.widgets.Composite;
 /**
  * This class implements an extension to the net.sf.jmoney.fields
  * extension point.  It registers the StockAccount model class.
- * 
+ *
  * @author Nigel Westbury
  */
 public class StockAccountInfo implements IPropertySetInfo {
@@ -205,9 +205,9 @@ public class StockAccountInfo implements IPropertySetInfo {
 		currencyAccessor             = propertySet.addProperty("currency",             StocksPlugin.getResourceString("PropertyDesc.currency"),             Currency.class,             2, 20, currencyControlFactory,             null);
 		brokerageFirmAccessor        = propertySet.addProperty("brokerageFirm",        StocksPlugin.getResourceString("PropertyDesc.brokerageFirm"),        String.class,               5, 30, textControlFactory,                 null);
 		accountNumberAccessor        = propertySet.addProperty("accountNumber",        StocksPlugin.getResourceString("PropertyDesc.accountNumber"),        String.class,               2, 30, textControlFactory,                 null);
-		dividendAccountAccessor      = propertySet.addProperty("DividendAccount",      StocksPlugin.getResourceString("PropertyDesc.dividendAccount"),      IncomeExpenseAccount.class, 2, 80, dividendAccountControlFactory,      null);
-		withholdingTaxAccountAccessor= propertySet.addProperty("WithholdingTaxAccount",StocksPlugin.getResourceString("PropertyDesc.withholdingTaxAccount"),IncomeExpenseAccount.class, 2, 80, withholdingTaxAccountControlFactory,null);
-		commissionAccountAccessor    = propertySet.addProperty("CommissionAccount",    StocksPlugin.getResourceString("PropertyDesc.commissionAccount"),    IncomeExpenseAccount.class, 2, 80, commissionAccountControlFactory,    null);
+		dividendAccountAccessor      = propertySet.addProperty("dividendAccount",      StocksPlugin.getResourceString("PropertyDesc.dividendAccount"),      IncomeExpenseAccount.class, 2, 80, dividendAccountControlFactory,      null);
+		withholdingTaxAccountAccessor= propertySet.addProperty("withholdingTaxAccount",StocksPlugin.getResourceString("PropertyDesc.withholdingTaxAccount"),IncomeExpenseAccount.class, 2, 80, withholdingTaxAccountControlFactory,null);
+		commissionAccountAccessor    = propertySet.addProperty("commissionAccount",    StocksPlugin.getResourceString("PropertyDesc.commissionAccount"),    IncomeExpenseAccount.class, 2, 80, commissionAccountControlFactory,    null);
 		buyCommissionRatesAccessor   = propertySet.addProperty("buyCommissionRates",   StocksPlugin.getResourceString("PropertyDesc.buyCommissionRates"),   RatesTable.class,           1, 100,ratesControlFactory,                null);
 		sellCommissionRatesAccessor  = propertySet.addProperty("sellCommissionRates",  StocksPlugin.getResourceString("PropertyDesc.sellCommissionRates"),  RatesTable.class,           1, 100,ratesControlFactory,                null);
 		tax1NameAccessor             = propertySet.addProperty("tax1Name",             StocksPlugin.getResourceString("PropertyDesc.tax1Name"),             String.class,               2, 50, textControlFactory,                 null);

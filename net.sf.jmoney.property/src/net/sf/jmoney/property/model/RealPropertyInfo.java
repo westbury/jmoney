@@ -41,7 +41,7 @@ import net.sf.jmoney.property.StocksPlugin;
  * The class descriptor for the RealProperty class.
  * <P>
  * @author Nigel Westbury
- * 
+ *
  */
 public class RealPropertyInfo implements IPropertySetInfo {
 
@@ -53,8 +53,8 @@ public class RealPropertyInfo implements IPropertySetInfo {
 
 		public RealProperty construct(IObjectKey objectKey,	ListKey<? super RealProperty,?> parentKey, IValues<RealProperty> values) {
 			return new RealProperty(
-					objectKey, 
-					parentKey, 
+					objectKey,
+					parentKey,
 					values.getScalarValue(CommodityInfo.getNameAccessor()),
 					values.getReferencedObjectKey(RealPropertyInfo.getRentalIncomeAccountAccessor()),
 					values);
@@ -72,7 +72,7 @@ public class RealPropertyInfo implements IPropertySetInfo {
 			}
 		};
 
-		rentalIncomeAccountAccessor = propertySet.addProperty("RentalIncomeAccount", StocksPlugin.getResourceString("PropertyDesc.dividendAccount"), IncomeExpenseAccount.class, 2, 80, rentalIncomeAccountControlFactory, null);
+		rentalIncomeAccountAccessor = propertySet.addProperty("rentalIncomeAccount", StocksPlugin.getResourceString("PropertyDesc.dividendAccount"), IncomeExpenseAccount.class, 2, 80, rentalIncomeAccountControlFactory, null);
 
 		return propertySet;
 	}
@@ -96,5 +96,5 @@ public class RealPropertyInfo implements IPropertySetInfo {
 	 */
 	public static ReferencePropertyAccessor<IncomeExpenseAccount,RealProperty> getRentalIncomeAccountAccessor() {
 		return rentalIncomeAccountAccessor;
-	}	
+	}
 }
