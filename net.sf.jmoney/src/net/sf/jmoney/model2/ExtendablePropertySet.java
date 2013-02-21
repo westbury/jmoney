@@ -33,6 +33,8 @@ import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ListKey;
 
+import org.eclipse.core.databinding.beans.BeanProperties;
+import org.eclipse.core.databinding.property.value.IValueProperty;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.ISharedImages;
@@ -47,7 +49,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	 * or null if this is an abstract property set.
 	 */
 	IExtendableObjectConstructors<E> constructors;
-	
+
 	/**
 	 * true if further property sets must be derived from this property set,
 	 * false if property sets cannot be derived from this property set.
@@ -61,9 +63,9 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	 */
 	private Map<Class<? extends E>, ExtendablePropertySet<? extends E>> derivedPropertySets = new HashMap<Class<? extends E>, ExtendablePropertySet<? extends E>>();
 
-	private Collection<ExtendablePropertySet<? extends E>> directlyDerivedPropertySets = new Vector<ExtendablePropertySet<? extends E>>(); 
-	
-	Map<String, ExtensionPropertySet<?,E>> extensionPropertySets = null;  
+	private Collection<ExtendablePropertySet<? extends E>> directlyDerivedPropertySets = new Vector<ExtendablePropertySet<? extends E>>();
+
+	Map<String, ExtensionPropertySet<?,E>> extensionPropertySets = null;
 
 	/**
 	 * Localized text describing the type of object represented
@@ -104,7 +106,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 
 	/**
 	 * Constructs a property set object.
-	 * 
+	 *
 	 * @param classOfObject
 	 *            the class of the implementation object
 	 * @param objectDescription
@@ -123,7 +125,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 		this.classOfObject = classOfObject;
 		this.basePropertySet = basePropertySet;
 		this.constructors = constructors;
-		
+
 		this.derivable = (constructors == null);
 		this.objectDescription = objectDescription;
 		this.iconImageDescriptor = null;
@@ -134,7 +136,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	@Override
 	public void initProperties(String propertySetId) {
 		super.initProperties(propertySetId);
-		
+
 		// Add to our map that maps ids to ExtendablePropertySet objects.
 		allExtendablePropertySetsMap.put(propertySetId, this);
 
@@ -172,7 +174,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 		 * set. However, icons also apply to derived property sets for which no
 		 * icon has been set. So, if the icon is null, go up the list of base
 		 * property sets until we find a non-null icon.
-		 * 
+		 *
 		 * This must be done here and not in the constructor because the calling
 		 * code must have a chance to set an icon before this code is executed.
 		 */
@@ -191,26 +193,26 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 		for (ExtendablePropertySet base = getBasePropertySet(); base != null; base = base.getBasePropertySet()) {
 			scalarIndex += base.getScalarProperties2().size();
 		}
-		
+
 		for (ScalarPropertyAccessor propertyAccessor: getScalarProperties2()) {
 			propertyAccessor.setIndexIntoScalarProperties(scalarIndex++);
 		}
 
-		
+
 	}
-	
+
 	/**
 	 * Gets the set of all property sets that are directly derived from this
 	 * property set. This set does not include property sets that are derived
 	 * from property sets that are in turn derived from this property set. This
 	 * set includes both property sets that are derivable and property sets that
 	 * are final.
-	 * 
+	 *
 	 * This method is useful when the caller needs to know the actual tree
 	 * structure of the derived property sets or needs to know about the
 	 * intermediate (non-final) property sets. Callers generally would call this
 	 * method in a recursive manner.
-	 * 
+	 *
 	 * If a caller just needs a list of the final property sets,
 	 * getDerivedPropertySets() is simpler to use.
 	 */
@@ -219,7 +221,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	}
 
 	/**
-	 * 
+	 *
 	 * @return the set of all property sets
 	 * 				that are derived from this property set and
 	 * 				that are themselves not derivable
@@ -238,7 +240,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	 * property set that is not derived from this property set then null will be
 	 * returned. The advantage of using this method is that the returned
 	 * property set is parameterized with &lt;? extends E>.
-	 * @throws PropertySetNotFoundException 
+	 * @throws PropertySetNotFoundException
 	 */
 	public ExtendablePropertySet<? extends E> getDerivedPropertySet(String propertySetId) throws PropertySetNotFoundException {
 		for (ExtendablePropertySet<? extends E> propertySet : derivedPropertySets.values()) {
@@ -248,7 +250,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 		}
 		throw new PropertySetNotFoundException(propertySetId);
 	}
-	
+
 	/**
 	 * Given a class of an object, returns the property
 	 * set for that object.  The class passed to this method
@@ -257,10 +259,10 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	 * extended from the implementation class.  The class must be
 	 * a final class (i.e. a class of an actual object instance,
 	 * not an abstract class).
-	 * 
+	 *
 	 * If this property set is a final property set then this
 	 * method will always return this object.
-	 *  
+	 *
 	 * @return the final property set
 	 */
 	@Override
@@ -269,7 +271,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	}
 
 	/**
-	 * 
+	 *
 	 * @return If this property set is derived from another property
 	 * 			set then the base property set is returned, otherwise
 	 * 			null is returned.
@@ -302,7 +304,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	 * If no icon is set then the icon for the base class will be
 	 * used or, if there is no base class, no icon will be shown
 	 * for objects of this class.
-	 *   
+	 *
 	 * @param iconImageDescriptor
 	 */
 	public void setIcon(ImageDescriptor iconImageDescriptor) {
@@ -317,7 +319,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	 * must be created by UI thread.
 	 * <P>
 	 * This method is valid for extendable property sets only.
-	 * 
+	 *
 	 * @return the icon associated with objects that implement
 	 * 			this property set.
 	 */
@@ -355,7 +357,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	 * possible.  We therefore allow local names only to be specified.
 	 * Local names may not be unique when extensions are included, so we
 	 * must require fully qualified names for extensions.
-	 * 
+	 *
 	 * @param name The local property name
 	 */
 	public PropertyAccessor getPropertyAccessorGivenLocalNameAndExcludingExtensions(String localPropertyName) throws PropertyNotFoundException {
@@ -379,7 +381,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	 * <P>
 	 * Properties from base property sets and properties from derived property
 	 * sets are not returned.
-	 * 
+	 *
 	 * @return a collection of <code>PropertyAccessor</code> objects
 	 */
 	private Collection<PropertyAccessor> getProperties2() {
@@ -409,7 +411,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	 * <P>
 	 * Properties from base property sets and properties from derived property
 	 * sets are not returned.
-	 * 
+	 *
 	 * @return a collection of <code>PropertyAccessor</code> objects
 	 */
 	public Collection<ScalarPropertyAccessor<?,E>> getScalarProperties2() {
@@ -439,7 +441,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	 * <P>
 	 * Properties from base property sets and properties from derived property
 	 * sets are not returned.
-	 * 
+	 *
 	 * @return a collection of <code>PropertyAccessor</code> objects
 	 */
 	public Collection<ListPropertyAccessor> getListProperties2() {
@@ -551,39 +553,39 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	 * <P>
 	 * Note:
 	 * This method does not return derived property sets.
-	 * This method does not return property sets that extend any 
+	 * This method does not return property sets that extend any
 	 * property sets from which this property set is derived.
-	 *  
+	 *
 	 * @return the extension property sets that extend this property
 	 * 			set
 	 */
 	public Collection<ExtensionPropertySet<?,E>> getDirectExtensionPropertySets() {
 		return extensionPropertySets.values();
 	}
-	
+
 	/**
 	 * Gets a list of all property sets that extend the given property set.
 	 * Property sets that extend any base property sets are also included.
-	 * 
+	 *
 	 * Note: This method does not return derived property sets.
-	 * 
+	 *
 	 * @return the extension property sets that extend this property set
 	 */
 	public Collection<ExtensionPropertySet<?,? super E>> getExtensionPropertySets() {
 		Collection<ExtensionPropertySet<?,? super E>> result = new ArrayList<ExtensionPropertySet<?,? super E>>();
-	
+
 		ExtendablePropertySet<? super E> propertySet = this;
 		do {
 			result.addAll(propertySet.extensionPropertySets.values());
 			propertySet = propertySet.getBasePropertySet();
 		} while (propertySet != null);
-		
+
 		return result;
 	}
-	
+
 	/**
 	 * This method should be used only by plug-ins that implement a datastore.
-	 * 
+	 *
 	 * @param objectKey
 	 *            key to the object, which cannot be null
 	 * @param parentKey
@@ -603,7 +605,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	/**
 	 * This method should be used only by plug-ins that implement
 	 * a datastore.
-	 * 
+	 *
 	 * @return A newly constructed object, constructed from the given
 	 * 		parameters.  This object may be an ExtendableObject or
 	 * 		may be an ExtensionObject.
@@ -612,17 +614,17 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	public E constructDefaultImplementationObject(IObjectKey objectKey, ListKey<? super E,?> parentKey) {
 		return constructors.construct(objectKey, parentKey);
 	}
-	
+
 	/**
 	 * Returns the set of tabbed pages that are to be shown in the
 	 * editor associated with extendable objects of this property set.
 	 * <P>
 	 * This method is valid only for non-derivable extendable property sets.
-	 * 
+	 *
 	 * @return a set of objects of type PageEntry
 	 */
 	public Vector<PageEntry> getPageFactories() {
-		return pageExtensions;		
+		return pageExtensions;
 	}
 
 
@@ -644,7 +646,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	/**
 	 * Utility method to find a property among all properties supported
 	 * by objects of this class.
-	 * 
+	 *
 	 * @param scalarPropertyId
 	 * @return
 	 */
@@ -660,7 +662,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	/**
 	 * Utility method to find a property among all properties supported
 	 * by objects of this class.
-	 * 
+	 *
 	 * @param listPropertyId
 	 * @return
 	 */
@@ -679,29 +681,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	}
 
 	@Override
-	public <V> V getPropertyValue(ExtendableObject extendableObject,
-			ScalarPropertyAccessor<V, ?> accessor) {
-
-		if (!classOfObject.isAssignableFrom(extendableObject.getClass())) {
-			// TODO: We should be able to validate this at compile time using generics.
-			// This would involve adding the implementation class of the containing
-			// property set as a type parameter to all property accessors.
-			throw new RuntimeException("Property " + accessor.getName() //$NON-NLS-1$
-					+ " is implemented by " + classOfObject.getName() //$NON-NLS-1$
-					+ " but is being called on an object of type " //$NON-NLS-1$
-					+ getClass().getName());
-		}
-		
-//		return accessor.invokeGetMethod(extendableObject);
-//		return accessor.getValue(extendableObject);
-		// revert to above line when parameterized
-		return accessor.getClassOfValueObject().cast(accessor.getBeanValue(extendableObject));
-	}
-
-	@Override
-	public <V> void setPropertyValue(ExtendableObject extendableObject,
-			ScalarPropertyAccessor<V, ?> accessor, V value) {
-//		accessor.invokeSetMethod(extendableObject, value);
-		accessor.setBeanValue(extendableObject, value);
+	public IValueProperty createValueProperty(ScalarPropertyAccessor accessor) {
+		return BeanProperties.value(classOfObject, accessor.localName);
 	}
 }

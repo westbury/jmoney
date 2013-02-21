@@ -5,7 +5,6 @@ import java.util.Comparator;
 
 import net.sf.jmoney.isolation.IScalarPropertyAccessor;
 
-import org.eclipse.core.databinding.beans.BeanProperties;
 import org.eclipse.core.databinding.observable.Realm;
 import org.eclipse.core.databinding.observable.list.IObservableList;
 import org.eclipse.core.databinding.observable.map.IObservableMap;
@@ -21,10 +20,10 @@ import org.eclipse.swt.widgets.Composite;
 public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends PropertyAccessor<E> implements IScalarPropertyAccessor<V,E> {
 
 	private IValueProperty valueProperty;
-	
-	private int weight;    
 
-	private int minimumWidth;    
+	private int weight;
+
+	private int minimumWidth;
 
 	private boolean sortable;
 
@@ -57,7 +56,7 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	private Comparator<ExtendableObject> parentComparator;
 
 	private IPropertyDependency<? super E> dependency;
-	
+
 	public ScalarPropertyAccessor(Class<V> classOfValueObject, PropertySet<?,E> propertySet, String localName, String displayName, int weight, int minimumWidth, final IPropertyControlFactory<V> propertyControlFactory, IPropertyDependency<? super E> propertyDependency) {
 		super(propertySet, localName, displayName);
 
@@ -69,12 +68,12 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 
 		Class implementationClass = propertySet.getImplementationClass();
 
-		if (classOfValueObject.isPrimitive()) {		
+		if (classOfValueObject.isPrimitive()) {
 			throw new MalformedPluginException("Property '" + localName + "' in '" + implementationClass.getName() + "' has been parameterized by a primitive type (" + classOfValueObject.getName() + ").  Although primitive types may be used by the getters and setters, the equivalent object classes must be used for parameterization."); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
 		}
-		
-		valueProperty = BeanProperties.value(localName, propertySet.getImplementationClass());
-		
+
+		valueProperty = propertySet.createValueProperty(this);
+
 		Method theGetMethod;
 		// Use introspection on the interface to find the getter method.
 		// Following the Java beans pattern, we allow the getter for a
@@ -136,7 +135,7 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 
 		/*
 		 * Set the comparator, if any.
-		 * 
+		 *
 		 * If this object has been given a comparator to compare the values of
 		 * the properties, then return a comparator that compares the parent
 		 * objects by getting the property value from each parent and comparing
@@ -168,7 +167,7 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	 * This weight indicates how much the property
 	 * can benefit from being given excess width.  For example
 	 * a property containing a description can benefit, whereas
-	 * a property containing a date cannot. 
+	 * a property containing a date cannot.
 	 */
 	public int getWeight() {
 		return weight;
@@ -176,7 +175,7 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 
 	/**
 	 * The minimum width to be used when this property is displayed
-	 * in a table or a grid.  
+	 * in a table or a grid.
 	 */
 	public int getMinimumWidth() {
 		return minimumWidth;
@@ -191,7 +190,7 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 
 	/**
 	 * Indicates whether the property may take null values.
-	 * 
+	 *
 	 * All properties may take null values except properties whose values are
 	 * the intrinsic types (int, long, boolean, char).  Properties of type Integer,
 	 * Long, Boolean, and Character may take null values.
@@ -203,22 +202,22 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	/**
 	 * The default value for a property is suitable for uses such
 	 * as:
-	 * 
+	 *
 	 * - setting the default columnn value in a database
 	 * - providing values when the value is missing from an
 	 * 		XML file
-	 * 
+	 *
 	 * It is expected that this value is constant (the same value
 	 * is always returned for a given property).  The results will
 	 * be unpredicable if this is not the case.
-	 * 
+	 *
 	 * @return the default value to use for this property, which may
 	 * 		be null if the property is of a nullable type
 	 */
 	public V getDefaultValue() {
 		return propertyControlFactory.getDefaultValue();
 	}
-	
+
 	/**
 	 * Indicates whether the property may be edited by the user.
 	 */
@@ -231,7 +230,7 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	 * of this property.  This method looks to the comparator, if any, provided by
 	 * the IPropertyControlFactory implementation.  The ordering is thus defined by the
 	 * plug-in that added this property.
-	 * 
+	 *
 	 * @return a comparator, or null if no comparator was provided
 	 * 		for use with this property
 	 */
@@ -243,7 +242,7 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 		String methodName = prefix
 			+ propertyName.toUpperCase().charAt(0)
 			+ propertyName.substring(1, propertyName.length());
-		
+
 		try {
 			return getDeclaredMethodRecursively(propertySet.getImplementationClass(), methodName, parameters);
 		} catch (NoSuchMethodException e) {
@@ -268,12 +267,12 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	}
 
 	/**
-	 * Gets a method from an interface.  
+	 * Gets a method from an interface.
 	 * Whereas Class.getDeclaredMethod finds a method from an
 	 * interface, it will not find the method if the method is
 	 * defined in an interface which the given interface extends.
 	 * This method will find the method if any of the interfaces
-	 * extended by this interface define the method. 
+	 * extended by this interface define the method.
 	 */
 	@SuppressWarnings("unchecked")
 	private Method getDeclaredMethodRecursively(Class implementationClass, String methodName, Class[] arguments)
@@ -286,13 +285,13 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 				classToTry = classToTry.getSuperclass();
 			}
 		} while (classToTry != null);
-		
+
 		throw new NoSuchMethodException();
 	}
-	
+
 	/**
 	 * Create a Control object that edits the property.
-	 * 
+	 *
 	 * @param parent
 	 * @return An interface to a wrapper class.
 	 */
@@ -326,7 +325,7 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 		// We call into that factory to obtain the property value
 		// and format it.
 
-		// If null or the empty string is returned to us, 
+		// If null or the empty string is returned to us,
 		// change to "empty".
 		String formattedValue = propertyControlFactory.formatValueForMessage(object, this);
 		return (formattedValue == null || formattedValue.length() == 0)
@@ -336,11 +335,11 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	/**
 	 * Format the value of a property as appropriate for displaying in a
 	 * table.
-	 * 
+	 *
 	 * The returned value is expected to be displayed in a table or some similar
 	 * view.  Null and empty values are therefore returned as empty strings.
 	 * Text values are not quoted.
-	 * 
+	 *
 	 * @return The value of the property formatted as appropriate.
 	 */
 	public String formatValueForTable(ExtendableObject object) {
@@ -371,7 +370,7 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	 * the getter method returns int, long, boolean, or char then this
 	 * method will return Integer.class, Long.class, Boolean.class, or
 	 * Character.class.
-	 * 
+	 *
 	 * @return the class of the property values (if the method signatures show int,
 	 * long, boolean, or char, this field will be Integer.class, Long.class,
 	 * Boolean.class, or Character.class)
@@ -384,7 +383,7 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	/**
 	 * Returns the class for the values of this property. This is the
 	 * class that is returned by the getter method.
-	 * 
+	 *
 	 * @return the class of the property values (if the method signatures show int,
 	 * long, boolean, or char, this field will be int.class, long.class,
 	 * boolean.class, or char.class)
@@ -409,18 +408,18 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	 * i.e. if this method returns n then in every case where the
 	 * collection returned by getPropertyIterator_Scalar3 contains this property,
 	 * this property will be returned as the (n+1)'th element in the collection.
-	 * 
+	 *
 	 * @return the index of this property in the list of scalar
 	 * 			properties for the class.  This method returns zero
 	 * 			for the first scalar property returned by
-	 * 			PropertySet.getPropertyIterator3() and so on. 
+	 * 			PropertySet.getPropertyIterator3() and so on.
 	 */
 	@Override
 	public int getIndexIntoScalarProperties() {
 		return indexIntoScalarProperties;
 	}
 
-	// TODO: This method should be accessible only from within the package. 
+	// TODO: This method should be accessible only from within the package.
 	public void setIndexIntoScalarProperties(int indexIntoScalarProperties) {
 		this.indexIntoScalarProperties = indexIntoScalarProperties;
 	}
@@ -429,10 +428,10 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	 * Indicates if this property is applicable.  An instance of an object
 	 * containing this property is passed.  This method should look to the values
 	 * of the other properties in the object to determine if this property is applicable.
-	 * 
+	 *
 	 * If the property is not applicable then the UI should not show a value for this
 	 * property nor allow it to be updated.
-	 * 
+	 *
 	 * @return
 	 */
 	public boolean isPropertyApplicable(E containingObject) {
@@ -444,11 +443,11 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	}
 
 	public V getValue(E extendableObject) {
-		return propertySet.getPropertyValue(extendableObject, this);
+		return (V)valueProperty.getValue(extendableObject);
 	}
-	
+
 	public void setValue(E extendableObject, V value) {
-		propertySet.setPropertyValue(extendableObject, this, value);
+		valueProperty.setValue(extendableObject, value);
 	}
 
 	public <V2> ScalarPropertyAccessor<? super V2, E> typeIfGivenValue(
@@ -468,8 +467,7 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	// TODO remove this untyped version when generics is in IValueProperty
 	@Override
 	public Object getValue(Object source) {
-		return propertySet.getPropertyValue((ExtendableObject)source, this);
-//		return valueProperty.getValue(source);
+		return valueProperty.getValue(source);
 	}
 
 	// TODO remove this untyped version when generics is in IValueProperty
@@ -479,15 +477,6 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 
 	@Override
 	public void setValue(Object source, Object value) {
-//		This is incorrect.  We must support IValueProperty implementations that
-//		go to an extension object.
-//		valueProperty.setValue(source, value);
-		propertySet.setPropertyValue((ExtendableObject)source, this, (V)value);
-	}
-
-	public void setBeanValue(Object source, Object value) {
-//		This is incorrect.  We must support IValueProperty implementations that
-//		go to an extension object.
 		valueProperty.setValue(source, value);
 	}
 
