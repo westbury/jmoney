@@ -44,17 +44,17 @@ import org.eclipse.swt.widgets.Control;
  *
  * @author Johann Gyger
  */
-public class DateEditor implements IPropertyControl<ExtendableObject> {
+public class DateEditor<S extends ExtendableObject> implements IPropertyControl<S> {
 
-    protected ScalarPropertyAccessor<Date,?> propertyAccessor;
+    protected ScalarPropertyAccessor<Date,S> propertyAccessor;
     protected DateControl propertyControl;
-    protected ExtendableObject extendableObject;
+    protected S extendableObject;
 
     private SessionChangeListener dateChangeListener = new SessionChangeAdapter() {
 		@Override
 		public void objectChanged(IModelObject changedObject, IScalarPropertyAccessor changedProperty, Object oldValue, Object newValue) {
 			if (changedObject.equals(extendableObject) && changedProperty == propertyAccessor) {
-	            Date date = extendableObject.getPropertyValue(propertyAccessor);
+	            Date date = propertyAccessor.getValue(extendableObject);
 	            propertyControl.setDate(date);
 			}
 		}
@@ -63,7 +63,7 @@ public class DateEditor implements IPropertyControl<ExtendableObject> {
 	/**
      * Create a new date editor.
      */
-    public DateEditor(final Composite parent, ScalarPropertyAccessor<Date,?> propertyAccessor) {
+    public DateEditor(final Composite parent, ScalarPropertyAccessor<Date,S> propertyAccessor) {
         this.propertyAccessor = propertyAccessor;
         
 		Font font = parent.getFont();
@@ -85,7 +85,7 @@ public class DateEditor implements IPropertyControl<ExtendableObject> {
      * @see net.sf.jmoney.model2.IPropertyControl#load(net.sf.jmoney.model2.ExtendableObject)
      */
     @Override
-	public void load(ExtendableObject object) {
+	public void load(S object) {
     	if (extendableObject != null) {
     		extendableObject.getDataManager().removeChangeListener(dateChangeListener);
     	}
@@ -94,7 +94,7 @@ public class DateEditor implements IPropertyControl<ExtendableObject> {
     	if (object == null) {
     		propertyControl.setDate(null);
     	} else {
-            Date d = object.getPropertyValue(propertyAccessor);
+            Date d = propertyAccessor.getValue(object);
     		propertyControl.setDate(d);
 
     		// Listen for changes to the session data.
@@ -109,7 +109,7 @@ public class DateEditor implements IPropertyControl<ExtendableObject> {
      */
     @Override
 	public void save() {
-        extendableObject.setPropertyValue(propertyAccessor, propertyControl.getDate());
+    	propertyAccessor.setValue(extendableObject, propertyControl.getDate());
     }
 
     /* (non-Javadoc)

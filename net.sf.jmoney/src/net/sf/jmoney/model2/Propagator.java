@@ -187,7 +187,7 @@ public class Propagator {
 		}
 	}
 	
-	public static synchronized void fireAdaptors(ExtendableObject source, ScalarPropertyAccessor<?,?> propertyAccessor) {
+	public static synchronized <S extends ExtendableObject> void fireAdaptors(S source, ScalarPropertyAccessor<?,? super S> propertyAccessor) {
 		// We must be very careful when firing propagators.  Propagators usually work two-way,
 		// with updates to one property being reflected in another property and updates
 		// to the other property being reflected in the first property.  There may be
@@ -232,7 +232,7 @@ public class Propagator {
 
 			if (updatedProperties.contains(propertyAccessor)) {
 				// Actually should not be a runtime exception
-				throw new InconsistentCircularPropagatorsException(propertyAccessor.getName(), source.getPropertyValue(propertyAccessor));
+				throw new InconsistentCircularPropagatorsException(propertyAccessor.getName(), propertyAccessor.getValue(source));
 			}
 
 			// Add this property to the set of properties that have been changed.
@@ -247,7 +247,8 @@ public class Propagator {
 					Object[] parameters = new Object[3];
 					parameters[0] = propertyAccessor.getLocalName();
 					parameters[1] = source.getExtension(sourcePropertySet, true);
-					parameters[2] = source.getExtension(destinationPropertySet, true);				try {
+					parameters[2] = source.getExtension(destinationPropertySet, true);
+					try {
 						// Kludge.  When properties are being loaded from file, the objects
 						// are not the mutable versions.  Therefore when we obtain the
 						// destination extension, it may be null.  We do nothing in this
@@ -266,7 +267,7 @@ public class Propagator {
 						}
 						if (e.getCause() instanceof InconsistentCircularPropagatorsException) {
 							InconsistentCircularPropagatorsException exception = (InconsistentCircularPropagatorsException)e.getCause();
-							throw new InconsistentCircularPropagatorsException(propertyAccessor.getName(), source.getPropertyValue(propertyAccessor), exception);  
+							throw new InconsistentCircularPropagatorsException(propertyAccessor.getName(), propertyAccessor.getValue(source), exception);  
 						} else {
 							// TODO: Figure out what to do here
 							e.printStackTrace();

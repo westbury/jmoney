@@ -91,18 +91,18 @@ public class MemoPatternInfo implements IPropertySetInfo {
 
 	@Override
 	public ExtendablePropertySet<MemoPattern> registerProperties() {
-		IPropertyControlFactory<Integer> integerControlFactory = new IntegerControlFactory();
+		IPropertyControlFactory<MemoPattern,Integer> integerControlFactory = new IntegerControlFactory<MemoPattern>();
 
-		IPropertyControlFactory<String> textControlFactory = new TextControlFactory();
+		IPropertyControlFactory<MemoPattern,String> textControlFactory = new TextControlFactory<MemoPattern>();
 
-		IReferenceControlFactory<MemoPattern,Account> accountControlFactory = new AccountControlFactory<MemoPattern,Account>() {
+		IReferenceControlFactory<MemoPattern,MemoPattern,Account> accountControlFactory = new AccountControlFactory<MemoPattern,MemoPattern,Account>() {
 			@Override
 			public IObjectKey getObjectKey(MemoPattern parentObject) {
 				return parentObject.accountKey;
 			}
 		};
 
-		IReferenceControlFactory<MemoPattern,Currency> currencyControlFactory = new CurrencyControlFactory<MemoPattern>() {
+		IReferenceControlFactory<MemoPattern,MemoPattern,Currency> currencyControlFactory = new CurrencyControlFactory<MemoPattern,MemoPattern>() {
 			@Override
 			public IObjectKey getObjectKey(MemoPattern parentObject) {
 				return parentObject.incomeExpenseCurrencyKey;

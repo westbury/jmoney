@@ -40,12 +40,13 @@ import org.eclipse.ui.application.WorkbenchAdvisor;
 
 /**
  * The "main program" for JMoney RCP.
- * 
+ *
  * @author Nigel Westbury
  * @author Johann Gyger
  */
 public class JMoneyApplication implements IApplication {
 
+	@Override
 	public Object start(IApplicationContext context) throws Exception {
         Display display = PlatformUI.createDisplay();
 
@@ -72,9 +73,10 @@ public class JMoneyApplication implements IApplication {
         }
 	}
 
+	@Override
 	public void stop() {
 		// TODO Auto-generated method stub
-		
+
 	}
 
     private void initializeInstanceLocation(Shell shell) {

@@ -28,7 +28,6 @@ import net.sf.jmoney.isolation.SessionChangeAdapter;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.CurrencyAccount;
 import net.sf.jmoney.model2.CurrencyAccountInfo;
-import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
@@ -40,11 +39,11 @@ import org.eclipse.swt.widgets.Composite;
  * @author Nigel Westbury
  * @author Johann Gyger
  */
-public class AmountInCurrencyAccountControlFactory extends AmountControlFactory {
+public class AmountInCurrencyAccountControlFactory<S extends CurrencyAccount> extends AmountControlFactory<S> {
 
     @Override
-	public IPropertyControl createPropertyControl(Composite parent, ScalarPropertyAccessor<Long,?> propertyAccessor) {
-    	final AmountEditor editor = new AmountEditor(parent, propertyAccessor, this);
+	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<Long,S> propertyAccessor) {
+    	final AmountEditor<S> editor = new AmountEditor<S>(parent, propertyAccessor, this);
         
         editor.setListener(new SessionChangeAdapter() {
 		    @Override	
@@ -59,8 +58,8 @@ public class AmountInCurrencyAccountControlFactory extends AmountControlFactory 
     }
 
     @Override	
-    protected Commodity getCommodity(ExtendableObject object) {
-    	return ((CurrencyAccount) object).getCurrency();
+    protected Commodity getCommodity(CurrencyAccount object) {
+    	return object.getCurrency();
     }
 
     @Override	

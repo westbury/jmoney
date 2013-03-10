@@ -66,7 +66,7 @@ public class RealPropertyInfo implements IPropertySetInfo {
 
 	public PropertySet registerProperties() {
 
-		IReferenceControlFactory<RealProperty,IncomeExpenseAccount> rentalIncomeAccountControlFactory = new AccountControlFactory<RealProperty,IncomeExpenseAccount>() {
+		IReferenceControlFactory<RealProperty,RealProperty,IncomeExpenseAccount> rentalIncomeAccountControlFactory = new AccountControlFactory<RealProperty,RealProperty,IncomeExpenseAccount>() {
 			public IObjectKey getObjectKey(RealProperty parentObject) {
 				return parentObject.rentalIncomeAccountKey;
 			}

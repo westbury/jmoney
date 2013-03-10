@@ -50,7 +50,7 @@ public class CommodityInfo implements IPropertySetInfo {
 
 	@Override
 	public PropertySet registerProperties() {
-		IPropertyControlFactory<String> textControlFactory = new TextControlFactory();
+		IPropertyControlFactory<Commodity,String> textControlFactory = new TextControlFactory<Commodity>();
 		
 		nameAccessor = propertySet.addProperty("name", Messages.CommodityInfo_Name, String.class, 3, 150, textControlFactory, null); //$NON-NLS-1$
 

@@ -35,20 +35,20 @@ import net.sf.jmoney.resources.Messages;
  * The data model for an entry.
  */
 public final class Entry extends ExtendableObject {
-	
+
 	protected long creation = Calendar.getInstance().getTime().getTime();
-	
+
 	protected String check = null;
-	
+
 	protected Date valuta = null;
-	
+
 	/**
 	 * Element: Account
 	 */
 	protected IObjectKey accountKey = null;
-	
+
 	protected long amount = 0;
-	
+
 	/**
 	 * The currency or commodity represented by the amount in this entry,
 	 * which may be null only if the account contains only a single currency
@@ -56,18 +56,18 @@ public final class Entry extends ExtendableObject {
 	 * <P>
 	 * Element: Commodity
 	 */
-	protected IObjectKey commodityKey = null; 
-	
+	protected IObjectKey commodityKey = null;
+
 	protected String memo = null;
-	
+
 	/**
 	 * Applicable only if the account is an IncomeExpenseAccount
 	 * and the multi-currency property in the account is set.
 	 * <P>
 	 * Element: Currency
 	 */
-	protected IObjectKey incomeExpenseCurrencyKey = null; 
-	
+	protected IObjectKey incomeExpenseCurrencyKey = null;
+
     /**
      * Constructor used by datastore plug-ins to create
      * an entry object.
@@ -77,13 +77,13 @@ public final class Entry extends ExtendableObject {
      * null account is set.  It is the callers responsibility
      * to ensure that an account is set before it relinquishes
      * control to other plug-ins.
-     *  
+     *
      * @param parent The key to a Transaction object.
      * 		This parameter must be non-null.
      * 		The getObject method must not be called on this
      * 		key from within this constructor because the
      * 		key may not yet be in a state in which it is
-     * 		capable of materializing an object.   
+     * 		capable of materializing an object.
      */
 	public Entry(
 			IObjectKey objectKey,
@@ -96,9 +96,9 @@ public final class Entry extends ExtendableObject {
     		IObjectKey commodityKey,
     		long       creation,
     		IObjectKey incomeExpenseCurrencyKey,
-    		IValues extensionValues) {
+    		IValues<Entry> extensionValues) {
 		super(objectKey, parentKey, extensionValues);
-		
+
 		if (creation == 0) {
 			this.creation = Calendar.getInstance().getTime().getTime();
 		} else {
@@ -112,7 +112,7 @@ public final class Entry extends ExtendableObject {
 		this.memo = memo;
 		this.incomeExpenseCurrencyKey = incomeExpenseCurrencyKey;
 	}
-	
+
     /**
      * Constructor used by datastore plug-ins to create
      * an entry object.
@@ -122,19 +122,19 @@ public final class Entry extends ExtendableObject {
      * null account is set.  It is the callers responsibility
      * to ensure that an account is set before it relinquishes
      * control to other plug-ins.
-     *  
+     *
      * @param parent The key to a Transaction object.
      * 		This parameter must be non-null.
      * 		The getObject method must not be called on this
      * 		key from within this constructor because the
      * 		key may not yet be in a state in which it is
-     * 		capable of materializing an object.   
+     * 		capable of materializing an object.
      */
 	public Entry(
 			IObjectKey objectKey,
 			ListKey parentKey) {
 		super(objectKey, parentKey);
-		
+
 		this.creation = Calendar.getInstance().getTime().getTime();
 		this.check = null;
 		this.valuta = null;
@@ -145,11 +145,11 @@ public final class Entry extends ExtendableObject {
 		this.incomeExpenseCurrencyKey = null;
 	}
 
-    @Override	
+    @Override
 	protected String getExtendablePropertySetId() {
 		return "net.sf.jmoney.entry"; //$NON-NLS-1$
 	}
-	
+
 	/**
 	 * Returns the transaction.
 	 */
@@ -163,21 +163,21 @@ public final class Entry extends ExtendableObject {
 	public long getCreation() {
 		return creation;
 	}
-	
+
 	/**
 	 * Returns the check.
 	 */
 	public String getCheck() {
 		return check;
 	}
-	
+
 	/**
 	 * Returns the valuta.
 	 */
 	public Date getValuta() {
 		return valuta;
 	}
-	
+
 	/**
 	 * Returns the account.
 	 */
@@ -188,7 +188,7 @@ public final class Entry extends ExtendableObject {
 			return (Account)accountKey.getObject();
 		}
 	}
-	
+
 	/**
 	 * Returns the currency in which the amount in this entry is denominated.
 	 * This property is applicable if and only if the account for this entry
@@ -205,7 +205,7 @@ public final class Entry extends ExtendableObject {
 
 	/**
 	 * returns the other account of the transaction associated with this
-	 * entry. If the transaction is a splitted one, there are several "other 
+	 * entry. If the transaction is a splitted one, there are several "other
 	 * accounts", and the returned value is "null".
 	 */
 	public Account getOtherAccount () {
@@ -213,7 +213,7 @@ public final class Entry extends ExtendableObject {
 			return getTransaction().getOther(this).getAccount();
 		} else {
 			return null;
-		}                    
+		}
 	}
 
 	public String getFullAccountName() {
@@ -230,16 +230,16 @@ public final class Entry extends ExtendableObject {
 			return Messages.Entry_SplitEntry;
 		} else {
 			return null;
-		}                    
+		}
 	}
-	
+
 	/**
 	 * Returns the amount.
 	 */
 	public long getAmount() {
 		return amount;
 	}
-	
+
 	/**
 	 * Returns the commodity in which the amount in this entry is denominated.
 	 * This property may be null only if the account contains only a single
@@ -271,40 +271,40 @@ public final class Entry extends ExtendableObject {
 			return getAccount().getCommodity(this);
 		}
 	}
-	
+
 	/**
 	 * Sets the creation.
 	 */
 	public void setCreation(long aCreation) {
 		long oldCreation = this.creation;
 		creation = aCreation;
-		
+
 		// Notify the change manager.
 		processPropertyChange(EntryInfo.getCreationAccessor(), new Long(oldCreation), new Long(creation));
 	}
-	
+
 	/**
 	 * Sets the check.
 	 */
 	public void setCheck(String aCheck) {
 		String oldCheck = this.check;
 		check = (aCheck != null && aCheck.length() == 0) ? null : aCheck;
-		
+
 		// Notify the change manager.
 		processPropertyChange(EntryInfo.getCheckAccessor(), oldCheck, check);
 	}
-	
+
 	/**
 	 * Sets the valuta.
 	 */
 	public void setValuta(Date aValuta) {
 		Date oldValuta = this.valuta;
 		valuta = aValuta;
-		
+
 		// Notify the change manager.
 		processPropertyChange(EntryInfo.getValutaAccessor(), oldValuta, valuta);
 	}
-	
+
 	/**
 	 * Sets the account.
 	 */
@@ -313,7 +313,7 @@ public final class Entry extends ExtendableObject {
 			accountKey == null
 			? null
 					: (Account)accountKey.getObject();
-		
+
 		// TODO: This is not efficient.  Better would be to pass
 		// an object key as the old value to the property change
 		// method.  Then the object is materialized only if
@@ -322,37 +322,37 @@ public final class Entry extends ExtendableObject {
 		// the setting of it because code may potentially need to do this
 		// in order to, say, delete the account before the new account
 		// of the entry is known.
-		accountKey = 
+		accountKey =
 			newAccount == null
 			? null
 					: newAccount.getObjectKey();
-		
+
 		// Notify the change manager.
 		processPropertyChange(EntryInfo.getAccountAccessor(), oldAccount, newAccount);
 	}
-	
+
 	/**
 	 * Sets the amount.
 	 */
 	public void setAmount(long anAmount) {
 		long oldAmount = this.amount;
 		amount = anAmount;
-		
+
 		// Notify the change manager.
 		processPropertyChange(EntryInfo.getAmountAccessor(), oldAmount, amount);
 	}
-	
+
 	/**
 	 * Sets the memo.
 	 */
 	public void setMemo(String aMemo) {
 		String oldMemo = this.memo;
 		this.memo = (aMemo != null && aMemo.length() == 0) ? null : aMemo;
-		
+
 		// Notify the change manager.
 		processPropertyChange(EntryInfo.getMemoAccessor(), oldMemo, memo);
 	}
-	
+
 	/**
 	 * Sets the currency in which the amount in this entry is denominated.
 	 * This property is applicable if and only if the account for this entry
@@ -364,7 +364,7 @@ public final class Entry extends ExtendableObject {
 			commodityKey == null
 			? null
 					: (Commodity)commodityKey.getObject();
-		
+
 		// TODO: This is not efficient.  Better would be to pass
 		// an object key as the old value to the property change
 		// method.  Then the object is materialized only if
@@ -373,8 +373,8 @@ public final class Entry extends ExtendableObject {
 			commodity == null
 			? null
 					: commodity.getObjectKey();
-		
-		
+
+
 		// Notify the change manager.
 		processPropertyChange(EntryInfo.getCommodityAccessor(), oldCommodity, commodity);
 	}
@@ -390,7 +390,7 @@ public final class Entry extends ExtendableObject {
 			incomeExpenseCurrencyKey == null
 			? null
 					: (Currency)incomeExpenseCurrencyKey.getObject();
-		
+
 		// TODO: This is not efficient.  Better would be to pass
 		// an object key as the old value to the property change
 		// method.  Then the object is materialized only if
@@ -399,8 +399,8 @@ public final class Entry extends ExtendableObject {
 			incomeExpenseCurrency == null
 			? null
 					: incomeExpenseCurrency.getObjectKey();
-		
-		
+
+
 		// Notify the change manager.
 		processPropertyChange(EntryInfo.getIncomeExpenseCurrencyAccessor(), oldIncomeExpenseCurrency, incomeExpenseCurrency);
 	}

@@ -50,11 +50,11 @@ import org.eclipse.swt.widgets.Control;
  * @author Nigel Westbury
  * @author Johann Gyger
  */
-public class CurrencyEditor implements IPropertyControl<ExtendableObject> {
+public class CurrencyEditor<S extends ExtendableObject> implements IPropertyControl<S> {
 
-    private ExtendableObject extendableObject;
+    private S extendableObject;
 
-    private ScalarPropertyAccessor<Currency,?> currencyPropertyAccessor;
+    private ScalarPropertyAccessor<Currency,S> currencyPropertyAccessor;
 
     private CCombo propertyControl;
 
@@ -62,7 +62,7 @@ public class CurrencyEditor implements IPropertyControl<ExtendableObject> {
      * @param propertyAccessor the accessor for the property to be edited
      * 			by this control.  The property must be of type Currency.
      */
-    public CurrencyEditor(Composite parent, ScalarPropertyAccessor<Currency,?> propertyAccessor) {
+    public CurrencyEditor(Composite parent, ScalarPropertyAccessor<Currency,S> propertyAccessor) {
         propertyControl = new CCombo(parent, 0);
         this.currencyPropertyAccessor = propertyAccessor;
 
@@ -97,13 +97,13 @@ public class CurrencyEditor implements IPropertyControl<ExtendableObject> {
      * Load the control with the value from the given model object.
      */
     @Override
-	public void load(ExtendableObject extendableObject) {
+	public void load(S extendableObject) {
     	this.extendableObject = extendableObject;
     	
     	if (extendableObject == null) {
             propertyControl.setText(""); //$NON-NLS-1$
     	} else {
-            Currency currency = extendableObject.getPropertyValue(currencyPropertyAccessor);
+            Currency currency = currencyPropertyAccessor.getValue(extendableObject);
             // Currency should not be null, but check in case of incomplete data.
             // TODO: clean this up when we know the policy on invalid data in the
             // datastore.
@@ -147,7 +147,7 @@ public class CurrencyEditor implements IPropertyControl<ExtendableObject> {
         String currencyName = propertyControl.getText();
         for (Commodity commodity: extendableObject.getSession().getCommodityCollection()) {
             if (commodity instanceof Currency && commodity.getName().equals(currencyName)) {
-                extendableObject.setPropertyValue(currencyPropertyAccessor, (Currency) commodity);
+            	currencyPropertyAccessor.setValue(extendableObject, (Currency) commodity);
             }
         }
     }

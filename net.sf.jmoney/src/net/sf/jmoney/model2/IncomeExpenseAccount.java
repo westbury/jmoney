@@ -37,30 +37,30 @@ import net.sf.jmoney.resources.Messages;
 public class IncomeExpenseAccount extends Account {
 
 	protected IListManager<IncomeExpenseAccount> subAccounts;
-	
+
 	/**
 	 * True if the entries in this account can be in any account,
 	 * false if all the entries must be in the same currency
 	 * (in which case the currency property must be set).
 	 */
 	private boolean multiCurrency = true;
-	
+
 	/**
 	 * The currency in which all entries in this account are denominated.
 	 * This property is not applicable if multiCurrency is true.
 	 */
 	protected IObjectKey currencyKey = null;
-	
+
 	private String fullAccountName = null;
 
 	public IncomeExpenseAccount(
-			IObjectKey objectKey, 
+			IObjectKey objectKey,
 			ListKey parent,
 			String name,
 			IListManager<IncomeExpenseAccount> subAccounts,
 			boolean multiCurrency,
 			IObjectKey currencyKey,
-			IValues extensionValues) { 
+			IValues<IncomeExpenseAccount> extensionValues) {
 		super(objectKey, parent, name, extensionValues);
 
 		this.subAccounts = subAccounts;
@@ -69,19 +69,19 @@ public class IncomeExpenseAccount extends Account {
 	}
 
 	public IncomeExpenseAccount(
-			IObjectKey objectKey, 
-			ListKey parentKey) { 
+			IObjectKey objectKey,
+			ListKey parentKey) {
 		super(objectKey, parentKey);
 		this.name = Messages.IncomeExpenseAccount_Name;
 		this.subAccounts = objectKey.constructListManager(IncomeExpenseAccountInfo.getSubAccountAccessor());
 	}
 
-    @Override	
+    @Override
 	protected String getExtendablePropertySetId() {
 		return "net.sf.jmoney.category"; //$NON-NLS-1$
 	}
-	
-    @Override	
+
+    @Override
 	public String getFullAccountName() {
 		if (fullAccountName == null) {
 			fullAccountName = name;
@@ -97,7 +97,7 @@ public class IncomeExpenseAccount extends Account {
 	// TODO: use debugger to see if this version is called
 	// when the Method object references the version in the
 	// abstract base class.  If not then this is broke.
-    @Override	
+    @Override
 	public void setName(String name) {
 		super.setName(name);
 		fullAccountName = null;
@@ -106,13 +106,13 @@ public class IncomeExpenseAccount extends Account {
 	public boolean isMultiCurrency() {
 		return multiCurrency;
 	}
-	
+
 	public Currency getCurrency() {
 		return currencyKey == null
 		? null
 				: (Currency)currencyKey.getObject();
 	}
-	
+
 	public void setMultiCurrency(boolean multiCurrency) {
         boolean oldMultiCurrency = this.multiCurrency;
 		this.multiCurrency = multiCurrency;
@@ -124,8 +124,8 @@ public class IncomeExpenseAccount extends Account {
  * It is upto the user to ensure the properties are set to valid values.  We really need
  * to get the dependency code working, so the currency property is properly indicated
  * as being appropriate only if not multi-currency.
- * 
-		// When turning off multi-currency, we must set an appropriate 
+ *
+		// When turning off multi-currency, we must set an appropriate
 		// currency.
 		if (!multiCurrency && currencyKey == null) {
 			// TODO: Look at the entries in the account and set the
@@ -133,13 +133,13 @@ public class IncomeExpenseAccount extends Account {
 			// For time being, set to default currency.
 			currencyKey = getSession().getDefaultCurrency().getObjectKey();
 		}
-*/		
+*/
 		// Notify the change manager.
 		processPropertyChange(IncomeExpenseAccountInfo.getMultiCurrencyAccessor(), new Boolean(oldMultiCurrency), new Boolean(multiCurrency));
-		
-		
+
+
 	}
-	
+
 	public void setCurrency(Currency currency) {
         Currency oldCurrency = getCurrency();
 		this.currencyKey = currency.getObjectKey();
@@ -147,11 +147,11 @@ public class IncomeExpenseAccount extends Account {
 		// Notify the change manager.
 		processPropertyChange(IncomeExpenseAccountInfo.getCurrencyAccessor(), oldCurrency, currency);
 	}
-	
+
 	/**
 	 * @return Commodity represented by the amount in the given entry
 	 */
-    @Override	
+    @Override
 	public Commodity getCommodity(Entry entry) {
 		// Income and expense accounts may be either single currency or
 		// multiple currency.
@@ -163,14 +163,14 @@ public class IncomeExpenseAccount extends Account {
 		}
 	}
 
-    @Override	
+    @Override
 	public ObjectCollection<IncomeExpenseAccount> getSubAccountCollection() {
 		return new ObjectCollection<IncomeExpenseAccount>(subAccounts, this, IncomeExpenseAccountInfo.getSubAccountAccessor());
 	}
 
 	/**
 	 * Creates an sub-income/expense category to this income/expense category.
-	 * 
+	 *
 	 * @return a new sub-account
 	 */
     public IncomeExpenseAccount createSubAccount() {

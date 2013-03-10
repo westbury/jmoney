@@ -35,19 +35,19 @@ import net.sf.jmoney.isolation.ListKey;
 public abstract class Commodity extends ExtendableObject implements Comparable<Commodity>, IAmountFormatter {
 
 	private String name;
-	
+
 	protected Commodity(
-			IObjectKey objectKey, 
+			IObjectKey objectKey,
 			ListKey parentKey,
 			String name,
-			IValues extensionValues) { 
+			IValues<? extends Commodity> extensionValues) {
 		super(objectKey, parentKey, extensionValues);
 		this.name = name;
 	}
-	
+
 protected Commodity(
-		IObjectKey objectKey, 
-		ListKey parentKey) { 
+		IObjectKey objectKey,
+		ListKey parentKey) {
 	super(objectKey, parentKey);
 	this.name = null;
 }
@@ -58,7 +58,7 @@ protected Commodity(
 	public String getName() {
 		return name;
 	}
-	
+
 	public void setName(String name) {
         String oldName = this.name;
 		this.name = name;
@@ -79,7 +79,7 @@ protected Commodity(
 	public int compareTo(Commodity other) {
 		return name.compareToIgnoreCase(other.name);
 	}
-	
+
     /**
      * Converts an amount of this commodity from string to integer
      * format.
@@ -90,17 +90,17 @@ protected Commodity(
      */
 	@Override
 	public abstract long parse(String amountString);
-    
+
     /**
      * Converts an amount of this commodity from integer to string format.
      */
 	@Override
 	public abstract String format(long amount);
-    
+
 	/**
 	 * Although one normally uses the parse and format methods, this method
 	 * is useful when dividing one commodity quantity by another.
-	 * 
+	 *
 	 * @return the scale factor for this currency (10 to the number of decimals).
 	 */
 	public abstract short getScaleFactor();

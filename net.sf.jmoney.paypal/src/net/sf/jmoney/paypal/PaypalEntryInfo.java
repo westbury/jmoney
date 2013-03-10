@@ -79,8 +79,8 @@ public class PaypalEntryInfo implements IPropertySetInfo {
 	
 	@Override
 	public PropertySet<PaypalEntry,Entry> registerProperties() {
-		IPropertyControlFactory<String> textPropertyControlFactory = new TextControlFactory();
-		IPropertyControlFactory<URL> urlPropertyControlFactory = new UrlControlFactory();
+		IPropertyControlFactory<Entry,String> textPropertyControlFactory = new TextControlFactory<Entry>();
+		IPropertyControlFactory<Entry,URL> urlPropertyControlFactory = new UrlControlFactory<Entry>();
 		
 		merchantEmailAccessor = propertySet.addProperty("merchantEmail", "Merchant E-Mail", String.class, 0, 80, textPropertyControlFactory, null);
 		itemUrlAccessor = propertySet.addProperty("itemUrl", "Item URL", URL.class, 0, 100, urlPropertyControlFactory, null);

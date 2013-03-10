@@ -23,7 +23,6 @@
 package net.sf.jmoney.reconciliation;
 
 import net.sf.jmoney.model2.Entry;
-import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
@@ -36,22 +35,22 @@ import org.eclipse.swt.widgets.Control;
 /**
  * Note that this class has neither get/set methods for the value being edited
  * and no support for property change listeners.  This is
- * because objects of this class are tied to an CapitalAccount object.  
+ * because objects of this class are tied to an CapitalAccount object.
  * Changes to this
- * object are reflected by this object in the CapitalAccount class objects.  
+ * object are reflected by this object in the CapitalAccount class objects.
  * Consumers who are interested in changes to the CapitalAccount class objects should
  * add themselves as listeners to the appropriate PropertyAccessor object.
  *
  * @author Nigel Westbury
  * @author Johann Gyger
  */
-public class StatusEditor implements IPropertyControl<ExtendableObject> {
+public class StatusEditor implements IPropertyControl<Entry> {
 
     private CCombo propertyControl;
 
     private Entry entry = null;
 
-    /** 
+    /**
      * @param propertyAccessor the accessor for the property to be edited
      * 			by this control.  This property accessor will always be the
      * 			'status' property in the ReconciliationEntry propery set.
@@ -60,7 +59,7 @@ public class StatusEditor implements IPropertyControl<ExtendableObject> {
         propertyControl = new CCombo(parent, 0);
 
         propertyControl.setItems(items);
-        		
+
         // Selection changes are reflected immediately in the
         // datastore.
 
@@ -78,14 +77,12 @@ public class StatusEditor implements IPropertyControl<ExtendableObject> {
     /**
      * Load the control with the value from the given entry.
      */
-    public void load(ExtendableObject object) {
+    public void load(Entry object) {
     	if (object != null) {
-    		entry = (Entry)object;
-    		
-    		int status = object.getPropertyValue(ReconciliationEntryInfo.getStatusAccessor());
+     		int status = ReconciliationEntryInfo.getStatusAccessor().getValue(object);
    			propertyControl.select(status);
     	}
-    	
+
     	propertyControl.setEnabled(object != null);
     }
 
@@ -106,7 +103,7 @@ public class StatusEditor implements IPropertyControl<ExtendableObject> {
     public void save() {
         int index = propertyControl.getSelectionIndex();
         if (index != -1) {
-        	entry.setPropertyValue(ReconciliationEntryInfo.getStatusAccessor(), index);
+        	ReconciliationEntryInfo.getStatusAccessor().setValue(entry, index);
         }
     }
 

@@ -99,35 +99,35 @@ public class PaypalAccountInfo implements IPropertySetInfo {
     @Override
 	public ExtendablePropertySet<PaypalAccount> registerProperties() {
     	
-        IReferenceControlFactory<PaypalAccount,BankAccount> bankAccountControlFactory = new AccountControlFactory<PaypalAccount,BankAccount>() {
+        IReferenceControlFactory<PaypalAccount,PaypalAccount,BankAccount> bankAccountControlFactory = new AccountControlFactory<PaypalAccount,PaypalAccount,BankAccount>() {
 			@Override
 			public IObjectKey getObjectKey(PaypalAccount parentObject) {
 				return parentObject.transferBankAccountKey;
 			}
 		};
 		
-        IReferenceControlFactory<PaypalAccount,BankAccount> creditCardAccountControlFactory = new AccountControlFactory<PaypalAccount,BankAccount>() {
+        IReferenceControlFactory<PaypalAccount,PaypalAccount,BankAccount> creditCardAccountControlFactory = new AccountControlFactory<PaypalAccount,PaypalAccount,BankAccount>() {
 			@Override
 			public IObjectKey getObjectKey(PaypalAccount parentObject) {
 				return parentObject.transferCreditCardAccountKey;
 			}
 		};
 		
-        IReferenceControlFactory<PaypalAccount,IncomeExpenseAccount> saleAndPurchaseAccountControlFactory = new AccountControlFactory<PaypalAccount,IncomeExpenseAccount>() {
+        IReferenceControlFactory<PaypalAccount,PaypalAccount,IncomeExpenseAccount> saleAndPurchaseAccountControlFactory = new AccountControlFactory<PaypalAccount,PaypalAccount,IncomeExpenseAccount>() {
 			@Override
 			public IObjectKey getObjectKey(PaypalAccount parentObject) {
 				return parentObject.saleAndPurchaseAccountKey;
 			}
 		};
 		
-        IReferenceControlFactory<PaypalAccount,IncomeExpenseAccount> paypalFeesAccountControlFactory = new AccountControlFactory<PaypalAccount,IncomeExpenseAccount>() {
+        IReferenceControlFactory<PaypalAccount,PaypalAccount,IncomeExpenseAccount> paypalFeesAccountControlFactory = new AccountControlFactory<PaypalAccount,PaypalAccount,IncomeExpenseAccount>() {
 			@Override
 			public IObjectKey getObjectKey(PaypalAccount parentObject) {
 				return parentObject.paypalFeesAccountKey;
 			}
 		};
 		
-        IReferenceControlFactory<PaypalAccount,IncomeExpenseAccount> donationAccountControlFactory = new AccountControlFactory<PaypalAccount,IncomeExpenseAccount>() {
+        IReferenceControlFactory<PaypalAccount,PaypalAccount,IncomeExpenseAccount> donationAccountControlFactory = new AccountControlFactory<PaypalAccount,PaypalAccount,IncomeExpenseAccount>() {
 			@Override
 			public IObjectKey getObjectKey(PaypalAccount parentObject) {
 				return parentObject.donationAccountKey;

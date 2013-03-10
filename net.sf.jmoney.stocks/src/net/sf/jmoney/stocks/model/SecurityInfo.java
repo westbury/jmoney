@@ -46,7 +46,7 @@ public class SecurityInfo implements IPropertySetInfo {
 	@Override
 	public PropertySet registerProperties() {
 
-		IPropertyControlFactory<String> textControlFactory = new TextControlFactory();
+		IPropertyControlFactory<Security,String> textControlFactory = new TextControlFactory<Security>();
 
 		cusipAccessor = propertySet.addProperty("cusip", StocksPlugin.getResourceString("PropertyDesc.cusip"), String.class, 2, 20, textControlFactory, null);
 		symbolAccessor = propertySet.addProperty("symbol", StocksPlugin.getResourceString("PropertyDesc.symbol"), String.class, 2, 20, textControlFactory, null);

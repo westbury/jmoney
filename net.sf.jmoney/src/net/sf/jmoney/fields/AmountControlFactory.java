@@ -34,11 +34,11 @@ import net.sf.jmoney.resources.Messages;
  * @author Nigel Westbury
  * @author Johann Gyger
  */
-public abstract class AmountControlFactory extends PropertyControlFactory<Long> {
+public abstract class AmountControlFactory<S extends ExtendableObject> extends PropertyControlFactory<S,Long> {
 
     @Override	
-    public String formatValueForMessage(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends Long,?> propertyAccessor) {
-        Long amount = extendableObject.getPropertyValue(propertyAccessor);
+    public String formatValueForMessage(S extendableObject, ScalarPropertyAccessor<? extends Long,S> propertyAccessor) {
+        Long amount = propertyAccessor.getValue(extendableObject);
         if (amount == null) {
             return Messages.AmountControlFactory_None;
         } else {
@@ -47,8 +47,8 @@ public abstract class AmountControlFactory extends PropertyControlFactory<Long> 
     }
 
     @Override	
-    public String formatValueForTable(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends Long,?> propertyAccessor) {
-        Long amount = extendableObject.getPropertyValue(propertyAccessor);
+    public String formatValueForTable(S extendableObject, ScalarPropertyAccessor<? extends Long,S> propertyAccessor) {
+        Long amount = propertyAccessor.getValue(extendableObject);
         if (amount == null) {
             return ""; //$NON-NLS-1$
         } else {
@@ -73,5 +73,5 @@ public abstract class AmountControlFactory extends PropertyControlFactory<Long> 
 		return true;
 	}
 
-	protected abstract Commodity getCommodity(ExtendableObject object);
+	protected abstract Commodity getCommodity(S object);
 }

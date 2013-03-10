@@ -35,15 +35,15 @@ import org.eclipse.swt.widgets.Composite;
 /**
  * A control factory to edit date values.
  */
-public class UrlControlFactory implements IPropertyControlFactory<URL> {
+public class UrlControlFactory<S extends ExtendableObject> implements IPropertyControlFactory<S,URL> {
 
-    public IPropertyControl<ExtendableObject> createPropertyControl(Composite parent, ScalarPropertyAccessor<URL,?> propertyAccessor) {
-        return new UrlEditor(parent, propertyAccessor);
+    public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<URL,S> propertyAccessor) {
+        return new UrlEditor<S>(parent, propertyAccessor);
     }
 
-    public String formatValueForMessage(ExtendableObject extendableObject,
-            ScalarPropertyAccessor<? extends URL,?> propertyAccessor) {
-        URL value = extendableObject.getPropertyValue(propertyAccessor);
+    public String formatValueForMessage(S extendableObject,
+            ScalarPropertyAccessor<? extends URL,S> propertyAccessor) {
+        URL value = propertyAccessor.getValue(extendableObject);
         if (value == null) {
             return "none";
         } else {
@@ -51,9 +51,9 @@ public class UrlControlFactory implements IPropertyControlFactory<URL> {
         }
     }
 
-    public String formatValueForTable(ExtendableObject extendableObject,
-            ScalarPropertyAccessor<? extends URL,?> propertyAccessor) {
-        URL value = extendableObject.getPropertyValue(propertyAccessor);
+    public String formatValueForTable(S extendableObject,
+            ScalarPropertyAccessor<? extends URL,S> propertyAccessor) {
+        URL value = propertyAccessor.getValue(extendableObject);
         return value.toExternalForm();
     }
 

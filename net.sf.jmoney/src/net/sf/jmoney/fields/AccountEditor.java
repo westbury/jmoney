@@ -50,11 +50,11 @@ import org.eclipse.swt.widgets.Control;
  * @author Nigel Westbury
  * @author Johann Gyger
  */
-public class AccountEditor<A extends Account> implements IPropertyControl<ExtendableObject> {
+public class AccountEditor<S extends ExtendableObject, A extends Account> implements IPropertyControl<S> {
 
-    private ExtendableObject extendableObject;
+    private S extendableObject;
 
-    private ScalarPropertyAccessor<A,?> accountPropertyAccessor;
+    private ScalarPropertyAccessor<A,S> accountPropertyAccessor;
 
     private AccountControl<A> propertyControl;
 
@@ -62,7 +62,7 @@ public class AccountEditor<A extends Account> implements IPropertyControl<Extend
 		@Override
 		public void objectChanged(IModelObject changedObject, IScalarPropertyAccessor changedProperty, Object oldValue, Object newValue) {
 			if (changedObject.equals(extendableObject) && changedProperty == accountPropertyAccessor) {
-		    	A account = extendableObject.getPropertyValue(accountPropertyAccessor);
+		    	A account = accountPropertyAccessor.getValue(extendableObject);
 		        propertyControl.setAccount(account);
 			}
 		}
@@ -85,7 +85,7 @@ public class AccountEditor<A extends Account> implements IPropertyControl<Extend
      * 			of the appropriate type.
      * @param session the session whose accounts are listed in the combo box
      */
-    public AccountEditor(Composite parent, ScalarPropertyAccessor<A,?> propertyAccessor) {
+    public AccountEditor(Composite parent, ScalarPropertyAccessor<A,S> propertyAccessor) {
         propertyControl = new AccountControl<A>(parent, null, propertyAccessor.getClassOfValueObject());
         this.accountPropertyAccessor = propertyAccessor;
 
@@ -130,7 +130,7 @@ public class AccountEditor<A extends Account> implements IPropertyControl<Extend
      * Load the control with the value from the given account.
      */
     @Override
-	public void load(ExtendableObject object) {
+	public void load(S object) {
     	if (extendableObject != null) {
     		extendableObject.getDataManager().removeChangeListener(amountChangeListener);
     	}
@@ -146,7 +146,7 @@ public class AccountEditor<A extends Account> implements IPropertyControl<Extend
 
     		propertyControl.setSession(object.getSession(), accountPropertyAccessor.getClassOfValueObject());
 
-    		A account = object.getPropertyValue(accountPropertyAccessor);
+    		A account = accountPropertyAccessor.getValue(object);
     		propertyControl.setAccount(account);
     	} else {
     		// Disable the control.  How this is done exactly depends on where the
@@ -171,7 +171,7 @@ public class AccountEditor<A extends Account> implements IPropertyControl<Extend
     @Override
 	public void save() {
         A account = propertyControl.getAccount();
-       	extendableObject.setPropertyValue(accountPropertyAccessor, account);
+        accountPropertyAccessor.setValue(extendableObject, account);
     }
 
     /* (non-Javadoc)

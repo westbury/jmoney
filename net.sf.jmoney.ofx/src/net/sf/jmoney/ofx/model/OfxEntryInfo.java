@@ -25,7 +25,6 @@ package net.sf.jmoney.ofx.model;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.ExtensionPropertySet;
 import net.sf.jmoney.model2.IExtensionObjectConstructors;
 import net.sf.jmoney.model2.IPropertyControl;
@@ -67,15 +66,15 @@ public class OfxEntryInfo implements IPropertySetInfo {
 	private static ScalarPropertyAccessor<String,Entry> fitidAccessor = null;
 	
 	@Override
-	public PropertySet registerProperties() {
-		class NonEditableTextControlFactory extends PropertyControlFactory<String> {
+	public PropertySet<OfxEntry,Entry> registerProperties() {
+		class NonEditableTextControlFactory extends PropertyControlFactory<Entry,String> {
 			
 			@Override
-			public IPropertyControl createPropertyControl(Composite parent, final ScalarPropertyAccessor<String,?> propertyAccessor) {
+			public IPropertyControl<Entry> createPropertyControl(Composite parent, final ScalarPropertyAccessor<String,Entry> propertyAccessor) {
 				
 				// Property is not editable
 		        final Label control = new Label(parent, SWT.NONE);
-		        return new IPropertyControl<ExtendableObject>() {
+		        return new IPropertyControl<Entry>() {
 
 					@Override
 					public Control getControl() {
@@ -83,8 +82,8 @@ public class OfxEntryInfo implements IPropertySetInfo {
 					}
 
 					@Override
-					public void load(ExtendableObject object) {
-						String text = object.getPropertyValue(propertyAccessor);
+					public void load(Entry object) {
+						String text = propertyAccessor.getValue(object);
 						if (text == null) {
 							control.setText("");
 						} else {
@@ -103,14 +102,14 @@ public class OfxEntryInfo implements IPropertySetInfo {
 			}
 
 			@Override
-			public String formatValueForMessage(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends String,?> propertyAccessor) {
-				String value = extendableObject.getPropertyValue(propertyAccessor);
+			public String formatValueForMessage(Entry extendableObject, ScalarPropertyAccessor<? extends String,Entry> propertyAccessor) {
+				String value = propertyAccessor.getValue(extendableObject);
 				return (value == null) ? "<blank>" : value;
 			}
 
 			@Override
-			public String formatValueForTable(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends String,?> propertyAccessor) {
-				String value = extendableObject.getPropertyValue(propertyAccessor);
+			public String formatValueForTable(Entry extendableObject, ScalarPropertyAccessor<? extends String,Entry> propertyAccessor) {
+				String value = propertyAccessor.getValue(extendableObject);
 				return (value == null) ? "" : value;
 			}
 

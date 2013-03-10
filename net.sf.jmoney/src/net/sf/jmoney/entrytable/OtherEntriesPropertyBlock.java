@@ -25,7 +25,6 @@ package net.sf.jmoney.entrytable;
 import java.util.Vector;
 
 import net.sf.jmoney.model2.Entry;
-import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
@@ -45,10 +44,10 @@ import org.eclipse.swt.widgets.Control;
  * @author Nigel Westbury
  */
 public class OtherEntriesPropertyBlock extends IndividualBlock<EntryData, EntryRowControl> {
-	protected ScalarPropertyAccessor<?,?> accessor;
+	protected ScalarPropertyAccessor<?,Entry> accessor;
 	private String id;
 	
-	public OtherEntriesPropertyBlock(ScalarPropertyAccessor accessor) {
+	public OtherEntriesPropertyBlock(ScalarPropertyAccessor<?,Entry> accessor) {
 		super(
 				accessor.getDisplayName(),
 				accessor.getMinimumWidth(),
@@ -150,8 +149,8 @@ public class OtherEntriesPropertyBlock extends IndividualBlock<EntryData, EntryR
 			if (entryData2.hasSplitEntries()) {
 				return -1;
 			} else {
-				ExtendableObject extendableObject1 = entryData1.getOtherEntry();
-				ExtendableObject extendableObject2 = entryData2.getOtherEntry();
+				Entry extendableObject1 = entryData1.getOtherEntry();
+				Entry extendableObject2 = entryData2.getOtherEntry();
 				return accessor.getComparator().compare(extendableObject1, extendableObject2);
 			}
 		}

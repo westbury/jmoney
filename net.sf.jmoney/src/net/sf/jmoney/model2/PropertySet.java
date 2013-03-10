@@ -22,12 +22,13 @@
 
 package net.sf.jmoney.model2;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.ObjectCollection;
@@ -73,17 +74,22 @@ public abstract class PropertySet<P,S extends ExtendableObject> {
 
 	protected Class<P> classOfObject;
 
-	protected Vector<PropertyAccessor> properties = new Vector<PropertyAccessor>();
+	protected List<PropertyAccessor<S>> properties = new ArrayList<PropertyAccessor<S>>();
 
 	/**
-	 * These arrays are built on first use and then cached.
+	 * All scalar properties (including reference properties)
 	 */
-	private Vector<ScalarPropertyAccessor<?,S>> scalarProperties1 = null;
-	private Vector<ListPropertyAccessor<?,S>> listProperties1 = null;
+	private List<ScalarPropertyAccessor<?,S>> scalarProperties1 = new ArrayList<ScalarPropertyAccessor<?,S>>();
+
+	/**
+	 * All list properties (where the object contains a list of other model objects as
+	 * child objects, those child objects having this object as the parent)
+	 */
+	private List<ListPropertyAccessor<?,S>> listProperties1 = new ArrayList<ListPropertyAccessor<?,S>>();
 
 	boolean isExtension;
 
-	static Vector<PropertySet> allPropertySets = new Vector<PropertySet>();
+	static List<PropertySet> allPropertySets = new ArrayList<PropertySet>();
 	static Set<String> allPropertySetIds = new HashSet<String>();
 
 	/**
@@ -394,33 +400,15 @@ public abstract class PropertySet<P,S extends ExtendableObject> {
 	 * 		in this property set, returning, for each property,
 	 * 		the PropertyAccessor object for that property.
 	 */
-	public Collection<PropertyAccessor> getProperties1() {
+	public Collection<PropertyAccessor<S>> getProperties1() {
 		return properties;
 	}
 
 	public Collection<ScalarPropertyAccessor<?,S>> getScalarProperties1() {
-		if (scalarProperties1 == null) {
-			scalarProperties1 = new Vector<ScalarPropertyAccessor<?,S>>();
-			for (PropertyAccessor propertyAccessor: properties) {
-				if (propertyAccessor instanceof ScalarPropertyAccessor) {
-					scalarProperties1.add((ScalarPropertyAccessor<?,S>)propertyAccessor);
-				}
-			}
-		}
-
 		return scalarProperties1;
 	}
 
 	public Collection<ListPropertyAccessor<?,S>> getListProperties1() {
-		if (listProperties1 == null) {
-			listProperties1 = new Vector<ListPropertyAccessor<?,S>>();
-			for (PropertyAccessor propertyAccessor: properties) {
-				if (propertyAccessor instanceof ListPropertyAccessor) {
-					listProperties1.add((ListPropertyAccessor<?,S>)propertyAccessor);
-				}
-			}
-		}
-
 		return listProperties1;
 	}
 
@@ -451,7 +439,7 @@ public abstract class PropertySet<P,S extends ExtendableObject> {
 		return new ExtensionPropertySet<X,E>(classOfImplementationObject, extendablePropertySet, constructors);
 	}
 
-	public <V> ScalarPropertyAccessor<V,S> addProperty(String name, String displayName, Class<V> classOfValue, int weight, int minimumWidth, IPropertyControlFactory<V> propertyControlFactory, IPropertyDependency<S> propertyDependency) {
+	public <V> ScalarPropertyAccessor<V,S> addProperty(String name, String displayName, Class<V> classOfValue, int weight, int minimumWidth, IPropertyControlFactory<S,V> propertyControlFactory, IPropertyDependency<S> propertyDependency) {
 		if (propertyControlFactory == null) {
 			throw new MalformedPluginException(
 					"No IPropertyControlFactory object has been specified for property " + name //$NON-NLS-1$
@@ -461,10 +449,11 @@ public abstract class PropertySet<P,S extends ExtendableObject> {
 
 		ScalarPropertyAccessor<V,S> accessor = new ScalarPropertyAccessor<V,S>(classOfValue, this, name, displayName, weight, minimumWidth, propertyControlFactory, propertyDependency);
 		properties.add(accessor);
+		scalarProperties1.add(accessor);
 		return accessor;
 	}
 
-	public <V extends ExtendableObject> ReferencePropertyAccessor<V,S> addProperty(String name, String displayName, Class<V> classOfValue, int weight, int minimumWidth, final IReferenceControlFactory<P,V> propertyControlFactory, IPropertyDependency<S> propertyDependency) {
+	public <V extends ExtendableObject> ReferencePropertyAccessor<V,S> addProperty(String name, String displayName, Class<V> classOfValue, int weight, int minimumWidth, final IReferenceControlFactory<P,S,V> propertyControlFactory, IPropertyDependency<S> propertyDependency) {
 		if (propertyControlFactory == null) {
 			throw new MalformedPluginException(
 					"No IPropertyControlFactory object has been specified for property " + name //$NON-NLS-1$
@@ -480,6 +469,7 @@ public abstract class PropertySet<P,S extends ExtendableObject> {
 		};
 
 		properties.add(accessor);
+		scalarProperties1.add(accessor);
 		return accessor;
 	}
 
@@ -492,6 +482,7 @@ public abstract class PropertySet<P,S extends ExtendableObject> {
 		};
 
 		properties.add(accessor);
+		listProperties1.add(accessor);
 		return accessor;
 	}
 
@@ -510,13 +501,14 @@ public abstract class PropertySet<P,S extends ExtendableObject> {
 	protected abstract P getImplementationObject(S extendableObject);
 
 	/**
-	 * Given the Bean name of a property in this property set, return an
-	 * IValueProperty implementation that uses as the source the extendable
-	 * object (not the extension object).
+	 * Obtains a value property implementation. If the property is in the base
+	 * extendable object then BeanProperties will be used directly, but if the
+	 * property is in an extension then some indirection is required.
 	 *
 	 * @param localName
-	 * @return
+	 * @return an IValueProperty implementation that uses as the source the
+	 *         extendable object (not the extension object)
 	 */
-	public abstract IValueProperty createValueProperty(ScalarPropertyAccessor accessor);
+	public abstract <T> IValueProperty<S,T> createValueProperty(ScalarPropertyAccessor<T,S> accessor);
 }
 

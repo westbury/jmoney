@@ -26,7 +26,6 @@ import net.sf.jmoney.importer.resources.Messages;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.ExtensionPropertySet;
 import net.sf.jmoney.model2.IExtensionObjectConstructors;
 import net.sf.jmoney.model2.IPropertyControl;
@@ -68,10 +67,10 @@ public class ReconciliationEntryInfo implements IPropertySetInfo {
 	
 	@Override
 	public PropertySet<ReconciliationEntry,Entry> registerProperties() {
-		class NonEditableTextControlFactory extends PropertyControlFactory<String> {
+		class NonEditableTextControlFactory extends PropertyControlFactory<Entry,String> {
 			
 			@Override
-			public IPropertyControl<Entry> createPropertyControl(Composite parent, final ScalarPropertyAccessor<String,?> propertyAccessor) {
+			public IPropertyControl<Entry> createPropertyControl(Composite parent, final ScalarPropertyAccessor<String,Entry> propertyAccessor) {
 				
 				// Property is not editable
 		        final Label control = new Label(parent, SWT.NONE);
@@ -84,7 +83,7 @@ public class ReconciliationEntryInfo implements IPropertySetInfo {
 
 					@Override
 					public void load(Entry object) {
-						String text = object.getPropertyValue(propertyAccessor);
+						String text = propertyAccessor.getValue(object);
 						if (text == null) {
 							control.setText("");
 						} else {
@@ -103,14 +102,14 @@ public class ReconciliationEntryInfo implements IPropertySetInfo {
 			}
 
 			@Override
-			public String formatValueForMessage(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends String,?> propertyAccessor) {
-				String value = extendableObject.getPropertyValue(propertyAccessor);
+			public String formatValueForMessage(Entry extendableObject, ScalarPropertyAccessor<? extends String,Entry> propertyAccessor) {
+				String value = propertyAccessor.getValue(extendableObject);
 				return (value == null) ? "<blank>" : value;
 			}
 
 			@Override
-			public String formatValueForTable(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends String,?> propertyAccessor) {
-				String value = extendableObject.getPropertyValue(propertyAccessor);
+			public String formatValueForTable(Entry extendableObject, ScalarPropertyAccessor<? extends String,Entry> propertyAccessor) {
+				String value = propertyAccessor.getValue(extendableObject);
 				return (value == null) ? "" : value;
 			}
 

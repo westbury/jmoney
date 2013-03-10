@@ -69,7 +69,7 @@ public class CommodityPricingInfo implements IPropertySetInfo {
 	
 	@Override
 	public ExtensionPropertySet<CommodityPricing, Commodity> registerProperties() {
-		IReferenceControlFactory<CommodityPricing,Currency> currencyControlFactory = new CurrencyControlFactory<CommodityPricing>() {
+		IReferenceControlFactory<CommodityPricing,Commodity,Currency> currencyControlFactory = new CurrencyControlFactory<CommodityPricing, Commodity>() {
 			@Override
 			public IObjectKey getObjectKey(CommodityPricing parentObject) {
 				return parentObject.currencyKey;

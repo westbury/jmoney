@@ -25,9 +25,11 @@ package net.sf.jmoney.pages.entries;
 import net.sf.jmoney.entrytable.EntryData;
 
 public class EntryRowSelectionAdapter implements EntryRowSelectionListener {
+	@Override
 	public void widgetSelected(EntryData data) {
 	}
-	
+
+	@Override
 	public void widgetDefaultSelected(EntryData data) {
 	}
 }

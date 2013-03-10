@@ -35,7 +35,7 @@ import net.sf.jmoney.isolation.IObjectKey;
 public abstract class ExtensionObject {
 	protected ExtendableObject baseObject;
 	protected PropertySet propertySet;
-	
+
 	public ExtensionObject(ExtendableObject extendedObject) {
 		this.baseObject = extendedObject;
 	}
@@ -47,15 +47,15 @@ public abstract class ExtensionObject {
 	public IObjectKey getObjectKey() {
     	return baseObject.getObjectKey();
 	}
-	
+
 	public Session getSession() {
     	return baseObject.getSession();
 	}
-	
+
 	public IDataManagerForAccounts getDataManager() {
     	return baseObject.getDataManager();
 	}
-	
+
 	/**
 	 * Two or more instantiated objects may represent the same object
 	 * in the datastore.  Such objects should be considered
@@ -71,23 +71,24 @@ public abstract class ExtensionObject {
 	 */
     // TODO: Is this method really correct?
     // If so, we need a hashcode also.
-    @Override	
+    @Override
 	public boolean equals(Object object) {
     	return baseObject.equals(object);
 	}
-	
+
 	public <X extends ExtensionObject> X getExtension(ExtensionPropertySet<X,?> propertySet, boolean alwaysReturnNonNull) {
     	return baseObject.getExtension(propertySet, alwaysReturnNonNull);
     }
 
-	@Deprecated
-    public <V> V getPropertyValue(ScalarPropertyAccessor<V,?> propertyAccessor) {
-        return baseObject.getPropertyValue(propertyAccessor);
-    }
-    
-    public <V> void setPropertyValue(ScalarPropertyAccessor<V,?> propertyAccessor, V value) {
-    	baseObject.setPropertyValue(propertyAccessor, value);
-    }
+//	@Deprecated
+//    public <V> V getPropertyValue(ScalarPropertyAccessor<V,?> propertyAccessor) {
+//        return baseObject.getPropertyValue(propertyAccessor);
+//    }
+//
+//	@Deprecated
+//    public <V> void setPropertyValue(ScalarPropertyAccessor<V,?> propertyAccessor, V value) {
+//    	baseObject.setPropertyValue(propertyAccessor, value);
+//    }
 
 	protected <V> void processPropertyChange(ScalarPropertyAccessor<V,?> propertyAccessor, V oldValue, V newValue) {
 		baseObject.processPropertyChange(propertyAccessor, oldValue, newValue);
@@ -96,7 +97,7 @@ public abstract class ExtensionObject {
 	/**
 	 * This method is used to enable other classes in the package to
 	 * access protected fields in the extension objects.
-	 * 
+	 *
 	 * @param theObjectKeyField
 	 * @return
 	 */

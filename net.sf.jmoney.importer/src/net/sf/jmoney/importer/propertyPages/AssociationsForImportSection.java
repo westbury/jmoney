@@ -12,6 +12,7 @@ import net.sf.jmoney.importer.wizards.AssociationMetadata;
 import net.sf.jmoney.importer.wizards.IAccountImportWizard;
 import net.sf.jmoney.isolation.ReferenceViolationException;
 import net.sf.jmoney.model2.Account;
+import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Session;
 
 import org.eclipse.core.runtime.CoreException;
@@ -37,7 +38,7 @@ import org.eclipse.ui.views.properties.tabbed.TabbedPropertySheetPage;
 public class AssociationsForImportSection
 extends AbstractPropertySection {
 
-	private Account account;
+	private CapitalAccount account;
 
 	private ModifyListener listener = new ModifyListener() {
 
@@ -70,7 +71,7 @@ extends AbstractPropertySection {
 		super.setInput(part, selection);
 		System.out.println("setInput");
 		Object input = ((IStructuredSelection) selection).getFirstElement();
-		this.account = (Account) input;
+		this.account = (CapitalAccount) input;
 
 		/*
 		 * Find all associations set in this account and move into a map.
@@ -94,7 +95,7 @@ extends AbstractPropertySection {
 		 * in plugin.xml.  This configuration element in turn gives us the id of a suitable import
 		 * wizard.  We start the given wizard, first setting the account into it.
 		 */
-		String importDataExtensionId = account.getPropertyValue(ImportAccountInfo.getImportDataExtensionIdAccessor());
+		String importDataExtensionId = ImportAccountInfo.getImportDataExtensionIdAccessor().getValue(account);
 		if (importDataExtensionId == null) {
 			CLabel labelLabel = getWidgetFactory().createCLabel(composite, "The importer for this account does not require any associated accounts.");
 		} else {

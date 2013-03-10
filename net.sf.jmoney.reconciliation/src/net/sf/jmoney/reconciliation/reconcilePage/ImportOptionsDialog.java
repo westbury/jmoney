@@ -424,7 +424,7 @@ public class ImportOptionsDialog extends Dialog {
 		return null;
 	}
 
-	private void addColumn(final ScalarPropertyAccessor<?,?> propertyAccessor, String tooltip) {
+	private void addColumn(final ScalarPropertyAccessor<?,MemoPattern> propertyAccessor, String tooltip) {
 		TableViewerColumn column = new TableViewerColumn(viewer, SWT.LEFT);
 		column.getColumn().setWidth(propertyAccessor.getMinimumWidth());
 		column.getColumn().setText(propertyAccessor.getDisplayName());
@@ -458,7 +458,7 @@ public class ImportOptionsDialog extends Dialog {
 				// The text cell editor requires that null is never returned
 				// by this method.
 				MemoPattern pattern = (MemoPattern)element;
-				Object value = pattern.getPropertyValue(propertyAccessor);
+				Object value = propertyAccessor.getValue(pattern);
 				if (value == null && propertyAccessor.getClassOfValueObject() == String.class) {
 					value = "";
 				}
@@ -473,9 +473,9 @@ public class ImportOptionsDialog extends Dialog {
 				updateErrorMessage();
 			}
 
-			private <V> void setValue(MemoPattern pattern, ScalarPropertyAccessor<V,?> property, Object value) {
+			private <V> void setValue(MemoPattern pattern, ScalarPropertyAccessor<V,MemoPattern> property, Object value) {
 				V typedValue = property.getClassOfValueObject().cast(value);
-				pattern.setPropertyValue(property, typedValue);
+				property.setValue(pattern, typedValue);
 			}
 		});
 	}

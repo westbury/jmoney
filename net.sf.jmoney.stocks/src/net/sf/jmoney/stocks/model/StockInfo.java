@@ -67,7 +67,7 @@ public class StockInfo implements IPropertySetInfo {
 	@Override
 	public PropertySet registerProperties() {
 
-		IPropertyControlFactory<String> textControlFactory = new TextControlFactory();
+		IPropertyControlFactory<Stock,String> textControlFactory = new TextControlFactory<Stock>();
 
 		nominalValueAccessor = propertySet.addProperty("nominalValue", StocksPlugin.getResourceString("PropertyDesc.nominalValue"), String.class, 2, 20, textControlFactory, null);
 

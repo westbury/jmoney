@@ -83,7 +83,7 @@ import org.eclipse.ui.forms.widgets.Section;
 /**
  * Class implementing the section containing the unreconciled
  * entries on the account reconciliation page.
- * 
+ *
  * @author Nigel Westbury
  */
 public class UnreconciledSection extends SectionPart {
@@ -112,9 +112,9 @@ public class UnreconciledSection extends SectionPart {
 				 * efficient to get the database to sort for us, but that would
 				 * only help the first time the results are fetched, it would not
 				 * help on a re-sort.  It also only helps if the database indexes
-				 * on the date.		
+				 * on the date.
 				CurrencyAccount account = fPage.getAccount();
-		        Collection<Entry> accountEntries = 
+		        Collection<Entry> accountEntries =
 		        	account
 						.getSortedEntries(TransactionInfo.getDateAccessor(), false);
 				 */
@@ -122,7 +122,7 @@ public class UnreconciledSection extends SectionPart {
 
 				Vector<Entry> requiredEntries = new Vector<Entry>();
 				for (Entry entry: accountEntries) {
-					if (entry.getPropertyValue(ReconciliationEntryInfo.getStatementAccessor()) == null) {
+					if (ReconciliationEntryInfo.getStatementAccessor().getValue(entry) == null) {
 						requiredEntries.add(entry);
 					}
 				}
@@ -133,7 +133,7 @@ public class UnreconciledSection extends SectionPart {
 			public boolean isEntryInTable(Entry entry) {
 				// This entry is to be shown if the account
 				// matches and no statement is set.
-				BankStatement statement = entry.getPropertyValue(ReconciliationEntryInfo.getStatementAccessor());
+				BankStatement statement = ReconciliationEntryInfo.getStatementAccessor().getValue(entry);
 				return editor.getAccount().equals(entry.getAccount())
 				&& statement == null;
 			}
@@ -161,13 +161,13 @@ public class UnreconciledSection extends SectionPart {
 				/*
 				 * We set the currency by default to be the currency of the
 				 * top-level entry.
-				 * 
+				 *
 				 * The currency of an entry is not applicable if the entry is an
 				 * entry in a currency account or an income and expense account
 				 * that is restricted to a single currency.
 				 * However, we set it anyway so the value is there if the entry
 				 * is set to an account which allows entries in multiple currencies.
-				 * 
+				 *
 				 * It may be that the currency of the top-level entry is not
 				 * known. This is not possible if entries in a currency account
 				 * are being listed, but may be possible if this entries list
@@ -177,10 +177,10 @@ public class UnreconciledSection extends SectionPart {
 				if (entryInTransaction.getCommodityInternal() instanceof Currency) {
 					otherEntry.setIncomeExpenseCurrency((Currency)entryInTransaction.getCommodityInternal());
 				}
-				
+
 				return entryInTransaction;
 			}
-			
+
 			private void setNewEntryProperties(Entry newEntry) {
 				// It is assumed that the entry is in a data manager that is a direct
 				// child of the data manager that contains the account.
@@ -197,7 +197,7 @@ public class UnreconciledSection extends SectionPart {
 				reconcileImage.dispose();
 			}
 		});
-		
+
 		CellBlock<EntryData, EntryRowControl> reconcileButton = new CellBlock<EntryData, EntryRowControl>(20, 0) {
 			@Override
 			public IPropertyControl<EntryData> createCellControl(Composite parent, RowControl rowControl, final EntryRowControl coordinator) {
@@ -220,7 +220,7 @@ public class UnreconciledSection extends SectionPart {
 					public void dragStart(DragSourceEvent event) {
 						Entry uncommittedEntry = coordinator.getUncommittedEntryData().getEntry();
 						UncommittedObjectKey uncommittedKey = (UncommittedObjectKey)uncommittedEntry.getObjectKey();
-						
+
 						// Allow a drag in all cases except where this entry is a new uncommitted entry.
 						// TODO: What if there are uncommitted changes????
 						// We should probably commit changes first.
@@ -311,7 +311,7 @@ public class UnreconciledSection extends SectionPart {
 			protected EntryData createNewEntryRowInput() {
 				return new EntryData(null, session.getDataManager());
 			}
-		}; 
+		};
 
 		getSection().setClient(fUnreconciledEntriesControl);
 		toolkit.paintBordersFor(fUnreconciledEntriesControl);
@@ -323,29 +323,29 @@ public class UnreconciledSection extends SectionPart {
 			Entry entry = rowControl.getUncommittedTopEntry();
 
 			// TODO: What do we do about the blank entry???
-			
+
 			/*
 			 * It is possible that the user has made changes to this entry
 			 * that have not yet been committed.  Furthermore, those changes
 			 * may have put the entry into an invalid state that prevents them
 			 * from being committed.
-			 * 
+			 *
 			 * As validation is done at commit time, we can only set the entry as
 			 * reconciled and then attempt to commit it.
 			 */
-			
+
 			// The EntriesTree control will always validate and commit
 			// any outstanding changes before firing a default selection
 			// event.  We set the property to put the entry into the
 			// statement and immediately commit the change.
 			if (entry != null) {
-				entry.setPropertyValue(ReconciliationEntryInfo.getStatementAccessor(), editor.getStatement());
+				ReconciliationEntryInfo.getStatementAccessor().setValue(entry, editor.getStatement());
 
 				/*
 				 * We tell the row control to commit its changes. These changes
 				 * include the above change. They may also include prior changes
 				 * made by the user.
-				 * 
+				 *
 				 * The tables and controls in this editor should all be capable of
 				 * updating themselves correctly when the change is committed. There
 				 * is a listener that is listening for changes to the committed data

@@ -86,7 +86,7 @@ public class IncomeExpenseAccountInfo implements IPropertySetInfo {
 			}
 		};
 
-		IReferenceControlFactory<IncomeExpenseAccount,Currency> currencyControlFactory = new CurrencyControlFactory<IncomeExpenseAccount>() {
+		IReferenceControlFactory<IncomeExpenseAccount,IncomeExpenseAccount,Currency> currencyControlFactory = new CurrencyControlFactory<IncomeExpenseAccount,IncomeExpenseAccount>() {
 			@Override
 			public IObjectKey getObjectKey(IncomeExpenseAccount parentObject) {
 				return parentObject.currencyKey;

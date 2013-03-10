@@ -24,7 +24,7 @@ package net.sf.jmoney.reconciliation;
 
 import java.util.Comparator;
 
-import net.sf.jmoney.model2.ExtendableObject;
+import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
@@ -37,7 +37,7 @@ import org.eclipse.swt.widgets.Composite;
  * 
  * @author Nigel Westbury
  */
-public class StatusControlFactory implements IPropertyControlFactory<Integer> {
+public class StatusControlFactory implements IPropertyControlFactory<Entry,Integer> {
 
 	/**
 	 * Localized descriptions of the reconciled/cleared status
@@ -57,17 +57,17 @@ public class StatusControlFactory implements IPropertyControlFactory<Integer> {
 			ReconciliationPlugin.getResourceString("Entry.clearedShort"),
 	};
 	
-    public IPropertyControl createPropertyControl(Composite parent, ScalarPropertyAccessor<Integer,?> propertyAccessor) {
+    public IPropertyControl createPropertyControl(Composite parent, ScalarPropertyAccessor<Integer,Entry> propertyAccessor) {
         return new StatusEditor(parent, propertyAccessor, statusText);
     }
 
-    public String formatValueForMessage(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends Integer,?> propertyAccessor) {
-        int status = extendableObject.getPropertyValue(propertyAccessor);
+    public String formatValueForMessage(Entry extendableObject, ScalarPropertyAccessor<? extends Integer,Entry> propertyAccessor) {
+        int status = propertyAccessor.getValue(extendableObject);
         return statusText[status];
     }
 
-    public String formatValueForTable(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends Integer,?> propertyAccessor) {
-        int status = extendableObject.getPropertyValue(propertyAccessor);
+    public String formatValueForTable(Entry extendableObject, ScalarPropertyAccessor<? extends Integer,Entry> propertyAccessor) {
+        int status = propertyAccessor.getValue(extendableObject);
         return shortStatusText[status];
     }
 

@@ -14,7 +14,7 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.views.properties.IPropertyDescriptor;
 import org.eclipse.ui.views.properties.IPropertySource;
 
-public class ExtendableObjectPropertySource implements IPropertySource {
+public class ExtendableObjectPropertySource<S extends ExtendableObject> implements IPropertySource {
 
 	/**
 	 * If we return a value that implements IPropertySource then the property
@@ -29,11 +29,11 @@ public class ExtendableObjectPropertySource implements IPropertySource {
 	 */
 	public class Wrapper {
 
-		public ExtendableObject extendableObject;
+		public S extendableObject;
 		
 		private String valueAsText;
 
-		public Wrapper(ExtendableObject extendableObject, ScalarPropertyAccessor<?,?> accessor) {
+		public Wrapper(S extendableObject, ScalarPropertyAccessor<?, ? super S> accessor) {
 			this.extendableObject = extendableObject;
 			valueAsText = accessor.formatValueForTable(ExtendableObjectPropertySource.this.extendableObject);
 		}
@@ -45,17 +45,21 @@ public class ExtendableObjectPropertySource implements IPropertySource {
 		}
 	}
 
-	private ExtendableObject extendableObject;
+	private S extendableObject;
 	
 	private List<IPropertyDescriptor> descriptors = new ArrayList<IPropertyDescriptor>();
 	
-	private Map<String, ScalarPropertyAccessor<?,?>> accessorMap = new HashMap<String, ScalarPropertyAccessor<?,?>>();
+	private Map<String, ScalarPropertyAccessor<?,? super S>> accessorMap = new HashMap<String, ScalarPropertyAccessor<?,? super S>>();
 	
-    ExtendableObjectPropertySource(final ExtendableObject extendableObject) {
+	public static <S extends ExtendableObject> ExtendableObjectPropertySource<S> construct(ExtendablePropertySet<S> propertySet,
+			ExtendableObject extendableObject) {
+		return new ExtendableObjectPropertySource<S>(propertySet, (S)extendableObject);
+	}
+
+    ExtendableObjectPropertySource(ExtendablePropertySet<S> propertySet, final S extendableObject) {
     	this.extendableObject = extendableObject;
     	
-		ExtendablePropertySet<?> propertySet = PropertySet.getPropertySet(extendableObject.getClass());
-		for (final ScalarPropertyAccessor<?,?> accessor : propertySet.getScalarProperties3()) {
+		for (final ScalarPropertyAccessor<?,? super S> accessor : propertySet.getScalarProperties3()) {
 			accessorMap.put(accessor.getName(), accessor);
 			
 			descriptors.add(new IPropertyDescriptor() {
@@ -65,7 +69,7 @@ public class ExtendableObjectPropertySource implements IPropertySource {
 					
 					CellEditor editor = new CellEditor() {
 
-						private IPropertyControl<ExtendableObject> control = null;
+						private IPropertyControl<? super S> control = null;
 						
 						@Override
 						protected Control createControl(Composite parent) {
@@ -162,8 +166,8 @@ public class ExtendableObjectPropertySource implements IPropertySource {
 
 	@Override
 	public Object getPropertyValue(Object id) {
-		ScalarPropertyAccessor<?,?> accessor = accessorMap.get(id);
-		Object value = extendableObject.getPropertyValue(accessor);
+		ScalarPropertyAccessor<?,? super S> accessor = accessorMap.get(id);
+		Object value = accessor.getValue(extendableObject);
 		
 		/*
 		 * If we return a value that implements IPropertySource then the property
@@ -177,7 +181,7 @@ public class ExtendableObjectPropertySource implements IPropertySource {
 		 * the IPropertySource interface.
 		 */
 		if (value instanceof ExtendableObject) {
-			return new Wrapper((ExtendableObject)value, accessor);
+			return new Wrapper((S)value, accessor);
 		} else {
 			return value;
 		}
@@ -201,8 +205,8 @@ public class ExtendableObjectPropertySource implements IPropertySource {
 		resetPropertyValue(accessor);
 	}
 	
-	private <V> void resetPropertyValue(ScalarPropertyAccessor<V,?> accessor) {
-		extendableObject.setPropertyValue(accessor, accessor.getDefaultValue());
+	private <V> void resetPropertyValue(ScalarPropertyAccessor<V,? super S> accessor) {
+		accessor.setValue(extendableObject, accessor.getDefaultValue());
 	}
 
 	@Override
@@ -212,6 +216,7 @@ public class ExtendableObjectPropertySource implements IPropertySource {
 //		}
 //		setPropertyValue2(accessorMap.get(id), value);
 	}
+
 
 //	private <V> void setPropertyValue2(ScalarPropertyAccessor<V> accessor, Object value) {
 //		extendableObject.setPropertyValue(accessor, (V)accessor.getClass().cast(value));

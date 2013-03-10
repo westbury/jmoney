@@ -17,9 +17,9 @@ import org.eclipse.core.databinding.property.set.ISetProperty;
 import org.eclipse.core.databinding.property.value.IValueProperty;
 import org.eclipse.swt.widgets.Composite;
 
-public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends PropertyAccessor<E> implements IScalarPropertyAccessor<V,E> {
+public class ScalarPropertyAccessor<T, S extends ExtendableObject> extends PropertyAccessor<S> implements IScalarPropertyAccessor<T,S> {
 
-	private IValueProperty valueProperty;
+	private IValueProperty<S, T> valueProperty;
 
 	private int weight;
 
@@ -30,14 +30,14 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	/**
 	 * never null
 	 */
-	private IPropertyControlFactory<V> propertyControlFactory;
+	private IPropertyControlFactory<S,T> propertyControlFactory;
 
 	/**
 	 * The class of the property values (if the method signatures show int,
 	 * long, boolean, or char, this field will be Integer.class, Long.class,
 	 * Boolean.class, or Character.class)
 	 */
-	private Class<V> classOfValueObject;
+	private Class<T> classOfValueObject;
 
 	/**
 	 * The class of the property values (if the method signatures show int,
@@ -53,11 +53,11 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	 */
 	private int indexIntoScalarProperties = -1;
 
-	private Comparator<ExtendableObject> parentComparator;
+	private Comparator<S> parentComparator;
 
-	private IPropertyDependency<? super E> dependency;
+	private IPropertyDependency<? super S> dependency;
 
-	public ScalarPropertyAccessor(Class<V> classOfValueObject, PropertySet<?,E> propertySet, String localName, String displayName, int weight, int minimumWidth, final IPropertyControlFactory<V> propertyControlFactory, IPropertyDependency<? super E> propertyDependency) {
+	public ScalarPropertyAccessor(Class<T> classOfValueObject, PropertySet<?,S> propertySet, String localName, String displayName, int weight, int minimumWidth, final IPropertyControlFactory<S,T> propertyControlFactory, IPropertyDependency<? super S> propertyDependency) {
 		super(propertySet, localName, displayName);
 
 		this.weight = weight;
@@ -143,11 +143,11 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 		 * ordering.
 		 */
 		if (propertyControlFactory.getComparator() != null) {
-			parentComparator = new Comparator<ExtendableObject> () {
+			parentComparator = new Comparator<S> () {
 				@Override
-				public int compare(ExtendableObject object1, ExtendableObject object2) {
-					V value1 = object1.getPropertyValue(ScalarPropertyAccessor.this);
-					V value2 = object2.getPropertyValue(ScalarPropertyAccessor.this);
+				public int compare(S object1, S object2) {
+					T value1 = getValue(object1);
+					T value2 = getValue(object2);
 					if (value1 == null && value2 == null) return 0;
 					if (value1 == null) return 1;
 					if (value2 == null) return -1;
@@ -214,7 +214,7 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	 * @return the default value to use for this property, which may
 	 * 		be null if the property is of a nullable type
 	 */
-	public V getDefaultValue() {
+	public T getDefaultValue() {
 		return propertyControlFactory.getDefaultValue();
 	}
 
@@ -234,7 +234,7 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	 * @return a comparator, or null if no comparator was provided
 	 * 		for use with this property
 	 */
-	public Comparator<ExtendableObject> getComparator() {
+	public Comparator<S> getComparator() {
 		return parentComparator;
 	}
 
@@ -295,8 +295,7 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	 * @param parent
 	 * @return An interface to a wrapper class.
 	 */
-//	@SuppressWarnings("unchecked")  // Don't suppress this one, the warning is legitimate
-	public IPropertyControl<ExtendableObject> createPropertyControl(Composite parent) {
+	public IPropertyControl<S> createPropertyControl(Composite parent) {
 		/*
 		 * When a PropertyAccessor object is created, it is provided with an
 		 * interface to a factory that constructs control objects that edit the
@@ -317,7 +316,7 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	 *
 	 * @return The value of the property formatted as appropriate.
 	 */
-	public String formatValueForMessage(ExtendableObject object) {
+	public String formatValueForMessage(S object) {
 		// When a PropertyAccessor object is created, it is
 		// provided with an interface to a factory that constructs
 		// control objects that edit the property.
@@ -342,7 +341,7 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	 *
 	 * @return The value of the property formatted as appropriate.
 	 */
-	public String formatValueForTable(ExtendableObject object) {
+	public String formatValueForTable(S object) {
 		// When a PropertyAccessor object is created, it is
 		// provided with an interface to a factory that constructs
 		// control objects that edit the property.
@@ -376,7 +375,7 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	 * Boolean.class, or Character.class)
 	 */
 	@Override
-	public Class<V> getClassOfValueObject() {
+	public Class<T> getClassOfValueObject() {
 		return classOfValueObject;
 	}
 
@@ -434,7 +433,7 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 	 *
 	 * @return
 	 */
-	public boolean isPropertyApplicable(E containingObject) {
+	public boolean isPropertyApplicable(S containingObject) {
 		if (dependency == null) {
 			return true;
 		} else {
@@ -442,18 +441,20 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 		}
 	}
 
-	public V getValue(E extendableObject) {
-		return (V)valueProperty.getValue(extendableObject);
+	@Override
+	public T getValue(S extendableObject) {
+		return valueProperty.getValue(extendableObject);
 	}
 
-	public void setValue(E extendableObject, V value) {
+	@Override
+	public void setValue(S extendableObject, T value) {
 		valueProperty.setValue(extendableObject, value);
 	}
 
-	public <V2> ScalarPropertyAccessor<? super V2, E> typeIfGivenValue(
-			E extendableObject, V2 value) {
+	public <V2> ScalarPropertyAccessor<? super V2, S> typeIfGivenValue(
+			S extendableObject, V2 value) {
 		if (getValue(extendableObject) == value) {
-			return (ScalarPropertyAccessor<? super V2, E>)this;
+			return (ScalarPropertyAccessor<? super V2, S>)this;
 		} else {
 			return null;
 		}
@@ -464,79 +465,67 @@ public class ScalarPropertyAccessor<V,E extends ExtendableObject> extends Proper
 		return valueProperty.getValueType();
 	}
 
-	// TODO remove this untyped version when generics is in IValueProperty
 	@Override
-	public Object getValue(Object source) {
-		return valueProperty.getValue(source);
-	}
-
-	// TODO remove this untyped version when generics is in IValueProperty
-	public Object getBeanValue(Object source) {
-		return valueProperty.getValue(source);
-	}
-
-	@Override
-	public void setValue(Object source, Object value) {
-		valueProperty.setValue(source, value);
-	}
-
-	@Override
-	public IObservableValue observe(Object source) {
+	public IObservableValue<T> observe(S source) {
 		return valueProperty.observe(source);
 	}
 
 	@Override
-	public IObservableValue observe(Realm realm, Object source) {
+	public IObservableValue<T> observe(Realm realm, S source) {
 		return valueProperty.observe(realm, source);
 	}
 
 	@Override
-	public IObservableFactory valueFactory() {
+	public IObservableFactory<S, IObservableValue<T>> valueFactory() {
 		return valueProperty.valueFactory();
 	}
 
 	@Override
-	public IObservableFactory valueFactory(Realm realm) {
+	public IObservableFactory<S, IObservableValue<T>> valueFactory(Realm realm) {
 		return valueProperty.valueFactory(realm);
 	}
 
 	@Override
-	public IObservableValue observeDetail(IObservableValue master) {
+	public <M extends S> IObservableValue<T> observeDetail(
+			IObservableValue<M> master) {
 		return valueProperty.observeDetail(master);
 	}
 
 	@Override
-	public IObservableList observeDetail(IObservableList master) {
+	public <M extends S> IObservableList<T> observeDetail(IObservableList<M> master) {
 		return valueProperty.observeDetail(master);
 	}
 
 	@Override
-	public IObservableMap observeDetail(IObservableSet master) {
+	public <M extends S> IObservableMap<M,T> observeDetail(IObservableSet<M> master) {
 		return valueProperty.observeDetail(master);
 	}
 
 	@Override
-	public IObservableMap observeDetail(IObservableMap master) {
-		return valueProperty.observeDetail(master);
+	public <K, V extends S> IObservableMap<K, T> observeDetail(
+			IObservableMap<K, V> masterMap) {
+		return valueProperty.observeDetail(masterMap);
 	}
 
 	@Override
-	public IValueProperty value(IValueProperty detailValue) {
+	public <M> IValueProperty<S, M> value(
+			IValueProperty<? super T, M> detailValue) {
 		return valueProperty.value(detailValue);
 	}
 
 	@Override
-	public IListProperty list(IListProperty detailList) {
+	public <M> IListProperty<S, M> list(IListProperty<? super T, M> detailList) {
 		return valueProperty.list(detailList);
 	}
 
 	@Override
-	public ISetProperty set(ISetProperty detailSet) {
+	public <E> ISetProperty<S, E> set(ISetProperty<? super T, E> detailSet) {
 		return valueProperty.set(detailSet);
 	}
 
 	@Override
-	public IMapProperty map(IMapProperty detailMap) {
+	public <K, V> IMapProperty<S, K, V> map(
+			IMapProperty<? super T, K, V> detailMap) {
 		return valueProperty.map(detailMap);
 	}
 }

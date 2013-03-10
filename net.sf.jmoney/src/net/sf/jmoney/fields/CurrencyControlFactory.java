@@ -38,22 +38,22 @@ import org.eclipse.swt.widgets.Composite;
  * @author Nigel Westbury
  * @author Johann Gyger
  */
-public abstract class CurrencyControlFactory<P> extends PropertyControlFactory<Currency> implements IReferenceControlFactory<P,Currency> { 
+public abstract class CurrencyControlFactory<P, S extends ExtendableObject> extends PropertyControlFactory<S,Currency> implements IReferenceControlFactory<P,S,Currency> { 
 
     @Override
-	public IPropertyControl createPropertyControl(Composite parent, ScalarPropertyAccessor<Currency,?> propertyAccessor) {
-        return new CurrencyEditor(parent, propertyAccessor);
+	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<Currency,S> propertyAccessor) {
+        return new CurrencyEditor<S>(parent, propertyAccessor);
     }
 
     @Override	
-    public String formatValueForMessage(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends Currency,?> propertyAccessor) {
-        Currency value = extendableObject.getPropertyValue(propertyAccessor);
+    public String formatValueForMessage(S extendableObject, ScalarPropertyAccessor<? extends Currency,S> propertyAccessor) {
+        Currency value = propertyAccessor.getValue(extendableObject);
         return value == null ? Messages.CurrencyControlFactory_None : "'" + value.getName() + "'";  //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
     }
 
     @Override	
-    public String formatValueForTable(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends Currency,?> propertyAccessor) {
-        Currency value = extendableObject.getPropertyValue(propertyAccessor);
+    public String formatValueForTable(S extendableObject, ScalarPropertyAccessor<? extends Currency,S> propertyAccessor) {
+        Currency value = propertyAccessor.getValue(extendableObject);
         return value == null ? "" : value.getCode(); //$NON-NLS-1$
     }
 

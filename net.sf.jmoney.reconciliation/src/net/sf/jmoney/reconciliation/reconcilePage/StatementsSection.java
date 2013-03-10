@@ -57,19 +57,19 @@ import org.eclipse.ui.forms.widgets.Section;
  * Implementation of the 'Statements' section of the reconciliation
  * page.  This section lists all the statements in the account that
  * have reconciled entries in them.
- * 
+ *
  * @author Nigel Westbury
  */
 public class StatementsSection extends SectionPart {
-	
+
 	protected Table statementTable;
-	
+
 	protected StatementContentProvider contentProvider;
-	
+
 	private TableViewerColumn balanceColumn;
-	
+
 	public StatementsSection(Composite parent, FormToolkit toolkit, CurrencyAccount account) {
-		super(parent, toolkit, Section.DESCRIPTION | Section.TITLE_BAR);		
+		super(parent, toolkit, Section.DESCRIPTION | Section.TITLE_BAR);
 		getSection().setText("Statements");
 		getSection().setDescription("Double click a statement to show that statement.");
 
@@ -77,19 +77,19 @@ public class StatementsSection extends SectionPart {
 
 		Composite composite = new Composite(getSection(), SWT.NONE);
 		composite.setLayout(new GridLayout());
-		
+
 		statementTable = new Table(composite, SWT.FULL_SELECTION | SWT.SINGLE | SWT.V_SCROLL);
 		GridData gdTable = new GridData(SWT.FILL, SWT.FILL, true, true);
 		gdTable.heightHint = 100;
 		statementTable.setLayoutData(gdTable);
-		
+
 		statementTable.setHeaderVisible(true);
 		statementTable.setLinesVisible(true);
-		
+
 		// Create and setup the TableViewer
-		TableViewer tableViewer = new TableViewer(statementTable);   
+		TableViewer tableViewer = new TableViewer(statementTable);
 		tableViewer.setUseHashlookup(true);
-		
+
 		// Add the columns
 		TableViewerColumn statementColumn = new TableViewerColumn(tableViewer, SWT.LEFT);
 		statementColumn.getColumn().setWidth(65);
@@ -98,7 +98,7 @@ public class StatementsSection extends SectionPart {
 			@Override
 			public String getText(Object element) {
 				StatementDetails statementDetails = (StatementDetails)element;
-				return statementDetails.statement.toLocalizedString();  
+				return statementDetails.statement.toLocalizedString();
 			}
 		});
 
@@ -112,9 +112,9 @@ public class StatementsSection extends SectionPart {
 				return currencyForFormatting.format(statementDetails.getClosingBalance());
 			}
 		});
-		
+
 		contentProvider = new StatementContentProvider(tableViewer);
-		
+
 		tableViewer.setContentProvider(contentProvider);
 		tableViewer.setComparator(new StatementViewerComparator());
 		tableViewer.setInput(account);
@@ -127,41 +127,41 @@ public class StatementsSection extends SectionPart {
 		if (lastStatementDetails != null) {
 			tableViewer.reveal(lastStatementDetails);
 		}
-		
+
 		getSection().setClient(composite);
 		toolkit.paintBordersFor(composite);
 		refresh();
 	}
-	
+
 	class StatementContentProvider implements IStructuredContentProvider {
 		/**
 		 * The table viewer to be notified whenever the content changes.
 		 */
 		TableViewer tableViewer;
-		
+
 		CurrencyAccount account;
-		
+
 		SortedMap<BankStatement, StatementDetails> statementDetailsMap;
 
 		StatementContentProvider(TableViewer tableViewer) {
 			this.tableViewer = tableViewer;
 		}
-		
+
 		public void inputChanged(Viewer v, Object oldInput, Object newInput) {
 			account = (CurrencyAccount)newInput;
-			
+
 			// Build a tree map of the statement totals
-			
+
 			// We use a tree map in preference to the more efficient
 			// hash map because we can then fetch the results in order.
 			statementDetailsMap = new TreeMap<BankStatement, StatementDetails>();
-			
+
 			// When this item is disposed, the input may be set to null.
 			// Return an empty list in this case.
 			if (newInput == null) {
 				return;
 			}
-			
+
 			IReconciliationQueries queries = (IReconciliationQueries)account.getSession().getAdapter(IReconciliationQueries.class);
 			if (queries != null) {
 				// TODO: change this method
@@ -169,14 +169,14 @@ public class StatementsSection extends SectionPart {
 			} else {
 				// IReconciliationQueries has not been implemented in the datastore.
 				// We must therefore provide our own implementation.
-				
+
 				// We use a tree map in preference to the more efficient
 				// hash map because we can then fetch the results in order.
 				SortedMap<BankStatement, Long> statementTotals = new TreeMap<BankStatement, Long>();
-				
+
 				for (Entry entry: account.getEntries()) {
-					BankStatement statement = entry .getPropertyValue(ReconciliationEntryInfo.getStatementAccessor());
-					
+					BankStatement statement = ReconciliationEntryInfo.getStatementAccessor().getValue(entry);
+
 					if (statement != null) {
 						Long statementTotal = statementTotals.get(statement);
 						if (statementTotal == null) {
@@ -185,12 +185,12 @@ public class StatementsSection extends SectionPart {
 						statementTotals.put(statement, new Long(statementTotal.longValue() + entry.getAmount()));
 					}
 				}
-				
+
 				long balance = account.getStartBalance();
 				for (Map.Entry<BankStatement, Long> mapEntry: statementTotals.entrySet()) {
 					BankStatement statement = mapEntry.getKey();
 					long totalEntriesOnStatement = (mapEntry.getValue()).longValue();
-					
+
 					statementDetailsMap.put(
 							statement,
 							new StatementDetails(
@@ -209,41 +209,41 @@ public class StatementsSection extends SectionPart {
 					if (newObject instanceof Entry) {
 						Entry newEntry = (Entry)newObject;
 						if (account.equals(newEntry.getAccount())) {
-							BankStatement statement = newEntry.getPropertyValue(ReconciliationEntryInfo.getStatementAccessor());
+							BankStatement statement = ReconciliationEntryInfo.getStatementAccessor().getValue(newEntry);
 							adjustStatement(statement, newEntry.getAmount());
 						}
 					}
 				}
-				
+
 				@Override
 				public void objectDestroyed(IModelObject deletedObject) {
 					if (deletedObject instanceof Entry) {
 						Entry deletedEntry = (Entry)deletedObject;
 						if (account.equals(deletedEntry.getAccount())) {
-							BankStatement statement = deletedEntry.getPropertyValue(ReconciliationEntryInfo.getStatementAccessor());
+							BankStatement statement = ReconciliationEntryInfo.getStatementAccessor().getValue(deletedEntry);
 							adjustStatement(statement, -deletedEntry.getAmount());
 						}
 					}
 				}
-				
+
 				@Override
 				public void objectChanged(IModelObject changedObject, IScalarPropertyAccessor changedProperty, Object oldValue, Object newValue) {
 					if (changedObject instanceof Entry) {
 						Entry entry = (Entry)changedObject;
-						
+
 						if (changedProperty == EntryInfo.getAccountAccessor()) {
 							if (account.equals(oldValue)) {
-								BankStatement statement = entry.getPropertyValue(ReconciliationEntryInfo.getStatementAccessor());
+								BankStatement statement = ReconciliationEntryInfo.getStatementAccessor().getValue(entry);
 								adjustStatement(statement, -entry.getAmount());
 							}
 							if (account.equals(newValue)) {
-								BankStatement statement = entry.getPropertyValue(ReconciliationEntryInfo.getStatementAccessor());
+								BankStatement statement = ReconciliationEntryInfo.getStatementAccessor().getValue(entry);
 								adjustStatement(statement, entry.getAmount());
 							}
 						} else {
 							if (account.equals(entry.getAccount())) {
 								if (changedProperty == EntryInfo.getAmountAccessor()) {
-									BankStatement statement = entry.getPropertyValue(ReconciliationEntryInfo.getStatementAccessor());
+									BankStatement statement = ReconciliationEntryInfo.getStatementAccessor().getValue(entry);
 									long oldAmount = ((Long)oldValue).longValue();
 									long newAmount = ((Long)newValue).longValue();
 									adjustStatement(statement, newAmount - oldAmount);
@@ -257,7 +257,7 @@ public class StatementsSection extends SectionPart {
 				}
 			}, statementTable);
 		}
-		
+
 		/**
 		 * @param statement the statement to be adjusted.  This parameter
 		 * 				may be null in which case this method does nothing
@@ -268,7 +268,7 @@ public class StatementsSection extends SectionPart {
 			if (statement != null) {
 				StatementDetails thisStatementDetails = statementDetailsMap.get(statement);
 				if (thisStatementDetails == null) {
-					
+
 					long openingBalance;
 					SortedMap<BankStatement, StatementDetails> priorStatements = statementDetailsMap.headMap(statement);
 					if (priorStatements.isEmpty()) {
@@ -276,25 +276,25 @@ public class StatementsSection extends SectionPart {
 					} else {
 						openingBalance = priorStatements.get(priorStatements.lastKey()).getClosingBalance();
 					}
-					
+
 					thisStatementDetails = new StatementDetails(
 							statement,
 							openingBalance,
 							amount);
-					
+
 					statementDetailsMap.put(statement, thisStatementDetails);
 
 					// Notify the viewer that we have a new item
 					tableViewer.add(thisStatementDetails);
 				} else {
 					thisStatementDetails.adjustEntriesTotal(amount);
-					
+
 					// Notify the viewer that an item has changed
 					tableViewer.update(thisStatementDetails, null);
 				}
-				
+
 				// This total affects all later balances.
-				
+
 				// Iterate through all later statements updating the
 				// statement details and then notify the viewer of the
 				// update.  Note that tailMap returns a collection that
@@ -304,17 +304,17 @@ public class StatementsSection extends SectionPart {
 				for (StatementDetails statementDetails: laterStatements.values()) {
 					if (!statementDetails.statement.equals(statement)) {
 						statementDetails.adjustOpeningBalance(amount);
-						
+
 						// Notify the viewer that an item has changed
 						tableViewer.update(statementDetails, null);
 					}
 				}
 			}
 		}
-		
+
 		public void dispose() {
 		}
-		
+
 		public Object[] getElements(Object parent) {
 			// Return an array of the statements.  These are already ordered.
 			return statementDetailsMap.values().toArray();
@@ -355,7 +355,7 @@ public class StatementsSection extends SectionPart {
 			return openingBalance;
 		}
 	}
-	
+
 	/**
 	 * Even though the content provider supplies the statements in order, we
 	 * still need to set a sorter into the table. The reason is that new
@@ -370,7 +370,7 @@ public class StatementsSection extends SectionPart {
 	        return statementDetails1.compareTo(statementDetails2);
 	    }
 	}
-	
+
 	/**
 	 * @param show
 	 */
@@ -381,13 +381,13 @@ public class StatementsSection extends SectionPart {
 			balanceColumn.getColumn().setWidth(0);
 		}
 	}
-	
+
 	/**
 	 * Returns the last statement in the list of statements for
 	 * the account.  This is used to determine default values when
 	 * the user creates a new statement and also the starting
 	 * balance of any newly created statement.
-	 * 
+	 *
 	 * @return the last statement, or null if no statements have
 	 * 				yet been created in the account
 	 */
@@ -413,16 +413,16 @@ public class StatementsSection extends SectionPart {
 
 	/**
 	 * Returns the opening balance for a given statement.
-	 * <P> 
+	 * <P>
 	 * The statement may not yet exist, so no entry for this
 	 * statement will yet be in the statement map.  The statement
 	 * will not necessarily be the last statement because the user
 	 * may be working backwards and entering prior statements.
-	 * 
+	 *
 	 * @param statement
 	 * @return the opening balance of this statement
 	 */
 	public long getStatementOpeningBalance(BankStatement statement) {
 		return contentProvider.getStatementOpeningBalance(statement);
-	}	
+	}
 }

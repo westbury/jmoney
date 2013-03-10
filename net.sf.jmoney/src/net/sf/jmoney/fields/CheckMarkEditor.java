@@ -38,16 +38,16 @@ import org.eclipse.swt.widgets.Control;
  *
  * @author Nigel Westbury
  */
-public class CheckMarkEditor implements IPropertyControl<ExtendableObject> {
+public class CheckMarkEditor<S extends ExtendableObject> implements IPropertyControl<S> {
 
-    protected ScalarPropertyAccessor<Boolean,?> propertyAccessor;
+    protected ScalarPropertyAccessor<Boolean,S> propertyAccessor;
     protected Button propertyControl;
-    protected ExtendableObject extendableObject;
+    protected S extendableObject;
 
     /**
      * Create a new date editor.
      */
-    public CheckMarkEditor(Composite parent, ScalarPropertyAccessor<Boolean,?> propertyAccessor) {
+    public CheckMarkEditor(Composite parent, ScalarPropertyAccessor<Boolean,S> propertyAccessor) {
         propertyControl = new Button(parent, SWT.CHECK);
         this.propertyAccessor = propertyAccessor;
 
@@ -68,12 +68,12 @@ public class CheckMarkEditor implements IPropertyControl<ExtendableObject> {
      * @see net.sf.jmoney.model2.IPropertyControl#load(net.sf.jmoney.model2.ExtendableObject)
      */
     @Override
-	public void load(ExtendableObject object) {
+	public void load(S object) {
     	this.extendableObject = object;
     	if (object == null) {
             propertyControl.setSelection(false);
     	} else {
-            Boolean value = object.getPropertyValue(propertyAccessor);
+            Boolean value = propertyAccessor.getValue(object);
             propertyControl.setSelection(value.booleanValue());
     	}
     	propertyControl.setEnabled(object != null);
@@ -85,7 +85,7 @@ public class CheckMarkEditor implements IPropertyControl<ExtendableObject> {
     @Override
 	public void save() {
         boolean value = propertyControl.getSelection();
-        extendableObject.setPropertyValue(propertyAccessor, new Boolean(value));
+        propertyAccessor.setValue(extendableObject, new Boolean(value));
     }
 
     /* (non-Javadoc)

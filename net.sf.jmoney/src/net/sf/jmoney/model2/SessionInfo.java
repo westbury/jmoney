@@ -99,7 +99,7 @@ public class SessionInfo implements IPropertySetInfo {
 			}
 		};
 		
-		IReferenceControlFactory<Session,Currency> currencyControlFactory = new CurrencyControlFactory<Session>() {
+		IReferenceControlFactory<Session,Session,Currency> currencyControlFactory = new CurrencyControlFactory<Session,Session>() {
 			@Override
 			public IObjectKey getObjectKey(Session parentObject) {
 				return parentObject.defaultCurrencyKey;

@@ -17,6 +17,6 @@ import net.sf.jmoney.isolation.IObjectKey;
  * @param <V>
  *      the class of the object that is being referenced
  */
-public interface IReferenceControlFactory<P, V extends ExtendableObject> extends IPropertyControlFactory<V> {
+public interface IReferenceControlFactory<P, S extends ExtendableObject, V extends ExtendableObject> extends IPropertyControlFactory<S,V> {
 	IObjectKey getObjectKey(P parentObject);
 }

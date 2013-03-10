@@ -38,7 +38,6 @@ import net.sf.jmoney.isolation.SessionChangeAdapter;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.CommodityInfo;
 import net.sf.jmoney.model2.Currency;
-import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.IExtendableObjectConstructors;
 import net.sf.jmoney.model2.IPropertyControl;
@@ -91,33 +90,33 @@ public class BondInfo implements IPropertySetInfo {
 	@Override
 	public PropertySet registerProperties() {
 
-		IPropertyControlFactory<Integer> integerControlFactory = new IntegerControlFactory();
+		IPropertyControlFactory<Bond,Integer> integerControlFactory = new IntegerControlFactory<Bond>();
 
-		IPropertyControlFactory<Date> dateControlFactory = new DateControlFactory();
+		IPropertyControlFactory<Bond,Date> dateControlFactory = new DateControlFactory<Bond>();
 
-		IReferenceControlFactory<Bond,Currency> currencyControlFactory = new CurrencyControlFactory<Bond>() {
+		IReferenceControlFactory<Bond,Bond,Currency> currencyControlFactory = new CurrencyControlFactory<Bond,Bond>() {
 			@Override
 			public IObjectKey getObjectKey(Bond parentObject) {
 				return parentObject.currencyKey;
 			}
 		};
 
-		IPropertyControlFactory<Long> amountControlFactory = new AmountControlFactory() {
+		IPropertyControlFactory<Bond,Long> amountControlFactory = new AmountControlFactory<Bond>() {
 
 			@Override
-			protected Commodity getCommodity(ExtendableObject extendableObject) {
+			protected Commodity getCommodity(Bond extendableObject) {
 				/*
 				 * All properties in this object that are amounts are in the
 				 * currency in which this bond is denominated. We therefore
 				 * return the currency in which this bond is denominated.
 				 */
-				return ((Bond)extendableObject).getCurrency();
+				return extendableObject.getCurrency();
 			}
 
 			@Override
-			public IPropertyControl createPropertyControl(Composite parent,
-					ScalarPropertyAccessor<Long,?> propertyAccessor) {
-				final AmountEditor editor = new AmountEditor(parent, propertyAccessor, this);
+			public IPropertyControl<Bond> createPropertyControl(Composite parent,
+					ScalarPropertyAccessor<Long,Bond> propertyAccessor) {
+				final AmountEditor<Bond> editor = new AmountEditor<Bond>(parent, propertyAccessor, this);
 
 				// The format of the amount will change if either
 				// the currency property of this bond changes or if

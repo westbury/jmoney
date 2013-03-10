@@ -38,22 +38,22 @@ import org.eclipse.swt.widgets.Composite;
  * @author Nigel Westbury
  * @author Johann Gyger
  */
-public abstract class AccountControlFactory<P, A extends Account> extends PropertyControlFactory<A> implements IReferenceControlFactory<P,A> {
+public abstract class AccountControlFactory<P, S extends ExtendableObject, A extends Account> extends PropertyControlFactory<S,A> implements IReferenceControlFactory<P,S,A> {
     
     @Override
-	public IPropertyControl createPropertyControl(Composite parent, ScalarPropertyAccessor<A,?> propertyAccessor) {
-        return new AccountEditor<A>(parent, propertyAccessor);
+	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<A,S> propertyAccessor) {
+        return new AccountEditor<S,A>(parent, propertyAccessor);
     }
 
     @Override	
-	public String formatValueForMessage(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends A,?> propertyAccessor) {
-        Account value = extendableObject.getPropertyValue(propertyAccessor);
+	public String formatValueForMessage(S extendableObject, ScalarPropertyAccessor<? extends A,S> propertyAccessor) {
+        Account value = propertyAccessor.getValue(extendableObject);
         return value == null ? Messages.AccountControlFactory_None : value.getFullAccountName();
     }
 
     @Override	
-    public String formatValueForTable(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends A,?> propertyAccessor) {
-        Account value = extendableObject.getPropertyValue(propertyAccessor);
+    public String formatValueForTable(S extendableObject, ScalarPropertyAccessor<? extends A,S> propertyAccessor) {
+        Account value = propertyAccessor.getValue(extendableObject);
         return value == null ? "" : value.getFullAccountName(); //$NON-NLS-1$
     }
 

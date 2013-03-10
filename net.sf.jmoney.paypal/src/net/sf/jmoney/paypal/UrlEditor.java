@@ -46,11 +46,11 @@ import org.eclipse.swt.widgets.Text;
  * @author Nigel Westbury
  * @author Johann Gyger
  */
-public class UrlEditor implements IPropertyControl<ExtendableObject> {
+public class UrlEditor<S extends ExtendableObject> implements IPropertyControl<S> {
 
-    private ExtendableObject extendableObject;
+    private S extendableObject;
 
-    private ScalarPropertyAccessor<URL,?> propertyAccessor;
+    private ScalarPropertyAccessor<URL,S> propertyAccessor;
 
     private Text propertyControl;
 
@@ -65,7 +65,7 @@ public class UrlEditor implements IPropertyControl<ExtendableObject> {
 	};
 	
     /** Creates new TextEditor */
-    public UrlEditor(Composite parent, ScalarPropertyAccessor<URL,?> propertyAccessor) {
+    public UrlEditor(Composite parent, ScalarPropertyAccessor<URL,S> propertyAccessor) {
         propertyControl = new Text(parent, SWT.NONE);
         this.propertyAccessor = propertyAccessor;
     	
@@ -80,7 +80,7 @@ public class UrlEditor implements IPropertyControl<ExtendableObject> {
     }
 
     @Override
-	public void load(ExtendableObject object) {
+	public void load(S object) {
     	if (extendableObject != null) {
     		extendableObject.getDataManager().removeChangeListener(amountChangeListener);
     	}
@@ -90,7 +90,7 @@ public class UrlEditor implements IPropertyControl<ExtendableObject> {
         if (object == null) {
             propertyControl.setText("");
     	} else {
-            URL url = object.getPropertyValue(propertyAccessor);
+            URL url = propertyAccessor.getValue(object);
             propertyControl.setText(url == null ? "" : url.toExternalForm());
         	
         	/*
@@ -107,7 +107,7 @@ public class UrlEditor implements IPropertyControl<ExtendableObject> {
         String text = propertyControl.getText();
 		try {
 			URL url = text.length() == 0 ? null : new URL(text);
-	        extendableObject.setPropertyValue(propertyAccessor, url);
+			propertyAccessor.setValue(extendableObject, url);
 		} catch (MalformedURLException e) {
 			// TODO Throw error so user is told of bad URL
 			e.printStackTrace();

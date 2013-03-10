@@ -42,7 +42,8 @@ public class ExtensionPropertySet<X extends ExtensionObject,E extends Extendable
 	 */
 	IExtensionObjectConstructors<X,E> constructors;
 
-	IValueProperty extensionGivenExtendableObject;
+	IValueProperty<E,X> extensionGivenExtendableObject;
+
 	/**
 	 * Constructs an extension property set object.
 	 *
@@ -62,16 +63,14 @@ public class ExtensionPropertySet<X extends ExtensionObject,E extends Extendable
 			throw new MalformedPluginException("A non-null extendable property set must be passed."); //$NON-NLS-1$
 		}
 
-		extensionGivenExtendableObject = new ValueProperty() {
-
+		extensionGivenExtendableObject = new ValueProperty<E,X>() {
 			@Override
 			public Object getValueType() {
 				return ExtensionPropertySet.this.classOfObject;
 			}
 
 			@Override
-			public IObservableValue<X> observe(Realm realm, Object source) {
-				final E sourceExtendable = (E)source;
+			public IObservableValue<X> observe(Realm realm, final E source) {
 				return new AbstractObservableValue<X>() {
 
 					@Override
@@ -81,7 +80,7 @@ public class ExtensionPropertySet<X extends ExtensionObject,E extends Extendable
 
 					@Override
 					protected X doGetValue() {
-						return sourceExtendable.getExtension(ExtensionPropertySet.this, false);
+						return source.getExtension(ExtensionPropertySet.this, false);
 					}
 				};
 			}
@@ -160,7 +159,7 @@ public class ExtensionPropertySet<X extends ExtensionObject,E extends Extendable
 	}
 
 	@Override
-	public IValueProperty createValueProperty(final ScalarPropertyAccessor accessor) {
+	public <V> IValueProperty<E,V> createValueProperty(final ScalarPropertyAccessor<V,E> accessor) {
 		/*
 		 * This is a little more complex.  We need to create an IValueProperty
 		 * implementation that takes as the source object the ExtendableObject
@@ -171,9 +170,11 @@ public class ExtensionPropertySet<X extends ExtensionObject,E extends Extendable
 		 * in the base object or an extension object.
 		 */
 
-		final IValueProperty beanValueProperty = BeanProperties.value(classOfObject, accessor.localName);
+		// TODO when generics are added to BeanProperties, use class as the value type
+		// and return a properly typed result.
+		final IValueProperty<X,V> beanValueProperty = BeanProperties.value(classOfObject, accessor.localName/*, accessor.getValueType()*/);
 
-		return new ValueProperty() {
+		return new ValueProperty<E,V>() {
 
 			@Override
 			public Object getValueType() {
@@ -181,16 +182,14 @@ public class ExtensionPropertySet<X extends ExtensionObject,E extends Extendable
 			}
 
 			@Override
-			public Object doGetValue(Object source) {
-				ExtendableObject extendableObject = (ExtendableObject)source;
-
+			public V doGetValue(E source) {
 				/*
 				 * This implementation is a little more efficient than going through
 				 * the observable.  So we overwrite the default implementation with
 				 * this more efficient way of getting the value.
 				 */
 
-				ExtensionObject extension = extendableObject.getExtension(ExtensionPropertySet.this, false);
+				X extension = source.getExtension(ExtensionPropertySet.this, false);
 				Class<?> implementationClass = extendablePropertySet.getImplementationClass();
 
 				/*
@@ -200,7 +199,7 @@ public class ExtensionPropertySet<X extends ExtensionObject,E extends Extendable
 					return accessor.getDefaultValue();
 				}
 
-				if (!implementationClass.isAssignableFrom(extendableObject.getClass())) {
+				if (!implementationClass.isAssignableFrom(source.getClass())) {
 					// TODO: We should be able to validate this at compile time using generics.
 					// This would involve adding the implementation class of the containing
 					// property set as a type parameter to all property accessors.
@@ -214,9 +213,7 @@ public class ExtensionPropertySet<X extends ExtensionObject,E extends Extendable
 			}
 
 			@Override
-			protected void doSetValue(Object source, Object value) {
-				ExtendableObject extendableObject = (ExtendableObject)source;
-
+			protected void doSetValue(E source, V value) {
 				/*
 				 * This implementation is a little more efficient than going through
 				 * the observable.  So we overwrite the default implementation with
@@ -224,12 +221,12 @@ public class ExtensionPropertySet<X extends ExtensionObject,E extends Extendable
 				 */
 
 				// Get the extension, creating one if necessary.
-				X extension = extendableObject.getExtension(ExtensionPropertySet.this, true);
+				X extension = source.getExtension(ExtensionPropertySet.this, true);
 				beanValueProperty.setValue(extension, value);
 			}
 
 			@Override
-			public IObservableValue observe(Realm realm, Object source) {
+			public IObservableValue<V> observe(Realm realm, E source) {
 				/*
 				 * We use a bit of a trick here.  If the extension does not
 				 * exist then we create it at this time.  This allows us to
@@ -242,8 +239,7 @@ public class ExtensionPropertySet<X extends ExtensionObject,E extends Extendable
 				 * here because there is a fair amount of overhead in creating an
 				 * observable and listening to it.
 				 */
-				ExtendableObject extendableObject = (ExtendableObject)source;
-				X extension = extendableObject.getExtension(ExtensionPropertySet.this, true);
+				X extension = source.getExtension(ExtensionPropertySet.this, true);
 				return beanValueProperty.observe(realm, extension);
 			}
 		};

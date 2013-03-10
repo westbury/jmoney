@@ -125,31 +125,31 @@ public class EntryInfo implements IPropertySetInfo {
 
 	@Override
 	public PropertySet registerProperties() {
-		IPropertyControlFactory<String> textControlFactory = new TextControlFactory();
-        IPropertyControlFactory<Date> dateControlFactory = new DateControlFactory();
-        IReferenceControlFactory<Entry,Account> accountControlFactory = new AccountControlFactory<Entry,Account>() {
+		IPropertyControlFactory<Entry,String> textControlFactory = new TextControlFactory<Entry>();
+        IPropertyControlFactory<Entry,Date> dateControlFactory = new DateControlFactory<Entry>();
+        IReferenceControlFactory<Entry,Entry,Account> accountControlFactory = new AccountControlFactory<Entry,Entry,Account>() {
 			@Override
 			public IObjectKey getObjectKey(Entry parentObject) {
 				return parentObject.accountKey;
 			}
 		};
 
-        IPropertyControlFactory<Long> amountControlFactory = new AmountControlFactory() {
+        IPropertyControlFactory<Entry,Long> amountControlFactory = new AmountControlFactory<Entry>() {
 		    @Override	
-			protected Commodity getCommodity(ExtendableObject object) {
+			protected Commodity getCommodity(Entry object) {
 				// If not enough information has yet been set to determine
 				// the currency of the amount in this entry, return
 				// the default currency.
-	    	    Commodity commodity = ((Entry) object).getCommodityInternal();
+	    	    Commodity commodity = object.getCommodityInternal();
 	    	    if (commodity == null) {
-	    	    	commodity = ((Entry) object).getSession().getDefaultCurrency();
+	    	    	commodity = object.getSession().getDefaultCurrency();
 	    	    }
 	    	    return commodity;
 			}
 
 			@Override
-			public IPropertyControl createPropertyControl(Composite parent, ScalarPropertyAccessor<Long,?> propertyAccessor) {
-		    	final AmountEditor editor = new AmountEditor(parent, propertyAccessor, this);
+			public IPropertyControl<Entry> createPropertyControl(Composite parent, ScalarPropertyAccessor<Long,Entry> propertyAccessor) {
+		    	final AmountEditor<Entry> editor = new AmountEditor<Entry>(parent, propertyAccessor, this);
 		        
 		    	// The format of the amount will change if either
 		    	// the account property of the entry changes or if
@@ -187,38 +187,36 @@ public class EntryInfo implements IPropertySetInfo {
 		        return editor;
 			}};
 
-		IPropertyControlFactory<Long> creationControlFactory = new PropertyControlFactory<Long>() {
+		IPropertyControlFactory<Entry,Long> creationControlFactory = new PropertyControlFactory<Entry,Long>() {
 
 			@Override
-			public String formatValueForTable(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends Long,?> propertyAccessor) {
-				// TODO fix unnecessary cast
-				Long value = (Long)propertyAccessor.getValue(extendableObject);
+			public String formatValueForTable(Entry extendableObject, ScalarPropertyAccessor<? extends Long,Entry> propertyAccessor) {
+				Long value = propertyAccessor.getValue(extendableObject);
 				Date date = new Date(value);
 				date.setTime(value);
 		        return dateFormat.format(date);
 			}
 
 			@Override
-			public String formatValueForMessage(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends Long,?> propertyAccessor) {
-				// TODO fix unnecessary cast
-				Long value = (Long)propertyAccessor.getValue(extendableObject);
+			public String formatValueForMessage(Entry extendableObject, ScalarPropertyAccessor<? extends Long,Entry> propertyAccessor) {
+				Long value = propertyAccessor.getValue(extendableObject);
 				Date date = new Date(value);
 				date.setTime(value);
 		        return dateFormat.format(date);
 			}
 
 			@Override
-			public IPropertyControl createPropertyControl(Composite parent, final ScalarPropertyAccessor<Long,?> propertyAccessor) {
+			public IPropertyControl<Entry> createPropertyControl(Composite parent, final ScalarPropertyAccessor<Long,Entry> propertyAccessor) {
 				// This property is not editable
 				final Label control = new Label(parent, SWT.NONE);
 				
-		    	return new IPropertyControl<ExtendableObject>() {
+		    	return new IPropertyControl<Entry>() {
 					@Override
 					public Control getControl() {
 						return control;
 					}
 					@Override
-					public void load(ExtendableObject object) {
+					public void load(Entry object) {
 						control.setText(formatValueForTable(object, propertyAccessor));
 					}
 					@Override
@@ -239,14 +237,14 @@ public class EntryInfo implements IPropertySetInfo {
 			}
 		};
 
-		IReferenceControlFactory<Entry,Commodity> commodityControlFactory = new CommodityControlFactory<Entry>() {
+		IReferenceControlFactory<Entry,Entry,Commodity> commodityControlFactory = new CommodityControlFactory<Entry,Entry>() {
 			@Override
 			public IObjectKey getObjectKey(Entry parentObject) {
 				return parentObject.commodityKey;
 			}
 		};
 		
-		IReferenceControlFactory<Entry,Currency> currencyControlFactory = new CurrencyControlFactory<Entry>() {
+		IReferenceControlFactory<Entry,Entry,Currency> currencyControlFactory = new CurrencyControlFactory<Entry,Entry>() {
 			@Override
 			public IObjectKey getObjectKey(Entry parentObject) {
 				return parentObject.incomeExpenseCurrencyKey;

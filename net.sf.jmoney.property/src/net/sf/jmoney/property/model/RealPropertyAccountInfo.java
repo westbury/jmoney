@@ -73,7 +73,7 @@ public class RealPropertyAccountInfo implements IPropertySetInfo {
 
 	public PropertySet registerProperties() {
 
-		IReferenceControlFactory<RealPropertyAccount,Currency> currencyControlFactory = new CurrencyControlFactory<RealPropertyAccount>() {
+		IReferenceControlFactory<RealPropertyAccount,RealPropertyAccount,Currency> currencyControlFactory = new CurrencyControlFactory<RealPropertyAccount,RealPropertyAccount>() {
 			public IObjectKey getObjectKey(RealPropertyAccount parentObject) {
 				return parentObject.currencyKey;
 			}

@@ -1,8 +1,7 @@
 package net.sf.jmoney.importer.propertyPages;
 
 import net.sf.jmoney.importer.model.ImportAccountInfo;
-import net.sf.jmoney.model2.Account;
-import net.sf.jmoney.model2.ExtendableObject;
+import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.IPropertyControl;
 
 import org.eclipse.jface.viewers.ISelection;
@@ -35,7 +34,7 @@ import org.eclipse.ui.views.properties.tabbed.TabbedPropertySheetPage;
 
 public class ImportFormatSection extends AbstractPropertySection {
 
-	private Account account;
+	private CapitalAccount account;
 
 	private ModifyListener listener = new ModifyListener() {
 
@@ -47,7 +46,7 @@ public class ImportFormatSection extends AbstractPropertySection {
 		}
 	};
 
-	private IPropertyControl<ExtendableObject> propertyControl;
+	private IPropertyControl<CapitalAccount> propertyControl;
 
 	public void createControls(Composite parent, TabbedPropertySheetPage aTabbedPropertySheetPage) {
 		super.createControls(parent, aTabbedPropertySheetPage);
@@ -76,7 +75,7 @@ public class ImportFormatSection extends AbstractPropertySection {
 	public void setInput(IWorkbenchPart part, ISelection selection) {
 		super.setInput(part, selection);
 		Object input = ((IStructuredSelection) selection).getFirstElement();
-		this.account = (Account) input;
+		this.account = (CapitalAccount) input;
 	}
 
 	public void refresh() {

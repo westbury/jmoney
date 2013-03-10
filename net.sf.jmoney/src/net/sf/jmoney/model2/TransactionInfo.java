@@ -83,7 +83,7 @@ public class TransactionInfo implements IPropertySetInfo {
 			}
 		};
 		
-        IPropertyControlFactory<Date> dateControlFactory = new DateControlFactory();
+        IPropertyControlFactory<Transaction,Date> dateControlFactory = new DateControlFactory<Transaction>();
 		
 		entriesAccessor = propertySet.addPropertyList("entry", Messages.TransactionInfo_Entry, EntryInfo.getPropertySet(), entryGetter); //$NON-NLS-1$
 		dateAccessor = propertySet.addProperty("date", Messages.TransactionInfo_Date, Date.class, 0, 74, dateControlFactory, null); //$NON-NLS-1$

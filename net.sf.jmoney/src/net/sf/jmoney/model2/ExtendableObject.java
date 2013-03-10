@@ -57,17 +57,17 @@ import org.eclipse.ui.views.properties.IPropertySource;
  * <P>
  * This class contains abstract methods for which an implementation
  * must be provided.
- * 
+ *
  * @author  Nigel Westbury
  */
 public abstract class ExtendableObject implements IModelObject, IAdaptable {
-	
+
 	/**
 	 * The key from which this object can be fetched from
 	 * the datastore and a reference to this object obtained.
 	 */
 	IObjectKey objectKey;
-	
+
 	/**
 	 * Extendable objects may have extensions containing additional data needed
 	 * by the plug-ins. Plug-ins add properties to an object class by creating a
@@ -75,33 +75,27 @@ public abstract class ExtendableObject implements IModelObject, IAdaptable {
 	 * map will map property sets to the appropriate extension object.
 	 */
 	protected Map<ExtensionPropertySet<?,?>, ExtensionObject> extensions = new HashMap<ExtensionPropertySet<?,?>, ExtensionObject>();
-	
+
 	/**
 	 * The key which contains this object's parent and also the list property
 	 * which contains this object.
 	 */
 	protected ListKey parentKey;
-	
+
 	protected abstract String getExtendablePropertySetId();
 
 	/**
 	 * Constructs a new object with property values obtained from
 	 * the given IValues interface.
-	 * 
+	 *
 	 * Derived classes will set their own properties from this interface,
 	 * but this method is responsible for ensuring the appropriate extensions
 	 * are created and passes on the IValues interface to the extension constructors.
 	 */
-	protected <E extends ExtendableObject> ExtendableObject(IObjectKey objectKey, ListKey parentKey, IValues<E> extensionValues) { 
+	protected <E extends ExtendableObject> ExtendableObject(IObjectKey objectKey, ListKey parentKey, IValues<E> extensionValues) {
 		this.objectKey = objectKey;
 		this.parentKey = parentKey;
 
-		
-		
-		
-		
-		
-		
 		/*
 		 * In order to find out which extensions have non-default values, we have to read the property
 		 * values from the rowset and compare against the default values given by the accessor.
@@ -136,32 +130,21 @@ public abstract class ExtendableObject implements IModelObject, IAdaptable {
 			}
 		}
 
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
 		for (ExtensionPropertySet<?,?> propertySet2: nonDefaultExtensions) {
 			ExtensionPropertySet<?,E> propertySet = (ExtensionPropertySet<?,E>)propertySet2;
 			ExtensionObject extensionObject = propertySet.constructImplementationObject((E)this, extensionValues);
 			extensions.put(propertySet, extensionObject);
 		}
 	}
-	
+
 	/**
 	 * Constructs a new object with default property values.
 	 */
-	protected ExtendableObject(IObjectKey objectKey, ListKey parentKey) { 
+	protected ExtendableObject(IObjectKey objectKey, ListKey parentKey) {
 		this.objectKey = objectKey;
 		this.parentKey = parentKey;
 	}
-	
+
 	/**
 	 * @return The key that fetches this object.
 	 */
@@ -177,12 +160,12 @@ public abstract class ExtendableObject implements IModelObject, IAdaptable {
 	public IObjectKey getParentKey() {
 		return parentKey == null ? null : parentKey.getParentKey();
 	}
-	
+
 	@Override
 	public ListKey getParentListKey() {
 		return parentKey;
 	}
-	
+
 	/**
 	 * @return The session containing this object
 	 */
@@ -192,7 +175,7 @@ public abstract class ExtendableObject implements IModelObject, IAdaptable {
 		// Get the session from the data manager.
 		return getDataManager().getSession();
 	}
-	
+
 	/**
 	 * @return The data manager containing this object
 	 */
@@ -203,7 +186,7 @@ public abstract class ExtendableObject implements IModelObject, IAdaptable {
 		// Get the data manager from the key.
 		return (IDataManagerForAccounts)objectKey.getDataManager();
 	}
-	
+
 	/**
 	 * Two or more instantiated objects may represent the same object
 	 * in the datastore.  Such objects should be considered
@@ -220,7 +203,7 @@ public abstract class ExtendableObject implements IModelObject, IAdaptable {
 	// If we had an interface with the getObjectKey() method that
 	// both ExtendableObject and ExtensionObject implemented, then
 	// this method would be simpler.
-    @Override	
+    @Override
 	public boolean equals(Object object) {
 		// Two objects represent the same object if and only if
 		// the keys from which they were created are the same.
@@ -239,7 +222,7 @@ public abstract class ExtendableObject implements IModelObject, IAdaptable {
 
 	/**
 	 * Required to support hash maps.
-	 * 
+	 *
 	 * If the datastore plug-in keeps the entire datastore in
 	 * memory then the default hashCode implementation in the
 	 * object key will work fine.  However, if the datastore is
@@ -248,11 +231,11 @@ public abstract class ExtendableObject implements IModelObject, IAdaptable {
 	 * implementation must be provided for the object keys that
 	 * return the same hash code for each instance of the object key.
 	 */
-    @Override	
+    @Override
 	public int hashCode() {
 		return getObjectKey().hashCode();
 	}
-	
+
 	// Should allow default package access and protected access
 	// but not public access.  Unfortunately this cannot be done
 	// so for time being allow public access.
@@ -266,19 +249,25 @@ public abstract class ExtendableObject implements IModelObject, IAdaptable {
 				&& ((ExtendableObject)newValue).getDataManager() != getDataManager()) {
 			throw new RuntimeException("The object being set as the value of a property and the parent object are being managed by different data managers.  Objects cannot contain references to objects from other data managers."); //$NON-NLS-1$
 		}
-		
+
 		if (oldValue == newValue ||
 				(oldValue != null && oldValue.equals(newValue)))
 					return;
 
 		// Update the database.
 		ExtendablePropertySet<?> actualPropertySet = PropertySet.getPropertySet(this.getClass());
-		
+
+		processPropertyChangeTyped(propertyAccessor, oldValue, newValue, actualPropertySet);
+	}
+
+	private <S extends ExtendableObject, V> void processPropertyChangeTyped(final ScalarPropertyAccessor<V,?> propertyAccessorUntyped, final V oldValue, final V newValue, ExtendablePropertySet<S> actualPropertySet) {
+		final ScalarPropertyAccessor<V,? super S> propertyAccessor = (ScalarPropertyAccessor<V,? super S>) propertyAccessorUntyped;
+
 		// Build two arrays of old and new values.
 		// Ultimately we will have a layer between that does this
 		// for us, also combining multiple updates to the same row
 		// into a single update.  Until then, we need this code here.
-		
+
 		// TODO: improve performance here.
 		// TODO: Do we really need this, or, now that transactional
 		// processing is supported, is it unnecessary to support the
@@ -286,14 +275,14 @@ public abstract class ExtendableObject implements IModelObject, IAdaptable {
 		int count = actualPropertySet.getScalarProperties3().size();
 		Object [] oldValues = new Object[count];
 		Object [] newValues = new Object[count];
-		
+
 		int i = 0;
-		for (ScalarPropertyAccessor<?,?> propertyAccessor2: actualPropertySet.getScalarProperties3()) {
+		for (ScalarPropertyAccessor<?,? super S> propertyAccessor2: actualPropertySet.getScalarProperties3()) {
 			if (propertyAccessor2 == propertyAccessor) {
 				oldValues[i] = oldValue;
 				newValues[i] = newValue;
 			} else {
-				Object value = getPropertyValue(propertyAccessor2);
+				Object value = propertyAccessor2.getValue((S)this);
 				oldValues[i] = value;
 				newValues[i] = value;
 			}
@@ -302,11 +291,11 @@ public abstract class ExtendableObject implements IModelObject, IAdaptable {
 		objectKey.updateProperties(actualPropertySet, oldValues, newValues);
 
 		// Notify the change manager.
-		getDataManager().getChangeManager().processPropertyUpdate(this, propertyAccessor, oldValue, newValue);
+		getDataManager().getChangeManager().processPropertyUpdate((S)this, propertyAccessor, oldValue, newValue);
 
 		/*
 		 * Fire an event for this change.
-		 * 
+		 *
 		 * This method is called only when a property change is initially made.
 		 * This method is not called when a transaction is being committed and
 		 * thus the change is being applied to a base transaction. Therefore we
@@ -323,11 +312,11 @@ public abstract class ExtendableObject implements IModelObject, IAdaptable {
             		}
            		});
 	}
-	
+
 	/**
 	 * Get the extension that implements the properties needed by
 	 * a given plug-in.
-	 * 
+	 *
 	 * @param alwaysReturnNonNull
 	 *            If true then the return value is guaranteed to be non-null. If false
 	 *            then the return value may be null, indicating that all properties in
@@ -335,57 +324,13 @@ public abstract class ExtendableObject implements IModelObject, IAdaptable {
 	 */
 	public <X extends ExtensionObject, E extends ExtendableObject> X getExtension(ExtensionPropertySet<X,E> propertySet, boolean alwaysReturnNonNull) {
 		X extension = propertySet.classOfObject.cast(extensions.get(propertySet));
-		
+
 		if (extension == null && alwaysReturnNonNull) {
 				extension = propertySet.constructDefaultImplementationObject((E)this);
 				extensions.put(propertySet, extension);
 		}
-		
-		return extension;
-	}
-	
-    /**
-     * Returns the value of a given property.
-     * <P>
-     * The property may be any property in the passed object,
-     * including properties that are stored in extension objects.
-     * The property may be defined in the actual class or
-     * any super classes which the class extends.  The property
-     * may also be a property in any extension class which extends
-     * the class of this object or which extends any super class
-     * of the class of this object.
-     * <P>
-     * If the property is in an extension and that extension does
-     * not exist in this object then the default value of the
-     * property is returned.
-     * 
-	 * @deprecated callers should call ScalarPropertyAccessor.getValue(ExtendableObject)
-	 * 		instead, inverting the receiver and the parameter.
-     */
-	@Deprecated
-	public <T,E extends ExtendableObject> T getPropertyValue(ScalarPropertyAccessor<T,E> propertyAccessor) {
-		return propertyAccessor.getValue((E)this);
-	}
-	
-	/**
-	 * Obtain a the collection of values of a list property.
-	 * 
-	 * @param propertyAccessor The property accessor for the property
-	 * 			whose values are to be obtained.  The property
-	 * 			must be a list property (and not a scalar property).
-	 */
-//	@Override
-//	public <E2 extends IModelObject, S2 extends IModelObject> ObjectCollection<E2> getListPropertyValue(IListPropertyAccessor<E2,S2> owningListProperty) {
-//		return owningListProperty.getElements(this);
-//	}
 
-	/**
-	 * @deprecated callers should call ScalarPropertyAccessor.setValue(ExtendableObject, value)
-	 * 		instead, inverting the receiver and the first parameter.
-	 */
-	@Deprecated
-	public <V,E extends ExtendableObject> void setPropertyValue(ScalarPropertyAccessor<V,E> propertyAccessor, V value) {
-		propertyAccessor.setValue((E)this, value);
+		return extension;
 	}
 
 	/**
@@ -408,15 +353,15 @@ public abstract class ExtendableObject implements IModelObject, IAdaptable {
 	public Collection<ExtensionPropertySet<?,?>> getExtensions() {
 		return extensions.keySet();
 	}
-	
+
 	/**
 	 * This method is called when loading data from a datastore.
 	 * Therefore the method can assume that there is no prior extension
 	 * in this object for the given property set id.  The results are
 	 * undetermined if the extension already exists.
 	 */
-/*	
-remove this...	
+/*
+remove this...
 	protected void importExtensionString(String propertySetId, String extensionString) {
 		// This is a bit of a kludge.  We need to put the object
 		// into editable mode.  This ensures that a request for an
@@ -425,9 +370,9 @@ remove this...
 		// necessary that the code that propagates property changes
 		// through the propagators get non-null extensions.
 		alwaysReturnNonNullExtensions = true;
-		
+
 		PropertySet propertySet = PropertySet.getPropertySetCreatingIfNecessary(propertySetId, getExtendablePropertySetId());
-		
+
 		if (!propertySet.isExtensionClassKnown()) {
 			// The plug-in that originally implemented this extension
 			// is not installed.  We therefore do not know the class
@@ -441,14 +386,14 @@ remove this...
 			// Because the 'alwaysReturnNonNullExtensions' flag is set,
 			// this method will always return  non-null extension.
 			ExtensionObject extension = getExtension(propertySet);
-			
+
 			stringToExtension(extensionString, extension);
 		}
-		
+
 		alwaysReturnNonNullExtensions = false;
 	}
-	
-	
+
+
 	protected static String extensionToString(ExtendableObject extension) {
 		BeanInfo beanInfo;
 		try {
@@ -456,7 +401,7 @@ remove this...
 		} catch (IntrospectionException e) {
 			throw new MalformedPluginException("Property set extension caused introspection error");
 		}
-		
+
 		StringBuffer buffer = new StringBuffer();
 		PropertyDescriptor pd[] = beanInfo.getPropertyDescriptors();
 		for (int j = 0; j < pd.length; j++) {
@@ -495,53 +440,53 @@ remove this...
 		}
 		return buffer.toString();
 	}
-	
+
 	protected static void stringToExtension(String s, ExtensionObject extension) {
 		ByteArrayInputStream bin = new ByteArrayInputStream(s.getBytes());
-		
-		
+
+
 		SAXParserFactory factory = SAXParserFactory.newInstance();
 		try {
 			SAXParser saxParser = factory.newSAXParser();
 			HandlerForExtensions handler = new HandlerForExtensions(extension);
-			saxParser.parse(bin, handler); 
-		} 
+			saxParser.parse(bin, handler);
+		}
 		catch (ParserConfigurationException e) {
 			throw new RuntimeException("Serious XML parser configuration error");
-		} 
-		catch (SAXException se) { 
+		}
+		catch (SAXException se) {
 			throw new RuntimeException("SAX exception error");
 		}
-		catch (IOException ioe) { 
+		catch (IOException ioe) {
 			throw new RuntimeException("IO internal exception error");
 		}
-		
-		try { 
-			bin.close(); 
-		} 
-		catch (IOException e) { 
+
+		try {
+			bin.close();
+		}
+		catch (IOException e) {
 			throw new RuntimeException("internal error");
 		}
 	}
-	
+
 	private static class HandlerForExtensions extends DefaultHandler {
-		
+
 		ExtensionObject extension;
-		
+
 		BeanInfo beanInfo;
-		
+
 		Method writeMethod = null;
-		
+
 		HandlerForExtensions(ExtensionObject extension) {
 			this.extension = extension;
-			
+
 			try {
 				beanInfo = Introspector.getBeanInfo(extension.getClass());
 			} catch (IntrospectionException e) {
 				throw new MalformedPluginException("Property set extension caused introspection error");
 			}
 		}
-		
+
 		/**
 		 * Receive notification of the start of an element.
 		 *
@@ -559,7 +504,7 @@ remove this...
 				String qName, Attributes attributes)
 		throws SAXException {
 			String propertyName = qName;
-			
+
 			PropertyDescriptor pd[] = beanInfo.getPropertyDescriptors();
 			for (int j = 0; j < pd.length; j++) {
 				String name = pd[j].getName();
@@ -577,8 +522,8 @@ remove this...
 				}
 			}
 		}
-		
-		
+
+
 		/**
 		 * Receive notification of the end of an element.
 		 *
@@ -594,8 +539,8 @@ remove this...
 		throws SAXException {
 			writeMethod = null;
 		}
-		
-		
+
+
 		/**
 		 * Receive notification of character data inside an element.
 		 *
@@ -615,7 +560,7 @@ remove this...
 			if (writeMethod != null) {
 				Class type = writeMethod.getParameterTypes()[0];
 				Object value = null;
-				
+
 				// TODO: change this.  Find a constructor from string.
 				if (type.equals(int.class)) {
 					String s = new String(ch, start, length);
@@ -627,7 +572,7 @@ remove this...
 				} else {
 					throw new RuntimeException("unsupported type");
 				}
-				
+
 				try {
 					writeMethod.invoke(extension, new Object[] { value });
 				} catch (IllegalAccessException e) {
@@ -644,7 +589,7 @@ remove this...
 	/**
 	 * This method is used to enable other classes in the package to
 	 * access protected fields in the extendable objects.
-	 * 
+	 *
 	 * @param theObjectKeyField
 	 * @return
 	 */
@@ -659,14 +604,14 @@ remove this...
     		throw new RuntimeException("internal error - field protection problem"); //$NON-NLS-1$
     	}
 	}
-	
+
 	/**
 	 * This method allows datastore implementations to re-parent an
 	 * object (move it from one list to another).
 	 * <P>
 	 * This method is to be used by datastore implementations only.
 	 * Other plug-ins should not be calling this method.
-	 * 
+	 *
 	 * @param listKey
 	 */
 	// TODO figure out how to make this not public
@@ -677,9 +622,10 @@ remove this...
 
     @Override
 	public Object getAdapter(Class adapter) {
-		 if (adapter == IPropertySource.class) {
-			return new ExtendableObjectPropertySource(this);
-		 }
+    	if (adapter == IPropertySource.class) {
+    		ExtendablePropertySet<?> propertySet = PropertySet.getPropertySet(this.getClass());
+    		return ExtendableObjectPropertySource.construct(propertySet, this);
+    	}
         return null;
      }
 

@@ -40,7 +40,7 @@ import org.eclipse.swt.widgets.Composite;
  * 
  * @author Johann Gyger
  */
-public class DateControlFactory implements IPropertyControlFactory<Date> {
+public class DateControlFactory<S extends ExtendableObject> implements IPropertyControlFactory<S,Date> {
 
     protected VerySimpleDateFormat fDateFormat = new VerySimpleDateFormat(
             JMoneyPlugin.getDefault().getDateFormat());
@@ -72,14 +72,14 @@ public class DateControlFactory implements IPropertyControlFactory<Date> {
     }
 
     @Override
-	public IPropertyControl createPropertyControl(Composite parent, ScalarPropertyAccessor<Date,?> propertyAccessor) {
-        return new DateEditor(parent, propertyAccessor);
+	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<Date,S> propertyAccessor) {
+        return new DateEditor<S>(parent, propertyAccessor);
     }
 
     @Override
-	public String formatValueForMessage(ExtendableObject extendableObject,
-            ScalarPropertyAccessor<? extends Date,?> propertyAccessor) {
-        Date value = extendableObject.getPropertyValue(propertyAccessor);
+	public String formatValueForMessage(S extendableObject,
+            ScalarPropertyAccessor<? extends Date,S> propertyAccessor) {
+        Date value = propertyAccessor.getValue(extendableObject);
         if (value == null) {
             return Messages.DateControlFactory_None;
         } else {
@@ -88,9 +88,9 @@ public class DateControlFactory implements IPropertyControlFactory<Date> {
     }
 
     @Override
-	public String formatValueForTable(ExtendableObject extendableObject,
-            ScalarPropertyAccessor<? extends Date,?> propertyAccessor) {
-        Date value = extendableObject.getPropertyValue(propertyAccessor);
+	public String formatValueForTable(S extendableObject,
+            ScalarPropertyAccessor<? extends Date,S> propertyAccessor) {
+        Date value = propertyAccessor.getValue(extendableObject);
         return fDateFormat.format(value);
     }
 

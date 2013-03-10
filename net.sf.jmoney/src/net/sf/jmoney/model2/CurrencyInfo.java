@@ -78,11 +78,11 @@ public class CurrencyInfo implements IPropertySetInfo {
 
 	@Override
 	public PropertySet registerProperties() {
-		IPropertyControlFactory<String> textControlFactory = new TextControlFactory();
+		IPropertyControlFactory<Currency,String> textControlFactory = new TextControlFactory<Currency>();
 		
-		IPropertyControlFactory<Integer> numberControlFactory = new PropertyControlFactory<Integer>() {
+		IPropertyControlFactory<Currency,Integer> numberControlFactory = new PropertyControlFactory<Currency,Integer>() {
 			@Override
-			public IPropertyControl createPropertyControl(Composite parent, ScalarPropertyAccessor<Integer,?> propertyAccessor) {
+			public IPropertyControl<Currency> createPropertyControl(Composite parent, ScalarPropertyAccessor<Integer,Currency> propertyAccessor) {
 				// Property is not editable
 				return null;
 			}

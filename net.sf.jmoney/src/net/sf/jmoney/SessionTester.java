@@ -12,6 +12,7 @@ import org.eclipse.ui.IWorkbenchWindow;
  */
 public class SessionTester extends PropertyTester {
 
+	@Override
 	public boolean test(Object receiver, String property, Object[] args, Object expectedValue) {
 		IWorkbenchWindow window = (IWorkbenchWindow)receiver;
 		if ("isSessionOpen".equals(property)) { //$NON-NLS-1$

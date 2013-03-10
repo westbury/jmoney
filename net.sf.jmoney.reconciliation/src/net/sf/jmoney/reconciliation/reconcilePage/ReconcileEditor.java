@@ -24,7 +24,6 @@ import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.CurrencyAccount;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
@@ -79,12 +78,12 @@ import org.eclipse.ui.part.EditorPart;
 public class ReconcileEditor extends EditorPart {
 
 	static public final String ID = "net.sf.jmoney.accountEntriesEditor";
-	
+
 	/**
 	 * The account being shown in this page.
 	 */
 	protected CurrencyAccount account = null;
-	
+
 	protected Vector<CellBlock> allEntryDataObjects = new Vector<CellBlock>();
 
 	protected StatementsSection fStatementsSection;
@@ -96,7 +95,7 @@ public class ReconcileEditor extends EditorPart {
 	 * Null indicates that no statement is currently showing.
 	 */
 	BankStatement statement;
-	
+
 	/**
 	 * the transaction currently being edited, or null
 	 * if no transaction is being edited
@@ -108,18 +107,18 @@ public class ReconcileEditor extends EditorPart {
 	 * for the last statement import, or null if the user has not yet done a statement import
 	 */
 	protected IBankStatementSource statementSource = null;
-	
-    
+
+
 	@Override
 	public void init(IEditorSite site, IEditorInput input) {
 		setSite(site);
 		setInput(input);
-		
+
     	// Set the account that this page is viewing and editing.
 		AccountEditorInput input2 = (AccountEditorInput)input;
         IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)site.getPage().getInput();
         account = (CurrencyAccount)sessionManager.getSession().getAccountByFullName(input2.getFullAccountName());
-        
+
         // Create our own transaction manager.
         // This ensures that uncommitted changes
     	// made by this page are isolated from datastore usage outside
@@ -169,15 +168,15 @@ public class ReconcileEditor extends EditorPart {
 		 */
         // TODO: implement this
         statement = null;
-        
+
     	// Build an array of all possible properties that may be
     	// displayed in the table.
-        
+
         // Add properties from the transaction.
-   		for (final ScalarPropertyAccessor propertyAccessor: TransactionInfo.getPropertySet().getScalarProperties3()) {
-        	allEntryDataObjects.add(new PropertyBlock<EntryData, RowControl>(propertyAccessor, "transaction") {
+   		for (final ScalarPropertyAccessor<?,? super Transaction> propertyAccessor: TransactionInfo.getPropertySet().getScalarProperties3()) {
+        	allEntryDataObjects.add(new PropertyBlock<EntryData, RowControl, Transaction>(propertyAccessor, "transaction") {
     			@Override
-        		public ExtendableObject getObjectContainingProperty(EntryData data) {
+        		public Transaction getObjectContainingProperty(EntryData data) {
         			return data.getEntry().getTransaction();
         		}
         	});
@@ -187,12 +186,12 @@ public class ReconcileEditor extends EditorPart {
         // For time being, this is all the properties except the account
         // which come from the other entry, and the amount which is shown in the debit and
         // credit columns.
-   		for (ScalarPropertyAccessor<?,?> propertyAccessor: EntryInfo.getPropertySet().getScalarProperties3()) {
-            if (propertyAccessor != EntryInfo.getAccountAccessor() 
+   		for (ScalarPropertyAccessor<?,? super Entry> propertyAccessor: EntryInfo.getPropertySet().getScalarProperties3()) {
+            if (propertyAccessor != EntryInfo.getAccountAccessor()
            		&& propertyAccessor != EntryInfo.getAmountAccessor()) {
-            	allEntryDataObjects.add(new PropertyBlock<EntryData, RowControl>(propertyAccessor, "this") {
+            	allEntryDataObjects.add(new PropertyBlock<EntryData, RowControl, Entry>(propertyAccessor, "this") {
         			@Override
-            		public ExtendableObject getObjectContainingProperty(EntryData data) {
+            		public Entry getObjectContainingProperty(EntryData data) {
             			return data.getEntry();
             		}
             	});
@@ -201,17 +200,17 @@ public class ReconcileEditor extends EditorPart {
 
         /* Add properties that show values from the other entries.
          * These are the account, description, and amount properties.
-         * 
+         *
          * I don't know what to do if there are other capital accounts
          * (a transfer or a purchase with money coming from more than one account).
          */
    		allEntryDataObjects.add(new OtherEntriesPropertyBlock(EntryInfo.getAccountAccessor()));
    		allEntryDataObjects.add(new OtherEntriesPropertyBlock(EntryInfo.getMemoAccessor(), "description"));
-        
+
         FormToolkit toolkit = new FormToolkit(parent.getDisplay());
     	final ScrolledForm form = toolkit.createScrolledForm(parent);
         form.getBody().setLayout(new GridLayout(2, false));
-        
+
         fStatementsSection = new StatementsSection(form.getBody(), toolkit, account);
         GridData data = new GridData(SWT.LEFT, SWT.FILL, false, true);
         data.verticalSpan = 2;
@@ -225,18 +224,18 @@ public class ReconcileEditor extends EditorPart {
 			public void widgetDefaultSelected(SelectionEvent e) {
 				StatementDetails statementDetails = (StatementDetails)e.item.getData();
 		    	statement = statementDetails.statement;
-		    	
+
 		    	// Refresh the statement section
 		    	fStatementSection.setStatement(statementDetails.statement, statementDetails.openingBalance);
 			}
 		});
-		
+
 		Composite actionbarContainer = new Composite(form.getBody(), 0);
-		
+
 		GridLayout actionbarLayout = new GridLayout();
 		actionbarLayout.numColumns = 4;
 		actionbarContainer.setLayout(actionbarLayout);
-		
+
 		final Combo fStatementsViewCombo = new Combo(actionbarContainer, SWT.DROP_DOWN);
 		fStatementsViewCombo.setItems(new String [] {
 				ReconciliationPlugin.getResourceString("ToolbarSection.hideStatements"),
@@ -264,24 +263,24 @@ public class ReconcileEditor extends EditorPart {
 					fStatementsSection.showBalance(true);
 					break;
 				}
-				
+
 				form.getBody().layout(true);
 			}
 		});
-		
+
 		Button newStatementButton = new Button(actionbarContainer, SWT.PUSH);
 		newStatementButton.setText("New Statement...");
 		newStatementButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				StatementDetails lastStatement = fStatementsSection.getLastStatement();
-				NewStatementDialog messageBox = 
+				NewStatementDialog messageBox =
 					new NewStatementDialog(getSite().getShell(), lastStatement==null ? null : lastStatement.statement);
 				if (messageBox.open() == Dialog.OK) {
 					statement = messageBox.getValue();
 					long openingBalanceOfNewStatement = fStatementsSection.getStatementOpeningBalance(statement);
 					fStatementSection.setStatement(statement, openingBalanceOfNewStatement);
-				}				
+				}
 			}
 		});
 
@@ -294,15 +293,15 @@ public class ReconcileEditor extends EditorPart {
 					MessageDialog.openError(getSite().getShell(), "Error", "No statement selected");
 					return;
 				}
-				
+
 				/*
 				 * Set the default start date to be the first day after the date of the previous
 				 * statement (if any and if statements are dated, not numbered), and the default
 				 * end date to be the date of this statement.
 				 */
-				Date defaultEndDate = 
+				Date defaultEndDate =
 					statement.isNumber() ? null : statement.getStatementDate();
-				
+
 				BankStatement priorStatement = fStatementsSection.getPriorStatement(statement);
 				Date defaultStartDate = null;
 				if (priorStatement != null && !priorStatement.isNumber()) {
@@ -327,19 +326,19 @@ public class ReconcileEditor extends EditorPart {
 					Session sessionInTransaction = accountInTransaction.getSession();
 
 					for (Entry entry : account.getEntries()) {
-						if (entry.getPropertyValue(ReconciliationEntryInfo.getStatementAccessor()) == null
+						if (ReconciliationEntryInfo.getStatementAccessor().getValue(entry) == null
 								&& entry.getValuta() != null
 								&& !entry.getValuta().before(startDate)
 								&& !entry.getValuta().after(endDate)){
-							entry.setPropertyValue(ReconciliationEntryInfo.getStatementAccessor(), statement);
+							ReconciliationEntryInfo.getStatementAccessor().setValue(entry, statement);
 						}
 					}
-					
+
 					/*
 					 * All entries have been reconciled, so we
 					 * can now commit the entries to the datastore.
 					 */
-					transactionManager.commit("Auto-Reconcile to " + statement.toLocalizedString());									
+					transactionManager.commit("Auto-Reconcile to " + statement.toLocalizedString());
 				}
 			}
 		});
@@ -351,26 +350,24 @@ public class ReconcileEditor extends EditorPart {
 		importButton.setText("Import");
 		final Menu menu = new Menu(getSite().getShell(), SWT.POP_UP);
 
-		
+
 		// The list of sources are taken from the net.sf.jmoney.reconciliation.bankstatements
 		// extension point.
-		
+
 		// Load the extensions
 		IExtensionRegistry registry = Platform.getExtensionRegistry();
 		IExtensionPoint extensionPoint = registry.getExtensionPoint("net.sf.jmoney.reconciliation.bankstatements");
 		IExtension[] extensions = extensionPoint.getExtensions();
-		
-		for (int i = 0; i < extensions.length; i++) {
-			IConfigurationElement[] elements = extensions[i].getConfigurationElements();
-			for (int j = 0; j < elements.length; j++) {
-				if (elements[j].getName().equals("statement-source")) {
-					String description = elements[j].getAttribute("description");
-					
+
+		for (IExtension extension : extensions) {
+			IConfigurationElement[] elements = extension.getConfigurationElements();
+			for (final IConfigurationElement thisElement : elements) {
+				if (thisElement.getName().equals("statement-source")) {
+					String description = thisElement.getAttribute("description");
+
 					MenuItem menuItem = new MenuItem(menu, SWT.PUSH);
 					menuItem.setText(description);
-					
-					final IConfigurationElement thisElement = elements[j];
-					
+
 					menuItem.addSelectionListener(new SelectionAdapter() {
 						@Override
 						public void widgetSelected(SelectionEvent event) {
@@ -387,7 +384,7 @@ public class ReconcileEditor extends EditorPart {
 					});
 				}
 			}
-		}		  
+		}
 
 		final PatternMatcherAccount reconciliationAccount = account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
 
@@ -400,7 +397,7 @@ public class ReconcileEditor extends EditorPart {
 			        diag.open();
 			        return;
 				}
-				
+
 				if (statement == null) {
 			        MessageBox diag = new MessageBox(getSite().getShell());
 			        diag.setText("Feature not Available");
@@ -408,7 +405,7 @@ public class ReconcileEditor extends EditorPart {
 			        diag.open();
 			        return;
 				}
-				
+
 				if (event.detail == SWT.NONE) {
 					/*
 					 * The user pressed the import button, but not on the down-arrow that
@@ -433,12 +430,12 @@ public class ReconcileEditor extends EditorPart {
 		optionsButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				ImportOptionsDialog messageBox = 
+				ImportOptionsDialog messageBox =
 					new ImportOptionsDialog(getSite().getShell(), reconciliationAccount);
 				messageBox.open();
 			}
 		});
-		
+
         Composite containerOfSash = new Composite(form.getBody(), 0);
         containerOfSash.setLayout(new FormLayout());
 
@@ -477,13 +474,13 @@ public class ReconcileEditor extends EditorPart {
         gridData1.heightHint = 200;   // TODO: tidy up???
         gridData1.widthHint = 200;   // TODO: tidy up???
         containerOfSash.setLayoutData(gridData1);
-        
+
         /*
          * The common row tracker.  This is used by both tables, so that
          * there is only one selection in the part.
          */
 	    RowSelectionTracker<EntryRowControl> rowTracker = new RowSelectionTracker<EntryRowControl>();
-        
+
         fStatementSection = new StatementSection(containerOfSash, toolkit, this, rowTracker);
 
         formData = new FormData();
@@ -492,7 +489,7 @@ public class ReconcileEditor extends EditorPart {
         formData.left = new FormAttachment(0, 0);
         formData.right = new FormAttachment(100, 0);
         fStatementSection.getSection().setLayoutData(formData);
-        
+
         fUnreconciledSection = new UnreconciledSection(containerOfSash, toolkit, this, rowTracker);
 
         formData = new FormData();
@@ -513,25 +510,25 @@ public class ReconcileEditor extends EditorPart {
 		IHandlerService handlerService = (IHandlerService) getSite().getService(IHandlerService.class);
 
 		IHandler handler = new NewTransactionHandler(rowTracker, fUnreconciledSection.fUnreconciledEntriesControl);
-		handlerService.activateHandler("net.sf.jmoney.newTransaction", handler);		
+		handlerService.activateHandler("net.sf.jmoney.newTransaction", handler);
 
 		handler = new DeleteTransactionHandler(rowTracker);
-		handlerService.activateHandler("net.sf.jmoney.deleteTransaction", handler);		
+		handlerService.activateHandler("net.sf.jmoney.deleteTransaction", handler);
 
 		handler = new DuplicateTransactionHandler(rowTracker, fUnreconciledSection.fUnreconciledEntriesControl);
-		handlerService.activateHandler("net.sf.jmoney.duplicateTransaction", handler);		
+		handlerService.activateHandler("net.sf.jmoney.duplicateTransaction", handler);
 
 		handler = new OpenTransactionDialogHandler(rowTracker);
-		handlerService.activateHandler("net.sf.jmoney.transactionDetails", handler);		
+		handlerService.activateHandler("net.sf.jmoney.transactionDetails", handler);
 	}
-	
+
 	public void saveState(IMemento memento) {
 //		for (String id: transactionTypes.keySet()) {
 //			ITransactionTemplate transactionType = transactionTypes.get(id);
 //			transactionType.saveState(memento.createChild("template", id));
 //		}
 	}
-	
+
 	@Override
 	public void setFocus() {
 		// Don't bother to do anything.  User can select as required.
@@ -539,11 +536,11 @@ public class ReconcileEditor extends EditorPart {
 	/**
 	 * Imports data from an external source (usually the Bank's server or a file downloaded
 	 * from the Bank's server) into this bank statement.
-	 * 
+	 *
 	 * Before this method can be called, the following must be set:
-	 * 
+	 *
 	 * 1. statementSource must be set to an implementation of the IBankStatementSource interface.
-	 * 2. A statement must be open in the editor 
+	 * 2. A statement must be open in the editor
 	 */
 	void importStatement() {
 //		outer: for (Entry entry : account.getBaseObject().getEntries()) {
@@ -555,23 +552,23 @@ public class ReconcileEditor extends EditorPart {
 //			if (memo.length() < 3) continue;
 //			if (memo.charAt(0) == '0') continue;
 //			for (int i=0; i < memo.length(); i++) {
-//				if (memo.charAt(i) < '0' || memo.charAt(i) > '9') continue outer; 
+//				if (memo.charAt(i) < '0' || memo.charAt(i) > '9') continue outer;
 //			}
 //			entry.setCheck(memo);
 //			entry.setMemo("check " + memo);
 //		}
-//			
+//
 //		}
-	
-	
+
+
 		/*
 		 * Set the default start date to be the first day after the date of the previous
 		 * statement (if any and if statements are dated, not numbered), and the default
 		 * end date to be the date of this statement.
 		 */
-		Date defaultEndDate = 
+		Date defaultEndDate =
 			statement.isNumber() ? null : statement.getStatementDate();
-		
+
 		BankStatement priorStatement = fStatementsSection.getPriorStatement(statement);
 		Date defaultStartDate = null;
 		if (priorStatement != null && !priorStatement.isNumber()) {
@@ -580,12 +577,12 @@ public class ReconcileEditor extends EditorPart {
 			oneDayLater.add(Calendar.DAY_OF_MONTH, 1);
 			defaultStartDate = oneDayLater.getTime();
 		}
-		
+
 		/*
 		 * Create an import wizard that wraps the import source.
-		 * 
+		 *
 		 * This wizard is the same wizard that is used when the user selects
-		 * import from the 'Import Tabular Data...' item on the file menu.  
+		 * import from the 'Import Tabular Data...' item on the file menu.
 		 */
 //		ImportAccount accountImporterExtension = account.getExtension(ImportAccountInfo.getPropertySet(), true);
 //		IAccountImportWizard wizard = accountImporterExtension.getImportWizard();
@@ -597,11 +594,11 @@ public class ReconcileEditor extends EditorPart {
 		/*
 		 * We listen for entries that have been added to the account and we
 		 * set them to be in this bank statement.
-		 * 
+		 *
 		 * This is done asynchronously because modifying the model within a
 		 * model change listener is a bad idea.
 		 */
-		
+
 		Collection<net.sf.jmoney.importer.matcher.EntryData> importedEntries = statementSource.importEntries(getSite().getShell(), getAccount(), defaultStartDate, defaultEndDate);
 		if (importedEntries != null) {
 			/*
@@ -624,7 +621,7 @@ public class ReconcileEditor extends EditorPart {
 
 				for (net.sf.jmoney.importer.matcher.EntryData entryData: importedEntries) {
 					Entry entry = matcher.process(entryData, sessionInTransaction);
-					entry.setPropertyValue(ReconciliationEntryInfo.getStatementAccessor(), statement);
+					ReconciliationEntryInfo.getStatementAccessor().setValue(entry, statement);
 				}
 
 				/*

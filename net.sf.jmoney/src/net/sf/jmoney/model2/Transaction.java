@@ -38,23 +38,23 @@ import net.sf.jmoney.isolation.ReferenceViolationException;
  * @author  Nigel
  */
 public class Transaction extends ExtendableObject {
-    
+
     protected Date date = null;
-    
+
     protected IListManager<Entry> entries;
-    
+
 	public Transaction(
 			IObjectKey objectKey,
 			ListKey parentKey,
     		IListManager<Entry> entries,
     		Date date,
-			IValues extensionValues) {
+			IValues<Transaction> extensionValues) {
 		super(objectKey, parentKey, extensionValues);
 
 		this.entries = entries;
 		this.date = date;
 	}
-	
+
 	public Transaction(
 			IObjectKey objectKey,
 			ListKey parentKey) {
@@ -65,19 +65,19 @@ public class Transaction extends ExtendableObject {
 		// TODO: Check that this sets the date to the current date.
 		this.date = new Date();
 	}
-	
-    @Override	
+
+    @Override
 	protected String getExtendablePropertySetId() {
 		return "net.sf.jmoney.transaction"; //$NON-NLS-1$
 	}
-	
+
     /**
      * Returns the date.
      */
     public Date getDate() {
         return date;
     }
-    
+
     public void setDate(Date date) {
         Date oldDate = this.date;
         this.date = date;
@@ -93,21 +93,21 @@ public class Transaction extends ExtendableObject {
     public EntryCollection getEntryCollection() {
     	return new EntryCollection(entries, this, TransactionInfo.getEntriesAccessor());
     }
-    
+
     public void deleteEntry(Entry entry) {
     	new EntryCollection(entries, this, TransactionInfo.getEntriesAccessor()).deleteEntry(entry);
     }
-    
+
     // Some helper methods:
-    
+
     public boolean hasTwoEntries() {
         return entries.size() == 2;
     }
-    
+
     public boolean hasMoreThanTwoEntries() {
         return entries.size() > 2;
     }
-    
+
     /**
      * Given an entry in the transaction, return the other entry.
      * <P>
@@ -115,7 +115,7 @@ public class Transaction extends ExtendableObject {
      * If there is only one entry in the transaction then an
      * exception is throw.  If the given entry is not in the transaction then
      * an exception will be thrown.
-     * 
+     *
      * @param thisEntry an entry in the transaction
      * @return the other entry in the transaction or null if more than one other entry
      * 				is in the transaction
@@ -134,18 +134,18 @@ public class Transaction extends ExtendableObject {
         		thisEntryFound = true;
         	}
         }
-        
+
         if (!thisEntryFound) {
         	throw new RuntimeException("Double entry error"); //$NON-NLS-1$
         }
-        
+
         if (anotherEntry == null) {
         	throw new RuntimeException("Double entry error"); //$NON-NLS-1$
         }
-        
+
         return anotherEntry;
     }
-    
+
     /**
      * This class adds a little tighter typing to ObjectCollection,
      * but it is barely worth while having this class.
@@ -154,7 +154,7 @@ public class Transaction extends ExtendableObject {
 		EntryCollection(IListManager<Entry> listManager, Transaction parent, ListPropertyAccessor<Entry,Transaction> listPropertyAccessor) {
 			super(listManager, parent, listPropertyAccessor);
 		}
-		
+
 	    /**
 	     * Identical to <code>remove</remove> but tighter typing
 		 */

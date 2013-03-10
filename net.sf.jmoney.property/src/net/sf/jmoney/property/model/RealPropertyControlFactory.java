@@ -13,30 +13,30 @@ import org.eclipse.swt.widgets.Control;
  * @param <P>
  * 		the class of objects that contain this property
  */
-public abstract class RealPropertyControlFactory<P> extends PropertyControlFactory<RealProperty> implements IReferenceControlFactory<P, RealProperty> {
+public abstract class RealPropertyControlFactory<P,S extends ExtendableObject> extends PropertyControlFactory<S,RealProperty> implements IReferenceControlFactory<P, S, RealProperty> {
 
-	public IPropertyControl createPropertyControl(Composite parent, final ScalarPropertyAccessor<RealProperty,?> propertyAccessor) {
+	public IPropertyControl<S> createPropertyControl(Composite parent, final ScalarPropertyAccessor<RealProperty,S> propertyAccessor) {
 
 		final RealPropertyControl<RealProperty> control = new RealPropertyControl<RealProperty>(parent, null, RealProperty.class);
 		
-		return new IPropertyControl<ExtendableObject>() {
+		return new IPropertyControl<S>() {
 
-			private ExtendableObject fObject;
+			private S fObject;
 
 			public Control getControl() {
 				return control;
 			}
 
-			public void load(ExtendableObject object) {
+			public void load(S object) {
 		        fObject = object;
 		        
 		        control.setSession(object.getSession(), propertyAccessor.getClassOfValueObject());
-		        control.setSecurity(object.getPropertyValue(propertyAccessor));
+		        control.setSecurity(propertyAccessor.getValue(object));
 			}
 
 			public void save() {
 				RealProperty stock = control.getSecurity();
-				fObject.setPropertyValue(propertyAccessor, stock);
+				propertyAccessor.setValue(fObject, stock);
 			}};
 	}
 

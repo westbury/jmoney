@@ -84,8 +84,8 @@ public class BankAccountInfo implements IPropertySetInfo {
 
     @Override
 	public PropertySet registerProperties() {
-		IPropertyControlFactory<String> textControlFactory = new TextControlFactory();
-		IPropertyControlFactory<Long> amountControlFactory = new AmountInCurrencyAccountControlFactory();
+		IPropertyControlFactory<BankAccount,String> textControlFactory = new TextControlFactory<BankAccount>();
+		IPropertyControlFactory<BankAccount,Long> amountControlFactory = new AmountInCurrencyAccountControlFactory<BankAccount>();
 		
 		bankAccessor          = propertySet.addProperty("bank", Messages.BankAccountInfo_Bank, String.class, 5, 100, textControlFactory, null); //$NON-NLS-1$ 
 		accountNumberAccessor = propertySet.addProperty("accountNumber", Messages.BankAccountInfo_AccountNumber, String.class, 2, 70, textControlFactory, null); //$NON-NLS-1$ 

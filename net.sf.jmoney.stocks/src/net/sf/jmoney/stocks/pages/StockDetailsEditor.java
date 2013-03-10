@@ -65,7 +65,6 @@ import net.sf.jmoney.isolation.SessionChangeListener;
 import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.Transaction;
@@ -335,7 +334,7 @@ public class StockDetailsEditor extends EditorPart {
 							security = (Stock)entry.getCommodityInternal();
 						} else if (data.isDividend()) {
 							Entry entry = data.getDividendEntry();
-							security = entry.getPropertyValue(StockEntryInfo.getSecurityAccessor());
+							security = StockEntryInfo.getSecurityAccessor().getValue(entry);
 						} else {
 							security = null;
 							control.setEnabled(false);
@@ -356,7 +355,7 @@ public class StockDetailsEditor extends EditorPart {
 							stockEntry.setSecurity(security);
 						} else if (data.isDividend()) {
 							Entry entry = data.getDividendEntry();
-							entry.setPropertyValue(StockEntryInfo.getSecurityAccessor(), security);
+							StockEntryInfo.getSecurityAccessor().setValue(entry, security);
 						}
 					}
 
@@ -400,11 +399,11 @@ public class StockDetailsEditor extends EditorPart {
 						Security security = control.getSecurity();
 						if (coordinator.getUncommittedEntryData().isPurchaseOrSale()) {
 							Entry entry = coordinator.getUncommittedEntryData().getPurchaseOrSaleEntry();
-							entry.setPropertyValue(StockEntryInfo.getSecurityAccessor(), security);
+							StockEntryInfo.getSecurityAccessor().setValue(entry, security);
 							control.setEnabled(true);
 						} else if (coordinator.getUncommittedEntryData().isDividend()) {
 							Entry entry = coordinator.getUncommittedEntryData().getDividendEntry();
-							entry.setPropertyValue(StockEntryInfo.getSecurityAccessor(), security);
+							StockEntryInfo.getSecurityAccessor().setValue(entry, security);
 							control.setEnabled(true);
 						} else {
 							security = null;
@@ -899,9 +898,9 @@ public class StockDetailsEditor extends EditorPart {
 								)
 				);
 
-		final IndividualBlock<StockEntryData, RowControl> transferAccountColumn = new PropertyBlock<StockEntryData, RowControl>(EntryInfo.getAccountAccessor(), "transferAccount", "Transfer Account") {
+		final IndividualBlock<StockEntryData, RowControl> transferAccountColumn = new PropertyBlock<StockEntryData, RowControl, Entry>(EntryInfo.getAccountAccessor(), "transferAccount", "Transfer Account") {
 			@Override
-			public ExtendableObject getObjectContainingProperty(StockEntryData data) {
+			public Entry getObjectContainingProperty(StockEntryData data) {
 				return data.getTransferEntry();
 			}
 		};

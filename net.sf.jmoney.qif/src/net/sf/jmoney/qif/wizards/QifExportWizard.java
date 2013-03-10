@@ -31,6 +31,7 @@ import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Locale;
@@ -38,8 +39,8 @@ import java.util.Locale;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.CurrencyAccount;
-import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.model2.Entry;
+import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.TransactionInfo;
 import net.sf.jmoney.qif.AccountChooser;
@@ -179,11 +180,20 @@ public class QifExportWizard extends Wizard implements IExportWizard {
 		try {
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 
-			// Get the entries in date order.
-			// The entries must be in date order because the date of the
-			// first entry is used as the date of the opening balance record.
+			/*
+			 * Get the entries in date order. The entries must be in date order
+			 * because the date of the first entry is used as the date of the
+			 * opening balance record.
+			 */
+			Comparator<Entry> entryComparator = new Comparator<Entry>() {
+				@Override
+				public int compare(Entry entry1, Entry entry2) {
+					return TransactionInfo
+							.getDateAccessor().getComparator().compare(entry1.getTransaction(), entry2.getTransaction());
+				}
+			};
 			Collection entries = account.getSortedEntries(TransactionInfo
-					.getDateAccessor(), false);
+					.getDateAccessor(), entryComparator, false);
 
 			// write header
 			writeln(writer, "!Type:Bank");

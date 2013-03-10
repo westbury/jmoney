@@ -6,6 +6,7 @@ import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -138,9 +139,15 @@ public class CapitalGainsCalculator {
 		 * The only problem: In a transfer we can't match more than was transferred.  The transfer amount must be stored in the graph.  It must be
 		 * decreased as amounts are matched across the transfer.
 		 */
-
+		Comparator<Entry> entryComparator = new Comparator<Entry>() {
+			@Override
+			public int compare(Entry entry1, Entry entry2) {
+				return TransactionInfo
+						.getDateAccessor().getComparator().compare(entry1.getTransaction(), entry2.getTransaction());
+			}
+		};
 		Collection<Entry> entries = account.getSortedEntries(TransactionInfo
-				.getDateAccessor(), false);
+				.getDateAccessor(), entryComparator, false);
 
 		for (Entry entry : entries) {
 			if (!entry.getTransaction().getDate().before(startDate)

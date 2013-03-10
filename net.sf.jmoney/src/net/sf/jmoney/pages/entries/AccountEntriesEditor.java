@@ -14,10 +14,10 @@ import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.CurrencyAccount;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
+import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionInfo;
 import net.sf.jmoney.resources.Messages;
 import net.sf.jmoney.views.AccountEditorInput;
@@ -104,10 +104,10 @@ public class AccountEntriesEditor extends EditorPart {
     	// displayed in the table.
         
         // Add properties from the transaction.
-        for (ScalarPropertyAccessor propertyAccessor: TransactionInfo.getPropertySet().getScalarProperties3()) {
-        	allEntryDataObjects.add(new PropertyBlock<EntryData, RowControl>(propertyAccessor, "transaction") { //$NON-NLS-1$
+        for (final ScalarPropertyAccessor<?, ? super Transaction> propertyAccessor: TransactionInfo.getPropertySet().getScalarProperties3()) {
+        	allEntryDataObjects.add(new PropertyBlock<EntryData, RowControl, Transaction>(propertyAccessor, "transaction") { //$NON-NLS-1$
     		    @Override	
-        		public ExtendableObject getObjectContainingProperty(EntryData data) {
+        		public Transaction getObjectContainingProperty(EntryData data) {
         			return data.getEntry().getTransaction();
         		}
         	});
@@ -117,14 +117,14 @@ public class AccountEntriesEditor extends EditorPart {
         // For time being, this is all the entry properties except the account
         // which come from the other entry, and the amount which is shown in the debit and
         // credit columns.
-   		for (ScalarPropertyAccessor propertyAccessor: EntryInfo.getPropertySet().getScalarProperties3()) {
+   		for (final ScalarPropertyAccessor<?, ? super Entry> propertyAccessor: EntryInfo.getPropertySet().getScalarProperties3()) {
             if (propertyAccessor != EntryInfo.getAccountAccessor() 
            		&& propertyAccessor != EntryInfo.getIncomeExpenseCurrencyAccessor()
         		&& propertyAccessor != EntryInfo.getAmountAccessor()) {
             	if (propertyAccessor.isScalar() && propertyAccessor.isEditable()) {
-            		allEntryDataObjects.add(new PropertyBlock<EntryData, RowControl>(propertyAccessor, "this") { //$NON-NLS-1$
+            		allEntryDataObjects.add(new PropertyBlock<EntryData, RowControl, Entry>(propertyAccessor, "this") { //$NON-NLS-1$
             		    @Override	
-    					public ExtendableObject getObjectContainingProperty(EntryData data) {
+    					public Entry getObjectContainingProperty(EntryData data) {
     						return data.getEntry();
     					}
                 	});
@@ -153,9 +153,9 @@ public class AccountEntriesEditor extends EditorPart {
 		 * account object.
 		 */
    		// TODO: This is not correct at all...
-        allEntryDataObjects.add(new PropertyBlock<EntryData, RowControl>(EntryInfo.getIncomeExpenseCurrencyAccessor(), "common2") { //$NON-NLS-1$
+        allEntryDataObjects.add(new PropertyBlock<EntryData, RowControl,Entry>(EntryInfo.getIncomeExpenseCurrencyAccessor(), "common2") { //$NON-NLS-1$
 		    @Override	
-        	public ExtendableObject getObjectContainingProperty(EntryData data) {
+        	public Entry getObjectContainingProperty(EntryData data) {
         		Entry entry = data.getEntry();
         		if (entry != null
         				&& entry.getAccount() instanceof IncomeExpenseAccount) {
@@ -186,9 +186,9 @@ public class AccountEntriesEditor extends EditorPart {
 		 * the credit or debit column).
 		 */
         if (account instanceof CurrencyAccount) {
-        	allEntryDataObjects.add(new PropertyBlock<EntryData, RowControl>(EntryInfo.getAmountAccessor(), "other") { //$NON-NLS-1$
-    		    @Override	
-        		public ExtendableObject getObjectContainingProperty(EntryData data) {
+        	allEntryDataObjects.add(new PropertyBlock<EntryData, RowControl, Entry>(EntryInfo.getAmountAccessor(), "other") { //$NON-NLS-1$
+        		@Override	
+        		public Entry getObjectContainingProperty(EntryData data) {
         			if (!data.hasSplitEntries()) {
         				Entry entry = data.getOtherEntry();
         				if (entry.getAccount() instanceof IncomeExpenseAccount

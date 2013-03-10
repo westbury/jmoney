@@ -40,19 +40,19 @@ import org.eclipse.swt.widgets.Composite;
  * @author Nigel Westbury
  * @author Johann Gyger
  */
-public class MultiTextControlFactory implements IPropertyControlFactory<String> {
+public class MultiTextControlFactory<S extends ExtendableObject> implements IPropertyControlFactory<S,String> {
 
     @Override
-	public IPropertyControl createPropertyControl(Composite parent, ScalarPropertyAccessor<String,?> propertyAccessor) {
-        IPropertyControl multiText = new TextEditor(parent, SWT.MULTI | SWT.WRAP, propertyAccessor);
+	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<String,S> propertyAccessor) {
+        IPropertyControl<S> multiText = new TextEditor<S>(parent, SWT.MULTI | SWT.WRAP, propertyAccessor);
         GridData gridData = new GridData(SWT.FILL, SWT.FILL, true, true);
         multiText.getControl().setLayoutData(gridData);
         return multiText;
     }
 
     @Override
-	public String formatValueForMessage(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends String,?> propertyAccessor) {
-        String value = extendableObject.getPropertyValue(propertyAccessor);
+	public String formatValueForMessage(S extendableObject, ScalarPropertyAccessor<? extends String,S> propertyAccessor) {
+        String value = propertyAccessor.getValue(extendableObject);
         if (value == null || value.length() == 0) {
             return Messages.MultiTextControlFactory_Empty;
         } else {
@@ -61,8 +61,8 @@ public class MultiTextControlFactory implements IPropertyControlFactory<String> 
     }
 
     @Override
-	public String formatValueForTable(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends String,?> propertyAccessor) {
-        return extendableObject.getPropertyValue(propertyAccessor);
+	public String formatValueForTable(S extendableObject, ScalarPropertyAccessor<? extends String,S> propertyAccessor) {
+        return propertyAccessor.getValue(extendableObject);
     }
 
 	@Override

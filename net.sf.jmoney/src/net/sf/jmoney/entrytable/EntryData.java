@@ -30,7 +30,6 @@ import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
@@ -52,7 +51,7 @@ public class EntryData {
 	 * the entry.
 	 */
 	private final Entry entry;
-	
+
 	private final IDataManagerForAccounts dataManager;
 
 	/**
@@ -61,7 +60,7 @@ public class EntryData {
 	 * amount of this entry.
 	 */
 	private long balance;
-	
+
 	private int index;
 
 	/**
@@ -144,7 +143,7 @@ public class EntryData {
 	 * Furthermore, these are not needed unless an entry becomes visible. These
 	 * are therefore fetched only when needed (not in the constructor of this
 	 * object).
-	 * 
+	 *
 	 * We must be careful with this cached list because it is not kept up to date.
 	 */
 	private ArrayList<Entry> buildOtherEntriesList() {
@@ -159,31 +158,19 @@ public class EntryData {
 
 	public void copyFrom(EntryData sourceEntryData) {
 		Entry selectedEntry = sourceEntryData.getEntry();
-		
+
 		Entry newEntry = getEntry();
 		TransactionManager transactionManager = (TransactionManager)newEntry.getDataManager();
-		
-//		newEntry.setMemo(selectedEntry.getMemo());
-//		newEntry.setAmount(selectedEntry.getAmount());
 
 		/*
 		 * Copy all values that are numbers, flags, text, or references to accounts or commodities.
 		 * We do not copy dates or statement numbers.
 		 */
-		for (ScalarPropertyAccessor accessor : EntryInfo.getPropertySet().getScalarProperties3()) {
-			Object value = selectedEntry.getPropertyValue(accessor);
-			if (value instanceof Integer
-					|| value instanceof Long
-					|| value instanceof Boolean
-					|| value instanceof String) {
-				newEntry.setPropertyValue(accessor, value);
-			}
-			if (value instanceof Commodity
-					|| value instanceof Account) {
-				newEntry.setPropertyValue(accessor, transactionManager.getCopyInTransaction((ExtendableObject)value));
-			}
+		Entry selectedEntryInTrans = transactionManager.getCopyInTransaction(selectedEntry);
+		for (ScalarPropertyAccessor<?, ? super Entry> accessor : EntryInfo.getPropertySet().getScalarProperties3()) {
+			copyValue(accessor, selectedEntryInTrans, newEntry);
 		}
-		
+
 		/*
 		 * In the bank account entries, the new entry row will always have a second entry created.
 		 * In other entry types such as a stock entry, the new entry row will have only one row.
@@ -198,26 +185,40 @@ public class EntryData {
 //			thisEntry.setAccount(transactionManager.getCopyInTransaction(origEntry.getAccount()));
 //			thisEntry.setMemo(origEntry.getMemo());
 //			thisEntry.setAmount(origEntry.getAmount());
-			
+
+
+			Entry origEntryInTransaction = transactionManager.getCopyInTransaction(origEntry);
+
 			/*
 			 * Copy all values that are numbers, flags, text, or references to accounts or commodities.
 			 * We do not copy dates or statement numbers.
 			 */
-			for (ScalarPropertyAccessor accessor : EntryInfo.getPropertySet().getScalarProperties3()) {
-				Object value = origEntry.getPropertyValue(accessor);
-				if (value instanceof Integer
-						|| value instanceof Long
-						|| value instanceof Boolean
-						|| value instanceof String) {
-					thisEntry.setPropertyValue(accessor, value);
-				}
-				if (value instanceof Commodity
-						|| value instanceof Account) {
-					thisEntry.setPropertyValue(accessor, transactionManager.getCopyInTransaction((ExtendableObject)value));
-				}
+			for (ScalarPropertyAccessor<?, ? super Entry> accessor : EntryInfo.getPropertySet().getScalarProperties3()) {
+				copyValue(accessor, origEntryInTransaction, thisEntry);
 			}
-			
+
 			thisEntry = null;
 		}
 	}
+
+	protected <V> void copyValue(ScalarPropertyAccessor<V, ? super Entry> accessor, Entry selectedEntry, Entry newEntry) {
+		V value = accessor.getValue(selectedEntry);
+
+		/*
+		 * Copy all values that are numbers, flags, text, or references to accounts or commodities.
+		 * We do not copy dates or statement numbers.
+		 */
+		// TODO is there a better way of deciding what to copy?  This code has never caused a problem
+		// but it just seems a bit of a hack.
+		if (value instanceof Long
+				|| value instanceof Boolean
+				|| value instanceof Integer
+				|| value instanceof String
+				|| value instanceof Account
+				|| value instanceof Commodity
+				) {
+			accessor.setValue(newEntry, value);
+		}
+	}
+
 }

@@ -7,16 +7,16 @@ import org.eclipse.swt.widgets.Control;
  * @param <P>
  * 		the class of objects that contain this property
  */
-public abstract class CommodityControlFactory<P> extends PropertyControlFactory<Commodity> implements IReferenceControlFactory<P, Commodity> {
+public abstract class CommodityControlFactory<S extends ExtendableObject, P> extends PropertyControlFactory<S,Commodity> implements IReferenceControlFactory<P, S, Commodity> {
 
 	@Override
-	public IPropertyControl createPropertyControl(Composite parent, final ScalarPropertyAccessor<Commodity,?> propertyAccessor) {
+	public IPropertyControl<S> createPropertyControl(Composite parent, final ScalarPropertyAccessor<Commodity,S> propertyAccessor) {
 
 		final CommodityControl<Commodity> control = new CommodityControl<Commodity>(parent, null, Commodity.class);
 		
-		return new IPropertyControl<ExtendableObject>() {
+		return new IPropertyControl<S>() {
 
-			private ExtendableObject fObject;
+			private S fObject;
 
 			@Override
 			public Control getControl() {
@@ -24,17 +24,17 @@ public abstract class CommodityControlFactory<P> extends PropertyControlFactory<
 			}
 
 			@Override
-			public void load(ExtendableObject object) {
+			public void load(S object) {
 		        fObject = object;
 		        
 		        control.setSession(object.getSession(), propertyAccessor.getClassOfValueObject());
-		        control.setCommodity(object.getPropertyValue(propertyAccessor));
+		        control.setCommodity(propertyAccessor.getValue(object));
 			}
 
 			@Override
 			public void save() {
 				Commodity commodity = control.getCommodity();
-				fObject.setPropertyValue(propertyAccessor, commodity);
+				propertyAccessor.setValue(fObject, commodity);
 			}};
 	}
 

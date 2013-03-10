@@ -41,23 +41,23 @@ import org.eclipse.swt.widgets.Composite;
  * 
  * @author Nigel Westbury
  */
-public class ImageControlFactory implements IPropertyControlFactory<IBlob> {
+public class ImageControlFactory<S extends ExtendableObject> implements IPropertyControlFactory<S,IBlob> {
 
     @Override
-	public IPropertyControl createPropertyControl(Composite parent, ScalarPropertyAccessor<IBlob,?> propertyAccessor) {
-        return new ImageEditor(parent, propertyAccessor);
+	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<IBlob,S> propertyAccessor) {
+        return new ImageEditor<S>(parent, propertyAccessor);
     }
 
     @Override
-	public String formatValueForMessage(ExtendableObject extendableObject,
-            ScalarPropertyAccessor<? extends IBlob,?> propertyAccessor) {
+	public String formatValueForMessage(S extendableObject,
+            ScalarPropertyAccessor<? extends IBlob,S> propertyAccessor) {
         // What do we do here?
         return "picture";
     }
 
     @Override
-	public String formatValueForTable(ExtendableObject extendableObject,
-            ScalarPropertyAccessor<? extends IBlob,?> propertyAccessor) {
+	public String formatValueForTable(S extendableObject,
+            ScalarPropertyAccessor<? extends IBlob,S> propertyAccessor) {
         // What do we do here?
         return "picture";
     }

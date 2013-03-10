@@ -36,19 +36,19 @@ import org.eclipse.swt.widgets.Composite;
  * 
  * @author Nigel Westbury
  */
-public class CheckBoxControlFactory implements IPropertyControlFactory<Boolean> {
+public class CheckBoxControlFactory<S extends ExtendableObject> implements IPropertyControlFactory<S,Boolean> {
 
     public CheckBoxControlFactory() {
     }
     
     @Override
-	public IPropertyControl createPropertyControl(Composite parent, ScalarPropertyAccessor<Boolean,?> propertyAccessor) {
-  		return new CheckMarkEditor(parent, propertyAccessor);
+	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<Boolean,S> propertyAccessor) {
+  		return new CheckMarkEditor<S>(parent, propertyAccessor);
     }
 
     @Override
-	public String formatValueForMessage(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends Boolean,?> propertyAccessor) {
-        Boolean value = extendableObject.getPropertyValue(propertyAccessor);
+	public String formatValueForMessage(S extendableObject, ScalarPropertyAccessor<? extends Boolean,S> propertyAccessor) {
+        Boolean value = propertyAccessor.getValue(extendableObject);
         if (value == null) {
             return "N/A"; //$NON-NLS-1$
         } else {
@@ -57,8 +57,8 @@ public class CheckBoxControlFactory implements IPropertyControlFactory<Boolean> 
     }
 
     @Override
-	public String formatValueForTable(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends Boolean,?> propertyAccessor) {
-        Boolean value = extendableObject.getPropertyValue(propertyAccessor);
+	public String formatValueForTable(S extendableObject, ScalarPropertyAccessor<? extends Boolean,S> propertyAccessor) {
+        Boolean value = propertyAccessor.getValue(extendableObject);
         if (value == null) {
             return ""; //$NON-NLS-1$
         } else {

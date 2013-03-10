@@ -39,12 +39,12 @@ public class TextControlWithMruList extends TextComposite {
     protected Text textbox;
 
     protected LinkedList<String> recentlyUsedList = new LinkedList<String>();
-    
+
     public TextControlWithMruList(Composite parent) {
 		super(parent, SWT.NONE);
-		
+
 		setLayout(new GridLayout(1, false));
-		
+
         textList = new List(this, SWT.NONE);
         textbox = new Text(this, SWT.NONE);
 
@@ -61,30 +61,32 @@ public class TextControlWithMruList extends TextComposite {
         gdList.heightHint = 80;
         textList.setLayoutData(gdList);
         textbox.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-        
+
         textList.addSelectionListener(new SelectionListener() {
+			@Override
 			public void widgetSelected(SelectionEvent e) {
 				String [] selection = textList.getSelection();
 				if (selection.length >= 1) {
 					textbox.setText(selection[0]);
 				}
 			}
+			@Override
 			public void widgetDefaultSelected(SelectionEvent e) {
 				widgetSelected(e);
 			}});
 	}
-    
-    @Override	
+
+    @Override
 	public String getText() {
 		return textbox.getText();
 	}
 
-    @Override	
+    @Override
     public void setText(String text) {
 		textbox.setText(text);
 	}
 
-    @Override	
+    @Override
 	public void rememberChoice() {
     	String text = textbox.getText();
     	if (text.length() != 0) {
@@ -106,7 +108,7 @@ public class TextControlWithMruList extends TextComposite {
     	}
     }
 
-    @Override	
+    @Override
 	public void init(IDialogSettings section) {
 		if (section != null) {
 			String [] mruTextMementos = section.getArray("mruText"); //$NON-NLS-1$
@@ -117,7 +119,7 @@ public class TextControlWithMruList extends TextComposite {
 		}
 	}
 
-    @Override	
+    @Override
 	public void saveState(IDialogSettings section) {
 		section.put("mruText", recentlyUsedList.toArray(new String[0])); //$NON-NLS-1$
 	}

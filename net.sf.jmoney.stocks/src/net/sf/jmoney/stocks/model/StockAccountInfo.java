@@ -115,25 +115,25 @@ public class StockAccountInfo implements IPropertySetInfo {
 	@Override
 	public PropertySet registerProperties() {
 
-		IPropertyControlFactory<String> textControlFactory = new TextControlFactory();
+		IPropertyControlFactory<StockAccount,String> textControlFactory = new TextControlFactory<StockAccount>();
 
-		IReferenceControlFactory<StockAccount,Currency> currencyControlFactory = new CurrencyControlFactory<StockAccount>() {
+		IReferenceControlFactory<StockAccount,StockAccount,Currency> currencyControlFactory = new CurrencyControlFactory<StockAccount,StockAccount>() {
 			@Override
 			public IObjectKey getObjectKey(StockAccount parentObject) {
 				return parentObject.currencyKey;
 			}
 		};
 
-		IPropertyControlFactory<RatesTable> ratesControlFactory =
-				new IPropertyControlFactory<RatesTable>() {
+		IPropertyControlFactory<StockAccount,RatesTable> ratesControlFactory =
+				new IPropertyControlFactory<StockAccount,RatesTable>() {
 			@Override
-			public IPropertyControl createPropertyControl(Composite parent, ScalarPropertyAccessor<RatesTable,?> propertyAccessor) {
+			public IPropertyControl<StockAccount> createPropertyControl(Composite parent, ScalarPropertyAccessor<RatesTable,StockAccount> propertyAccessor) {
 				return new RatesEditor(parent, propertyAccessor);
 			}
 
 			@Override
-			public String formatValueForMessage(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends RatesTable,?> propertyAccessor) {
-				RatesTable ratesTable = extendableObject.getPropertyValue(propertyAccessor);
+			public String formatValueForMessage(StockAccount extendableObject, ScalarPropertyAccessor<? extends RatesTable,StockAccount> propertyAccessor) {
+				RatesTable ratesTable = propertyAccessor.getValue(extendableObject);
 				if (ratesTable == null) {
 					return "none";
 				} else {
@@ -142,8 +142,8 @@ public class StockAccountInfo implements IPropertySetInfo {
 			}
 
 			@Override
-			public String formatValueForTable(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends RatesTable,?> propertyAccessor) {
-				RatesTable ratesTable = extendableObject.getPropertyValue(propertyAccessor);
+			public String formatValueForTable(StockAccount extendableObject, ScalarPropertyAccessor<? extends RatesTable,StockAccount> propertyAccessor) {
+				RatesTable ratesTable = propertyAccessor.getValue(extendableObject);
 				if (ratesTable == null) {
 					return "";
 				} else {
@@ -169,42 +169,42 @@ public class StockAccountInfo implements IPropertySetInfo {
 			}
 		};
 
-		IReferenceControlFactory<StockAccount,IncomeExpenseAccount> dividendAccountControlFactory = new AccountControlFactory<StockAccount,IncomeExpenseAccount>() {
+		IReferenceControlFactory<StockAccount,StockAccount,IncomeExpenseAccount> dividendAccountControlFactory = new AccountControlFactory<StockAccount,StockAccount,IncomeExpenseAccount>() {
 			@Override
 			public IObjectKey getObjectKey(StockAccount parentObject) {
 				return parentObject.dividendAccountKey;
 			}
 		};
 
-		IReferenceControlFactory<StockAccount,IncomeExpenseAccount> returnOfCapitalAccountControlFactory = new AccountControlFactory<StockAccount,IncomeExpenseAccount>() {
+		IReferenceControlFactory<StockAccount,StockAccount,IncomeExpenseAccount> returnOfCapitalAccountControlFactory = new AccountControlFactory<StockAccount,StockAccount,IncomeExpenseAccount>() {
 			@Override
 			public IObjectKey getObjectKey(StockAccount parentObject) {
 				return parentObject.returnOfCapitalAccountKey;
 			}
 		};
 
-		IReferenceControlFactory<StockAccount,IncomeExpenseAccount> withholdingTaxAccountControlFactory = new AccountControlFactory<StockAccount,IncomeExpenseAccount>() {
+		IReferenceControlFactory<StockAccount,StockAccount,IncomeExpenseAccount> withholdingTaxAccountControlFactory = new AccountControlFactory<StockAccount,StockAccount,IncomeExpenseAccount>() {
 			@Override
 			public IObjectKey getObjectKey(StockAccount parentObject) {
 				return parentObject.withholdingTaxAccountKey;
 			}
 		};
 
-		IReferenceControlFactory<StockAccount,IncomeExpenseAccount> commissionAccountControlFactory = new AccountControlFactory<StockAccount,IncomeExpenseAccount>() {
+		IReferenceControlFactory<StockAccount,StockAccount,IncomeExpenseAccount> commissionAccountControlFactory = new AccountControlFactory<StockAccount,StockAccount,IncomeExpenseAccount>() {
 			@Override
 			public IObjectKey getObjectKey(StockAccount parentObject) {
 				return parentObject.commissionAccountKey;
 			}
 		};
 
-		IReferenceControlFactory<StockAccount,IncomeExpenseAccount> tax1AccountControlFactory = new AccountControlFactory<StockAccount,IncomeExpenseAccount>() {
+		IReferenceControlFactory<StockAccount,StockAccount,IncomeExpenseAccount> tax1AccountControlFactory = new AccountControlFactory<StockAccount,StockAccount,IncomeExpenseAccount>() {
 			@Override
 			public IObjectKey getObjectKey(StockAccount parentObject) {
 				return parentObject.tax1AccountKey;
 			}
 		};
 
-		IReferenceControlFactory<StockAccount,IncomeExpenseAccount> tax2AccountControlFactory = new AccountControlFactory<StockAccount,IncomeExpenseAccount>() {
+		IReferenceControlFactory<StockAccount,StockAccount,IncomeExpenseAccount> tax2AccountControlFactory = new AccountControlFactory<StockAccount,StockAccount,IncomeExpenseAccount>() {
 			@Override
 			public IObjectKey getObjectKey(StockAccount parentObject) {
 				return parentObject.tax2AccountKey;

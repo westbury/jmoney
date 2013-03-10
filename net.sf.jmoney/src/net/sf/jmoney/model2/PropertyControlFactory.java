@@ -17,17 +17,17 @@ import java.util.Comparator;
  * @author Nigel Westbury
  *
  */
-public abstract class PropertyControlFactory<V extends Comparable<? super V>> implements IPropertyControlFactory<V> {
+public abstract class PropertyControlFactory<S extends ExtendableObject, V extends Comparable<? super V>> implements IPropertyControlFactory<S,V> {
 
 	@Override
-	public String formatValueForTable(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends V,?> propertyAccessor) {
-		V value = extendableObject.getPropertyValue(propertyAccessor);
+	public String formatValueForTable(S extendableObject, ScalarPropertyAccessor<? extends V,S> propertyAccessor) {
+		V value = propertyAccessor.getValue(extendableObject);
 		return value.toString();
 	}
 
 	@Override
-	public String formatValueForMessage(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends V,?> propertyAccessor) {
-		V value = extendableObject.getPropertyValue(propertyAccessor);
+	public String formatValueForMessage(S extendableObject, ScalarPropertyAccessor<? extends V,S> propertyAccessor) {
+		V value = propertyAccessor.getValue(extendableObject);
 		return value.toString();
 	}
 

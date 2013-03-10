@@ -53,8 +53,8 @@ public class CurrencyAccountInfo implements IPropertySetInfo {
 
     @Override
 	public PropertySet registerProperties() {
-		IPropertyControlFactory<Long> amountControlFactory = new AmountInCurrencyAccountControlFactory();
-		IReferenceControlFactory<CurrencyAccount,Currency> currencyControlFactory = new CurrencyControlFactory<CurrencyAccount>() {
+		IPropertyControlFactory<CurrencyAccount,Long> amountControlFactory = new AmountInCurrencyAccountControlFactory();
+		IReferenceControlFactory<CurrencyAccount,CurrencyAccount,Currency> currencyControlFactory = new CurrencyControlFactory<CurrencyAccount,CurrencyAccount>() {
 			@Override
 			public IObjectKey getObjectKey(CurrencyAccount parentObject) {
 				return parentObject.currencyKey;

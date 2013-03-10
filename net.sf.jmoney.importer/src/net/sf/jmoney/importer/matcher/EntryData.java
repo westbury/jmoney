@@ -21,7 +21,7 @@ public class EntryData {
 	public long amount = 0;  // Use getter???
 	public String uniqueId = null;
 	private Map<PropertyAccessor, Object> propertyMap = new HashMap<PropertyAccessor, Object>();
-	
+
 	public void setClearedDate(Date clearedDate) {
 		this.clearedDate  = clearedDate;
 	}
@@ -52,7 +52,7 @@ public class EntryData {
 	public void setProperty(PropertyAccessor propertyAccessor, Object value) {
 		propertyMap.put(propertyAccessor, value);
 	}
-	
+
 	/**
 	 * This method is given a transaction with two entries.
 	 * This method assigns the properties from the bank statement
@@ -61,7 +61,7 @@ public class EntryData {
 	 * Other than the account and memo properties, no properties
 	 * will have been set in the transaction  before this method
 	 * is called.
-	 * 
+	 *
 	 * @param transaction
 	 * @param entry1 the entry in the bank account.  The account
 	 * 					property will already have been set
@@ -78,22 +78,22 @@ public class EntryData {
 		}
 
 		entry1.setCheck(check);
-		entry1.setPropertyValue(ReconciliationEntryInfo.getUniqueIdAccessor(), uniqueId);
-		
+		ReconciliationEntryInfo.getUniqueIdAccessor().setValue(entry1, uniqueId);
+
 		entry1.setAmount(amount);
 		entry2.setAmount(-amount);
 	}
-	
+
 	@Override
 	public String toString() {
 		return "[a:"+amount+";n:"+name+"]";
 	}
-	
+
 	/**
 	 * Returns the text that is to be used for pattern matching.
 	 * The patterns entered by the user are matched against the text
 	 * returned by this method.
-	 * 
+	 *
 	 * @return the text which may be empty but must never be null
 	 */
 	public String getTextToMatch() {
@@ -121,16 +121,16 @@ public class EntryData {
 		if (payee != null) {
 			text += "payee=" + payee;
 		}
-		
+
 		BigDecimal myAmount = new BigDecimal(amount).scaleByPowerOfTen(-2);
 		text += "amount=" + myAmount;
 		return text;
 	}
-	
+
 	public String getName() {
 		return name;
 	}
-	
+
 	/**
 	 * The memo if no patterns match
 	 */
@@ -144,7 +144,7 @@ public class EntryData {
 	public String getDefaultDescription() {
 		return payee == null?(memo==null?name:memo):payee;
 	}
-	
+
 	public Date getClearedDate() {
 		return clearedDate;
 	}

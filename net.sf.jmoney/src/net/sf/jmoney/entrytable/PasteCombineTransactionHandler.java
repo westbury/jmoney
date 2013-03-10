@@ -1,15 +1,14 @@
 /**
- * 
+ *
  */
 package net.sf.jmoney.entrytable;
 
+import net.sf.jmoney.Helper;
 import net.sf.jmoney.JMoneyPlugin;
 import net.sf.jmoney.isolation.ReferenceViolationException;
 import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.ExtendableObject;
-import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.resources.Messages;
 
@@ -24,10 +23,10 @@ import org.eclipse.ui.handlers.HandlerUtil;
  * Pastes the cut transaction into the selected transaction, thus resulting
  * in a transaction with at least four entries, being all the entries from
  * both transactions.
- * 
+ *
  * The cut transaction is deleted as part of the same transaction, so if this
  * transaction is never saved then the cut transaction is never deleted.
- * 
+ *
  * @author Nigel Westbury
  *
  */
@@ -66,7 +65,7 @@ public class PasteCombineTransactionHandler extends AbstractHandler {
 				 * for this feature are to simplify complex series of transactions that are
 				 * created when data is imported from online banks.  In all of those situations,
 				 * the dates will match, and this avoids the issue of deciding which date to
-				 * use for the combined transaction. 
+				 * use for the combined transaction.
 				 */
 				if (!selectedTransaction.getDate().equals(JMoneyPlugin.cutTransaction.getDate())) {
 					MessageDialog.openError(shell, Messages.EntriesTable_InformationTitle, "Dates don't match.  Transactions can only be combined if they have the same date.");
@@ -75,19 +74,16 @@ public class PasteCombineTransactionHandler extends AbstractHandler {
 					// Copy the entries
 					for (Entry sourceEntry : JMoneyPlugin.cutTransaction.getEntryCollection()) {
 						Entry newEntry = selectedTransaction.createEntry();
-						for (ScalarPropertyAccessor accessor : EntryInfo.getPropertySet().getScalarProperties3() ) {
-							Object value = sourceEntry.getPropertyValue(accessor);
-							if (value instanceof ExtendableObject) {
-								value = transactionManager.getCopyInTransaction((ExtendableObject)value); 
-							}
-							newEntry.setPropertyValue(accessor, value);
-						}
+						Helper.copyScalarValues(
+								EntryInfo.getPropertySet(),
+								transactionManager.getCopyInTransaction(sourceEntry),
+								newEntry);
 					}
 
 					// TODO list properties are not copied.  However at the time of writing there
 					// are no Entry list properties defined in any known plug-ins.
 
-					Transaction cutTransaction = transactionManager.getCopyInTransaction(JMoneyPlugin.cutTransaction); 
+					Transaction cutTransaction = transactionManager.getCopyInTransaction(JMoneyPlugin.cutTransaction);
 					try {
 						cutTransaction.getSession().deleteTransaction(cutTransaction);
 					} catch (ReferenceViolationException e) {

@@ -42,9 +42,9 @@ import net.sf.jmoney.isolation.ReferenceViolationException;
 public class Session extends ExtendableObject {
 
     IObjectKey defaultCurrencyKey;
-    
+
     private IListManager<Commodity> commodities;
-    
+
     private IListManager<Account> accounts;  // Only the Accounts of Level 0
 
     private IListManager<Transaction> transactions;
@@ -52,10 +52,10 @@ public class Session extends ExtendableObject {
     /**
      * A map cache of currencies, used to get a currency object given
      * a currency code.  This cache must be updated as currencies are
-     * added, removed, or when a currency's code changes. 
+     * added, removed, or when a currency's code changes.
      */
     Hashtable<String, Currency> currencies = new Hashtable<String, Currency>();
-        
+
 	/**
      * Constructor used by datastore plug-ins to create
      * a session object.
@@ -67,14 +67,14 @@ public class Session extends ExtendableObject {
 			IListManager<Account> accounts,
 			IListManager<Transaction> transactions,
 			IObjectKey defaultCurrencyKey,
-    		IValues extensionValues) {
+    		IValues<Session> extensionValues) {
     	super(objectKey, parentKey, extensionValues);
 
     	this.commodities = commodities;
     	this.accounts = accounts;
     	this.transactions = transactions;
     	this.defaultCurrencyKey = defaultCurrencyKey;
-    	
+
         /*
 		 * Load the currencies into our cached map.
 		 */
@@ -103,19 +103,19 @@ public class Session extends ExtendableObject {
    		this.defaultCurrencyKey = null;
     }
 
-    @Override	
+    @Override
 	protected String getExtendablePropertySetId() {
 		return "net.sf.jmoney.session"; //$NON-NLS-1$
 	}
-	
+
     public Currency getDefaultCurrency() {
         return defaultCurrencyKey == null
 		? null
 				: (Currency)defaultCurrencyKey.getObject();
     }
-    
+
     /**
-     * 
+     *
      * @param defaultCurrency the default currency, which cannot
      * 			be null because a default currency must always
      * 			be set for a session
@@ -127,7 +127,7 @@ public class Session extends ExtendableObject {
 		// Notify the change manager.
 		processPropertyChange(SessionInfo.getDefaultCurrencyAccessor(), oldDefaultCurrency, defaultCurrency);
     }
-    
+
 	/**
 	 * @param code the currency code.
 	 * @return the corresponding currency.
@@ -144,19 +144,19 @@ public class Session extends ExtendableObject {
         }
         return all;
     }
-   
+
     public Iterator<CapitalAccount> getCapitalAccountIterator() {
         return new Iterator<CapitalAccount>() {
         	Iterator<Account> iter = accounts.iterator();
         	CapitalAccount element;
-        	
+
 			@Override
 			public boolean hasNext() {
 				while (iter.hasNext()) {
 					Account account = iter.next();
 					if (account instanceof CapitalAccount) {
 						element = (CapitalAccount)account;
-						return true; 
+						return true;
 					}
 				}
 				return false;
@@ -171,19 +171,19 @@ public class Session extends ExtendableObject {
 			}
         };
     }
-   
+
     public Iterator<IncomeExpenseAccount> getIncomeExpenseAccountIterator() {
         return new Iterator<IncomeExpenseAccount>() {
         	Iterator<Account> iter = accounts.iterator();
         	IncomeExpenseAccount element;
-        	
+
 			@Override
 			public boolean hasNext() {
 				while (iter.hasNext()) {
 					Account account = iter.next();
 					if (account instanceof IncomeExpenseAccount) {
 						element = (IncomeExpenseAccount)account;
-						return true; 
+						return true;
 					}
 				}
 				return false;
@@ -202,15 +202,15 @@ public class Session extends ExtendableObject {
     public ObjectCollection<Commodity> getCommodityCollection() {
     	return new ObjectCollection<Commodity>(commodities, this, SessionInfo.getCommoditiesAccessor());
     }
-    
+
     public ObjectCollection<Account> getAccountCollection() {
     	return new ObjectCollection<Account>(accounts, this, SessionInfo.getAccountsAccessor());
     }
-    
+
     public ObjectCollection<Transaction> getTransactionCollection() {
     	return new ObjectCollection<Transaction>(transactions, this, SessionInfo.getTransactionsAccessor());
     }
-    
+
 	/**
 	 * Create a new account.  Accounts are abstract, so
 	 * a property set derived from the account property
@@ -224,13 +224,13 @@ public class Session extends ExtendableObject {
 	 * is provided by the datastore plug-in, so this object knows
 	 * how to create an object in a way that is appropriate for
 	 * the datastore).
-	 * 
+	 *
 	 * The collection object will get the properties for the new
 	 * object from the given interface.  Scalar properties are
 	 * simply set.  References to other objects are likewise set.
 	 * This means any referenced object must have been fetched by
 	 * the datastore.
-	 * 
+	 *
 	 * @param accountPropertySet
 	 * @param account
 	 * @return
@@ -252,13 +252,13 @@ public class Session extends ExtendableObject {
 	 * is provided by the datastore plug-in, so this object knows
 	 * how to create an object in a way that is appropriate for
 	 * the datastore).
-	 * 
+	 *
 	 * The collection object will get the properties for the new
 	 * object from the given interface.  Scalar properties are
 	 * simply set.  References to other objects are likewise set.
 	 * This means any referenced object must have been fetched by
 	 * the datastore.
-	 * 
+	 *
 	 * @param commodityPropertySet
 	 * @param commodity
 	 * @return
@@ -270,7 +270,7 @@ public class Session extends ExtendableObject {
 	public Transaction createTransaction() {
 		return getTransactionCollection().createNewElement(TransactionInfo.getPropertySet());
 	}
-	
+
     public void deleteCommodity(Commodity commodity) throws ReferenceViolationException {
    		getCommodityCollection().deleteElement(commodity);
     }
@@ -281,7 +281,7 @@ public class Session extends ExtendableObject {
 	 * Note that accounts may be sub-accounts. Only top level accounts are in
 	 * this session's account list. Sub-accounts must be removed by removing
 	 * from the list of sub-accounts of the parent account.
-	 * 
+	 *
 	 * @param account
 	 *            account to be removed from this collection, must not be null
 	 * @return true if the account was present, false if the account was not
@@ -303,7 +303,7 @@ public class Session extends ExtendableObject {
    	public void deleteTransaction(Transaction transaction) throws ReferenceViolationException {
    		getTransactionCollection().deleteElement(transaction);
     }
-    
+
     /**
      * @author Faucheux
      * TODO: Faucheux - not the better algorythm!
@@ -332,7 +332,7 @@ public class Session extends ExtendableObject {
 	            } else {
 	                foundAccount = a;
 	            }
-	        } 
+	        }
 	    }
 	    if (foundAccount == null) throw new NoAccountFoundException();
 	    return foundAccount;

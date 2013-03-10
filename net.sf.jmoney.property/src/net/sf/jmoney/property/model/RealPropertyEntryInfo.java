@@ -24,7 +24,6 @@ package net.sf.jmoney.property.model;
 
 import java.util.Date;
 
-import net.sf.jmoney.fields.CheckBoxControlFactory;
 import net.sf.jmoney.fields.DateControlFactory;
 import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.IValues;
@@ -80,15 +79,13 @@ public class RealPropertyEntryInfo implements IPropertySetInfo {
 	private static ScalarPropertyAccessor<Date,Entry> bargainDateAccessor;
 	
 	public PropertySet registerProperties() {
-		IPropertyControlFactory<Boolean> booleanPropertyControlFactory = new CheckBoxControlFactory();
-
-		IReferenceControlFactory<RealPropertyEntry,RealProperty> securityPropertyControlFactory = new RealPropertyControlFactory<RealPropertyEntry>() {
+		IReferenceControlFactory<RealPropertyEntry,Entry,RealProperty> securityPropertyControlFactory = new RealPropertyControlFactory<RealPropertyEntry,Entry>() {
 			public IObjectKey getObjectKey(RealPropertyEntry parentObject) {
 				return parentObject.securityKey;
 			}
 		};
 		
-		IPropertyControlFactory<Date> datePropertyControlFactory = new DateControlFactory();
+		IPropertyControlFactory<Entry,Date> datePropertyControlFactory = new DateControlFactory<Entry>();
 		
 		securityAccessor = propertySet.addProperty("security", "RealProperty", RealProperty.class, 2, 20, securityPropertyControlFactory, null);
 		bargainDateAccessor = propertySet.addProperty("bargainDate", "Bargain Date", Date.class, 0, 20, datePropertyControlFactory, null);

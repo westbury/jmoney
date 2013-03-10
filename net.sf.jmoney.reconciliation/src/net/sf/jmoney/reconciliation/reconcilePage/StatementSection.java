@@ -90,7 +90,7 @@ import org.eclipse.ui.forms.widgets.Section;
 /**
  * Class implementing the section containing the reconciled
  * entries for a statement on the account reconciliation page.
- * 
+ *
  * @author Nigel Westbury
  */
 public class StatementSection extends SectionPart {
@@ -98,9 +98,9 @@ public class StatementSection extends SectionPart {
     ReconcileEditor fPage;
 
     Account account;
-    
+
     EntriesTable fReconciledEntriesControl;
-    
+
 	/**
 	 * Contains two controls:
 	 * - noStatementMessage
@@ -108,28 +108,28 @@ public class StatementSection extends SectionPart {
 	 * Layout: StackLayout
 	 */
 	Composite container;
-    
+
     /**
      * Control for the text that is displayed when no session
      * is open.
      */
     Label noStatementMessage;
-    
+
     FormToolkit toolkit;
-    
+
     IEntriesContent reconciledTableContents = null;
 
     ArrayList<CellBlock<EntryData, EntryRowControl>> cellList;
-    
+
     long openingBalance = 0;
-    
+
     @SuppressWarnings("unchecked")
 	public StatementSection(Composite parent, FormToolkit toolkit, ReconcileEditor page, RowSelectionTracker<EntryRowControl> rowTracker) {
         super(parent, toolkit, Section.TITLE_BAR);
         getSection().setText("Entries Shown on Statement");
         fPage = page;
     	this.toolkit = toolkit;
-    	
+
         container = toolkit.createComposite(getSection());
 
         reconciledTableContents = new IEntriesContent() {
@@ -143,27 +143,27 @@ public class StatementSection extends SectionPart {
 		        if (fPage.getStatement() == null) {
 		        	return requiredEntries;
 		        }
-		        
+
 				/* The caller always sorts, so there is no point in us returning
 				 * sorted results.  It may be at some point we decide it is more
 				 * efficient to get the database to sort for us, but that would
 				 * only help the first time the results are fetched, it would not
 				 * help on a re-sort.  It also only helps if the database indexes
-				 * on the date.		
+				 * on the date.
 				CurrencyAccount account = fPage.getAccount();
-		        Collection<Entry> accountEntries = 
+		        Collection<Entry> accountEntries =
 		        	account
 						.getSortedEntries(TransactionInfo.getDateAccessor(), false);
 				*/
 				Collection<Entry> accountEntries = fPage.getAccount().getEntries();
 
 		        for (Entry entry: accountEntries) {
-		        	BankStatement statement = entry.getPropertyValue(ReconciliationEntryInfo.getStatementAccessor());
+		        	BankStatement statement = ReconciliationEntryInfo.getStatementAccessor().getValue(entry);
 		        	if (fPage.getStatement().equals(statement)) {
 		        		requiredEntries.add(entry);
 		        	}
 		        }
-		        
+
 		        return requiredEntries;
 			}
 
@@ -175,10 +175,10 @@ public class StatementSection extends SectionPart {
 		        if (fPage.getStatement() == null) {
 		        	return false;
 		        }
-		        
+
 				// This entry is to be shown if both the account and
 				// the statement match.
-	        	BankStatement statement = entry.getPropertyValue(ReconciliationEntryInfo.getStatementAccessor());
+	        	BankStatement statement = ReconciliationEntryInfo.getStatementAccessor().getValue(entry);
 				return fPage.getAccount().equals(entry.getAccount())
 	        	 && fPage.getStatement().equals(statement);
 			}
@@ -203,13 +203,13 @@ public class StatementSection extends SectionPart {
 				/*
 				 * We set the currency by default to be the currency of the
 				 * top-level entry.
-				 * 
+				 *
 				 * The currency of an entry is not applicable if the entry is an
 				 * entry in a currency account or an income and expense account
 				 * that is restricted to a single currency.
 				 * However, we set it anyway so the value is there if the entry
 				 * is set to an account which allows entries in multiple currencies.
-				 * 
+				 *
 				 * It may be that the currency of the top-level entry is not
 				 * known. This is not possible if entries in a currency account
 				 * are being listed, but may be possible if this entries list
@@ -219,20 +219,20 @@ public class StatementSection extends SectionPart {
 				if (entryInTransaction.getCommodityInternal() instanceof Currency) {
 					otherEntry.setIncomeExpenseCurrency((Currency)entryInTransaction.getCommodityInternal());
 				}
-				
+
 				return entryInTransaction;
 			}
-			
+
 			private void setNewEntryProperties(Entry newEntry) {
 				// It is assumed that the entry is in a data manager that is a direct
 				// child of the data manager that contains the account.
 				TransactionManager tm = (TransactionManager)newEntry.getDataManager();
 				newEntry.setAccount(tm.getCopyInTransaction(fPage.getAccount()));
 
-				newEntry.setPropertyValue(ReconciliationEntryInfo.getStatementAccessor(), fPage.getStatement());
+				ReconciliationEntryInfo.getStatementAccessor().setValue(newEntry, fPage.getStatement());
 			}
         };
-        
+
 		// We manage the layout of 'container' ourselves because we want either
 		// the 'containerOfTableAndButtons' to be visible or the 'no statement'
 		// message to be visible.  There is no suitable layout for
@@ -252,7 +252,7 @@ public class StatementSection extends SectionPart {
 				unreconcileImage.dispose();
 			}
 		});
-		
+
 		CellBlock<EntryData, EntryRowControl> unreconcileButton = new CellBlock<EntryData, EntryRowControl>(20, 0) {
 
 			@Override
@@ -288,7 +288,7 @@ public class StatementSection extends SectionPart {
 							// The selection cannot be determined on this platform - accept the drop
 							return;
 						}
-						
+
 						if (selection instanceof StructuredSelection) {
 							StructuredSelection structured = (StructuredSelection)selection;
 							if (structured.size() == 1
@@ -363,14 +363,14 @@ public class StatementSection extends SectionPart {
 				 * the header and rows must match. Maybe these objects could
 				 * just point to the header controls, in which case this would
 				 * not be necessary.
-				 * 
+				 *
 				 * Note also we use Label, not an empty Composite, because we
 				 * don't want a preferred height that is higher than the labels.
 				 */
 				new Label(parent, SWT.NONE);
 			}
 		};
-		 
+
 		IndividualBlock<EntryData, RowControl> transactionDateColumn = PropertyBlock.createTransactionColumn(TransactionInfo.getDateAccessor());
 		CellBlock<EntryData, BaseEntryRowControl> debitColumnManager = DebitAndCreditColumns.createDebitColumn(fPage.getAccount().getCurrency());
 		CellBlock<EntryData, BaseEntryRowControl> creditColumnManager = DebitAndCreditColumns.createCreditColumn(fPage.getAccount().getCurrency());
@@ -396,7 +396,7 @@ public class StatementSection extends SectionPart {
 				creditColumnManager,
 				balanceColumnManager
 		);
-		
+
 		// Create the table control.
 	    IRowProvider rowProvider = new ReusableRowProvider(rootBlock);
         fReconciledEntriesControl = new EntriesTable<EntryData>(container, rootBlock, reconciledTableContents, rowProvider, fPage.getAccount().getSession(), transactionDateColumn, rowTracker) {
@@ -409,8 +409,8 @@ public class StatementSection extends SectionPart {
 			protected EntryData createNewEntryRowInput() {
 				return new EntryData(null, session.getDataManager());
 			}
-        }; 
-        
+        };
+
 		// TODO: do not duplicate this.
 		if (fPage.getStatement() == null) {
 			noStatementMessage.setSize(container.getSize());
@@ -422,7 +422,7 @@ public class StatementSection extends SectionPart {
 			fReconciledEntriesControl.setSize(container.getSize());
 			fReconciledEntriesControl.layout(true);  // ??????
 		}
-        
+
 		// There is no layout set on the navigation view.
 		// Therefore we must listen for changes to the size of
 		// the navigation view and adjust the size of the visible
@@ -448,24 +448,24 @@ public class StatementSection extends SectionPart {
 
 	public void unreconcileEntry(EntryRowControl rowControl) {
 		Entry entry = rowControl.getUncommittedTopEntry();
-		
+
 		// If the blank new entry row, entry will be null.
 		// We must guard against that.
-		
+
 // TODO: How do we handle the blank row?
-		
+
 		// The EntriesTree control will always validate and commit
 		// any outstanding changes before firing a default selection
 		// event.  We set the property to take the entry out of the
 		// statement and immediately commit the change.
 		if (entry != null) {
-			entry.setPropertyValue(ReconciliationEntryInfo.getStatementAccessor(), null);
-			
+			ReconciliationEntryInfo.getStatementAccessor().setValue(entry, null);
+
 			/*
 			 * We tell the row control to commit its changes. These changes
 			 * include the above change. They may also include prior changes
 			 * made by the user.
-			 * 
+			 *
 			 * The tables and controls in this editor should all be capable of
 			 * updating themselves correctly when the change is committed. There
 			 * is a listener that is listening for changes to the committed data
@@ -479,48 +479,48 @@ public class StatementSection extends SectionPart {
 			rowControl.commitChanges("Unreconcile Entry");
 		}
 	}
-	
+
 	/**
 	 * Merge data from other transaction.
-	 * 
+	 *
 	 * The normal case is that the reconciled transaction was imported from the
 	 * bank and the statement being merged into this transaction has been
 	 * manually edited. We therefore take the following properties from the
 	 * reconciled transaction:
-	 * 
+	 *
 	 * <UL>
 	 * <LI>the valuta date</LI>
 	 * <LI>the amount</LI>
 	 * <LI>the check number</LI>
 	 * </UL>
-	 * 
+	 *
 	 * And we take all other properties and all the other entries from the
 	 * source transaction.
-	 * 
+	 *
 	 * However, if any property is null in one transaction and non-null in the
 	 * other then we use the non-null property.
-	 * 
+	 *
 	 * If any of the following conditions apply in the target transaction then
 	 * we give a warning to the user. These conditions indicate that there is
 	 * data in the target transaction that will be lost and that information was
 	 * probably manually entered.
-	 * 
+	 *
 	 * <UL>
 	 * <LI>the transaction has split entries</LI>
 	 * <LI>there are properties set in the other entry other that the required
 	 * account, or the account in the other entry is not the default account</LI>
 	 * </UL>
-	 * 
+	 *
 	 * The source and targets will be in different transaction managers. We want
 	 * to take the properties from the source transaction and move them into the
 	 * target transaction without committing the target transaction. The target
 	 * row control should update itself automatically because the controls
 	 * always listen for property changes in the model.
-	 * 
+	 *
 	 * The source is deleted, with any uncommitted changes being dropped.
-	 * 
+	 *
 	 * The merge constitutes a single undoable action.
-	 * 
+	 *
 	 * @return true if the merge succeeded, false if it failed (in which case
 	 *         the user is notified by this method of the failure)
 	 */
@@ -528,12 +528,12 @@ public class StatementSection extends SectionPart {
 
 		// The target entry, which is in the transaction manager for the target row.
 		Entry targetEntry = recRowControl.getUncommittedTopEntry();
-		
+
 		TransactionManager transactionManager = (TransactionManager)targetEntry.getDataManager();
-		Entry sourceEntry = transactionManager.getCopyInTransaction(committedSourceEntry); 
+		Entry sourceEntry = transactionManager.getCopyInTransaction(committedSourceEntry);
 		Transaction sourceTransaction = sourceEntry.getTransaction();
 		Transaction targetTransaction = targetEntry.getTransaction();
-		
+
 		Entry targetOther = targetTransaction.getOther(targetEntry);
 		if (targetOther == null) {
 	        MessageBox diag = new MessageBox(this.getSection().getShell(), SWT.YES | SWT.NO);
@@ -550,7 +550,7 @@ public class StatementSection extends SectionPart {
 				targetTransaction.getEntryCollection().deleteEntry(entry);
 			}
 		}
-		
+
 		/*
 		 * Set the transaction date to be the earlier of the two dates. If the
 		 * unreconciled entry was manually entered then that date is likely to
@@ -564,15 +564,15 @@ public class StatementSection extends SectionPart {
 		if (sourceDate.compareTo(targetDate) < 0) {
 			targetTransaction.setDate(sourceDate);
 		}
-		
+
 		if (targetEntry.getAmount() != sourceEntry.getAmount()) {
 	        MessageBox diag = new MessageBox(this.getSection().getShell(), SWT.YES | SWT.NO);
 	        diag.setText("Warning");
 	        diag.setMessage(
-	        		"The target entry has an amount of " 
-	        		+ EntryInfo.getAmountAccessor().formatValueForMessage(targetEntry) 
-	        		+ " and the dragged entry has an amount of " 
-	        		+ EntryInfo.getAmountAccessor().formatValueForMessage(sourceEntry) 
+	        		"The target entry has an amount of "
+	        		+ EntryInfo.getAmountAccessor().formatValueForMessage(targetEntry)
+	        		+ " and the dragged entry has an amount of "
+	        		+ EntryInfo.getAmountAccessor().formatValueForMessage(sourceEntry)
 	        		+ "."
 	        		+ "These amounts should normally be equal.  It may be that the incorrect amount was originally entered for the dragged entry and you want the amount corrected to the amount given by the import.  If so, continue and the amount will be corrected.  Do you want to continue?");
 	        if (diag.open() != SWT.YES) {
@@ -584,10 +584,10 @@ public class StatementSection extends SectionPart {
 		 * All other properties are taken from the target transaction only if
 		 * the property is null in the source transaction.
 		 */
-		for (ScalarPropertyAccessor<?,?> propertyAccessor: EntryInfo.getPropertySet().getScalarProperties3()) {
+		for (ScalarPropertyAccessor<?,? super Entry> propertyAccessor: EntryInfo.getPropertySet().getScalarProperties3()) {
 			copyPropertyConditionally(propertyAccessor, sourceEntry, targetEntry);
 		}
-		
+
 		/*
 		 * Re-parent all the other entries from the source to the target.
 		 */
@@ -595,37 +595,37 @@ public class StatementSection extends SectionPart {
 			if (entry != sourceEntry) {
 				// Cannot currently move within a transaction, so copy for time being.
 //				targetTransaction.getEntryCollection().moveElement(entry);
-				
+
 				Entry targetOtherEntry = targetTransaction.createEntry();
-				for (ScalarPropertyAccessor<?,?> propertyAccessor: EntryInfo.getPropertySet().getScalarProperties3()) {
+				for (ScalarPropertyAccessor<?,? super Entry> propertyAccessor: EntryInfo.getPropertySet().getScalarProperties3()) {
 					copyPropertyForcibly(propertyAccessor, entry, targetOtherEntry);
 				}
 			}
 		}
-		
+
 		/*
 		 * Having copied the relevant properties from the source entry, we now
 		 * delete the source entry. with normal drag-and-drop design, it is the
 		 * responsibility of the drag source listener to delete the source
 		 * object. However, we want to do this as part of this transaction. This
 		 * ensures that:
-		 * 
+		 *
 		 * 1. The entire merge process is performed as a single undoable
 		 * operation.
-		 * 
+		 *
 		 * 2. The target entry will become the selected entry and may not
 		 * necessarily be valid. The user may attempt to leave the entry while
 		 * it is invalid, and then press 'cancel' to back out the changes. It
 		 * such a case, the source entry should re-appear. If the source entry
 		 * was deleted as a part of this transaction then it will automatically
 		 * re-appear when the transaction is rolled back.
-		 * 
+		 *
 		 * It may be that the source entry may have uncommitted changes, or even
 		 * was a new entry (one that had just been entered and has never been
 		 * committed to the datastore). Such uncommitted changes are considered
 		 * part of the same operation as far as undo or cancel support is
 		 * concerned.
-		 * 
+		 *
 		 * The drag source does, however, have the responsibility of some UI cleanup.
 		 * If the source was a new uncommitted entry then it should be cleared to
 		 * become an empty 'new entry' row.  If the source entry has uncommitted changes,
@@ -645,7 +645,7 @@ public class StatementSection extends SectionPart {
 			 */
 			throw new RuntimeException("This is an unlikely error and should not happen unless plug-ins are doing something complicated.", e);
 		}
-		
+
 		return true;
 	}
 
@@ -653,20 +653,20 @@ public class StatementSection extends SectionPart {
 	 * Helper method to copy a property from the target entry to the source entry if the
 	 * property is null in the source entry but not null in the target entry.
 	 */
-	private <V> void copyPropertyConditionally(ScalarPropertyAccessor<V,?> propertyAccessor, Entry sourceAccount, Entry targetAccount) {
-		V targetValue = targetAccount.getPropertyValue(propertyAccessor);
-		V sourceValue = sourceAccount.getPropertyValue(propertyAccessor);
+	private <V> void copyPropertyConditionally(ScalarPropertyAccessor<V,? super Entry> propertyAccessor, Entry sourceAccount, Entry targetAccount) {
+		V targetValue = propertyAccessor.getValue(targetAccount);
+		V sourceValue = propertyAccessor.getValue(sourceAccount);
 		if (sourceValue != null) {
 			if (targetValue == null
 					|| !doesImportedValueHavePriority(propertyAccessor)) {
-				targetAccount.setPropertyValue(propertyAccessor, sourceValue);
+				propertyAccessor.setValue(targetAccount, sourceValue);
 			}
 		}
 	}
 
-	private <V> void copyPropertyForcibly(ScalarPropertyAccessor<V,?> propertyAccessor, Entry sourceEntry, Entry targetEntry) {
-		V sourceValue = sourceEntry.getPropertyValue(propertyAccessor);
-		targetEntry.setPropertyValue(propertyAccessor, sourceValue);
+	private <V> void copyPropertyForcibly(ScalarPropertyAccessor<V,? super Entry> propertyAccessor, Entry sourceEntry, Entry targetEntry) {
+		V sourceValue = propertyAccessor.getValue(sourceEntry);
+		propertyAccessor.setValue(targetEntry, sourceValue);
 	}
 
 	/**
@@ -679,8 +679,8 @@ public class StatementSection extends SectionPart {
 		|| propertyAccessor == EntryInfo.getAmountAccessor()
 		|| propertyAccessor == EntryInfo.getCheckAccessor();
 	}
-	
-	
+
+
 	/**
 	 * @param statement
 	 * @param openingBalance
@@ -689,13 +689,13 @@ public class StatementSection extends SectionPart {
 		// Statement will already have been set in fPage,
 		// but we must save the opening balance for ourselves.
 		this.openingBalance = openingBalance;
-		
+
     	fReconciledEntriesControl.refreshEntryList();
 
     	// TODO: this should be automatic from the above, i.e.
     	// content provider should tell the table?
     	fReconciledEntriesControl.table.refreshContent();
-    	
+
 		if (statement == null) {
 	        getSection().setText("Entries Shown on Statement");
 	        refresh();  // Must refresh to see new section title

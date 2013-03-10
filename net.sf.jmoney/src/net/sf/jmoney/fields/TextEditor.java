@@ -42,11 +42,11 @@ import org.eclipse.swt.widgets.Text;
  * @author Nigel Westbury
  * @author Johann Gyger
  */
-public class TextEditor implements IPropertyControl<ExtendableObject> {
+public class TextEditor<S extends ExtendableObject> implements IPropertyControl<S> {
 
-    private ExtendableObject extendableObject;
+    private S extendableObject;
 
-    private ScalarPropertyAccessor<String,?> propertyAccessor;
+    private ScalarPropertyAccessor<String,S> propertyAccessor;
 
     private Text propertyControl;
 
@@ -54,14 +54,14 @@ public class TextEditor implements IPropertyControl<ExtendableObject> {
 		@Override
 		public void objectChanged(IModelObject changedObject, IScalarPropertyAccessor changedProperty, Object oldValue, Object newValue) {
 			if (changedObject.equals(extendableObject) && changedProperty == propertyAccessor) {
-	            String text = extendableObject.getPropertyValue(propertyAccessor);
+	            String text = propertyAccessor.getValue(extendableObject);
 	            propertyControl.setText(text == null ? "" : text); //$NON-NLS-1$
 			}
 		}
 	};
 	
     /** Creates new TextEditor */
-    public TextEditor(Composite parent, int style, ScalarPropertyAccessor<String,?> propertyAccessor) {
+    public TextEditor(Composite parent, int style, ScalarPropertyAccessor<String,S> propertyAccessor) {
         propertyControl = new Text(parent, style);
         this.propertyAccessor = propertyAccessor;
     	
@@ -76,7 +76,7 @@ public class TextEditor implements IPropertyControl<ExtendableObject> {
     }
 
     @Override
-	public void load(ExtendableObject object) {
+	public void load(S object) {
     	if (extendableObject != null) {
     		extendableObject.getDataManager().removeChangeListener(amountChangeListener);
     	}
@@ -86,7 +86,7 @@ public class TextEditor implements IPropertyControl<ExtendableObject> {
         if (object == null) {
             propertyControl.setText(""); //$NON-NLS-1$
     	} else {
-            String text = object.getPropertyValue(propertyAccessor);
+            String text = propertyAccessor.getValue(object);
             propertyControl.setText(text == null ? "" : text); //$NON-NLS-1$
         	
         	/*
@@ -101,7 +101,7 @@ public class TextEditor implements IPropertyControl<ExtendableObject> {
     @Override
 	public void save() {
         String text = propertyControl.getText();
-        extendableObject.setPropertyValue(propertyAccessor, text.length() == 0 ? null : text);
+        propertyAccessor.setValue(extendableObject, text.length() == 0 ? null : text);
     }
 
     /* (non-Javadoc)

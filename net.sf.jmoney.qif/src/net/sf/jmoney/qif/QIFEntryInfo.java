@@ -26,7 +26,6 @@ import net.sf.jmoney.fields.TextControlFactory;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.ExtensionPropertySet;
 import net.sf.jmoney.model2.IExtensionObjectConstructors;
 import net.sf.jmoney.model2.IPropertyControl;
@@ -71,10 +70,12 @@ public class QIFEntryInfo implements IPropertySetInfo {
 
 	private static ExtensionPropertySet<QIFEntry,Entry> propertySet = PropertySet.addExtensionPropertySet(QIFEntry.class, EntryInfo.getPropertySet(), new IExtensionObjectConstructors<QIFEntry,Entry>() {
 
+		@Override
 		public QIFEntry construct(Entry extendedObject) {
 			return new QIFEntry(extendedObject);
 		}
 
+		@Override
 		public QIFEntry construct(Entry extendedObject, IValues<Entry> values) {
 			return new QIFEntry(
 					extendedObject, 
@@ -87,21 +88,26 @@ public class QIFEntryInfo implements IPropertySetInfo {
 	private static ScalarPropertyAccessor<Character,Entry> reconcilingStateAccessor;
 	private static ScalarPropertyAccessor<String,Entry> addressAccessor;
 	
+	@Override
 	public PropertySet registerProperties() {
-		IPropertyControlFactory<String> textControlFactory = new TextControlFactory();
-		IPropertyControlFactory<Character> stateControlFactory = new PropertyControlFactory<Character>() {
+		IPropertyControlFactory<Entry,String> textControlFactory = new TextControlFactory<Entry>();
+		IPropertyControlFactory<Entry,Character> stateControlFactory = new PropertyControlFactory<Entry,Character>() {
 
-			public IPropertyControl createPropertyControl(Composite parent, final ScalarPropertyAccessor<Character,?> propertyAccessor) {
+			@Override
+			public IPropertyControl<Entry> createPropertyControl(Composite parent, final ScalarPropertyAccessor<Character,Entry> propertyAccessor) {
 				// This property is not editable???
 				final Label control = new Label(parent, SWT.NONE);
 				
-		    	return new IPropertyControl<ExtendableObject>() {
+		    	return new IPropertyControl<Entry>() {
+					@Override
 					public Control getControl() {
 						return control;
 					}
-					public void load(ExtendableObject object) {
+					@Override
+					public void load(Entry object) {
 						control.setText(formatValueForTable(object, propertyAccessor));
 					}
+					@Override
 					public void save() {
 						// Not editable so nothing to do
 					}
@@ -109,14 +115,16 @@ public class QIFEntryInfo implements IPropertySetInfo {
 			}
 
 			@Override
-			public String formatValueForMessage(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends Character,?> propertyAccessor) {
-				return "'" + extendableObject.getPropertyValue(propertyAccessor).toString() + "'";
+			public String formatValueForMessage(Entry extendableObject, ScalarPropertyAccessor<? extends Character,Entry> propertyAccessor) {
+				return "'" + propertyAccessor.getValue(extendableObject).toString() + "'";
 			}
 
+			@Override
 			public Character getDefaultValue() {
 				return ' ';
 			}
 
+			@Override
 			public boolean isEditable() {
 				return false;
 			}

@@ -36,7 +36,7 @@ import org.eclipse.swt.widgets.Composite;
  * @param V the type of the value that can be edited by the controls
  * 			produced by this factory
  */
-public interface IPropertyControlFactory<V> {
+public interface IPropertyControlFactory<S extends ExtendableObject, V> {
 	/**
 	 * Create a control that edits the property.
 	 * <P>
@@ -47,7 +47,7 @@ public interface IPropertyControlFactory<V> {
 	 * @return An interface to the class that wraps the
 	 * 			control.
 	 */
-	IPropertyControl createPropertyControl(Composite parent, ScalarPropertyAccessor<V,?> propertyAccessor);
+	IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<V,S> propertyAccessor);
 
 	/**
 	 * Format the value of a property so it can be embedded into a
@@ -61,7 +61,7 @@ public interface IPropertyControlFactory<V> {
 	 *
 	 * @return The value of the property formatted as appropriate.
 	 */
-	String formatValueForMessage(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends V,?> propertyAccessor);
+	String formatValueForMessage(S extendableObject, ScalarPropertyAccessor<? extends V,S> propertyAccessor);
 
 	/**
 	 * Format the value of a property as appropriate for displaying in a
@@ -73,7 +73,7 @@ public interface IPropertyControlFactory<V> {
 	 * 
 	 * @return The value of the property formatted as appropriate.
 	 */
-	String formatValueForTable(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends V,?> propertyAccessor);
+	String formatValueForTable(S extendableObject, ScalarPropertyAccessor<? extends V,S> propertyAccessor);
 
 	/**
 	 * Indicates if the property is editable.  If the property

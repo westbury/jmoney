@@ -55,8 +55,8 @@ public class CapitalAccountInfo implements IPropertySetInfo {
 
     @Override
 	public PropertySet registerProperties() {
-		IPropertyControlFactory<String> textControlFactory = new TextControlFactory();
-		IPropertyControlFactory<String> commentControlFactory = new MultiTextControlFactory();
+		IPropertyControlFactory<CapitalAccount,String> textControlFactory = new TextControlFactory<CapitalAccount>();
+		IPropertyControlFactory<CapitalAccount,String> commentControlFactory = new MultiTextControlFactory<CapitalAccount>();
 		
 		IListGetter<CapitalAccount, CapitalAccount> accountGetter = new IListGetter<CapitalAccount, CapitalAccount>() {
 			@Override

@@ -224,8 +224,7 @@ public class StockGainsEditor extends EditorPart {
 		startDateControl.addModifyListener(new ModifyListener() {
 			@Override
 			public void modifyText(ModifyEvent e) {
-				Date balanceDate = startDateControl.getDate();
-				if (balanceDate != null) {
+				if (startDateControl.getDate() != null && endDateControl.getDate() != null) {
 					calculateTotals();
 				}
 			}
@@ -234,8 +233,7 @@ public class StockGainsEditor extends EditorPart {
 		endDateControl.addModifyListener(new ModifyListener() {
 			@Override
 			public void modifyText(ModifyEvent e) {
-				Date balanceDate = endDateControl.getDate();
-				if (balanceDate != null) {
+				if (startDateControl.getDate() != null && endDateControl.getDate() != null) {
 					calculateTotals();
 				}
 			}

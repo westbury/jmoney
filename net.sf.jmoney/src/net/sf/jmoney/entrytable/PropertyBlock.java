@@ -24,9 +24,11 @@ package net.sf.jmoney.entrytable;
 
 import java.util.Comparator;
 
+import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
+import net.sf.jmoney.model2.Transaction;
 
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.widgets.Composite;
@@ -41,14 +43,14 @@ import org.eclipse.swt.widgets.Control;
  * <P>
  * The credit, debit, and balance columns are hard coded at the end
  * of the table and are not represented by objects of this class.
- * 
+ *
  * @author Nigel Westbury
  */
-abstract public class PropertyBlock<T extends EntryData, R extends RowControl> extends IndividualBlock<T, R> {
-	private ScalarPropertyAccessor<?,?> accessor;
+abstract public class PropertyBlock<T extends EntryData, R extends RowControl, S extends ExtendableObject> extends IndividualBlock<T, R> {
+	private ScalarPropertyAccessor<?,? super S> accessor;
 	private String id;
-	
-	public PropertyBlock(ScalarPropertyAccessor accessor, String source) {
+
+	public PropertyBlock(ScalarPropertyAccessor<?,? super S> accessor, String source) {
 		super(
 				accessor.getDisplayName(),
 				accessor.getMinimumWidth(),
@@ -59,7 +61,7 @@ abstract public class PropertyBlock<T extends EntryData, R extends RowControl> e
 		this.id = source + '.' + accessor.getName();
 	}
 
-	public PropertyBlock(ScalarPropertyAccessor accessor, String source, String displayName) {
+	public PropertyBlock(ScalarPropertyAccessor<?,S> accessor, String source, String displayName) {
 		super(
 				displayName,
 				accessor.getMinimumWidth(),
@@ -77,33 +79,33 @@ abstract public class PropertyBlock<T extends EntryData, R extends RowControl> e
 	/**
 	 * Given the input data, returns the ExtendableObject that contains
 	 * the property whose value is being shown in this column.
-	 * 
+	 *
 	 * @param data
 	 * @return the object containing the property being show, or null if
 	 * 		this column is not applicable to the given input
 	 */
-	public abstract ExtendableObject getObjectContainingProperty(T data);
+	public abstract S getObjectContainingProperty(T data);
 
 	/**
 	 * This method is called whenever the user makes a change to this value.
-	 * 
+	 *
 	 * This method is used by the RowControl objects to update other contents
 	 * that may be affected by this control. The normal session change listener
 	 * is not used because the RowControl wants to be notified only when the
 	 * user makes changes from within this row control, not when a change has
 	 * been made elsewhere.
-	 * 
+	 *
 	 * As most controls do not affect other controls, an empty default implementation
 	 * is provided.
 	 */
 	public void fireUserChange(R rowControl) {
 		// Default implementation does nothing.
 	}
-	
-    @Override	
+
+    @Override
 	public IPropertyControl<T> createCellControl(Composite parent, final RowControl rowControl, final R coordinator) {
-		final IPropertyControl<ExtendableObject> propertyControl = accessor.createPropertyControl(parent);
-		
+		final IPropertyControl<? super S> propertyControl = accessor.createPropertyControl(parent);
+
 		ICellControl2<T> cellControl = new ICellControl2<T>() {
 
 		    	@Override
@@ -113,7 +115,7 @@ abstract public class PropertyBlock<T extends EntryData, R extends RowControl> e
 
 			@Override
 			public void load(T data) {
-				ExtendableObject entryContainingProperty = getObjectContainingProperty(data);
+				S entryContainingProperty = getObjectContainingProperty(data);
 				propertyControl.load(entryContainingProperty);
 			}
 
@@ -133,27 +135,27 @@ abstract public class PropertyBlock<T extends EntryData, R extends RowControl> e
 				propertyControl.getControl().setBackground(null);
 			}
 		};
-		
+
 		FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, cellControl);
 
 		// This is a little bit of a kludge.  Might be a little safer to implement a method
 		// in IPropertyControl to add the focus listener?
 		addFocusListenerRecursively(propertyControl.getControl(), controlFocusListener);
-		
+
 //			textControl.addKeyListener(keyListener);
 //			textControl.addTraverseListener(traverseListener);
-		
+
 		return cellControl;
 	}
 
 	/**
 	 * Add listeners to each control.
-	 * 
+	 *
 	 * @param control The control to listen to.
 	 */
 	private void addFocusListenerRecursively(Control control, FocusListener listener) {
 		control.addFocusListener(listener);
-		
+
 		if (control instanceof Composite) {
 			Composite composite = (Composite) control;
 			for (Control childControl : composite.getChildren()) {
@@ -161,42 +163,42 @@ abstract public class PropertyBlock<T extends EntryData, R extends RowControl> e
 			}
 		}
 	}
-	
-    @Override	
+
+    @Override
 	public Comparator<T> getComparator() {
-		final Comparator<ExtendableObject> subComparator = accessor.getComparator();
+		final Comparator<?> subComparator = accessor.getComparator();
 		if (subComparator == null) {
 			return null;
 		} else {
 			return new Comparator<T>() {
 				@Override
 				public int compare(T entryData1, T entryData2) {
-					ExtendableObject extendableObject1 = getObjectContainingProperty(entryData1);
-					ExtendableObject extendableObject2 = getObjectContainingProperty(entryData2);
+					S extendableObject1 = getObjectContainingProperty(entryData1);
+					S extendableObject2 = getObjectContainingProperty(entryData2);
 					if (extendableObject1 == null && extendableObject2 == null) return 0;
 					if (extendableObject1 == null) return 1;
 					if (extendableObject2 == null) return -1;
-					return subComparator.compare(extendableObject1, extendableObject2);
+					return accessor.getComparator().compare(extendableObject1, extendableObject2);
 				}
 			};
 		}
 	}
 
-	public static PropertyBlock<EntryData, RowControl> createTransactionColumn(
-			ScalarPropertyAccessor<?,?> propertyAccessor) {
-		return new PropertyBlock<EntryData, RowControl>(propertyAccessor, "transaction") { //$NON-NLS-1$
+	public static PropertyBlock<EntryData, RowControl,Transaction> createTransactionColumn(
+			final ScalarPropertyAccessor<?,Transaction> propertyAccessor) {
+		return new PropertyBlock<EntryData, RowControl, Transaction>(propertyAccessor, "transaction") { //$NON-NLS-1$
 			@Override
-			public ExtendableObject getObjectContainingProperty(EntryData data) {
+			public Transaction getObjectContainingProperty(EntryData data) {
 				return data.getEntry().getTransaction();
 			}
 		};
 	}
 
-	public static PropertyBlock<EntryData, RowControl> createEntryColumn(
-			ScalarPropertyAccessor<?,?> propertyAccessor) {
-		return new PropertyBlock<EntryData, RowControl>(propertyAccessor, "entry") { //$NON-NLS-1$
+	public static PropertyBlock<EntryData, RowControl, Entry> createEntryColumn(
+			final ScalarPropertyAccessor<?,Entry> propertyAccessor) {
+		return new PropertyBlock<EntryData, RowControl, Entry>(propertyAccessor, "entry") { //$NON-NLS-1$
 			@Override
-			public ExtendableObject getObjectContainingProperty(EntryData data) {
+			public Entry getObjectContainingProperty(EntryData data) {
 				return data.getEntry();
 			}
 		};
@@ -208,10 +210,10 @@ abstract public class PropertyBlock<T extends EntryData, R extends RowControl> e
 	 * @param displayName the text to use in the header
 	 * @return
 	 */
-	public static PropertyBlock<EntryData, RowControl> createEntryColumn(ScalarPropertyAccessor<?,?> propertyAccessor, String displayName) {
-		return new PropertyBlock<EntryData, RowControl>(propertyAccessor, "entry", displayName) { //$NON-NLS-1$
+	public static PropertyBlock<EntryData, RowControl, Entry> createEntryColumn(final ScalarPropertyAccessor<?,Entry> propertyAccessor, String displayName) {
+		return new PropertyBlock<EntryData, RowControl, Entry>(propertyAccessor, "entry", displayName) { //$NON-NLS-1$
 			@Override
-			public ExtendableObject getObjectContainingProperty(EntryData data) {
+			public Entry getObjectContainingProperty(EntryData data) {
 				return data.getEntry();
 			}
 		};

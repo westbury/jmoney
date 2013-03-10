@@ -24,7 +24,6 @@ package net.sf.jmoney.stocks.model;
 
 import java.util.Date;
 
-import net.sf.jmoney.fields.CheckBoxControlFactory;
 import net.sf.jmoney.fields.DateControlFactory;
 import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.IValues;
@@ -83,16 +82,14 @@ public class StockEntryInfo implements IPropertySetInfo {
 
 	@Override
 	public PropertySet registerProperties() {
-		IPropertyControlFactory<Boolean> booleanPropertyControlFactory = new CheckBoxControlFactory();
-
-		IReferenceControlFactory<StockEntry,Security> securityPropertyControlFactory = new SecurityControlFactory<StockEntry>() {
+		IReferenceControlFactory<StockEntry,Entry,Security> securityPropertyControlFactory = new SecurityControlFactory<StockEntry,Entry>() {
 			@Override
 			public IObjectKey getObjectKey(StockEntry parentObject) {
 				return parentObject.securityKey;
 			}
 		};
 
-		IPropertyControlFactory<Date> datePropertyControlFactory = new DateControlFactory();
+		IPropertyControlFactory<Entry,Date> datePropertyControlFactory = new DateControlFactory<Entry>();
 
 		securityAccessor = propertySet.addProperty("security", "Security", Security.class, 2, 20, securityPropertyControlFactory, null);
 		bargainDateAccessor = propertySet.addProperty("bargainDate", "Bargain Date", Date.class, 0, 20, datePropertyControlFactory, null);

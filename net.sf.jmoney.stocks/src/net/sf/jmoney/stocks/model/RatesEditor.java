@@ -24,7 +24,6 @@ package net.sf.jmoney.stocks.model;
 
 import java.text.MessageFormat;
 
-import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
@@ -46,15 +45,15 @@ import org.eclipse.swt.widgets.Control;
  *
  * @author  Nigel Westbury
  */
-public class RatesEditor implements IPropertyControl<ExtendableObject> {
+public class RatesEditor implements IPropertyControl<StockAccount> {
 
 	private StockAccount account = null;
 
-	private final ScalarPropertyAccessor<RatesTable,?> ratesPropertyAccessor;
+	private final ScalarPropertyAccessor<RatesTable,StockAccount> ratesPropertyAccessor;
 
 	private final Button propertyControl;
 
-	public RatesEditor(Composite parent, ScalarPropertyAccessor<RatesTable,?> propertyAccessor) {
+	public RatesEditor(Composite parent, ScalarPropertyAccessor<RatesTable,StockAccount> propertyAccessor) {
 		this.ratesPropertyAccessor = propertyAccessor;
 
 		propertyControl = new Button(parent, SWT.PUSH);
@@ -70,9 +69,9 @@ public class RatesEditor implements IPropertyControl<ExtendableObject> {
 				String title = new MessageFormat("Setup {0} rates for {1}", java.util.Locale.US).format(messageArgs);
 
 
-				RatesDialog dialog = new RatesDialog(propertyControl.getShell(), title, account.getPropertyValue(ratesPropertyAccessor), account.getCurrency());
+				RatesDialog dialog = new RatesDialog(propertyControl.getShell(), title, ratesPropertyAccessor.getValue(account), account.getCurrency());
 				if (dialog.open() == Window.OK) {
-					account.setPropertyValue(ratesPropertyAccessor, dialog.getRates());
+					ratesPropertyAccessor.setValue(account, dialog.getRates());
 				}
 			}
 		});
@@ -82,11 +81,8 @@ public class RatesEditor implements IPropertyControl<ExtendableObject> {
 	 * Load the control with the value from the given account.
 	 */
 	@Override
-	public void load(ExtendableObject object) {
-		account = (StockAccount)object;
-
+	public void load(StockAccount object) {
 //    	propertyControl.setRatesTable();
-
 		propertyControl.setEnabled(true);
 	}
 

@@ -38,25 +38,25 @@ import net.sf.jmoney.isolation.ObjectCollection;
  * An implementation of the Account interface
  */
 public abstract class Account extends ExtendableObject implements Comparable<Account> {
-	
+
 	protected String name;
 
 	protected Account(
-			IObjectKey objectKey, 
+			IObjectKey objectKey,
 			ListKey parentKey,
 			String name,
-			IValues extensionValues) { 
+			IValues<? extends Account> extensionValues) {
 		super(objectKey, parentKey, extensionValues);
 		this.name = name;
 	}
-	
+
 	protected Account(
-			IObjectKey objectKey, 
-			ListKey parentKey) { 
+			IObjectKey objectKey,
+			ListKey parentKey) {
 		super(objectKey, parentKey);
 		this.name = null;
 	}
-	
+
 	/**
 	 * @return the name of this account.
 	 */
@@ -67,11 +67,11 @@ public abstract class Account extends ExtendableObject implements Comparable<Acc
 	/**
 	 * @param aName the name of this account.
 	 */
-	
+
 	public void setName(String newName) {
 		String oldName = name;
 		name = newName;
-		
+
 		// Notify the change manager.
 		processPropertyChange(AccountInfo.getNameAccessor(), oldName, newName);
 	}
@@ -79,7 +79,7 @@ public abstract class Account extends ExtendableObject implements Comparable<Acc
 	public String getFullAccountName() {
 		return getName();
 	}
-	
+
 	public Account getParent() {
 		IModelObject parent = parentKey.getParentKey().getObject();
 		if (parent instanceof Account) {
@@ -97,7 +97,7 @@ public abstract class Account extends ExtendableObject implements Comparable<Acc
 	 * however, the account can hold multiple commodities (such
 	 * as a stock account) then information from the entry is
 	 * required in order to get the commodity involved.
-	 * 
+	 *
 	 * @return Commodity for the given entry
 	 */
 	public abstract Commodity getCommodity(Entry entry);
@@ -115,7 +115,7 @@ public abstract class Account extends ExtendableObject implements Comparable<Acc
 
 	/**
 	 * Get the entries in the account.
-	 * 
+	 *
 	 * @return A read-only collection with elements of
 	 * 				type <code>Entry</code>
 	 */
@@ -123,7 +123,7 @@ public abstract class Account extends ExtendableObject implements Comparable<Acc
 		Collection<Entry> accountEntries = getDataManager().getEntries(this);
 		return Collections.unmodifiableCollection(accountEntries);
 	}
-	
+
 	/**
 	 * @return true if there are any entries in this account,
 	 * 			false if no entries are in this account
@@ -131,7 +131,7 @@ public abstract class Account extends ExtendableObject implements Comparable<Acc
 	public boolean hasEntries() {
 		return getDataManager().hasEntries(this);
 	}
-	
+
     /**
 	 * This method is used for debugging purposes only.
 	 */
@@ -139,7 +139,7 @@ public abstract class Account extends ExtendableObject implements Comparable<Acc
 	public String toString() {
 		return getName();
 	}
-	
+
 	@Override
 	public int compareTo(Account other) {
 		return getName().compareTo(other.getName());
@@ -149,7 +149,7 @@ public abstract class Account extends ExtendableObject implements Comparable<Acc
         int level;
         if (getParent() == null)
             level = 0;
-        else 
+        else
             level = getParent().getLevel() + 1;
         if (JMoneyPlugin.DEBUG) System.out.println("Level from " + this.name + ", child of " + getParent() +" is " + level); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
         return level;

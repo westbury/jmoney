@@ -118,15 +118,18 @@ public class ChangeManager {
 	 * A ChangeEntry object for an update to a scalar property (excluding
 	 * scalar properties that are references to model objects).
 	 *
+	 * @param <S> type of the object that is the parent object for the property,
+	 * 			though the actual type of the source object may be a class that
+	 * 			extends S
 	 * @param <V>
 	 */
-	class ChangeEntry_UpdateScalar<V> extends ChangeEntry {
+	class ChangeEntry_UpdateScalar<S extends IModelObject, V> extends ChangeEntry {
 		private KeyProxy objectKeyProxy;
-		private IScalarPropertyAccessor<V,?> propertyAccessor;
+		private IScalarPropertyAccessor<V,? super S> propertyAccessor;
 		private V oldValue = null;
 
 		ChangeEntry_UpdateScalar(KeyProxy objectKeyProxy,
-				IScalarPropertyAccessor<V,?> propertyAccessor, V oldValue) {
+				IScalarPropertyAccessor<V,? super S> propertyAccessor, V oldValue) {
 			this.objectKeyProxy = objectKeyProxy;
 			this.propertyAccessor = propertyAccessor;
 			this.oldValue = oldValue;
@@ -134,7 +137,7 @@ public class ChangeManager {
 
 		@Override
 		void undo() {
-			IModelObject object = objectKeyProxy.key.getObject(); // efficient???
+			S object = (S)objectKeyProxy.key.getObject(); // efficient???
 			propertyAccessor.setValue(object, oldValue);
 		}
 	}
@@ -149,13 +152,13 @@ public class ChangeManager {
 	// However, this method does not currently make use of such bounding,
 	// and to do that we would have to push back seperate methods for
 	// reference properties and other scalar properties.
-	class ChangeEntry_UpdateReference<E> extends ChangeEntry {
+	class ChangeEntry_UpdateReference<S extends IModelObject, E> extends ChangeEntry {
 		private KeyProxy objectKeyProxy;
-		private IScalarPropertyAccessor<E,?> propertyAccessor;
+		private IScalarPropertyAccessor<E,? super S> propertyAccessor;
 		private KeyProxy oldValueProxy = null;
 
 		ChangeEntry_UpdateReference(KeyProxy objectKeyProxy,
-				IScalarPropertyAccessor<E,?> propertyAccessor,
+				IScalarPropertyAccessor<E,? super S> propertyAccessor,
 				KeyProxy oldValueProxy) {
 			this.objectKeyProxy = objectKeyProxy;
 			this.propertyAccessor = propertyAccessor;
@@ -164,7 +167,7 @@ public class ChangeManager {
 
 		@Override
 		void undo() {
-			IModelObject object = objectKeyProxy.key.getObject(); // efficient???
+			S object = (S)objectKeyProxy.key.getObject(); // efficient???
 			// If IObjectKey had a type parameter, we would not need
 			// this cast.
 			propertyAccessor.setValue(object, propertyAccessor
@@ -234,12 +237,22 @@ public class ChangeManager {
 			 * Save all the property values from the deleted object. We need
 			 * these to re-create the object if this change is undone.
 			 */
+			saveDeletedValues(actualPropertySet, oldObject);
+		}
+		
+		private <E2 extends E> void saveDeletedValues(IExtendablePropertySet<E2> actualPropertySet, E oldObject1) {
+			E2 oldObject = (E2)oldObject1;
+			
+			/*
+			 * Save all the property values from the deleted object. We need
+			 * these to re-create the object if this change is undone.
+			 */
 //			nonDefaultExtensions = oldObject.getExtensions();
 
 			int count = actualPropertySet.getScalarProperties3().size();
 			oldValues = new Object[count];
 			int index = 0;
-			for (IScalarPropertyAccessor<?,?> propertyAccessor : actualPropertySet
+			for (IScalarPropertyAccessor<?,? super E2> propertyAccessor : actualPropertySet
 					.getScalarProperties3()) {
 				if (index != propertyAccessor.getIndexIntoScalarProperties()) {
 					throw new RuntimeException("index mismatch"); //$NON-NLS-1$
@@ -370,8 +383,8 @@ public class ChangeManager {
 	 * the class of this object or which extends any super class
 	 * of the class of this object.
 	 */
-	public <V> void processPropertyUpdate(IModelObject object,
-			IScalarPropertyAccessor<V,?> propertyAccessor, V oldValue, V newValue) {
+	public <S extends IModelObject, V> void processPropertyUpdate(S object,
+			IScalarPropertyAccessor<V,? super S> propertyAccessor, V oldValue, V newValue) {
 
 		/*
 		 * If the property value is a model object then we need special processing to
@@ -386,11 +399,11 @@ public class ChangeManager {
 		 */
 		if (IModelObject.class.isAssignableFrom(propertyAccessor.getClassOfValueObject())) {
 			IObjectKey oldObjectKey = oldValue == null ? null : ((IModelObject)oldValue).getObjectKey();
-			ChangeEntry newChangeEntry = new ChangeEntry_UpdateReference<V>(
+			ChangeEntry newChangeEntry = new ChangeEntry_UpdateReference<S,V>(
 					getKeyProxy(object.getObjectKey()), propertyAccessor, getKeyProxy(oldObjectKey));
 			addUndoableChangeEntry(newChangeEntry);
 		} else {
-			ChangeEntry newChangeEntry = new ChangeEntry_UpdateScalar<V>(
+			ChangeEntry newChangeEntry = new ChangeEntry_UpdateScalar<S,V>(
 					getKeyProxy(object.getObjectKey()), propertyAccessor,
 					oldValue);
 

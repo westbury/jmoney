@@ -499,7 +499,7 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 	 * 
 	 * @return The id of the inserted row
 	 */
-	public int insertIntoDatabase(IExtendablePropertySet<?> propertySet, IModelObject newObject, DatabaseListKey<?,?> listKey) {
+	public <S extends IModelObject> int insertIntoDatabase(IExtendablePropertySet<S> propertySet, S newObject, DatabaseListKey<?,?> listKey) {
 		int rowId = -1;
 
 		try {
@@ -511,13 +511,13 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 			// therefore store these so that we can loop through the property sets in
 			// the reverse order.
 
-			Vector<IExtendablePropertySet<?>> propertySets = new Vector<IExtendablePropertySet<?>>();
-			for (IExtendablePropertySet<?> propertySet2 = propertySet; propertySet2 != null; propertySet2 = propertySet2.getBasePropertySet()) {
+			Vector<IExtendablePropertySet<? super S>> propertySets = new Vector<IExtendablePropertySet<? super S>>();
+			for (IExtendablePropertySet<? super S> propertySet2 = propertySet; propertySet2 != null; propertySet2 = propertySet2.getBasePropertySet()) {
 				propertySets.add(propertySet2);
 			}
 
 			for (int index = propertySets.size()-1; index >= 0; index--) {
-				ExtendablePropertySet<?> propertySet2 = (ExtendablePropertySet<?>)propertySets.get(index);
+				ExtendablePropertySet<? super S> propertySet2 = (ExtendablePropertySet<? super S>)propertySets.get(index);
 
 				String sql = "INSERT INTO " 
 					+ propertySet2.getId().replace('.', '_')
@@ -539,7 +539,7 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 					separator = ", ";
 				}
 
-				for (ScalarPropertyAccessor<?,?> propertyAccessor: propertySet2.getScalarProperties2()) {
+				for (ScalarPropertyAccessor<?,? super S> propertyAccessor: propertySet2.getScalarProperties2()) {
 					String columnName = getColumnName(propertyAccessor);
 
 					// Get the value from the passed property value array.
@@ -597,7 +597,7 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 					 * Loop around again setting the parameters.
 					 */
 					int parameterNumber = 1;
-					for (ScalarPropertyAccessor<?,?> propertyAccessor: propertySet2.getScalarProperties2()) {
+					for (ScalarPropertyAccessor<?,? super S> propertyAccessor: propertySet2.getScalarProperties2()) {
 						// Get the value from the passed property value array.
 						Object value = propertyAccessor.getValue(newObject);
 

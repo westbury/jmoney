@@ -41,16 +41,16 @@ public class AccountControlWithMruList<A extends Account> extends AccountComposi
     protected List accountList;
     protected AccountControl<A> accountControl;
     protected Class<A> accountClass;
-    
+
     protected LinkedList<A> recentlyUsedList = new LinkedList<A>();
-    
+
 	public AccountControlWithMruList(Composite parent, Session session, Class<A> accountClass) {
 		super(parent, SWT.NONE);
 		this.session = session;
 		this.accountClass = accountClass;
-		
+
 		setLayout(new GridLayout(1, false));
-		
+
         accountList = new List(this, SWT.NONE);
         accountControl = new AccountControl<A>(this, session, accountClass);
 
@@ -58,19 +58,21 @@ public class AccountControlWithMruList<A extends Account> extends AccountComposi
         accountControl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 
         accountList.addSelectionListener(new SelectionListener() {
+			@Override
 			public void widgetSelected(SelectionEvent e) {
 				int selection = accountList.getSelectionIndex();
 				if (selection >= 0) {
 					accountControl.setAccount(recentlyUsedList.get(selection));
 				}
 			}
+			@Override
 			public void widgetDefaultSelected(SelectionEvent e) {
 				widgetSelected(e);
 			}
 		});
 	}
 
-    @Override	
+    @Override
 	public void rememberChoice() {
     	A account = accountControl.getAccount();
     	if (account != null) {
@@ -92,17 +94,17 @@ public class AccountControlWithMruList<A extends Account> extends AccountComposi
     	}
 	}
 
-    @Override	
+    @Override
 	public A getAccount() {
 	    return accountControl.getAccount();
 	}
-	
-    @Override	
+
+    @Override
 	public void setAccount(A account) {
 		accountControl.setAccount(account);
 	}
 
-    @Override	
+    @Override
 	public void init(IDialogSettings section) {
 		if (section != null) {
 			String [] mruAccountNames = section.getArray("mruAccount"); //$NON-NLS-1$

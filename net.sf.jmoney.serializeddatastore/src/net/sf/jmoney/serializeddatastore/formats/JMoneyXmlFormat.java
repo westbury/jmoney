@@ -111,7 +111,7 @@ import org.xml.sax.helpers.DefaultHandler;
 /**
  * Implementation of the IFileDatastore extension listener for the JMoney JMX
  * format.
- * 
+ *
  * @author Nigel Westbury
  */
 public class JMoneyXmlFormat implements IFileDatastore {
@@ -137,11 +137,11 @@ public class JMoneyXmlFormat implements IFileDatastore {
 		 */
 		String generateId(ExtendableObject object);
 	}
-	
+
 	class GenericIdGenerator implements IdGenerator {
 		private String prefix;
 		private int nextId = 1;
-		
+
 		public GenericIdGenerator(String prefix) {
 			this.prefix = prefix;
 		}
@@ -151,19 +151,19 @@ public class JMoneyXmlFormat implements IFileDatastore {
 			return prefix + new Integer(nextId++).toString();
 		}
 	}
-	
+
 	class CurrencyIdGenerator implements IdGenerator {
-		
+
 		@Override
 		public String generateId(ExtendableObject object) {
 			return ((Currency)object).getCode();
 		}
 	}
-	
+
 	/**
 	 * Maps property sets to IdGenerator implementations that generate the ids
 	 * for objects in that property set.
-	 * 
+	 *
 	 * Only property sets that may be referenced will be in this map. This
 	 * ensures that ids are generated only for object classes that may be
 	 * referenced, thus avoiding unnecessary ids from being written out.
@@ -181,7 +181,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 	 * If this method returns false then any previous session will be left open.
 	 * The caller will not display any error message. This method must display
 	 * an appropriate error message if the file cannot be read.
-	 * 
+	 *
 	 * @return true if the file was successfully read and the session was set in
 	 *         the given session manager, false if the user cancelled the
 	 *         operation or if a failure occurred
@@ -315,7 +315,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 		/**
 		 * Update the progress monitor. The number of bytes read from the input
 		 * stream is passed to this method and used to measure the progress.
-		 * 
+		 *
 		 * @param bytesRead
 		 *            the number of bytes read from the input stream.
 		 */
@@ -333,7 +333,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 	/**
 	 * Read a session from file, creating a session manager and a session.
-	 * 
+	 *
 	 * @param monitor
 	 *            Monitor into which this method will call the beginTask method
 	 *            and update the progress. This parameter may be null in which
@@ -474,13 +474,13 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 		/**
 		 * Receive notification of the start of an element.
-		 * 
+		 *
 		 * <p>
 		 * See if there is a setter for this element name. If there is then set
 		 * the setter. Otherwise set the setter to null to indicate that any
 		 * character data should be ignored.
 		 * </p>
-		 * 
+		 *
 		 * @param name
 		 *            The element type name.
 		 * @param attributes
@@ -516,11 +516,11 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 		/**
 		 * Receive notification of the end of an element.
-		 * 
+		 *
 		 * <p>
 		 * Set the property accessor back to null.
 		 * </p>
-		 * 
+		 *
 		 * @param name
 		 *            The element type name.
 		 * @param attributes
@@ -545,12 +545,12 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 		/**
 		 * Receive notification of character data inside an element.
-		 * 
+		 *
 		 * <p>
 		 * If a setter method is set then the character data is passed to the
 		 * setter. Otherwise the character data is dropped.
 		 * </p>
-		 * 
+		 *
 		 * @param ch
 		 *            The characters.
 		 * @param start
@@ -579,7 +579,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 		/**
 		 * Creates a new SAXEventProcessor object.
-		 * 
+		 *
 		 * @param parent
 		 *            The event processor that was in effect. This newly created
 		 *            event processor will take over and will process the
@@ -595,12 +595,12 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 		/**
 		 * DOCUMENT ME!
-		 * 
+		 *
 		 * @param name
 		 *            DOCUMENT ME!
 		 * @param atts
 		 *            DOCUMENT ME!
-		 * 
+		 *
 		 * @throws SAXException
 		 *             DOCUMENT ME!
 		 */
@@ -609,14 +609,14 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 		/**
 		 * DOCUMENT ME!
-		 * 
+		 *
 		 * @param ch
 		 *            DOCUMENT ME!
 		 * @param start
 		 *            DOCUMENT ME!
 		 * @param length
 		 *            DOCUMENT ME!
-		 * 
+		 *
 		 * @throws SAXException
 		 *             DOCUMENT ME!
 		 */
@@ -626,12 +626,12 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 		/**
 		 * DOCUMENT ME!
-		 * 
+		 *
 		 * @param name
 		 *            DOCUMENT ME!
-		 * 
+		 *
 		 * @return DOCUMENT ME!
-		 * 
+		 *
 		 * @throws SAXException
 		 *             DOCUMENT ME!
 		 */
@@ -684,7 +684,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 		/**
 		 * Key to the object being parsed by this ObjectProcessor.
-		 * 
+		 *
 		 * Saved key of objects that might be referenced from other objects. The key is created
 		 * and added to the 'id to key' map before the object itself is created.  We save the key
 		 * here so when the object is later created we can set the object into it.
@@ -708,7 +708,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 		Object value;
 
 		/**
-		 * 
+		 *
 		 * @param parent
 		 *            The event processor that was in effect. This newly created
 		 *            event processor will take over and will process the
@@ -726,7 +726,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 			/*
 			 * Create the object key now and put it in the id map, unless the object key has already
 			 * been created because it was referenced by a previous idref.
-			 * 
+			 *
 			 * Either way, the object will be set into the key later.
 			 */
 			objectKey = idToObjectMap.get(id);
@@ -745,12 +745,12 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 		/**
 		 * DOCUMENT ME!
-		 * 
+		 *
 		 * @param name
 		 *            DOCUMENT ME!
 		 * @param atts
 		 *            DOCUMENT ME!
-		 * 
+		 *
 		 * @throws SAXException
 		 *             DOCUMENT ME!
 		 */
@@ -832,12 +832,12 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 					/*
 					 * Process this element.
-					 * 
+					 *
 					 * Although we already have all the data we need from the
 					 * start element, we still need a processor to process it.
 					 * Ideally we should create another processor which gives
 					 * errors if there is any additional data.
-					 * 
+					 *
 					 * We pass the value to the processor so that it can pass
 					 * the value back to us! (That is the design - it is up to
 					 * the inner processor to supply the value. It just so
@@ -900,14 +900,14 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 		/**
 		 * DOCUMENT ME!
-		 * 
+		 *
 		 * @param ch
 		 *            DOCUMENT ME!
 		 * @param start
 		 *            DOCUMENT ME!
 		 * @param length
 		 *            DOCUMENT ME!
-		 * 
+		 *
 		 * @throws SAXException
 		 *             DOCUMENT ME!
 		 */
@@ -1040,7 +1040,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @seenet.sf.jmoney.serializeddatastore.SerializedDatastorePlugin.
 		 * SAXEventProcessor#getValue()
 		 */
@@ -1070,7 +1070,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 		String s = ""; //$NON-NLS-1$
 
 		/**
-		 * 
+		 *
 		 * @param parent
 		 *            The event processor that was in effect. This newly created
 		 *            event processor will take over and will process the
@@ -1086,12 +1086,12 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 		/**
 		 * DOCUMENT ME!
-		 * 
+		 *
 		 * @param name
 		 *            DOCUMENT ME!
 		 * @param atts
 		 *            DOCUMENT ME!
-		 * 
+		 *
 		 * @throws SAXException
 		 *             DOCUMENT ME!
 		 */
@@ -1104,14 +1104,14 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 		/**
 		 * DOCUMENT ME!
-		 * 
+		 *
 		 * @param ch
 		 *            DOCUMENT ME!
 		 * @param start
 		 *            DOCUMENT ME!
 		 * @param length
 		 *            DOCUMENT ME!
-		 * 
+		 *
 		 * @throws SAXException
 		 *             DOCUMENT ME!
 		 */
@@ -1172,7 +1172,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @seenet.sf.jmoney.serializeddatastore.SerializedDatastorePlugin.
 		 * SAXEventProcessor#getValue()
 		 */
@@ -1196,7 +1196,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 		/**
 		 * Creates a new IgnoreElementProcessor object.
-		 * 
+		 *
 		 * @param parent
 		 *            DOCUMENT ME!
 		 * @param elementName
@@ -1211,13 +1211,13 @@ public class JMoneyXmlFormat implements IFileDatastore {
 		/**
 		 * Process elements that occur within an element for which we are
 		 * ignoring content.
-		 * 
+		 *
 		 * @param name
 		 *            The name of the element found inside the element.
 		 * @param atts
 		 *            A map object that contains the names and values of all the
 		 *            attributes for the element.
-		 * 
+		 *
 		 * @throws SAXException
 		 *             DOCUMENT ME!
 		 */
@@ -1234,12 +1234,12 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 		/**
 		 * DOCUMENT ME!
-		 * 
+		 *
 		 * @param name
 		 *            DOCUMENT ME!
-		 * 
+		 *
 		 * @return DOCUMENT ME!
-		 * 
+		 *
 		 * @throws SAXException
 		 *             DOCUMENT ME!
 		 */
@@ -1254,7 +1254,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @seenet.sf.jmoney.serializeddatastore.SerializedDatastorePlugin.
 		 * SAXEventProcessor#getValue()
 		 */
@@ -1271,7 +1271,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 	 */
 	Map<PropertySet, String> namespaceMap;
 	int accountId;
-	
+
 	Map<ExtendableObject, String> objectToIdMap;
 
 	// Used for reading
@@ -1355,7 +1355,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 
 	/**
 	 * Write session to file.
-	 * 
+	 *
 	 * @param monitor
 	 *            Monitor into which this method will call the beginTask method
 	 *            and update the progress. This parameter may be null in which
@@ -1374,7 +1374,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 		for (ExtendablePropertySet<?> propertySet: PropertySet.getAllExtendablePropertySets()) {
 			for (ScalarPropertyAccessor propertyAccessor : propertySet.getScalarProperties2()) {
 				if (ExtendableObject.class.isAssignableFrom(propertyAccessor.getClassOfValueType())) {
-					
+
 					// KLUDGE: Don't use generic for any objects derived from the account type
 					if (!Account.class.isAssignableFrom(propertyAccessor.getClassOfValueType())) {
 						idGenerators.put(PropertySet.getPropertySet(propertyAccessor.getClassOfValueType()), genericGenerator);
@@ -1382,7 +1382,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 				}
 			}
 		}
-		
+
 		// Add a couple of special case ones
 		idGenerators.put(AccountInfo.getPropertySet(), new GenericIdGenerator("account"));
 		idGenerators.put(CurrencyInfo.getPropertySet(), new CurrencyIdGenerator());
@@ -1421,7 +1421,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param hd
 	 * @param object
 	 * @param elementName
@@ -1479,18 +1479,18 @@ public class JMoneyXmlFormat implements IFileDatastore {
 		/*
 		 * Write all properties for this object, including properties from base
 		 * objects and properties from extensions.
-		 * 
+		 *
 		 * For derived property sets, information must be in the XML that allows
 		 * the derived property set to be determined. This is done by outputting
 		 * the actual final property set id. The property set id is specified as
 		 * an attribute.
-		 * 
+		 *
 		 * When an object is not owned, an id is specified. These are specified
 		 * as 'id' and 'idref' attributes in the normal way.
-		 * 
+		 *
 		 * Write the list properties. This is done before the properties because
 		 * then, as it happens, we get no problems due to the single pass.
-		 * 
+		 *
 		 * TODO: we cannot rely on this mechanism to ensure all idref's are
 		 * written before they are used.
 		 */
@@ -1506,13 +1506,13 @@ public class JMoneyXmlFormat implements IFileDatastore {
 					|| object.getExtension(
 							(ExtensionPropertySet<?,?>) propertySet2, false) != null) {
 				String name = propertyAccessor.getLocalName();
-				Object value = object.getPropertyValue(propertyAccessor);
+				Object value = propertyAccessor.getValue(object);
 
 				/*
 				 * If no element for a property exists in the file then the
 				 * property value is treated as null. Therefore, if the property
 				 * value is null, we do not write out an element.
-				 * 
+				 *
 				 * Strings are a special case because JMoney treats null strings
 				 * and empty strings the same. If a string is empty, we treat
 				 * the string as null and do not write out the value.
@@ -1576,7 +1576,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 	private String getId(ExtendablePropertySet<?> propertySet,
 			ExtendableObject object) {
 		String id = objectToIdMap.get(object);
-		if (id == null) { 
+		if (id == null) {
 			ExtendablePropertySet basePropertySet = propertySet;
 			while (basePropertySet != null && !idGenerators.containsKey(basePropertySet)) {
 				basePropertySet = basePropertySet.getBasePropertySet();
@@ -1836,7 +1836,7 @@ public class JMoneyXmlFormat implements IFileDatastore {
 	/**
 	 * Copies category properties across from old to new. Sub-categories are
 	 * also copied across.
-	 * 
+	 *
 	 * @param accountMap
 	 *            this and all sub-categories are added to this map, mapping old
 	 *            categories to the new categories
@@ -1865,7 +1865,6 @@ public class JMoneyXmlFormat implements IFileDatastore {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	private void copyEntryProperties(net.sf.jmoney.model.Entry oldEntry,
 			Entry entry, ScalarPropertyAccessor<?,?> statusProperty) {
 		entry.setCheck(oldEntry.getCheck());
@@ -1877,9 +1876,8 @@ public class JMoneyXmlFormat implements IFileDatastore {
 		}
 		entry.setValuta(oldEntry.getValuta());
 		if (statusProperty != null && oldEntry.getStatus() != 0) {
-			entry.setPropertyValue(
-					(ScalarPropertyAccessor<Integer,?>) statusProperty, oldEntry
-							.getStatus());
+			((ScalarPropertyAccessor<Integer,Entry>) statusProperty).setValue(
+					entry, oldEntry.getStatus());
 		}
 	}
 

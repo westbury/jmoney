@@ -79,10 +79,10 @@ public class ImportAccountInfo implements IPropertySetInfo {
 	@Override
 	public PropertySet<ImportAccount,CapitalAccount> registerProperties() {
 
-		IPropertyControlFactory<String> importDataControlFactory = new PropertyControlFactory<String>() {
+		IPropertyControlFactory<CapitalAccount,String> importDataControlFactory = new PropertyControlFactory<CapitalAccount,String>() {
 			@Override
 			public IPropertyControl<CapitalAccount> createPropertyControl(Composite parent,
-					ScalarPropertyAccessor<String,?> propertyAccessor) {
+					ScalarPropertyAccessor<String,CapitalAccount> propertyAccessor) {
 				
 				final List<String> ids = new ArrayList<String>();
 				final Combo control = new Combo(parent, SWT.READ_ONLY);

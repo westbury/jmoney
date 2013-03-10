@@ -681,7 +681,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	}
 
 	@Override
-	public IValueProperty createValueProperty(ScalarPropertyAccessor accessor) {
+	public IValueProperty<?,?> createValueProperty(ScalarPropertyAccessor accessor) {
 		return BeanProperties.value(classOfObject, accessor.localName);
 	}
 }

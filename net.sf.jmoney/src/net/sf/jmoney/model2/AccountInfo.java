@@ -57,7 +57,7 @@ public class AccountInfo implements IPropertySetInfo {
 
 	@Override
 	public PropertySet registerProperties() {
-		IPropertyControlFactory<String> textControlFactory = new TextControlFactory();
+		IPropertyControlFactory<Account,String> textControlFactory = new TextControlFactory<Account>();
 		
 		nameAccessor = propertySet.addProperty("name", Messages.AccountInfo_Name, String.class, 5, 100, textControlFactory, null); //$NON-NLS-1$
 		

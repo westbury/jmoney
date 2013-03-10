@@ -47,11 +47,11 @@ public class BankAccount extends CurrencyAccount {
 	 * passed to this constructor must be valid because datastores should only pass back
 	 * values that were previously saved from a BankAccount object.  So, for example,
 	 * we can be sure that a non-null name and currency are passed to this constructor.
-	 * 
+	 *
 	 * @param name the name of the account
 	 */
 	public BankAccount(
-			IObjectKey objectKey, 
+			IObjectKey objectKey,
 			ListKey parent,
 			String name,
 			IListManager<CapitalAccount> subAccounts,
@@ -62,9 +62,9 @@ public class BankAccount extends CurrencyAccount {
 			String bank,
 			String accountNumber,
 			Long minBalance,
-			IValues extensionValues) { 
+			IValues<BankAccount> extensionValues) {
 		super(objectKey, parent, name, subAccounts, abbreviation, comment, currencyKey, startBalance, extensionValues);
-		
+
         this.bank = bank;
         this.accountNumber = accountNumber;
         this.minBalance = minBalance;
@@ -78,13 +78,13 @@ public class BankAccount extends CurrencyAccount {
 	 * for the scalar properties.
 	 */
 	public BankAccount(
-			IObjectKey objectKey, 
-			ListKey parent) { 
+			IObjectKey objectKey,
+			ListKey parent) {
 		super(objectKey, parent);
-		
+
 		// Overwrite the default name with our own default name.
 		this.name = Messages.BankAccount_Name;
-		
+
         this.bank = null;
         this.accountNumber = null;
         this.minBalance = null;
@@ -94,11 +94,11 @@ public class BankAccount extends CurrencyAccount {
 	// with the correct type as the generic parameter, then that would
 	// be great.  Otherwise this method is no use because we can get
 	// the property set from the map.
-    @Override	
+    @Override
 	protected String getExtendablePropertySetId() {
 		return "net.sf.jmoney.bankAccount"; //$NON-NLS-1$
 	}
-	
+
 	/**
 	 * @return the bank name of this account.
 	 */

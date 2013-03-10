@@ -51,11 +51,11 @@ public abstract class CurrencyAccount extends CapitalAccount {
 	 * passed to this constructor must be valid because datastores should only pass back
 	 * values that were previously saved from a CapitalAccount object.  So, for example,
 	 * we can be sure that a non-null name and currency are passed to this constructor.
-	 * 
+	 *
 	 * @param name the name of the account
 	 */
 	public CurrencyAccount(
-			IObjectKey objectKey, 
+			IObjectKey objectKey,
 			ListKey parent,
 			String name,
 			IListManager<CapitalAccount> subAccounts,
@@ -63,14 +63,14 @@ public abstract class CurrencyAccount extends CapitalAccount {
 			String comment,
 			IObjectKey currencyKey,
 			long startBalance,
-			IValues extensionValues) { 
+			IValues<? extends CurrencyAccount> extensionValues) {
 		super(objectKey, parent, name, subAccounts, abbreviation, comment, extensionValues);
-		
+
 		/*
 		 * The currency for this account is not allowed to be null, because
 		 * users of this class may assume it to be non-null and would not know
 		 * how to handle this account if it were null.
-		 * 
+		 *
 		 * If null is passed, set to the default currency for the session.
 		 * This is guaranteed to be never null.
 		 */
@@ -91,24 +91,24 @@ public abstract class CurrencyAccount extends CapitalAccount {
 	 * for the scalar properties.
 	 */
 	public CurrencyAccount(
-			IObjectKey objectKey, 
-			ListKey parent) { 
+			IObjectKey objectKey,
+			ListKey parent) {
 		super(objectKey, parent);
-		
+
 		// Set a default name.
 		this.name = Messages.CurrencyAccount_Name;
-		
+
 		// Set the currency to the session default currency.
 		this.currencyKey = getDataManager().getSession().getDefaultCurrency().getObjectKey();
-		
+
         this.startBalance = 0;
 	}
 
-    @Override	
+    @Override
 	protected String getExtendablePropertySetId() {
 		return "net.sf.jmoney.currencyAccount"; //$NON-NLS-1$
 	}
-	
+
 	/**
 	 * @return the locale of this account.
 	 */
@@ -120,14 +120,14 @@ public abstract class CurrencyAccount extends CapitalAccount {
         return (Currency)currencyKey.getObject();
 	}
 
-    @Override	
+    @Override
 	public Commodity getCommodity(Entry entry) {
 		// All entries in this account must be in the
 		// same currency, so return the currency for this
 		// account.
 	    return getCurrency();
 	}
-	
+
 	/**
 	 * @return the initial balance of this account.
 	 */
@@ -156,12 +156,12 @@ public abstract class CurrencyAccount extends CapitalAccount {
 		processPropertyChange(CurrencyAccountInfo.getStartBalanceAccessor(), oldStartBalance, startBalance);
 	}
 
-    @Override	
+    @Override
 	public String toString() {
 		return name;
 	}
 
-    @Override	
+    @Override
     public String getFullAccountName() {
     	if (getParent() == null) {
     		return name;
@@ -169,17 +169,17 @@ public abstract class CurrencyAccount extends CapitalAccount {
     		return getParent().getFullAccountName() + "." + this.name; //$NON-NLS-1$
     	}
     }
-	
+
 	/**
 	 * Get the balance at a given date
-	 * 
+	 *
 	 * @param date
 	 * @return the balance
 	 * @author Faucheux
 	 */
 	public long getBalance(Session session, Date fromDate, Date toDate) {
 		if (JMoneyPlugin.DEBUG) System.out.println("Calculing the Balance for >" + name + "< (without sub-accounts) between " + fromDate + " and " + toDate); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-		
+
 		long bal = getStartBalance();
 
 		IEntryQueries queries = (IEntryQueries)getSession().getAdapter(IEntryQueries.class);
@@ -188,23 +188,23 @@ public abstract class CurrencyAccount extends CapitalAccount {
     	} else {
     		// IEntryQueries has not been implemented in the datastore.
     		// We must therefore provide our own implementation.
-    		
-    		// Sum each entry the entry between the two dates 
+
+    		// Sum each entry the entry between the two dates
     		for (Entry e: getEntries()) {
     			if ((e.getTransaction().getDate().compareTo(fromDate) >= 0)
     					&& e.getTransaction().getDate().compareTo(toDate) <= 0){
     				bal += e.getAmount();
-    				
+
     			}
     		}
     	}
-    	
+
 		return bal;
 	}
-	
+
 	/**
 	 * Get the balance between two dates , inclusive sub-accounts
-	 * 
+	 *
 	 * @param date
 	 * @return the balance
 	 * @author Faucheux
@@ -212,7 +212,7 @@ public abstract class CurrencyAccount extends CapitalAccount {
 	public long getBalanceWithSubAccounts(Session session, Date fromDate, Date toDate) {
 		if (JMoneyPlugin.DEBUG) System.out.println("Calculing the Balance for >" + name + "< (with sub-accounts) between " + fromDate + " and " + toDate); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 		long bal = getBalance(session, fromDate, toDate);
-		
+
 		// This logic may not be quite right.  If a stock account is a sub account of
 		// a currency account then the balance of the stock account cannot be added
 		// into the total (stock accounts don't hold currency).  However, what if the

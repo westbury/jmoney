@@ -74,7 +74,7 @@ public class PatternMatcherAccountInfo implements IPropertySetInfo {
 	
 	@Override
 	public PropertySet<PatternMatcherAccount,CapitalAccount> registerProperties() {
-		AccountControlFactory<PatternMatcherAccount,IncomeExpenseAccount> accountControlFactory = new AccountControlFactory<PatternMatcherAccount,IncomeExpenseAccount>() {
+		AccountControlFactory<PatternMatcherAccount,CapitalAccount,IncomeExpenseAccount> accountControlFactory = new AccountControlFactory<PatternMatcherAccount,CapitalAccount,IncomeExpenseAccount>() {
 			@Override
 			public IObjectKey getObjectKey(PatternMatcherAccount parentObject) {
 				return parentObject.defaultCategoryKey;
@@ -88,7 +88,7 @@ public class PatternMatcherAccountInfo implements IPropertySetInfo {
 			}
 		};
 	
-		reconcilableAccessor = propertySet.addProperty("reconcilable", Messages.Account_Import, Boolean.class, 1, 5, new CheckBoxControlFactory(), null);
+		reconcilableAccessor = propertySet.addProperty("reconcilable", Messages.Account_Import, Boolean.class, 1, 5, new CheckBoxControlFactory<CapitalAccount>(), null);
 		patternsAccessor = propertySet.addPropertyList("patterns", NLS.bind(Messages.Account_Import_Patterns, null), MemoPatternInfo.getPropertySet(), patternListGetter);
 		defaultCategoryAccessor = propertySet.addProperty("defaultCategory", NLS.bind(Messages.Account_Import_DefaultCategory, null), IncomeExpenseAccount.class, 1, 20, accountControlFactory, null);
 		

@@ -79,9 +79,9 @@ public class AccountAssociationInfo implements IPropertySetInfo {
 	@Override
 	public ExtendablePropertySet<AccountAssociation> registerProperties() {
 
-		IPropertyControlFactory<String> textControlFactory = new TextControlFactory();
+		IPropertyControlFactory<AccountAssociation,String> textControlFactory = new TextControlFactory<AccountAssociation>();
 
-		IReferenceControlFactory<AccountAssociation,Account> accountControlFactory = new AccountControlFactory<AccountAssociation,Account>() {
+		IReferenceControlFactory<AccountAssociation,AccountAssociation,Account> accountControlFactory = new AccountControlFactory<AccountAssociation,AccountAssociation,Account>() {
 			@Override
 			public IObjectKey getObjectKey(AccountAssociation parentObject) {
 				return parentObject.accountKey;

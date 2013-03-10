@@ -13,16 +13,16 @@ import org.eclipse.swt.widgets.Control;
  * @param <P>
  * 		the class of objects that contain this property
  */
-public abstract class SecurityControlFactory<P> extends PropertyControlFactory<Security> implements IReferenceControlFactory<P, Security> {
+public abstract class SecurityControlFactory<P, S extends ExtendableObject> extends PropertyControlFactory<S, Security> implements IReferenceControlFactory<P, S, Security> {
 
 	@Override
-	public IPropertyControl createPropertyControl(Composite parent, final ScalarPropertyAccessor<Security,?> propertyAccessor) {
+	public IPropertyControl<S> createPropertyControl(Composite parent, final ScalarPropertyAccessor<Security,S> propertyAccessor) {
 
 		final SecurityControl<Security> control = new SecurityControl<Security>(parent, null, Security.class);
 
-		return new IPropertyControl<ExtendableObject>() {
+		return new IPropertyControl<S>() {
 
-			private ExtendableObject fObject;
+			private S fObject;
 
 			@Override
 			public Control getControl() {
@@ -30,17 +30,17 @@ public abstract class SecurityControlFactory<P> extends PropertyControlFactory<S
 			}
 
 			@Override
-			public void load(ExtendableObject object) {
+			public void load(S object) {
 				fObject = object;
 
 				control.setSession(object.getSession(), propertyAccessor.getClassOfValueObject());
-				control.setSecurity(object.getPropertyValue(propertyAccessor));
+				control.setSecurity(propertyAccessor.getValue(object));
 			}
 
 			@Override
 			public void save() {
 				Security stock = control.getSecurity();
-				fObject.setPropertyValue(propertyAccessor, stock);
+				propertyAccessor.setValue(fObject, stock);
 			}};
 	}
 

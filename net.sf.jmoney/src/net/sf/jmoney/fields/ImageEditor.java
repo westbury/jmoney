@@ -32,16 +32,16 @@ import org.eclipse.swt.widgets.Control;
 /**
  * Editor class for image properties.
  */
-public class ImageEditor implements IPropertyControl<ExtendableObject> {
+public class ImageEditor<S extends ExtendableObject> implements IPropertyControl<S> {
 
-    protected ScalarPropertyAccessor<IBlob,?> propertyAccessor;
+    protected ScalarPropertyAccessor<IBlob,S> propertyAccessor;
     protected ImageControl propertyControl;
     protected ExtendableObject extendableObject;
 
 	/**
      * Create a new date editor.
      */
-    public ImageEditor(final Composite parent, ScalarPropertyAccessor<IBlob,?> propertyAccessor) {
+    public ImageEditor(final Composite parent, ScalarPropertyAccessor<IBlob,S> propertyAccessor) {
         this.propertyAccessor = propertyAccessor;
         
 		propertyControl = new ImageControl(parent);
@@ -51,12 +51,12 @@ public class ImageEditor implements IPropertyControl<ExtendableObject> {
      * @see net.sf.jmoney.model2.IPropertyControl#load(net.sf.jmoney.model2.ExtendableObject)
      */
     @Override
-    public void load(ExtendableObject object) {
+    public void load(S object) {
     	this.extendableObject = object;
     	if (object == null) {
     		propertyControl.setBlob(null);
     	} else {
-            IBlob blob = object.getPropertyValue(propertyAccessor);
+            IBlob blob = propertyAccessor.getValue(object);
     		propertyControl.setBlob(blob);
     	}
     	

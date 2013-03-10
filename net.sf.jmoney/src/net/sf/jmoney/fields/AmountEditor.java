@@ -56,15 +56,15 @@ import org.eclipse.swt.widgets.Text;
  * @author Nigel Westbury
  * @author Johann Gyger
  */
-public class AmountEditor implements IPropertyControl<ExtendableObject> {
+public class AmountEditor<S extends ExtendableObject> implements IPropertyControl<S> {
 
-	private ExtendableObject fObject;
+	private S fObject;
 
     private IAmountFormatter fCommodity;
     
-    private ScalarPropertyAccessor<Long,?> amountPropertyAccessor;
+    private ScalarPropertyAccessor<Long,S> amountPropertyAccessor;
     
-    private AmountControlFactory factory;
+    private AmountControlFactory<S> factory;
     
     private Text propertyControl;
 
@@ -80,7 +80,7 @@ public class AmountEditor implements IPropertyControl<ExtendableObject> {
     /**
      * Create a new amount editor.
      */
-    public AmountEditor(Composite parent, ScalarPropertyAccessor<Long,?> propertyAccessor, AmountControlFactory factory) {
+    public AmountEditor(Composite parent, ScalarPropertyAccessor<Long,S> propertyAccessor, AmountControlFactory<S> factory) {
     	propertyControl = new Text(parent, SWT.TRAIL);
     	this.amountPropertyAccessor = propertyAccessor;
     	this.factory = factory;
@@ -99,7 +99,7 @@ public class AmountEditor implements IPropertyControl<ExtendableObject> {
      * Load the control with the value from the given account.
      */
     @Override
-	public void load(ExtendableObject object) {
+	public void load(S object) {
     	if (fObject != null) {
             fObject.getDataManager().removeChangeListener(amountChangeListener);
     	}
@@ -130,7 +130,7 @@ public class AmountEditor implements IPropertyControl<ExtendableObject> {
 		// Some amounts may be of type Long, not long, so that 
 		// they can be null, so we must get the property
 		// value as a Long.
-		Long amount = fObject.getPropertyValue(amountPropertyAccessor);
+		Long amount = amountPropertyAccessor.getValue(fObject);
 		if (amount == null) {
 			propertyControl.setText(""); //$NON-NLS-1$
 		} else {
@@ -192,7 +192,7 @@ public class AmountEditor implements IPropertyControl<ExtendableObject> {
     	if (!amountString.equals("")) { //$NON-NLS-1$
     		long amount = newCommodity.parse(amountString);
     		propertyControl.setText(newCommodity.format(amount));
-    		fObject.setPropertyValue(amountPropertyAccessor, amount);
+    		amountPropertyAccessor.setValue(fObject, amount);
     	}
     }
     
@@ -213,10 +213,10 @@ public class AmountEditor implements IPropertyControl<ExtendableObject> {
             // The text box is empty and the property is Long
             // (not long) thus allowing nulls.  Therefore
             // we set the property value to be null.
-            fObject.setPropertyValue(amountPropertyAccessor, null);
+        	amountPropertyAccessor.setValue(fObject, null);
         } else {
             long amount = fCommodity.parse(amountString);
-            fObject.setPropertyValue(amountPropertyAccessor, amount);
+            amountPropertyAccessor.setValue(fObject, amount);
         }
     }
 

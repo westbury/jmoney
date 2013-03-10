@@ -38,22 +38,22 @@ import org.eclipse.swt.widgets.Text;
  * 
  * @author Nigel Westbury
  */
-public class IntegerControlFactory implements IPropertyControlFactory<Integer> {
+public class IntegerControlFactory<S extends ExtendableObject> implements IPropertyControlFactory<S,Integer> {
 
     @Override
-	public IPropertyControl createPropertyControl(Composite parent, ScalarPropertyAccessor<Integer,?> propertyAccessor) {
-        return new IntegerEditor(parent, 0, propertyAccessor);
+	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<Integer,S> propertyAccessor) {
+        return new IntegerEditor<S>(parent, 0, propertyAccessor);
     }
 
    @Override
-public String formatValueForMessage(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends Integer,?> propertyAccessor) {
-	   Integer value = extendableObject.getPropertyValue(propertyAccessor);
+public String formatValueForMessage(S extendableObject, ScalarPropertyAccessor<? extends Integer,S> propertyAccessor) {
+	   Integer value = propertyAccessor.getValue(extendableObject);
        return value.toString();
     }
 
     @Override
-	public String formatValueForTable(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends Integer,?> propertyAccessor) {
- 	   Integer value = extendableObject.getPropertyValue(propertyAccessor);
+	public String formatValueForTable(S extendableObject, ScalarPropertyAccessor<? extends Integer,S> propertyAccessor) {
+ 	   Integer value = propertyAccessor.getValue(extendableObject);
        return value.toString();
     }
 
@@ -83,32 +83,32 @@ public String formatValueForMessage(ExtendableObject extendableObject, ScalarPro
  * 
  * @author Nigel Westbury
  */
-class IntegerEditor implements IPropertyControl<ExtendableObject> {
+class IntegerEditor<S extends ExtendableObject> implements IPropertyControl<S> {
 
-    private ExtendableObject extendableObject;
+    private S extendableObject;
 
-    private ScalarPropertyAccessor<Integer,?> propertyAccessor;
+    private ScalarPropertyAccessor<Integer,S> propertyAccessor;
 
     private Text propertyControl;
 
-    public IntegerEditor(Composite parent, ScalarPropertyAccessor<Integer,?> propertyAccessor) {
+    public IntegerEditor(Composite parent, ScalarPropertyAccessor<Integer,S> propertyAccessor) {
         propertyControl = new Text(parent, 0);
         this.propertyAccessor = propertyAccessor;
     }
 
-    public IntegerEditor(Composite parent, int style, ScalarPropertyAccessor<Integer,?> propertyAccessor) {
+    public IntegerEditor(Composite parent, int style, ScalarPropertyAccessor<Integer,S> propertyAccessor) {
         propertyControl = new Text(parent, style);
         this.propertyAccessor = propertyAccessor;
     }
 
     @Override
-	public void load(ExtendableObject object) {
+	public void load(S object) {
         extendableObject = object;
 
         if (object == null) {
             propertyControl.setText(""); //$NON-NLS-1$
     	} else {
-            Integer value = object.getPropertyValue(propertyAccessor);
+            Integer value = propertyAccessor.getValue(object);
             propertyControl.setText(value == null ? "" : value.toString()); //$NON-NLS-1$
     	}
     	propertyControl.setEnabled(object != null);
@@ -118,7 +118,7 @@ class IntegerEditor implements IPropertyControl<ExtendableObject> {
 	public void save() {
     	try {
     		Integer value = Integer.getInteger(propertyControl.getText());
-    		extendableObject.setPropertyValue(propertyAccessor, value);
+    		propertyAccessor.setValue(extendableObject, value);
     	} catch (NumberFormatException e) {
     		// TODO: Is there a better way of handling this?
     		// For time being, just don't update the property.

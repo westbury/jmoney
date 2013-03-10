@@ -25,7 +25,6 @@ package net.sf.jmoney.reconciliation;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.ExtensionPropertySet;
 import net.sf.jmoney.model2.IExtensionObjectConstructors;
 import net.sf.jmoney.model2.IPropertyControl;
@@ -73,20 +72,20 @@ public class ReconciliationEntryInfo implements IPropertySetInfo {
 	private static ScalarPropertyAccessor<String,Entry> uniqueIdAccessor = null;
 	
 	public PropertySet registerProperties() {
-		class NonEditableTextControlFactory extends PropertyControlFactory<String> {
+		class NonEditableTextControlFactory extends PropertyControlFactory<Entry,String> {
 			
-			public IPropertyControl createPropertyControl(Composite parent, final ScalarPropertyAccessor<String,?> propertyAccessor) {
+			public IPropertyControl<Entry> createPropertyControl(Composite parent, final ScalarPropertyAccessor<String,Entry> propertyAccessor) {
 				
 				// Property is not editable
 		        final Label control = new Label(parent, SWT.NONE);
-		        return new IPropertyControl<ExtendableObject>() {
+		        return new IPropertyControl<Entry>() {
 
 					public Control getControl() {
 						return control;
 					}
 
-					public void load(ExtendableObject object) {
-						String text = object.getPropertyValue(propertyAccessor);
+					public void load(Entry object) {
+						String text = propertyAccessor.getValue(object);
 						if (text == null) {
 							control.setText("");
 						} else {
@@ -104,14 +103,14 @@ public class ReconciliationEntryInfo implements IPropertySetInfo {
 			}
 
 			@Override
-			public String formatValueForMessage(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends String,?> propertyAccessor) {
-				String value = extendableObject.getPropertyValue(propertyAccessor);
+			public String formatValueForMessage(Entry extendableObject, ScalarPropertyAccessor<? extends String,Entry> propertyAccessor) {
+				String value = propertyAccessor.getValue(extendableObject);
 				return (value == null) ? "<blank>" : value;
 			}
 
 			@Override
-			public String formatValueForTable(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends String,?> propertyAccessor) {
-				String value = extendableObject.getPropertyValue(propertyAccessor);
+			public String formatValueForTable(Entry extendableObject, ScalarPropertyAccessor<? extends String,Entry> propertyAccessor) {
+				String value = propertyAccessor.getValue(extendableObject);
 				return (value == null) ? "" : value;
 			}
 
@@ -124,20 +123,20 @@ public class ReconciliationEntryInfo implements IPropertySetInfo {
 			}
 		}
 
-		IPropertyControlFactory<BankStatement> statementControlFactory = new PropertyControlFactory<BankStatement>() {
-			public IPropertyControl createPropertyControl(Composite parent, final ScalarPropertyAccessor<BankStatement,?> propertyAccessor) {
+		IPropertyControlFactory<Entry,BankStatement> statementControlFactory = new PropertyControlFactory<Entry,BankStatement>() {
+			public IPropertyControl<Entry> createPropertyControl(Composite parent, final ScalarPropertyAccessor<BankStatement,Entry> propertyAccessor) {
 		        final Text control = new Text(parent, SWT.NONE);
-		        return new IPropertyControl<ExtendableObject>() {
+		        return new IPropertyControl<Entry>() {
 
-		        	private ExtendableObject object;
+		        	private Entry object;
 		        	
 					public Control getControl() {
 						return control;
 					}
 
-					public void load(ExtendableObject object) {
+					public void load(Entry object) {
 						this.object = object;
-						BankStatement statement = object.getPropertyValue(propertyAccessor);
+						BankStatement statement = propertyAccessor.getValue(object);
 						if (statement == null) {
 							control.setText("");
 						} else {
@@ -155,14 +154,14 @@ public class ReconciliationEntryInfo implements IPropertySetInfo {
 						} else {
 							value = new BankStatement(control.getText());
 						}
-						object.setPropertyValue(propertyAccessor, value);
+						propertyAccessor.setValue(object, value);
 					}
 		        };
 			}
 
 			@Override
-			public String formatValueForMessage(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends BankStatement,?> propertyAccessor) {
-				BankStatement statement = extendableObject.getPropertyValue(propertyAccessor);
+			public String formatValueForMessage(Entry extendableObject, ScalarPropertyAccessor<? extends BankStatement,Entry> propertyAccessor) {
+				BankStatement statement = propertyAccessor.getValue(extendableObject);
 				if (statement == null) {
 					return "unreconciled";
 				} else {
@@ -171,8 +170,8 @@ public class ReconciliationEntryInfo implements IPropertySetInfo {
 			}
 
 			@Override
-			public String formatValueForTable(ExtendableObject extendableObject, ScalarPropertyAccessor<? extends BankStatement,?> propertyAccessor) {
-				BankStatement statement = extendableObject.getPropertyValue(propertyAccessor);
+			public String formatValueForTable(Entry extendableObject, ScalarPropertyAccessor<? extends BankStatement,Entry> propertyAccessor) {
+				BankStatement statement = propertyAccessor.getValue(extendableObject);
 				if (statement == null) {
 					return "unreconciled";
 				} else {

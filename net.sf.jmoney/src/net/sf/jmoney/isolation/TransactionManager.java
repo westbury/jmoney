@@ -36,7 +36,6 @@ import org.eclipse.core.commands.operations.IUndoableOperation;
 import org.eclipse.core.commands.operations.UndoContext;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
-import org.eclipse.ui.PlatformUI;
 
 /**
  * A transaction manager must be set before the datastore can be modified.
@@ -257,7 +256,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 
 			@Override
 			public <V> V getScalarValue(IScalarPropertyAccessor<V,? super E> propertyAccessor) {
-				return (V)propertyAccessor.getValue(committedObject);
+				return propertyAccessor.getValue(committedObject);
 			}
 
 			@Override
@@ -439,19 +438,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 				IModelObject deletedObject = committedKey.getObject();
 
 				IExtendablePropertySet<?> propertySet = deletedObject.getPropertySet();
-				for (IScalarPropertyAccessor<?,?> accessor: propertySet.getScalarProperties3()) {
-					Object value = accessor.getValue(deletedObject);
-					if (value instanceof IModelObject) {
-						IModelObject referencedObject = (IModelObject)value;
-						IObjectKey committedReferencedKey = referencedObject.getObjectKey();
-						ModifiedObject referencedNewValues = modifiedObjects.get(committedReferencedKey);
-						if (referencedNewValues != null && referencedNewValues.isDeleted()) {
-							// This is a reference to an object that is marked for deletion.
-							// Set the reference to null
-							accessor.setValue(deletedObject, null);
-						}
-					}
-				}
+				setValues(propertySet, deletedObject);
 			}
 		}
 		
@@ -476,6 +463,25 @@ public abstract class TransactionManager extends AbstractDataManager {
 		}
 		modifiedLists.clear();
 		modifiedObjects.clear();
+	}
+
+	private <S extends IModelObject> void setValues(IExtendablePropertySet<S> propertySet,
+			IModelObject deletedObjectUntyped) {
+		S deletedObject = (S)deletedObjectUntyped;
+		
+		for (IScalarPropertyAccessor<?,? super S> accessor: propertySet.getScalarProperties3()) {
+			Object value = accessor.getValue(deletedObject);
+			if (value instanceof IModelObject) {
+				IModelObject referencedObject = (IModelObject)value;
+				IObjectKey committedReferencedKey = referencedObject.getObjectKey();
+				ModifiedObject referencedNewValues = modifiedObjects.get(committedReferencedKey);
+				if (referencedNewValues != null && referencedNewValues.isDeleted()) {
+					// This is a reference to an object that is marked for deletion.
+					// Set the reference to null
+					accessor.setValue(deletedObject, null);
+				}
+			}
+		}
 	}
 
 	private <E extends IModelObject, S extends IModelObject> void deleteObjectsInList(DeltaListManager<E,S> modifiedList) {
@@ -555,8 +561,8 @@ public abstract class TransactionManager extends AbstractDataManager {
 		}
 	}
 	
-	private <V> void setProperty(IModelObject committedObject, IScalarPropertyAccessor<V,?> accessor, Object newValue) {
-		accessor.setValue(committedObject, accessor.getClassOfValueObject().cast(newValue));
+	private <S extends IModelObject, V> void setProperty(IModelObject committedObject, IScalarPropertyAccessor<V,S> accessor, Object newValue) {
+		accessor.setValue((S)committedObject, accessor.getClassOfValueObject().cast(newValue));
 	}
 
 	/**
@@ -584,9 +590,9 @@ public abstract class TransactionManager extends AbstractDataManager {
 		
 		IValues values = new IValues<E>() {
 			@Override
-			public IObjectKey getReferencedObjectKey(IReferencePropertyAccessor<? extends IModelObject, ? super E> propertyAccessor) {
+			public IObjectKey getReferencedObjectKey(IReferencePropertyAccessor<?, ? super E> propertyAccessor) {
 				// TODO remove unnecessary cast when generics added
-				IModelObject referencedObject = (IModelObject)propertyAccessor.getValue(newObject);
+				IModelObject referencedObject = propertyAccessor.getValue(newObject);
 				if (referencedObject == null) {
 					return null;
 				}
@@ -609,7 +615,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 
 			@Override
 			public <V> V getScalarValue(IScalarPropertyAccessor<V,? super E> propertyAccessor) {
-				return (V)propertyAccessor.getValue(newObject);
+				return propertyAccessor.getValue(newObject);
 			}
 
 			@Override

@@ -1,9 +1,9 @@
 /*
- * 
+ *
  *  JMoney - A Personal Finance Manager
  *  Copyright (c) 2004 Nigel Westbury <westbury@users.sourceforge.net>
- * 
- * 
+ *
+ *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -79,7 +79,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 	 */
 	// TODO change to IDataManagerForAccounts
 	TransactionManagerForAccounts transactionManager;
-	
+
 	/**
 	 * Session, being the version inside the transaction so changes
 	 * are not applied to the datastore until the transaction is
@@ -88,7 +88,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 	private Session session;
 
 	private PaypalAccount paypalAccount;
-	
+
 	public CsvImportWizard() {
 		IDialogSettings workbenchSettings = Activator.getDefault().getDialogSettings();
 		IDialogSettings section = workbenchSettings.getSection("CsvImportToAccountWizard");//$NON-NLS-1$
@@ -131,7 +131,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 		 */
 		transactionManager = new TransactionManagerForAccounts(sessionManager);
 		session = transactionManager.getSession();
-		
+
 		/*
 		 * Find the Paypal account. Currently this assumes that there is
 		 * only one Paypal account. If you have more than one then you will
@@ -146,18 +146,18 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 				if (accountOutside != null) {
 					MessageDialog.openError(window.getShell(), "Problem", "Multiple Paypal accounts.  Don't know which to use.  If you have multiple Paypal accounts, please submit a patch.");
 					return;
-				}	
+				}
 				accountOutside = (PaypalAccount)eachAccount;
 			}
 		}
-		
+
 		if (accountOutside == null) {
 			MessageDialog.openError(window.getShell(), "Problem", "No Paypal account has been created");
 			return;
 		}
 
 		paypalAccount = transactionManager.getCopyInTransaction(accountOutside);
-		
+
 		filePage = new CsvImportWizardPage(window);
 		addPage(filePage);
 	}
@@ -178,7 +178,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 
 		try {
 			CSVReader reader = new CSVReader(new FileReader(file));
-			
+
 			Collection<Row> refunds = new ArrayList<Row>();
 			Collection<Row> reversals = new ArrayList<Row>();
 
@@ -187,15 +187,15 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 			 * amounts are to be formatted when put in the memo
 			 */
 			Currency currency = paypalAccount.getCurrency();
-			
+
 			// Pass the header
 			reader.readNext();
-			
+
 			Row row = readRow(reader);
 			while (row != null) {
 
 				boolean readAlreadyDone = false;
-				
+
 		        if (row.type.equals("Shopping Cart Payment Sent")) {
 		        	/**
 		        	 * Shopping cart entries are split across multiple rows, with a 'Payment Sent' row
@@ -206,7 +206,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 		        	 */
 
 		        	List<Row> rowItems = new ArrayList<Row>();
-		        	
+
 		        	Row rowItem = readRow(reader);
 		        	while (rowItem.type.equals("Shopping Cart Item")) {
 		    			if (rowItem.shippingAndHandlingAmount != row.shippingAndHandlingAmount) {
@@ -216,29 +216,29 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 			        	rowItems.add(rowItem);
 			        	rowItem = readRow(reader);
 		        	}
-		        	
+
 		        	// Distribute the shipping and handling amount
 		        	distribute(row.shippingAndHandlingAmount, rowItems);
 //		        	long [] amounts = distribute(row.shippingAndHandlingAmount, rowItems);
 //		        	for (int i = 0; i < rowItems.size(); i++) {
 //		        		rowItems.get(i).shippingAndHandlingAmount = amounts[i];
 //		        	}
-		        	
+
 		           	// Start a new transaction
 		        	Transaction trans = session.createTransaction();
 		        	trans.setDate(row.date);
-		        	
+
 		        	PaypalEntry mainEntry = trans.createEntry().getExtension(PaypalEntryInfo.getPropertySet(), true);
 		        	mainEntry.setAccount(paypalAccount);
 		        	mainEntry.setAmount(row.grossAmount);
 		        	mainEntry.setMemo("payment - " + row.payeeName);
 		        	mainEntry.setMerchantEmail(row.merchantEmail);
-		        	mainEntry.setPropertyValue(ReconciliationEntryInfo.getUniqueIdAccessor(), row.transactionId);
+		        	ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry.getBaseObject(), row.transactionId);
 
 					for (Row rowItem2 : rowItems) {
 						createCategoryEntry(trans, rowItem2, paypalAccount.getSaleAndPurchaseAccount());
 					}
-					
+
 		        	/*
 		        	 * Look for a refunds that match.  Move them into the cart so they can
 		        	 * be processed as part of the same transaction.
@@ -257,7 +257,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
         						refundEntry.setMemo("refund - " + refund.payeeName);
         						refundEntry.setValuta(refund.date);
         						refundEntry.setMerchantEmail(refund.merchantEmail);
-        			        	refundEntry.setPropertyValue(ReconciliationEntryInfo.getUniqueIdAccessor(), refund.transactionId);
+        						ReconciliationEntryInfo.getUniqueIdAccessor().setValue(refundEntry.getBaseObject(), refund.transactionId);
 
         						refundAmount += refund.grossAmount;
 
@@ -280,7 +280,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 		        } else if (row.type.equals("Refund")) {
 		        	/*
 					 * Refunds are combined with the original transaction.
-					 * 
+					 *
 					 * Because the input file is in reverse date order, we find
 					 * the refund first. We save the refund information in a
 					 * collection. Whenever a 'Shopping Cart Payment Sent' or a
@@ -305,7 +305,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 		        	if (row.status.equals("Refunded")) {
 		        		/*
 		        		 * Find the refund entry.  We create a single transaction with two entries both
-		        		 * in this Paypal account. 
+		        		 * in this Paypal account.
 		        		 */
 		        		Row match = null;
 		        		for (Row refund : refunds) {
@@ -324,7 +324,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 		        	} else if (row.status.equals("Reversed")) {
 		        		/*
 		        		 * Find the reversal entry.  We don't create anything if an
-		        		 * entry was reversed. 
+		        		 * entry was reversed.
 		        		 */
 		        		Row match = null;
 		        		for (Row reversal : reversals) {
@@ -341,14 +341,14 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 		        	} else {
 		        		Transaction trans = session.createTransaction();
 	                	trans.setDate(row.date);
-	                	
+
 	        			PaypalEntry mainEntry = trans.createEntry().getExtension(PaypalEntryInfo.getPropertySet(), true);
 	        			mainEntry.setAccount(paypalAccount);
 	        			mainEntry.setAmount(row.netAmount);
 	        			mainEntry.setMemo("payment - " + row.payeeName);
 	                	mainEntry.setValuta(row.date);
 	        			mainEntry.setMerchantEmail(row.merchantEmail);
-			        	mainEntry.setPropertyValue(ReconciliationEntryInfo.getUniqueIdAccessor(), row.transactionId);
+	        			ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry.getBaseObject(), row.transactionId);
 
 	        			if (row.status.equals("Partially Refunded")) {
 	        				/*
@@ -356,7 +356,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 	        				 * If the transaction is not itemized then we reduce the expense entry
 	        				 * by the amount of the refund.  If the transaction is itemized then we
 	        				 * create a separate entry for the total amount refunded.
-	        				 * 
+	        				 *
 	        				 * (Though currently we have no cases of itemized transactions here so this
 	        				 * is not supported.  We probably need to merge this with "Shopping Cart Payment Sent"
 	        				 * processing).
@@ -376,7 +376,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 	        						refundEntry.setMemo("refund - " + refund.payeeName);
 	        						refundEntry.setValuta(refund.date);
 	        						refundEntry.setMerchantEmail(refund.merchantEmail);
-	        			        	refundEntry.setPropertyValue(ReconciliationEntryInfo.getUniqueIdAccessor(), refund.transactionId);
+	        						ReconciliationEntryInfo.getUniqueIdAccessor().setValue(refundEntry.getBaseObject(), refund.transactionId);
 
 	        						refundAmount += refund.grossAmount;
 
@@ -388,10 +388,10 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 		        				// All was refunded except s&h, so indicate accordingly in the memo
 		        				row.memo = row.memo + " (s&h not refunded after return)";
 		        			} else {
-		        				// Indicate the original amount paid and refund amount in the memo 
+		        				// Indicate the original amount paid and refund amount in the memo
 		        				row.memo = row.memo + " ($" + currency.format(-row.netAmount) + " less $" + currency.format(refundAmount) + " refunded)";
 		        			}
-	        				
+
 	        				// Note that the amounts in the row will be negative, which is
 	        				// why we add the refund amount when it may seem we should deduct
 	        				// the refund amount.
@@ -417,7 +417,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 		                		row = nextRow;
 								readAlreadyDone = true;
 		                	}
-		                	
+
 		                	createCategoryEntry(trans, thisRow, paypalAccount.getSaleAndPurchaseAccount());
 		        		} else {
 		        			if (row.fee != 0) {
@@ -459,7 +459,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 		        	if (paypalAccount.getDonationAccount() == null) {
 		        		throw new UnexpectedDataException("A donation has been found in the imported data.  However, no category was set for donations.  Please go to the Paypal account properties and select a category to be used for donations.");
 		        	}
-		        	
+
 		        	// Donations do not have memos set, so the payee name is used as the memo in the
 		        	// expense category entry.
 		        	createTransaction(row, "donation sent", paypalAccount.getDonationAccount(), row.payeeName);
@@ -486,11 +486,11 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 		        	if (paypalAccount.getSaleAndPurchaseAccount() == null) {
 		        		throw new UnexpectedDataException("An 'Express Checkout' entry has been found in the imported data.  However, no sale and purchase account has been set in the properties for this Paypal account.");
 		        	}
-		        	
+
 		        	if (row.status.equals("Refunded")) {
 		        		/*
 		        		 * Find the refund entry.  We create a single transaction with two entries both
-		        		 * in this Paypal account. 
+		        		 * in this Paypal account.
 		        		 */
 		        		Row match = null;
 		        		for (Row refund : refunds) {
@@ -523,18 +523,18 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 //		        	throw new UnexpectedData("type", type);
 					MessageDialog.openError(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), "Unable to read CSV file", "Entry found with unknown type: '" + row.type + "'.");
 		        }
-				
+
 		        if (!readAlreadyDone) {
 		        	row = readRow(reader);
 		        }
 		    }
-			
+
 			/*
 			 * All entries have been imported and all the properties
 			 * have been set and should be in a valid state, so we
 			 * can now commit the imported entries to the datastore.
 			 */
-			transactionManager.commit("Import Paypal " + file.getName());									
+			transactionManager.commit("Import Paypal " + file.getName());
 
 		} catch (UnexpectedDataException e) {
     		MessageDialog.openError(window.getShell(), "Import Failed", e.getLocalizedMessage());
@@ -562,7 +562,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 	 * accounted for as a separate split entry in the transaction.  In that case
 	 * the caller will have zeroed out the fee and set the net amount to be the same
 	 * as the gross amount.
-	 * 
+	 *
 	 * @param trans
 	 * @param rowItem
 	 * @param account
@@ -571,20 +571,20 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
     	PaypalEntry lineItemEntry = trans.createEntry().getExtension(PaypalEntryInfo.getPropertySet(), true);
     	// TODO: Support pattern matching
     	lineItemEntry.setAccount(account);
-    	
+
     	/*
 		 * Shopping cart items have positive amounts in the 'gross amount' field
 		 * only, others have negative amounts that are in both the 'gross
 		 * amount' and the 'net amount' fields. We want to set a positive amount
 		 * in the category. (Though signs may be opposite if a refund or
 		 * something).
-		 */ 
+		 */
     	if (row.type.equals("Shopping Cart Item")) {
     		lineItemEntry.setAmount(row.grossAmount);
     	} else {
     		lineItemEntry.setAmount(-row.netAmount);
     	}
-    	
+
     	if (row.itemUrlString.length() != 0) {
 			try {
 				URL itemUrl = new URL(row.itemUrlString);
@@ -593,20 +593,20 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 				// Leave the URL blank
 			}
 		}
-    	
+
     	StringBuffer adjustmentsBuffer = new StringBuffer();
-    	
+
     	Currency currency = paypalAccount.getCurrency();
     	String separator = "";
     	long baseAmount = lineItemEntry.getAmount();
     	String memo = row.memo;
-    	
-		if (row.quantityString.length() != 0 
+
+		if (row.quantityString.length() != 0
 				&& !row.quantityString.equals("0")
 				&& !row.quantityString.equals("1")) {
 			memo = memo + " x" + row.quantityString;
 		}
-		
+
 		if (row.shippingAndHandlingAmount != 0) {
 			adjustmentsBuffer.append("s&h $")
 				.append(currency.format(row.shippingAndHandlingAmount))
@@ -635,7 +635,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 			separator = ", ";
 			baseAmount -= row.fee;
 		}
-		
+
 		if (adjustmentsBuffer.length() == 0) {
 			lineItemEntry.setMemo(memo);
 		} else {
@@ -649,7 +649,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 	 * If this is not your preference then please add a preference to the preferences
 	 * to indicate if a separate line item should instead be created for the
 	 * shipping and handling and implement it.
-	 * @throws UnexpectedDataException 
+	 * @throws UnexpectedDataException
 	 */
 	private void distribute(long toDistribute, List<Row> rowItems) throws UnexpectedDataException {
 		long netTotal = 0;
@@ -659,15 +659,15 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 			}
 			netTotal += rowItem.grossAmount;
 		}
-		
+
 		long leftToDistribute = toDistribute;
-		
+
 		for (Row rowItem : rowItems) {
 			long amount = toDistribute * rowItem.grossAmount / netTotal;
 			rowItem.shippingAndHandlingAmount = amount;
 			leftToDistribute -= amount;
 		}
-		
+
 		// We have rounded down, so we may be under.  We now distribute
 		// a penny to each to get a balanced transaction.
 		for (Row rowItem : rowItems) {
@@ -676,9 +676,9 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 				leftToDistribute--;
 			}
 		}
-			
+
 		assert(leftToDistribute == 0);
-		
+
 		/*
 		 * normally both the gross and net amounts have the s&h included. The
 		 * itemized rows don't, and they have just the amount as a positive
@@ -688,7 +688,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 		 */
 		for (Row rowItem : rowItems) {
 			rowItem.grossAmount += rowItem.shippingAndHandlingAmount;
-		}		
+		}
 	}
 
 	private Row readRow(CSVReader reader) throws IOException, UnexpectedDataException {
@@ -702,7 +702,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 			row.grossAmount = getAmount(nextLine[6]);
 			row.fee = getAmount(nextLine[7]);
 			row.netAmount = getAmount(nextLine[8]);
-			
+
 			/*
 			 * We are not interested in our own e-mail.  The merchant
 			 * e-mail may be either in the 'from' or the 'to' e-mail address
@@ -716,7 +716,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 			} else {
 				row.merchantEmail = nextLine[10];
 			}
-			
+
 			row.transactionId = nextLine[11];
 			row.memo = nextLine[14];
 			row.shippingAndHandlingAmount = getAmount(nextLine[16]);
@@ -732,10 +732,10 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 			} catch (ParseException e) {
 				throw new UnexpectedDataException("Date", dateString);
 			}
-			
+
 			return row;
 		}
-		
+
 		assert (nextLine.length == 0);
 		return null;
 	}
@@ -743,14 +743,14 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 	private void createTransaction(Row row, String paypalAccountMemo, Account otherAccount, String otherAccountMemo) {
 		Transaction trans = session.createTransaction();
 		trans.setDate(row.date);
-		
+
 		PaypalEntry mainEntry = trans.createEntry().getExtension(PaypalEntryInfo.getPropertySet(), true);
 		mainEntry.setAccount(paypalAccount);
 		mainEntry.setAmount(row.grossAmount);
 		mainEntry.setMemo(paypalAccountMemo);
 		mainEntry.setValuta(row.date);
-    	mainEntry.setPropertyValue(ReconciliationEntryInfo.getUniqueIdAccessor(), row.transactionId);
-		
+		ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry.getBaseObject(), row.transactionId);
+
 		Entry otherEntry = trans.createEntry();
 		otherEntry.setAccount(otherAccount);
 		otherEntry.setAmount(-row.grossAmount);
@@ -764,22 +764,22 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 	private void createRefundTransaction(Row originalRow, Row refundRow) {
 		Transaction trans = session.createTransaction();
 		trans.setDate(originalRow.date);
-		
+
 		PaypalEntry mainEntry = trans.createEntry().getExtension(PaypalEntryInfo.getPropertySet(), true);
 		mainEntry.setAccount(paypalAccount);
 		mainEntry.setAmount(originalRow.grossAmount);
 		mainEntry.setMemo(originalRow.payeeName);
 		mainEntry.setValuta(originalRow.date);
-    	mainEntry.setPropertyValue(ReconciliationEntryInfo.getUniqueIdAccessor(), originalRow.transactionId);
-		
+		ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry.getBaseObject(), originalRow.transactionId);
+
 		Entry refundEntry = trans.createEntry();
 		refundEntry.setAccount(paypalAccount);
 		refundEntry.setAmount(-originalRow.grossAmount);
 		refundEntry.setMemo("refund - " + originalRow.payeeName);
 		refundEntry.setValuta(refundRow.date);
-    	refundEntry.setPropertyValue(ReconciliationEntryInfo.getUniqueIdAccessor(), refundRow.transactionId);
+		ReconciliationEntryInfo.getUniqueIdAccessor().setValue(refundEntry, refundRow.transactionId);
 	}
-	
+
 	long getAmount(String amountString) {
 		if (amountString.length() == 0) {
 			return 0;
@@ -790,13 +790,13 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 			amountString = amountString.substring(1);
 			negate = true;
 		}
-		
+
 		try {
 		String parts [] = amountString.replaceAll(",", "").split("\\.");
 		long amount = Long.parseLong(parts[0]) * 100;
 		if (parts.length > 1) {
 			if (parts[1].length() == 1) {
-				parts[1] += "0"; 
+				parts[1] += "0";
 			}
 			amount += Long.parseLong(parts[1]);
 		}
@@ -805,7 +805,7 @@ public class CsvImportWizard extends Wizard implements IImportWizard {
 			return 0;
 		}
 	}
-	
+
 	public class Row {
 		Date date;
 		String payeeName;

@@ -35,8 +35,6 @@ import net.sf.jmoney.isolation.ListKey;
 import net.sf.jmoney.isolation.SessionChangeAdapter;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Currency;
-import net.sf.jmoney.model2.Entry;
-import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.IExtendableObjectConstructors;
 import net.sf.jmoney.model2.IPropertyControl;
@@ -85,26 +83,25 @@ public class PriceInfo implements IPropertySetInfo {
 
 	@Override
 	public ExtendablePropertySet<Price> registerProperties() {
-        IPropertyControlFactory<Date> dateControlFactory = new DateControlFactory();
+        IPropertyControlFactory<Price,Date> dateControlFactory = new DateControlFactory<Price>();
 
-        IPropertyControlFactory<Long> amountControlFactory = new AmountControlFactory() {
+        IPropertyControlFactory<Price,Long> amountControlFactory = new AmountControlFactory<Price>() {
 		    @Override	
-			protected Commodity getCommodity(ExtendableObject object) {
+			protected Commodity getCommodity(Price object) {
 				// If not enough information has yet been set to determine
 				// the currency of the amount in this entry, return
 				// the default currency.
-	    	    Price price = (Price)object;
-	    	    Commodity commodity = (Commodity)price.getParentKey().getObject();
+	    	    Commodity commodity = (Commodity)object.getParentKey().getObject();
 	    	    Currency currency = CommodityPricingInfo.getCurrencyAccessor().getValue(commodity);
 	    	    if (currency == null) {
-	    	    	currency = ((Entry) object).getSession().getDefaultCurrency();
+	    	    	currency = object.getSession().getDefaultCurrency();
 	    	    }
 	    	    return currency;
 			}
 
 			@Override
-			public IPropertyControl createPropertyControl(Composite parent, ScalarPropertyAccessor<Long,?> propertyAccessor) {
-		    	final AmountEditor editor = new AmountEditor(parent, propertyAccessor, this);
+			public IPropertyControl<Price> createPropertyControl(Composite parent, ScalarPropertyAccessor<Long,Price> propertyAccessor) {
+		    	final AmountEditor<Price> editor = new AmountEditor<Price>(parent, propertyAccessor, this);
 		        
 				/*
 				 * The format of the amount will change if the currency set in

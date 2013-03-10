@@ -104,19 +104,19 @@ import org.eclipse.ui.part.EditorPart;
 public class AssetDetailsEditor extends EditorPart {
 
 //	static public final String ID = "net.sf.jmoney.property.stockDetailsEditor";
-	
+
 	/**
 	 * The account being shown in this page.
 	 */
 	private RealPropertyAccount account;
-    
+
 	/**
 	 * The asset being shown in this page.
 	 */
 	private RealProperty asset;
-    
+
     private EntriesTable<StockEntryData> fEntriesControl;
-    
+
 	public AssetDetailsEditor(RealProperty stock) {
 		this.asset = stock;
 	}
@@ -124,10 +124,10 @@ public class AssetDetailsEditor extends EditorPart {
 	@Override
 	public void init(IEditorSite site, IEditorInput input)
 			throws PartInitException {
-		
+
 		setSite(site);
 		setInput(input);
-		
+
     	// Set the account that this page is viewing and editing.
 		AccountEditorInput input2 = (AccountEditorInput)input;
 		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)site.getPage().getInput();
@@ -160,32 +160,32 @@ public class AssetDetailsEditor extends EditorPart {
         FormToolkit toolkit = new FormToolkit(parent.getDisplay());
     	ScrolledForm form = toolkit.createScrolledForm(parent);
         form.getBody().setLayout(new GridLayout());
-        
+
 		SectionPart section = new SectionPart(form.getBody(), toolkit, ExpandableComposite.TITLE_BAR);
         section.getSection().setText("All Entries");
         section.getSection().setLayoutData(new GridData(GridData.FILL_BOTH));
 
         Composite contents = createContents(section.getSection());
-        
+
 		// Activate the handlers
 //		IHandler handler = new NewTransactionHandler(rowTracker, fEntriesControl);
-//		handlerService.activateHandler("net.sf.jmoney.newTransaction", handler);		
+//		handlerService.activateHandler("net.sf.jmoney.newTransaction", handler);
 
         section.getSection().setClient(contents);
         toolkit.paintBordersFor(contents);
         section.refresh();  // ?????
 
-        
-        
+
+
         StringBuffer formTitle = new StringBuffer();
         formTitle.append("Activity for ").append(asset.getName());
         form.setText(formTitle.toString());
 	}
- 	
+
 	private Composite createContents(Composite parent) {
 		Composite composite = new Composite(parent, SWT.None);
 		composite.setLayout(new GridLayout());
-		
+
 		/*
 		 * Setup the layout structure of the header and rows.
 		 */
@@ -199,7 +199,7 @@ public class AssetDetailsEditor extends EditorPart {
 				control.add("buy");
 				control.add("sell");
 				control.add("custom");
-				
+
 				control.addSelectionListener(new SelectionAdapter(){
 					@Override
 					public void widgetSelected(SelectionEvent e) {
@@ -215,11 +215,11 @@ public class AssetDetailsEditor extends EditorPart {
 							coordinator.getUncommittedEntryData().forceTransactionToCustom();
 							break;
 						}
-						
+
 						coordinator.fireTransactionTypeChange();
 					}
 				});
-				
+
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
 
 					public Control getControl() {
@@ -249,7 +249,7 @@ public class AssetDetailsEditor extends EditorPart {
 
 					public void save() {
 						// TODO Auto-generated method stub
-						
+
 					}
 
 					public void setSelected() {
@@ -260,7 +260,7 @@ public class AssetDetailsEditor extends EditorPart {
 						control.setBackground(null);
 					}
 				};
-				
+
 				FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, cellControl);
 
 				/*
@@ -273,32 +273,32 @@ public class AssetDetailsEditor extends EditorPart {
 
 				return cellControl;
 			}
-		};  
+		};
 
 		IndividualBlock<StockEntryData, StockEntryRowControl> shareNameColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Stock", 50, 1) {
 
 			@Override
 			public IPropertyControl<StockEntryData> createCellControl(Composite parent, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final RealPropertyControl<RealProperty> control = new RealPropertyControl<RealProperty>(parent, null, RealProperty.class);
-				
+
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
 					private StockEntryData data;
-					
+
 					public Control getControl() {
 						return control;
 					}
 
 					public void load(StockEntryData data) {
 						this.data = data;
-						
+
 						/*
 						 * We have to find the appropriate entry in the transaction that contains
 						 * the stock.
-						 * 
+						 *
 						 * - If this is a purchase or sale, then the stock will be set as the commodity
 						 * for one of the entries.  We find this entry.
 						 * - If this is a dividend payment then the stock will be set as an additional
-						 * field in the dividend category. 
+						 * field in the dividend category.
 						 */
 						RealProperty realProperty;
 						if (data.isPurchaseOrSale()) {
@@ -308,15 +308,15 @@ public class AssetDetailsEditor extends EditorPart {
 							realProperty = null;
 							control.setEnabled(false);
 						}
-						
+
 				        control.setSession(data.getEntry().getSession(), RealProperty.class);
-						
+
 						control.setSecurity(realProperty);
 					}
 
 					public void save() {
 						RealProperty realProperty = control.getSecurity();
-					
+
 						if (data.isPurchaseOrSale()) {
 							Entry entry = data.getPurchaseOrSaleEntry();
 							RealPropertyEntry stockEntry = entry.getExtension(RealPropertyEntryInfo.getPropertySet(), true);
@@ -343,14 +343,14 @@ public class AssetDetailsEditor extends EditorPart {
 				 */
 				addFocusListenerRecursively(cellControl.getControl(), controlFocusListener);
 
-				
+
 				coordinator.addTransactionTypeChangeListener(new ITransactionTypeChangeListener() {
 
 					public void transactionTypeChanged() {
 						/*
 						 * If the user changes the transaction type, the stock control remains
 						 * the same as it was in the previous transaction type.
-						 * 
+						 *
 						 * For example, suppose an entry is a purchase of stock in Foo company.
 						 * The user changes the entry to a dividend.  The entry will then
 						 * be a dividend from stock in Foo company.  The user changes the stock
@@ -361,7 +361,7 @@ public class AssetDetailsEditor extends EditorPart {
 						RealProperty realProperty = control.getSecurity();
 						if (coordinator.getUncommittedEntryData().isPurchaseOrSale()) {
 							Entry entry = coordinator.getUncommittedEntryData().getPurchaseOrSaleEntry();
-							entry.setPropertyValue(RealPropertyEntryInfo.getSecurityAccessor(), realProperty);
+							RealPropertyEntryInfo.getSecurityAccessor().setValue(entry, realProperty);
 							control.setEnabled(true);
 						} else {
 							realProperty = null;
@@ -369,7 +369,7 @@ public class AssetDetailsEditor extends EditorPart {
 						}
 					}
 				});
-				
+
 				return cellControl;
 			}
 
@@ -381,14 +381,14 @@ public class AssetDetailsEditor extends EditorPart {
 					}
 				}
 			}
-		};  
+		};
 
 		IndividualBlock<StockEntryData, StockEntryRowControl> priceColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Price", 60, 1) {
 
 			@Override
 			public IPropertyControl<StockEntryData> createCellControl(Composite parent, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final Text control = new Text(parent, SWT.RIGHT);
-				
+
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
 
 					public Control getControl() {
@@ -400,7 +400,7 @@ public class AssetDetailsEditor extends EditorPart {
 						// TODO:This is a bit funny.  We are passed the data object but
 						// the co-ordinator is keeping track of the share price?
 						setControlValue(coordinator.getAgreedPrice());
-						
+
 						// Listen for changes in the stock price
 						coordinator.addStockPriceChangeListener(new IPropertyChangeListener<BigDecimal>() {
 							public void propertyChanged(BigDecimal newValue) {
@@ -411,7 +411,7 @@ public class AssetDetailsEditor extends EditorPart {
 
 					private void setControlValue(BigDecimal sharePrice) {
 						if (sharePrice != null) {
-							long lPrice = sharePrice.movePointRight(4).longValue(); 
+							long lPrice = sharePrice.movePointRight(4).longValue();
 							control.setText(account.getCurrency().format(lPrice));
 						} else {
 							control.setText("");
@@ -430,25 +430,25 @@ public class AssetDetailsEditor extends EditorPart {
 						control.setBackground(null);
 					}
 				};
-				
+
 				FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, cellControl);
 				control.addFocusListener(controlFocusListener);
-				
+
 				return cellControl;
-				
+
 			}
-		};  
+		};
 
 		IndividualBlock<StockEntryData, StockEntryRowControl> shareNumberColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Quantity", EntryInfo.getAmountAccessor().getMinimumWidth(), EntryInfo.getAmountAccessor().getWeight()) {
 
 			@Override
 			public IPropertyControl<StockEntryData> createCellControl(Composite parent, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final Text control = new Text(parent, SWT.RIGHT);
-				
+
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
 
 					private StockEntryData data;
-					
+
 					public Control getControl() {
 						return control;
 					}
@@ -457,7 +457,7 @@ public class AssetDetailsEditor extends EditorPart {
 						this.data = data;
 
 						IAmountFormatter formatter = getFormatter();
-						
+
 						long quantity = data.getPurchaseOrSaleEntry().getAmount();
 						if (data.getTransactionType() == TransactionType.Sell) {
 							quantity = -quantity;
@@ -488,7 +488,7 @@ public class AssetDetailsEditor extends EditorPart {
 						if (data.getTransactionType() == TransactionType.Sell) {
 							quantity = -quantity;
 						}
-						
+
 						Entry entry = data.getPurchaseOrSaleEntry();
 						entry.setAmount(quantity);
 					}
@@ -501,16 +501,16 @@ public class AssetDetailsEditor extends EditorPart {
 						control.setBackground(null);
 					}
 				};
-				
+
 				FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, cellControl);
 				control.addFocusListener(controlFocusListener);
-				
+
 				return cellControl;
 			}
-		};  
+		};
 
 		List<Block<? super StockEntryData, ? super StockEntryRowControl>> expenseColumns = new ArrayList<Block<? super StockEntryData, ? super StockEntryRowControl>>();
-		
+
 		final Block<StockEntryData, StockEntryRowControl> purchaseOrSaleInfoColumn = new VerticalBlock<StockEntryData, StockEntryRowControl>(
 				// TEMP
 				new VerticalBlock<StockEntryData, StockEntryRowControl>(
@@ -529,11 +529,11 @@ public class AssetDetailsEditor extends EditorPart {
 						new SingleOtherEntryPropertyBlock(EntryInfo.getAmountAccessor())
 				)
 		);
-		
+
 		CellBlock<EntryData, BaseEntryRowControl> debitColumnManager = DebitAndCreditColumns.createDebitColumn(account.getCurrency());
 		CellBlock<EntryData, BaseEntryRowControl> creditColumnManager = DebitAndCreditColumns.createCreditColumn(account.getCurrency());
     	CellBlock<EntryData, BaseEntryRowControl> balanceColumnManager = new BalanceColumn(account.getCurrency());
-		
+
 		RowSelectionTracker<EntryRowControl> rowTracker = new RowSelectionTracker<EntryRowControl>();
 
 		Block<StockEntryData, StockEntryRowControl> rootBlock = new HorizontalBlock<StockEntryData, StockEntryRowControl>(
@@ -566,16 +566,16 @@ public class AssetDetailsEditor extends EditorPart {
 							}
 						}
 					}
-					
-				    @Override	
+
+				    @Override
 					public IPropertyControl<StockEntryData> createCellControl(Composite parent, final RowControl rowControl, final StockEntryRowControl coordinator) {
 						final StackControl<StockEntryData, StockEntryRowControl> control = new StackControl<StockEntryData, StockEntryRowControl>(parent, rowControl, coordinator, this);
-						
+
 						coordinator.addTransactionTypeChangeListener(new ITransactionTypeChangeListener() {
 
 							public void transactionTypeChanged() {
 								Block<? super StockEntryData, ? super StockEntryRowControl> topBlock = getTopBlock(coordinator.getUncommittedEntryData());
-								
+
 								// Set this block in the control
 								control.setTopBlock(topBlock);
 
@@ -589,7 +589,7 @@ public class AssetDetailsEditor extends EditorPart {
 								// TODO: It is a bit funny using the coordinator here
 								// This needs to be cleaned up.
 								fEntriesControl.table.refreshSize(coordinator);
-								
+
 								/*
 								 * The above method will re-size the height of the row
 								 * to its preferred height, but it won't layout the child
@@ -600,7 +600,7 @@ public class AssetDetailsEditor extends EditorPart {
 								rowControl.layout(true);
 							}
 						});
-						
+
 						return control;
 				    }
 
@@ -614,25 +614,25 @@ public class AssetDetailsEditor extends EditorPart {
 									IScalarPropertyAccessor changedProperty, Object oldValue,
 									Object newValue) {
 								// TODO Auto-generated method stub
-								
+
 							}
 
 							@Override
 							public void objectCreated(IModelObject newObject) {
 								// TODO Auto-generated method stub
-								
+
 							}
 
 							@Override
 							public void objectDestroyed(IModelObject deletedObject) {
 								// TODO Auto-generated method stub
-								
+
 							}
 
 							@Override
 							public void objectInserted(IModelObject newObject) {
 								// TODO Auto-generated method stub
-								
+
 							}
 
 							@Override
@@ -641,19 +641,19 @@ public class AssetDetailsEditor extends EditorPart {
 									IListPropertyAccessor originalParentListProperty,
 									IListPropertyAccessor newParentListProperty) {
 								// TODO Auto-generated method stub
-								
+
 							}
 
 							@Override
 							public void objectRemoved(IModelObject deletedObject) {
 								// TODO Auto-generated method stub
-								
+
 							}
 
 							@Override
 							public void performRefresh() {
 								// TODO Auto-generated method stub
-								
+
 							}
 						};
 					}
@@ -683,7 +683,7 @@ public class AssetDetailsEditor extends EditorPart {
 						entries.add(entry);
 					}
 				}
-				
+
 				return entries;
 			}
 
@@ -707,7 +707,7 @@ public class AssetDetailsEditor extends EditorPart {
 			 * @see net.sf.jmoney.pages.entries.IEntriesContent#getStartBalance()
 			 */
 			public long getStartBalance() {
-		        return 0; 
+		        return 0;
 			}
 
 			public Entry createNewEntry(Transaction newTransaction) {
@@ -726,7 +726,7 @@ public class AssetDetailsEditor extends EditorPart {
 				return entryInTransaction;
 			}
 		};
-		
+
 		// Create the table control.
 	    IRowProvider<StockEntryData> rowProvider = new StockRowProvider(rootBlock);
 		fEntriesControl = new EntriesTable<StockEntryData>(composite, rootBlock, entriesProvider, rowProvider, account.getSession(), transactionDateColumn, rowTracker) {
@@ -739,30 +739,30 @@ public class AssetDetailsEditor extends EditorPart {
 			protected StockEntryData createNewEntryRowInput() {
 				return new StockEntryData(null, session.getDataManager());
 			}
-		}; 
-		
+		};
+
 		fEntriesControl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-		
+
 		// Activate the handlers
 		IHandlerService handlerService = (IHandlerService) getSite().getService(IHandlerService.class);
-		
+
 		IHandler handler = new NewTransactionHandler(rowTracker, fEntriesControl);
-		handlerService.activateHandler("net.sf.jmoney.newTransaction", handler);		
+		handlerService.activateHandler("net.sf.jmoney.newTransaction", handler);
 
 		handler = new DeleteTransactionHandler(rowTracker);
-		handlerService.activateHandler("net.sf.jmoney.deleteTransaction", handler);		
+		handlerService.activateHandler("net.sf.jmoney.deleteTransaction", handler);
 
 		handler = new DuplicateTransactionHandler(rowTracker, fEntriesControl);
-		handlerService.activateHandler("net.sf.jmoney.duplicateTransaction", handler);		
+		handlerService.activateHandler("net.sf.jmoney.duplicateTransaction", handler);
 
 		handler = new OpenTransactionDialogHandler(rowTracker);
-		handlerService.activateHandler("net.sf.jmoney.transactionDetails", handler);		
+		handlerService.activateHandler("net.sf.jmoney.transactionDetails", handler);
 
 		handler = new CutTransactionHandler(rowTracker);
-		handlerService.activateHandler("net.sf.jmoney.cutTransaction", handler);		
+		handlerService.activateHandler("net.sf.jmoney.cutTransaction", handler);
 
 		handler = new PasteCombineTransactionHandler(rowTracker);
-		handlerService.activateHandler("net.sf.jmoney.pasteCombineTransaction", handler);		
+		handlerService.activateHandler("net.sf.jmoney.pasteCombineTransaction", handler);
 
 		return composite;
 	}
