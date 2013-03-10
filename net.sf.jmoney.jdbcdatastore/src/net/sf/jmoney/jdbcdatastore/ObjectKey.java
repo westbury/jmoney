@@ -43,7 +43,7 @@ import net.sf.jmoney.model2.SessionInfo;
 /**
  * This class provides an IObjectKey implementation for objects
  * that are persisted in a JDBC database.
- * 
+ *
  * There are three constructors, one is used when iterating a list and
  * a result set with all the required columns is available.  This constructor
  * materializes the object in the constructor.  Another constructor is used
@@ -52,22 +52,22 @@ import net.sf.jmoney.model2.SessionInfo;
  * materialized until needed.  It is important to delay construction of the object
  * in this situation because otherwise the construction of an object could create
  * endless other objects to be constucted through references.
- * 
+ *
  * The third constructor is used when a new object is being created.
  * The row id is not known at construction time, but must be set once
  * the object has been inserted into the database.
- * 
+ *
  * Regardless of which constructor is used, once an object has been materialized,
  * this key will keep a strong reference to it.  The object is thus kept as long as
  * the object key is also kept.
- * 
+ *
  * Regardless of which constructor is called, the weak reference map must be consulted
  * first.  Otherwise we might have two instances of the same object, and datastore
  * implemetations are not allowed to do that.
  *
  * NOTE: Either the rowId AND propertySet are set, or the extendableObject
  * will contain a reference to the object.
- * 
+ *
  * @author Nigel Westbury
  */
 public class ObjectKey implements IDatabaseRowKey {
@@ -81,7 +81,7 @@ public class ObjectKey implements IDatabaseRowKey {
 	 * users can assume that this value is never -1.
 	 */
 	private int rowId;
-	
+
 	/**
 	 * PropertySet for the type of this reference.
 	 * WARNING: This is not the actual property set for the object.
@@ -94,7 +94,7 @@ public class ObjectKey implements IDatabaseRowKey {
 	private IExtendablePropertySet<?> typedPropertySet;
 
 	private SessionManager sessionManager;
-	
+
 	// TODO: Should this be a weak reference?
 	// Or perhaps we should not have this field at all and always look it
 	// up in the weak reference map.
@@ -106,8 +106,8 @@ public class ObjectKey implements IDatabaseRowKey {
 	/**
 	 * Construct an object key when used as a reference from
 	 * an extendable object.
-	 * 
-	 * @param PropertySet 
+	 *
+	 * @param PropertySet
 	 * 		The property set for the type of this reference.
 	 * 		WARNING: This is not the actual property set for the object.
 	 * 		The object may have a property set that is derived from
@@ -141,7 +141,7 @@ public class ObjectKey implements IDatabaseRowKey {
 		rowId = resultSet.getInt("_ID");
 
 		// TODO: it may be more efficient for the caller to do this????
-		IExtendablePropertySet<?> basePropertySet = finalPropertySet; 
+		IExtendablePropertySet<?> basePropertySet = finalPropertySet;
 		while (basePropertySet.getBasePropertySet() != null) {
 			basePropertySet = basePropertySet.getBasePropertySet();
 		}
@@ -154,48 +154,49 @@ public class ObjectKey implements IDatabaseRowKey {
 			extendableObject = sessionManager.materializeObject(resultSet, finalPropertySet, this, listKey);
 		}
 	}
-	
+
 	/**
 	 * This version of the constructor is used only when
 	 * a new object is being created.  The row id is not
 	 * known at this time and the object cannot be created
 	 * until after the key is created.
-	 * 
+	 *
 	 * TODO: It may be possible to improve this by passing everything
 	 * to this constructor that is needed to construct the object,
 	 * and writing to the database first to get the row id.
-	 * 
+	 *
 	 * For time being, this key will not be fully usable until
 	 * both setObject and setRowId have been called.
-	 * 
+	 *
 	 * @param sessionManager
 	 */
 	ObjectKey(SessionManager sessionManager) {
 		this.sessionManager = sessionManager;
 		this.rowId = -1;
 		this.extendableObject = null;
-		
+
 		// basemost property set is set when object is set.
 	}
-	
+
+	@Override
 	public IModelObject getObject() {
 
 		if (extendableObject != null) {
 			return extendableObject;
 		}
-		
-		/* 
+
+		/*
 		 * See if the object is in our weak reference map.
 		 */
 		extendableObject = sessionManager.getObjectIfMaterialized(basemostPropertySet, rowId);
 		if (extendableObject != null) {
 			return extendableObject;
 		}
-		
+
 		if (extendableObject == null) {
 			/*
 			 * The object must be constructed.
-			 * 
+			 *
 			 * If the class of extendable objects that may be referenced by this key
 			 * is an abstract class then the process is a two step process. The
 			 * first step is to read the base table. That table will have a column
@@ -206,7 +207,7 @@ public class ObjectKey implements IDatabaseRowKey {
 			 */
 			IExtendablePropertySet<?> finalPropertySet = null;
 			try {
-				
+
 				if (((ExtendablePropertySet)typedPropertySet).isDerivable()) {
 					/*
 					 * Get the base-most property set, because only the tables
@@ -217,7 +218,7 @@ public class ObjectKey implements IDatabaseRowKey {
 					while (basemostPropertySet.getBasePropertySet() != null) {
 						basemostPropertySet = basemostPropertySet.getBasePropertySet();
 					}
-					
+
 					String sql = "SELECT \"_PROPERTY_SET\" FROM "
 						+ basemostPropertySet.getId().replace('.', '_')
 						+ " WHERE \"_ID\" = ?";
@@ -254,7 +255,7 @@ public class ObjectKey implements IDatabaseRowKey {
 				String sql = sessionManager.buildJoins(finalPropertySet);
 				sql += " WHERE " + ((ExtendablePropertySet)finalPropertySet).getId().replace('.', '_') + ".\"_ID\"=?";
 
-				System.out.println(sql + " : " + rowId);
+//				System.out.println(sql + " : " + rowId);
 				PreparedStatement stmt = sessionManager.getConnection().prepareStatement(sql);
 				stmt.setInt(1, rowId);
 				ResultSet rs = stmt.executeQuery();
@@ -262,7 +263,7 @@ public class ObjectKey implements IDatabaseRowKey {
 				rs.next();
 
 				extendableObject = sessionManager.materializeObject(rs, finalPropertySet, this);
-				
+
 				rs.close();
 			} catch (SQLException e) {
 				if (e.getSQLState().equals("24000") && finalPropertySet != null) {
@@ -274,7 +275,7 @@ public class ObjectKey implements IDatabaseRowKey {
 					 * in a base table but the row does not exist in the table
 					 * of derived objects as would be expected by the value of
 					 * _PROPERTY_SET.
-					 * 
+					 *
 					 * We build a message giving details of this possible
 					 * problem.
 					 */
@@ -293,6 +294,7 @@ public class ObjectKey implements IDatabaseRowKey {
 		return extendableObject;
 	}
 
+	@Override
 	public int getRowId() {
 		return rowId;
 	}
@@ -319,7 +321,7 @@ public class ObjectKey implements IDatabaseRowKey {
 	@Override
 	public boolean equals(Object object) {
 		if (object instanceof ObjectKey) {
-			ObjectKey otherKey = (ObjectKey)object; 
+			ObjectKey otherKey = (ObjectKey)object;
 			return this.rowId == otherKey.getRowId()
 			    && this.basemostPropertySet == otherKey.basemostPropertySet
 			    && this.sessionManager == otherKey.sessionManager;
@@ -327,7 +329,7 @@ public class ObjectKey implements IDatabaseRowKey {
 			return false;
 		}
 	}
-	
+
 	@Override
 	public int hashCode() {
 		/*
@@ -338,15 +340,18 @@ public class ObjectKey implements IDatabaseRowKey {
 		 */
 		return rowId;
 	}
-	
+
+	@Override
 	public void updateProperties(IExtendablePropertySet<?> actualPropertySet, Object[] oldValues, Object[] newValues) {
 		sessionManager.updateProperties((ExtendablePropertySet<?>)actualPropertySet, rowId, oldValues, newValues);
 	}
 
+	@Override
 	public AbstractDataManager getDataManager() {
 		return sessionManager;
 	}
 
+	@Override
 	public <E extends IModelObject, S extends IModelObject> IListManager<E> constructListManager(IListPropertyAccessor<E,S> listAccessor) {
 		DatabaseListKey<E,S> listKey = new SessionManager.DatabaseListKey<E,S>(this, listAccessor);
 		if (listAccessor == SessionInfo.getTransactionsAccessor()) {
@@ -360,14 +365,14 @@ public class ObjectKey implements IDatabaseRowKey {
 	 * This method is used only when a new object is
 	 * being created.  TODO: It may be possible to
 	 * restructure the code to do away with this.
-	 * 
+	 *
 	 * @param extendableObject
 	 */
 	void setObject(IModelObject extendableObject) {
 		this.extendableObject = extendableObject;
 
 		// TODO: it may be more efficient for the caller to do this????
-		IExtendablePropertySet<?> basePropertySet = PropertySet.getPropertySet(((ExtendableObject)extendableObject).getClass()); 
+		IExtendablePropertySet<?> basePropertySet = PropertySet.getPropertySet(((ExtendableObject)extendableObject).getClass());
 		while (basePropertySet.getBasePropertySet() != null) {
 			basePropertySet = basePropertySet.getBasePropertySet();
 		}
@@ -384,7 +389,7 @@ public class ObjectKey implements IDatabaseRowKey {
 	 * immediately, because the getObject method reads the object
 	 * from the database, we cannot write the object to the database
 	 * until the object has been created, hence we need this method.
-	 *  
+	 *
 	 * @param rowId The row id obtained when the object is
 	 * 			persisted in the database.
 	 */
