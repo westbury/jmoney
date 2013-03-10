@@ -35,7 +35,7 @@ import net.sf.jmoney.model2.IReferenceControlFactory;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.PropertySet;
 import net.sf.jmoney.model2.ReferencePropertyAccessor;
-import net.sf.jmoney.property.StocksPlugin;
+import net.sf.jmoney.property.Activator;
 
 /**
  * The class descriptor for the RealProperty class.
@@ -72,7 +72,7 @@ public class RealPropertyInfo implements IPropertySetInfo {
 			}
 		};
 
-		rentalIncomeAccountAccessor = propertySet.addProperty("rentalIncomeAccount", StocksPlugin.getResourceString("PropertyDesc.dividendAccount"), IncomeExpenseAccount.class, 2, 80, rentalIncomeAccountControlFactory, null);
+		rentalIncomeAccountAccessor = propertySet.addProperty("rentalIncomeAccount", Activator.getResourceString("PropertyDesc.dividendAccount"), IncomeExpenseAccount.class, 2, 80, rentalIncomeAccountControlFactory, null);
 
 		return propertySet;
 	}

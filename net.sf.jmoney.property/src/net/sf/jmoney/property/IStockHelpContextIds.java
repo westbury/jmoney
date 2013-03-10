@@ -27,7 +27,7 @@ package net.sf.jmoney.property;
  * Help context ids for the stocks plug-in.
  */
 public interface IStockHelpContextIds {
-    public static final String PREFIX = StocksPlugin.PLUGIN_ID + "."; //$NON-NLS-1$
+    public static final String PREFIX = Activator.PLUGIN_ID + "."; //$NON-NLS-1$
 
     // Actions
 

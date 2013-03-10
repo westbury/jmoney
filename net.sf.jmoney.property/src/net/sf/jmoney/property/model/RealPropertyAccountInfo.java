@@ -35,7 +35,7 @@ import net.sf.jmoney.model2.IPropertySetInfo;
 import net.sf.jmoney.model2.IReferenceControlFactory;
 import net.sf.jmoney.model2.PropertySet;
 import net.sf.jmoney.model2.ReferencePropertyAccessor;
-import net.sf.jmoney.property.StocksPlugin;
+import net.sf.jmoney.property.Activator;
 
 /**
  * This class implements an extension to the net.sf.jmoney.fields
@@ -79,7 +79,7 @@ public class RealPropertyAccountInfo implements IPropertySetInfo {
 			}
 		};
 
-		currencyAccessor = propertySet.addProperty("currency", StocksPlugin.getResourceString("PropertyDesc.currency"), Currency.class, 2, 20, currencyControlFactory, null);
+		currencyAccessor = propertySet.addProperty("currency", Activator.getResourceString("PropertyDesc.currency"), Currency.class, 2, 20, currencyControlFactory, null);
 
 		return propertySet;
 	}

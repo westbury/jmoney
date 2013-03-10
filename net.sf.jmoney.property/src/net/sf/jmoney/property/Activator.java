@@ -9,18 +9,18 @@ import org.osgi.framework.BundleContext;
 /**
  * The main plugin class to be used in the desktop.
  */
-public class StocksPlugin extends AbstractUIPlugin {
+public class Activator extends AbstractUIPlugin {
 	public static final String PLUGIN_ID = "net.sf.jmoney.property";
 
 	//The shared instance.
-	private static StocksPlugin plugin;
+	private static Activator plugin;
 	//Resource bundle.
 	private ResourceBundle resourceBundle;
 	
 	/**
 	 * The constructor.
 	 */
-	public StocksPlugin() {
+	public Activator() {
 		super();
 		plugin = this;
 		try {
@@ -49,7 +49,7 @@ public class StocksPlugin extends AbstractUIPlugin {
 	/**
 	 * Returns the shared instance.
 	 */
-	public static StocksPlugin getDefault() {
+	public static Activator getDefault() {
 		return plugin;
 	}
 
@@ -58,7 +58,7 @@ public class StocksPlugin extends AbstractUIPlugin {
 	 * or 'key' if not found.
 	 */
 	public static String getResourceString(String key) {
-		ResourceBundle bundle = StocksPlugin.getDefault().getResourceBundle();
+		ResourceBundle bundle = Activator.getDefault().getResourceBundle();
 		try {
 			return (bundle != null) ? bundle.getString(key) : key;
 		} catch (MissingResourceException e) {
