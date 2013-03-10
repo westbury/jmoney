@@ -43,13 +43,13 @@ import java.util.LinkedList;
  * only a single instance of the same object is returned, and as
  * DeltaListManager objects are held by model objects, we can be sure that
  * only a single instance of this object will exist for a given list.
- * 
+ *
  * @author Nigel Westbury
  */
 public class DeltaListManager<E extends IModelObject, S extends IModelObject> extends AbstractCollection<E> implements IListManager<E> {
 
 	private TransactionManager transactionManager;
-	
+
 	S committedParent;
 
 	IObjectKey uncommittedParentKey;
@@ -64,12 +64,12 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 	 * The uncommitted versions of the objects that have been added
 	 */
 	LinkedList<E> addedObjects = new LinkedList<E>();
-	
+
 	/**
 	 * The keys to the committed versions of the objects that have been deleted
 	 */
 	LinkedList<IObjectKey> deletedObjects = new LinkedList<IObjectKey>();
-	
+
 
 	/**
 	 * The committed list, set by the constructor
@@ -78,7 +78,7 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 
 	/**
 	 * @param committedParent the object containing the list property.  This
-	 * 			object must be an uncommitted object 
+	 * 			object must be an uncommitted object
 	 * @param uncommittedParentKey the key to the object that contains this list
 	 * 			delta.  This object may not yet have been constructed, so this
 	 * 			key is for reference and not for instantiating the object.  However,
@@ -107,17 +107,17 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 	public <F extends E> F createNewElement(IExtendablePropertySet<F> propertySet) {
 		UncommittedObjectKey objectKey = new UncommittedObjectKey(transactionManager);
 		F element = propertySet.constructDefaultImplementationObject(objectKey, new ListKey<E,S>(uncommittedParentKey, listAccessor));
-		
+
 		objectKey.setObject(element);
-		
+
 		addedObjects.add(element);
-		
+
 		/*
 		 * Ensure this list is in the list of lists that have been
 		 * modified within this transaction manager.
 		 */
 		transactionManager.modifiedLists.add(this);
-		
+
 		return element;
 	}
 
@@ -144,17 +144,17 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 
 		// We can now create the object.
 		F newObject = propertySet.constructImplementationObject(objectKey, new ListKey<E,S>(uncommittedParentKey, listAccessor), values);
-		
+
 		objectKey.setObject(newObject);
 
 		addedObjects.add(newObject);
-		
+
 		/*
 		 * Ensure this list is in the list of lists that have been
 		 * modified within this transaction manager.
 		 */
 		transactionManager.modifiedLists.add(this);
-		
+
 		return newObject;
 	}
 
@@ -165,7 +165,7 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 	@Override
 	public void deleteElement(E element) throws ReferenceViolationException {
 		boolean isRemoved;
-		
+
 		UncommittedObjectKey uncommittedKey = (UncommittedObjectKey)element.getObjectKey();
 		if (uncommittedKey.isNewObject()) {
 			isRemoved = addedObjects.remove(element);
@@ -174,19 +174,19 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 				isRemoved = false;
 			} else {
 			deletedObjects.add(uncommittedKey.getCommittedObjectKey());
-			
+
 			// TODO: following return value may not be correct.
 			// However, it is expensive to see if the object
 			// exists in the original list, so assume it does.
 			isRemoved = true;
 			}
 		}
-		
-		
+
+
 		if (!isRemoved) {
 			throw new RuntimeException("Element not in list");
 		}
-		
+
 		/*
 		 * Ensure this object is in the transaction manager's list of lists
 		 * that have changes.
@@ -217,21 +217,21 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 		/*
 		 * It is fairly complex to implement this inside a transaction.
 		 * Therefore we do not support this.
-		 */ 
+		 */
 		throw new RuntimeException("Not implemented."); //$NON-NLS-1$
 	}
-	
-    @Override	
+
+    @Override
 	public int size() {
 		// This method is called, for example when getting the number of entries
 		// in a transaction.
-		
+
 		return committedList.size()
-			+ addedObjects.size() 
-			- deletedObjects.size(); 
+			+ addedObjects.size()
+			- deletedObjects.size();
 	}
 
-    @Override	
+    @Override
 	public Iterator<E> iterator() {
 		Iterator<E> committedListIterator = committedList.iterator();
 
@@ -244,12 +244,12 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 		return new DeltaListIterator<E>(transactionManager, committedListIterator, addedObjects, deletedObjects);
 	}
 
-    @Override	
+    @Override
 	public boolean contains(Object object) {
 		IObjectKey committedObjectKey = ((UncommittedObjectKey)((IModelObject)object).getObjectKey()).getCommittedObjectKey();
 
 		if (addedObjects.contains(object)) {
-				return true; 
+				return true;
 			} else if (deletedObjects.contains(committedObjectKey)) {
 				return false;
 			}
@@ -259,7 +259,7 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 		return committedList.contains(committedObjectKey.getObject());
 	}
 
-    @Override	
+    @Override
 	public boolean add(E object) {
     	/*
     	 * This method is used only when an object is moved from one list
@@ -269,7 +269,7 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 		throw new RuntimeException("Not implemented."); //$NON-NLS-1$
 	}
 
-    @Override	
+    @Override
 	public boolean remove(Object object) {
     	/*
     	 * This method is used only when an object is moved from one list
@@ -282,7 +282,7 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 	/**
 	 * Return the collection of objects in the list that do not exist in the
 	 * committed datastore but which are being added by this transaction.
-	 * 
+	 *
 	 * @return collection of elements of type IModelObject, being the
 	 *         uncommitted versions of the objects being added
 	 */
@@ -293,7 +293,7 @@ public class DeltaListManager<E extends IModelObject, S extends IModelObject> ex
 	/**
 	 * Return the collection of objects in the list that exist in the committed
 	 * datastore but which are being deleted by this transaction.
-	 * 
+	 *
 	 * @return a collection of elements of type IObjectKey, being the committed
 	 *         keys of the objects being deleted
 	 */
