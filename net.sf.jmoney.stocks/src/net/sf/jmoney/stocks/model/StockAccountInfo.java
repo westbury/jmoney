@@ -44,7 +44,7 @@ import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.PropertySet;
 import net.sf.jmoney.model2.ReferencePropertyAccessor;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
-import net.sf.jmoney.stocks.StocksPlugin;
+import net.sf.jmoney.stocks.resources.Messages;
 
 import org.eclipse.swt.widgets.Composite;
 
@@ -80,6 +80,7 @@ public class StockAccountInfo implements IPropertySetInfo {
 					values.getScalarValue(StockAccountInfo.getBrokerageFirmAccessor()),
 					values.getScalarValue(StockAccountInfo.getAccountNumberAccessor()),
 					values.getReferencedObjectKey(StockAccountInfo.getDividendAccountAccessor()),
+					values.getReferencedObjectKey(StockAccountInfo.getReturnOfCapitalAccountAccessor()),
 					values.getReferencedObjectKey(StockAccountInfo.getWithholdingTaxAccountAccessor()),
 					values.getScalarValue(StockAccountInfo.getTax1NameAccessor()),
 					values.getScalarValue(StockAccountInfo.getTax2NameAccessor()),
@@ -101,6 +102,7 @@ public class StockAccountInfo implements IPropertySetInfo {
 	private static ScalarPropertyAccessor<String,StockAccount> tax1NameAccessor = null;
 	private static ScalarPropertyAccessor<String,StockAccount> tax2NameAccessor = null;
 	private static ReferencePropertyAccessor<IncomeExpenseAccount,StockAccount> dividendAccountAccessor = null;
+	private static ReferencePropertyAccessor<IncomeExpenseAccount,StockAccount> returnOfCapitalAccountAccessor = null;
 	private static ReferencePropertyAccessor<IncomeExpenseAccount,StockAccount> withholdingTaxAccountAccessor = null;
 	private static ReferencePropertyAccessor<IncomeExpenseAccount,StockAccount> commissionAccountAccessor = null;
 	private static ReferencePropertyAccessor<IncomeExpenseAccount,StockAccount> tax1AccountAccessor = null;
@@ -174,6 +176,13 @@ public class StockAccountInfo implements IPropertySetInfo {
 			}
 		};
 
+		IReferenceControlFactory<StockAccount,IncomeExpenseAccount> returnOfCapitalAccountControlFactory = new AccountControlFactory<StockAccount,IncomeExpenseAccount>() {
+			@Override
+			public IObjectKey getObjectKey(StockAccount parentObject) {
+				return parentObject.returnOfCapitalAccountKey;
+			}
+		};
+
 		IReferenceControlFactory<StockAccount,IncomeExpenseAccount> withholdingTaxAccountControlFactory = new AccountControlFactory<StockAccount,IncomeExpenseAccount>() {
 			@Override
 			public IObjectKey getObjectKey(StockAccount parentObject) {
@@ -202,20 +211,21 @@ public class StockAccountInfo implements IPropertySetInfo {
 			}
 		};
 
-		currencyAccessor             = propertySet.addProperty("currency",             StocksPlugin.getResourceString("PropertyDesc.currency"),             Currency.class,             2, 20, currencyControlFactory,             null);
-		brokerageFirmAccessor        = propertySet.addProperty("brokerageFirm",        StocksPlugin.getResourceString("PropertyDesc.brokerageFirm"),        String.class,               5, 30, textControlFactory,                 null);
-		accountNumberAccessor        = propertySet.addProperty("accountNumber",        StocksPlugin.getResourceString("PropertyDesc.accountNumber"),        String.class,               2, 30, textControlFactory,                 null);
-		dividendAccountAccessor      = propertySet.addProperty("dividendAccount",      StocksPlugin.getResourceString("PropertyDesc.dividendAccount"),      IncomeExpenseAccount.class, 2, 80, dividendAccountControlFactory,      null);
-		withholdingTaxAccountAccessor= propertySet.addProperty("withholdingTaxAccount",StocksPlugin.getResourceString("PropertyDesc.withholdingTaxAccount"),IncomeExpenseAccount.class, 2, 80, withholdingTaxAccountControlFactory,null);
-		commissionAccountAccessor    = propertySet.addProperty("commissionAccount",    StocksPlugin.getResourceString("PropertyDesc.commissionAccount"),    IncomeExpenseAccount.class, 2, 80, commissionAccountControlFactory,    null);
-		buyCommissionRatesAccessor   = propertySet.addProperty("buyCommissionRates",   StocksPlugin.getResourceString("PropertyDesc.buyCommissionRates"),   RatesTable.class,           1, 100,ratesControlFactory,                null);
-		sellCommissionRatesAccessor  = propertySet.addProperty("sellCommissionRates",  StocksPlugin.getResourceString("PropertyDesc.sellCommissionRates"),  RatesTable.class,           1, 100,ratesControlFactory,                null);
-		tax1NameAccessor             = propertySet.addProperty("tax1Name",             StocksPlugin.getResourceString("PropertyDesc.tax1Name"),             String.class,               2, 50, textControlFactory,                 null);
-		tax1AccountAccessor          = propertySet.addProperty("tax1Account",          StocksPlugin.getResourceString("PropertyDesc.tax1Account"),          IncomeExpenseAccount.class, 2, 80, tax1AccountControlFactory,          null);
-		tax1RatesAccessor            = propertySet.addProperty("tax1Rates",            StocksPlugin.getResourceString("PropertyDesc.tax1Rates"),            RatesTable.class,           1, 100,ratesControlFactory,                null);
-		tax2NameAccessor             = propertySet.addProperty("tax2Name",             StocksPlugin.getResourceString("PropertyDesc.tax2Name"),             String.class,               2, 50, textControlFactory,                 null);
-		tax2AccountAccessor          = propertySet.addProperty("tax2Account",          StocksPlugin.getResourceString("PropertyDesc.tax2Account"),          IncomeExpenseAccount.class, 2, 80, tax2AccountControlFactory,          null);
-		tax2RatesAccessor            = propertySet.addProperty("tax2Rates",            StocksPlugin.getResourceString("PropertyDesc.tax2Rates"),            RatesTable.class,           1, 100,ratesControlFactory,                null);
+		currencyAccessor             = propertySet.addProperty("currency",             Messages.StockAccountInfo_currency,             Currency.class,             2, 20, currencyControlFactory,             null);
+		brokerageFirmAccessor        = propertySet.addProperty("brokerageFirm",        Messages.StockAccountInfo_brokerageFirm,        String.class,               5, 30, textControlFactory,                 null);
+		accountNumberAccessor        = propertySet.addProperty("accountNumber",        Messages.StockAccountInfo_accountNumber,        String.class,               2, 30, textControlFactory,                 null);
+		dividendAccountAccessor      = propertySet.addProperty("dividendAccount",      Messages.StockAccountInfo_dividendAccount,      IncomeExpenseAccount.class, 2, 80, dividendAccountControlFactory,      null);
+		returnOfCapitalAccountAccessor=propertySet.addProperty("returnOfCapitalAccount",Messages.StockAccountInfo_returnOfCapitalAccount,IncomeExpenseAccount.class, 2, 80,returnOfCapitalAccountControlFactory, null);
+		withholdingTaxAccountAccessor= propertySet.addProperty("withholdingTaxAccount",Messages.StockAccountInfo_withholdingTaxAccount,IncomeExpenseAccount.class, 2, 80, withholdingTaxAccountControlFactory,null);
+		commissionAccountAccessor    = propertySet.addProperty("commissionAccount",    Messages.StockAccountInfo_commissionAccount,    IncomeExpenseAccount.class, 2, 80, commissionAccountControlFactory,    null);
+		buyCommissionRatesAccessor   = propertySet.addProperty("buyCommissionRates",   Messages.StockAccountInfo_buyCommissionRates,   RatesTable.class,           1, 100,ratesControlFactory,                null);
+		sellCommissionRatesAccessor  = propertySet.addProperty("sellCommissionRates",  Messages.StockAccountInfo_sellCommissionRates,  RatesTable.class,           1, 100,ratesControlFactory,                null);
+		tax1NameAccessor             = propertySet.addProperty("tax1Name",             Messages.StockAccountInfo_tax1Name,             String.class,               2, 50, textControlFactory,                 null);
+		tax1AccountAccessor          = propertySet.addProperty("tax1Account",          Messages.StockAccountInfo_tax1Account,          IncomeExpenseAccount.class, 2, 80, tax1AccountControlFactory,          null);
+		tax1RatesAccessor            = propertySet.addProperty("tax1Rates",            Messages.StockAccountInfo_tax1Rates,            RatesTable.class,           1, 100,ratesControlFactory,                null);
+		tax2NameAccessor             = propertySet.addProperty("tax2Name",             Messages.StockAccountInfo_tax2Name,             String.class,               2, 50, textControlFactory,                 null);
+		tax2AccountAccessor          = propertySet.addProperty("tax2Account",          Messages.StockAccountInfo_tax2Account,          IncomeExpenseAccount.class, 2, 80, tax2AccountControlFactory,          null);
+		tax2RatesAccessor            = propertySet.addProperty("tax2Rates",            Messages.StockAccountInfo_tax2Rates,            RatesTable.class,           1, 100,ratesControlFactory,                null);
 
 		return propertySet;
 	}
@@ -264,6 +274,13 @@ public class StockAccountInfo implements IPropertySetInfo {
 	 */
 	public static ReferencePropertyAccessor<IncomeExpenseAccount,StockAccount> getDividendAccountAccessor() {
 		return dividendAccountAccessor;
+	}
+
+	/**
+	 * @return
+	 */
+	public static ReferencePropertyAccessor<IncomeExpenseAccount,StockAccount> getReturnOfCapitalAccountAccessor() {
+		return returnOfCapitalAccountAccessor;
 	}
 
 	public static ReferencePropertyAccessor<IncomeExpenseAccount,StockAccount> getWithholdingTaxAccountAccessor() {

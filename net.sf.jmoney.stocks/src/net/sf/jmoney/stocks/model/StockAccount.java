@@ -75,6 +75,14 @@ public class StockAccount extends CapitalAccount {
 	IObjectKey dividendAccountKey;
 
 	/**
+	 * The income account into which all payments that are considered 'return
+	 * of capital' are debited.  This is different from the dividend entry because
+	 * return of capital is generally considered a capital gain event for tax
+	 * purposes.
+	 */
+	IObjectKey returnOfCapitalAccountKey;
+
+	/**
 	 * The income account into which any tax withholding on dividends from stock in this
 	 * account are entered.
 	 */
@@ -98,7 +106,7 @@ public class StockAccount extends CapitalAccount {
 	 * amount of any purchase.  Null indicates no rate table
 	 * is available in which case the user must enter the
 	 * amount.
-	 * 
+	 *
 	 * For example, in the UK a transfer stamp is charged
 	 * on every purchase/sale.
 	 */
@@ -122,7 +130,7 @@ public class StockAccount extends CapitalAccount {
 	 * amount of any purchase.  Null indicates no rate table
 	 * is available in which case the user must enter the
 	 * amount.
-	 * 
+	 *
 	 * For example, in the UK a PTM levy is charged
 	 * on every purchase/sale.
 	 */
@@ -140,7 +148,7 @@ public class StockAccount extends CapitalAccount {
 	 * passed to this constructor must be valid because datastores should only pass back
 	 * values that were previously saved from a StockAccount object.  So, for example,
 	 * we can be sure that a non-null name and currency are passed to this constructor.
-	 * 
+	 *
 	 * @param name the name of the account
 	 */
 	public StockAccount(
@@ -154,6 +162,7 @@ public class StockAccount extends CapitalAccount {
 			String brokerageFirm,
 			String accountNumber,
 			IObjectKey dividendAccountKey,
+			IObjectKey returnOfCapitalAccountKey,
 			IObjectKey withholdingTaxAccountKey,
 			String tax1Name,
 			String tax2Name,
@@ -173,7 +182,7 @@ public class StockAccount extends CapitalAccount {
 		 * The currency for this account is not allowed to be null, because
 		 * users of this class may assume it to be non-null and would not know
 		 * how to handle this account if it were null.
-		 * 
+		 *
 		 * If null is passed, set to the default currency for the session.
 		 * This is guaranteed to be never null.
 		 */
@@ -186,6 +195,7 @@ public class StockAccount extends CapitalAccount {
 		this.brokerageFirm = brokerageFirm;
 		this.accountNumber = accountNumber;
 		this.dividendAccountKey = dividendAccountKey;
+		this.returnOfCapitalAccountKey = returnOfCapitalAccountKey;
 		this.withholdingTaxAccountKey = withholdingTaxAccountKey;
 		this.tax1Name = tax1Name;
 		this.tax2Name = tax2Name;
@@ -274,6 +284,16 @@ public class StockAccount extends CapitalAccount {
 		return dividendAccountKey == null
 				? null
 						: (IncomeExpenseAccount)dividendAccountKey.getObject();
+	}
+
+	/**
+	 * @return the account that contains the 'return of capital' amounts for
+	 * 		stock in this account
+	 */
+	public IncomeExpenseAccount getReturnOfCapitalAccount() {
+		return returnOfCapitalAccountKey == null
+				? null
+						: (IncomeExpenseAccount)returnOfCapitalAccountKey.getObject();
 	}
 
 	public IncomeExpenseAccount getWithholdingTaxAccount() {
@@ -367,6 +387,14 @@ public class StockAccount extends CapitalAccount {
 
 		// Notify the change manager.
 		processPropertyChange(StockAccountInfo.getDividendAccountAccessor(), oldAccount, newAccount);
+	}
+
+	public void setReturnOfCapitalAccount(IncomeExpenseAccount newAccount) {
+		IncomeExpenseAccount oldAccount = getReturnOfCapitalAccount();
+		returnOfCapitalAccountKey = newAccount == null ? null : newAccount.getObjectKey();
+
+		// Notify the change manager.
+		processPropertyChange(StockAccountInfo.getReturnOfCapitalAccountAccessor(), oldAccount, newAccount);
 	}
 
 	public void setWithholdingTaxAccount(IncomeExpenseAccount newAccount) {
@@ -470,7 +498,7 @@ public class StockAccount extends CapitalAccount {
 
 	/**
 	 * Returns an object that knows how to both format and parse stock quantities.
-	 * 
+	 *
 	 * If the stock is known then the stock will be used as the formatter.  However,
 	 * it is possible the user will enter the stock quantity before entering the
 	 * stock, in which case the account decides how the stock quantity is formatted.
