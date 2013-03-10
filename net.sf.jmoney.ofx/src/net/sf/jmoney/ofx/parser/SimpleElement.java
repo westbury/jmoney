@@ -77,7 +77,7 @@ public class SimpleElement {
 	public void setAttribute(String name, String value) {
 		attributes.put(name, value);
 	}
-	
+
 	public SimpleElement getNextSibling() {
 		return nextSibling;
 	}
@@ -85,7 +85,7 @@ public class SimpleElement {
 	public void setNextSibling(SimpleElement nextSibling) {
 		this.nextSibling = nextSibling;
 	}
-	
+
 	public void addChildElement(SimpleElement element) {
 		if (!childElements.isEmpty())
 			childElements.getLast().setNextSibling(element);
@@ -136,7 +136,7 @@ public class SimpleElement {
 
 	/**
 	 * Returns the child-element of the current element with the given tagName
-	 *  
+	 *
 	 * @param tagToFind
 	 * @return a child SimpleElement with tagName = tagToFind
 	 */
@@ -171,32 +171,31 @@ public class SimpleElement {
 
 	public Date getDate(String tagName) {
 		SimpleElement tmpElement = findElement(tagName);
-		String data = tmpElement.getTrimmedText();
 
-		// For some extraordinary reason, the date pattern does not match.
-		/*
-		 * System.out.println("data=" + childMatch.group(2) + "Y"); Matcher
-		 * dateMatch = datePattern.matcher(data); System.out.println("data=" +
-		 * childMatch.group(2) + "Z"); if (!dateMatch.matches()) { throw new
-		 * RuntimeException("bad date"); }
-		 * 
-		 * int year = Integer.parseInt(childMatch.group(1)); int month =
-		 * Integer.parseInt(childMatch.group(2)); int day =
-		 * Integer.parseInt(childMatch.group(3));
-		 */
-		// So let's just extract another way
-		int year = Integer.parseInt(data.substring(0, 4));
-		int month = Integer.parseInt(data.substring(4, 6));
-		int day = Integer.parseInt(data.substring(6, 8));
+		if (tmpElement == null) {
+			/*
+			 * The element does not exist so we return null.
+			 * This happens occasionally.  For example the DTSETTLE
+			 * date is sometimes missing for transactions like stock
+			 * spin-offs.
+			 */
+			return null;
+		} else {
+			String data = tmpElement.getTrimmedText();
 
-		// Date object is always based on local time, which is ok because the
-		// Date as milliseconds is never persisted, and the timezone won't change
-		// within a session (will it?)
-		Calendar cal = Calendar.getInstance();
-		cal.set(year, month-1, day, 0, 0, 0);
-		cal.set(Calendar.MILLISECOND, 0);
-		
-		return cal.getTime();
+			int year = Integer.parseInt(data.substring(0, 4));
+			int month = Integer.parseInt(data.substring(4, 6));
+			int day = Integer.parseInt(data.substring(6, 8));
+
+			// Date object is always based on local time, which is ok because the
+			// Date as milliseconds is never persisted, and the timezone won't change
+			// within a session (will it?)
+			Calendar cal = Calendar.getInstance();
+			cal.set(year, month-1, day, 0, 0, 0);
+			cal.set(Calendar.MILLISECOND, 0);
+
+			return cal.getTime();
+		}
 	}
 
 	public long getAmount(String tagName, long defaultValue) {
@@ -226,11 +225,11 @@ public class SimpleElement {
 		String [] parts = data.replace(',', '.').split("\\.");
 		long amount = Integer.parseInt(parts[0]) * 100;
 		if (parts.length > 1) {
-			
+
 			/* QFX seems to put extra zeroes at the end.
 			 (or at least hsabank.com does)
 			 Remove them to get a length of two.
-			 
+
 			 Even worse, though, is Wells Fargo bank.  They have been known to put lots
 			 of nines at the end, such as 69299.9999 when they mean 69300.00.  Therefore
 			 if all the additional digits are nines then we round up.
@@ -272,12 +271,12 @@ public class SimpleElement {
 		}
 //		long amount = CurrencyParser.double2long(currency, Double
 //				.parseDouble(data.replace(',', '.')));
-		
+
 		return amount;
 	}
 
 	/**
-	 * 
+	 *
 	 * @param tagName
 	 * @return tag value, or null if no child exists with the given tag name
 	 */

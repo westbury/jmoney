@@ -1,9 +1,9 @@
 /*
- * 
+ *
  *  JMoney - A Personal Finance Manager
  *  Copyright (c) 2009 Nigel Westbury <westbury@users.sourceforge.net>
- * 
- * 
+ *
+ *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -82,13 +82,13 @@ public class OfxImporter {
 	}
 
 	private IWorkbenchWindow window;
-	
+
 	public OfxImporter(IWorkbenchWindow window) {
 		this.window = window;
 	}
 
 	/**
-	 * 
+	 *
 	 * @param file
 	 * @return true if all entries have either been imported or were not imported because they
 	 * 			had already been imported, false if any entries in the file were not imported
@@ -122,7 +122,7 @@ public class OfxImporter {
 			SimpleDOMParser parser = new SimpleDOMParser();
 			SimpleElement rootElement = null;
 			rootElement = parser.parse(buffer);
-			
+
 //			FileWriter fw = new FileWriter(new File("c:\\xml.xml"));
 //			String xml = rootElement.toXMLString(0);
 //			fw.append(xml);
@@ -153,9 +153,9 @@ public class OfxImporter {
 						importStockStatement(transactionManager, rootElement, session,
 								sessionOutsideTransaction, statementResultElement);
 					} else {
-						MessageDialog.openWarning(window.getShell(), "OFX file not imported", 
+						MessageDialog.openWarning(window.getShell(), "OFX file not imported",
 								MessageFormat.format(
-										"{0} did not contain expected nodes for either a bank or a stock account.", 
+										"{0} did not contain expected nodes for either a bank or a stock account.",
 										file.getName()));
 						return false;
 					}
@@ -169,16 +169,16 @@ public class OfxImporter {
 			 */
 			if (transactionManager.hasChanges()) {
 				String transactionDescription = MessageFormat.format("Import {0}", file.getName());
-				transactionManager.commit(transactionDescription);									
+				transactionManager.commit(transactionDescription);
 
 				StringBuffer combined = new StringBuffer();
 				combined.append(file.getName());
 				combined.append(" was successfully imported. ");
 				MessageDialog.openInformation(window.getShell(), "OFX file imported", combined.toString());
 			} else {
-				MessageDialog.openWarning(window.getShell(), "OFX file not imported", 
+				MessageDialog.openWarning(window.getShell(), "OFX file not imported",
 						MessageFormat.format(
-								"{0} was not imported because all the data in it had already been imported.", 
+								"{0} was not imported because all the data in it had already been imported.",
 								file.getName()));
 			}
 		} catch (IOException e) {
@@ -196,12 +196,12 @@ public class OfxImporter {
 				}
 			}
 		}
-		
+
 		return true;
 	}
 
 	/**
-	 * 
+	 *
 	 * @param transactionManager
 	 * @param rootElement
 	 * @param session
@@ -218,11 +218,11 @@ public class OfxImporter {
 			Session sessionOutsideTransaction,
 			SimpleElement statementResultElement,
 			boolean isCreditCard) throws TagNotFoundException {
-		
-		SimpleElement accountFromElement = 
+
+		SimpleElement accountFromElement =
 				statementResultElement.getDescendant(isCreditCard ? "CCACCTFROM" : "BANKACCTFROM");
 		String accountNumber = accountFromElement.getString("ACCTID");
-		
+
 		BankAccount account = null;
 		BankAccount accountOutsideTransaction = null;
 		for (Account eachAccount : sessionOutsideTransaction.getAccountCollection()) {
@@ -234,7 +234,7 @@ public class OfxImporter {
 				}
 			}
 		}
-		
+
 		if (account == null) {
 			MessageDialog.openError(
 					window.getShell(),
@@ -265,7 +265,7 @@ public class OfxImporter {
 				return false;
 			}
 		}
-		
+
 		/*
 		 * Get the set of ids that have already been imported
 		 */
@@ -276,7 +276,7 @@ public class OfxImporter {
 				fitIds.add(fitId);
 			}
 		}
-		
+
 		SimpleElement transListElement = statementResultElement.getDescendant("BANKTRANLIST");
 
 		Collection<OfxEntryData> importedEntries = new ArrayList<OfxEntryData>();
@@ -292,7 +292,7 @@ public class OfxImporter {
 				return OfxEntryInfo.getFitidAccessor().getValue(entry) != null;
 			}
 		};
-		
+
 		for (SimpleElement transactionElement : transListElement.getChildElements()) {
 			if (transactionElement.getTagName().equals("DTSTART")) {
 				// ignore
@@ -305,7 +305,7 @@ public class OfxImporter {
 				Date transactionDate = postedDate;
 				long amount = stmtTrnElement.getAmount("TRNAMT");
 				String fitid = stmtTrnElement.getString("FITID");
-				
+
 				String checkNumber = stmtTrnElement.getString("CHECKNUM");
 				if (checkNumber != null) {
 //						checkNumber = checkNumber.trim(); // Is this needed???
@@ -331,7 +331,7 @@ public class OfxImporter {
 				   			if (m.matches()) {
 				   				String transDateString = m.group(2);
 				   				transactionDate = df.parse(transDateString);
-				   				
+
 				   				// If all succeeds, replace memo with part inside first brackets
 				   				// (i.e. remove the transaction date from the memo)
 				   				memo = m.group(1);
@@ -360,13 +360,13 @@ public class OfxImporter {
 				} else if (account.getBank() != null && account.getBank().equals("Nationwide")) {
 					String name = stmtTrnElement.getString("NAME");
 //					if (name.startsWith("DIRECTDEBIT: ")) {
-//						memo = 
+//						memo =
 //					}
 					memo = name;
 				} else {
 					memo = stmtTrnElement.getString("NAME");
 				}
-				
+
 				if (fitIds.contains(fitid)) {
 					// This transaction has been previously imported.
 					// We ignore it.
@@ -375,7 +375,7 @@ public class OfxImporter {
 
 				/*
 				 * First we try auto-matching.
-				 * 
+				 *
 				 * If we have an auto-match then we don't have to create a new
 				 * transaction at all. We just update a few properties in the
 				 * existing entry.
@@ -399,7 +399,7 @@ public class OfxImporter {
 					entryData.setMemo(memo);
 					entryData.setPayee(memo);  // Does OFX have payee field?
 					entryData.fitid = fitid;
-					
+
 					importedEntries.add(entryData);
 				}
 			} else {
@@ -408,13 +408,13 @@ public class OfxImporter {
 				System.out.println(elementXml);
 			}
 		}
-		
+
 		/*
 		 * Import the entries using the matcher dialog
 		 */
-		
+
 		PatternMatcherAccount matcherAccount = account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
-		
+
 		Dialog dialog = new PatternMatchingDialog(window.getShell(), matcherAccount, importedEntries);
 		if (dialog.open() == Dialog.OK) {
 			ImportMatcher matcher = new ImportMatcher(account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true));
@@ -423,7 +423,7 @@ public class OfxImporter {
 				Entry entry = matcher.process(entryData, transactionManager.getSession());
 				OfxEntryInfo.getFitidAccessor().setValue(entry, entryData.fitid);
 			}
-			
+
 			return true;
 		} else {
 			return false;
@@ -436,7 +436,7 @@ public class OfxImporter {
 			SimpleElement statementResultElement) throws TagNotFoundException {
 		SimpleElement accountFromElement = statementResultElement.getDescendant("INVACCTFROM");
 		String accountNumber = accountFromElement.getString("ACCTID");
-		
+
 		StockAccount account = null;
 		StockAccount accountOutsideTransaction = null;
 		for (Account eachAccount : sessionOutsideTransaction.getAccountCollection()) {
@@ -448,7 +448,7 @@ public class OfxImporter {
 				}
 			}
 		}
-		
+
 		if (account == null) {
 			MessageDialog.openError(
 					window.getShell(),
@@ -489,7 +489,7 @@ public class OfxImporter {
 				return;
 			}
 		}
-		
+
 		if (account.getDividendAccount() == null) {
 			MessageDialog.openError(
 					window.getShell(),
@@ -497,7 +497,7 @@ public class OfxImporter {
 					"The " + account.getName() + " account does not have an account set to hold the dividend payments.  Select the " + account.getName() + " from the Navigator view, then open the properties view and select a dividend account.");
 			return;
 		}
-		
+
 		if (account.getCommissionAccount() == null) {
 			MessageDialog.openError(
 					window.getShell(),
@@ -516,21 +516,21 @@ public class OfxImporter {
 					"The " + account.getName() + " account does not have an account set to hold the tax 1 payments.  Select the " + account.getName() + " from the Navigator view, then open the properties view and select a tax 1 account.");
 			return;
 		}
-		
+
 		/*
 		 * We update our security list before importing the transactions.
-		 * 
+		 *
 		 * We could do this afterwards and things would work fairly well.  The transaction
 		 * import would create a stock object for each CUSIP, giving it a default name
 		 * which is basically the CUSIP.  The the actual name and ticker symbol will be filled
 		 * in when the securities list is imported.
-		 * 
+		 *
 		 * However, when importing transactions, financial institutions often put the stock name
 		 * or ticker symbol in the memo field.  This results in a duplication of information and
 		 * also makes it harder to perform pattern matching on the memo field.  We therefore
 		 * replace these with '<stock name>', '<ticker>', etc.  To do that, we need to know the
 		 * stock name and ticker when we import the transactions.  Hence, to save a second pass
-		 * through the transactions, we import the securities first. 
+		 * through the transactions, we import the securities first.
 		 */
 		SimpleElement secList = rootElement.getDescendant("SECLISTMSGSRSV1", "SECLIST");
 		for (SimpleElement securityElement : secList.getChildElements()) {
@@ -543,12 +543,12 @@ public class OfxImporter {
 				String symbol = secInfoElement.getString("TICKER");
 
 				Stock stock = findStock(session, secIdElement);
-				
+
 				String defaultName = secIdElement.getString("UNIQUEIDTYPE") + ": " + secIdElement.getString("UNIQUEID");
 				if (stock.getName().equals(defaultName)) {
 					stock.setName(name);
 				}
-				
+
 				if (stock.getSymbol() == null) {
 					stock.setSymbol(symbol);
 				}
@@ -569,11 +569,11 @@ public class OfxImporter {
 				fitIds.add(fitId);
 			}
 		}
-		
+
 		SimpleElement transListElement = statementResultElement.getDescendant("INVTRANLIST");
 
 		ImportMatcher matcher = new ImportMatcher(account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true));
-		
+
 		for (SimpleElement transactionElement : transListElement.getChildElements()) {
 			if (transactionElement.getTagName().equals("DTSTART")) {
 				// ignore
@@ -587,7 +587,7 @@ public class OfxImporter {
 				long amount = stmtTrnElement.getAmount("TRNAMT");
 				String fitid = stmtTrnElement.getString("FITID");
 				String memo = stmtTrnElement.getString("MEMO");
-				
+
 				String checkNumber = stmtTrnElement.getString("CHECKNUM");
 				if (checkNumber != null) {
 //						checkNumber = checkNumber.trim(); // Is this needed???
@@ -604,14 +604,14 @@ public class OfxImporter {
 					continue;
 				}
 
-				
+
 				/*
 				 * First we try auto-matching.
-				 * 
+				 *
 				 * If we have an auto-match then we don't have to create a new
 				 * transaction at all. We just update a few properties in the
 				 * existing entry.
-				 * 
+				 *
 				 */
 				MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
 					@Override
@@ -636,6 +636,7 @@ public class OfxImporter {
 
 				Entry firstEntry = transaction.createEntry();
 				firstEntry.setAccount(account);
+				firstEntry.setCommodity(account.getCurrency());
 
 				OfxEntryInfo.getFitidAccessor().setValue(firstEntry, fitid);
 
@@ -645,7 +646,7 @@ public class OfxImporter {
 
 				Entry otherEntry = transaction.createEntry();
 				otherEntry.setAmount(-amount);
-				
+
 		   		/*
 		   		 * Scan for a match in the patterns.  If a match is found,
 		   		 * use the values for memo, description etc. from the pattern.
@@ -686,6 +687,7 @@ public class OfxImporter {
 
 				Entry firstEntry = transaction.createEntry();
 				firstEntry.setAccount(account);
+				firstEntry.setCommodity(account.getCurrency());
 
 				OfxEntryInfo.getFitidAccessor().setValue(firstEntry, fitid);
 
@@ -707,7 +709,7 @@ public class OfxImporter {
 				if (stock.getCusip() != null) {
 					memo.replace(stock.getCusip(), "<CUSIP>");
 				}
-				
+
 				transaction.setDate(tradeDate);
 				firstEntry.setValuta(settleDate);
 
@@ -792,9 +794,9 @@ public class OfxImporter {
 					}
 				} else if (transactionElement.getTagName().equals("INCOME")
 						|| transactionElement.getTagName().equals("REINVEST")) {
-					
+
 					String reinvestMemo = "";
-					
+
 					String incomeType = transactionElement.getString("INCOMETYPE");
 					if ("DIV".equals(incomeType)) {
 						StockEntry dividendEntry = transaction.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
@@ -818,7 +820,7 @@ public class OfxImporter {
 						 */
 						Entry otherEntry = transaction.createEntry();
 						otherEntry.setAmount(-total);
-						
+
 						String textToMatch = MessageFormat.format(
 								"INCOMETYPE={0}\nMEMO={1}",
 								incomeType,
@@ -829,7 +831,7 @@ public class OfxImporter {
 								toTitleCase(memo));
 						matcher.matchAndFill(textToMatch, firstEntry, otherEntry, toTitleCase(memo), defaultDescription);
 					}
-					
+
 					/*
 					 * If this is 'REINVEST' then we create a separate purchase transaction.
 					 */
@@ -843,6 +845,7 @@ public class OfxImporter {
 						firstReinvestEntry.setValuta(settleDate);
 
 						firstReinvestEntry.setAmount(total);
+						firstEntry.setCommodity(account.getCurrency());
 
 						firstReinvestEntry.setMemo("re-invest" + reinvestMemo);
 
@@ -862,6 +865,40 @@ public class OfxImporter {
 						buyEntry.setAmount(quantity);
 						buyEntry.setCommodity(stock);
 					}
+				} else if (transactionElement.getTagName().equals("INVEXPENSE")) {
+
+					String subAccountSecurity = transactionElement.getString("SUBACCTSEC");
+					if (!"CASH".equals(subAccountSecurity)) {
+						throw new RuntimeException("unknown SUBACCTSEC value: " + subAccountSecurity);
+					}
+
+					String subAccountFund = transactionElement.getString("SUBACCTFUND");
+					if (!"CASH".equals(subAccountFund)) {
+						throw new RuntimeException("unknown SUBACCTFUND value: " + subAccountFund);
+					}
+
+					/*
+					 * We defer to the user entered patterns to
+					 * categorize these.
+					 */
+					StockEntry otherEntry = transaction.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
+
+					// The dividend account may not be right, but it is the best we can do.
+					// It may be overwritten by the pattern matcher.
+					otherEntry.setAccount(account.getDividendAccount());
+					otherEntry.setAmount(-total);
+
+					// These types of entries are generally associated with a security,
+					// so set the security.
+					otherEntry.setSecurity(stock);
+
+					String textToMatch = MessageFormat.format(
+							"INVEXPENSE\nMEMO={0}",
+							memo);
+					String defaultDescription = MessageFormat.format(
+							"Investment Expense: {0}",
+							toTitleCase(memo));
+					matcher.matchAndFill(textToMatch, firstEntry, otherEntry.getBaseObject(), toTitleCase(memo), defaultDescription);
 				} else if (transactionElement.getTagName().equals("TRANSFER")) {
 					String units = transactionElement.getString("UNITS");
 					Long quantity = stock.parse(units);
@@ -881,9 +918,9 @@ public class OfxImporter {
 						 * the time being we move the shares back into the
 						 * same account, which is not correct but it makes
 						 * it easy for the user to manually edit the entry.
-						 */							
+						 */
 						StockEntry firstStockEntry = firstEntry.getExtension(StockEntryInfo.getPropertySet(), true);
-						
+
 						firstStockEntry.setAmount(quantity);
 						firstStockEntry.setCommodity(stock);
 
@@ -903,7 +940,7 @@ public class OfxImporter {
 					 * we still own them.  We could solve that one by the idea of ring-fenced accounts when producing
 					 * reports, or just consider the account to be an expense account.
 					 */
-					
+
 					String units = transactionElement.getString("UNITS");
 
 					/*
@@ -916,7 +953,7 @@ public class OfxImporter {
 					Long quantity = stock.parse(units);
 
 					StockEntry firstStockEntry = firstEntry.getExtension(StockEntryInfo.getPropertySet(), true);
-					
+
 					firstStockEntry.setAmount(quantity);
 					firstStockEntry.setCommodity(stock);
 
@@ -930,7 +967,7 @@ public class OfxImporter {
 					 * but it makes it easy for the user to manually edit the entry.
 					 */
 					// TODO think of something better
-					
+
 					String units = transactionElement.getString("UNITS");
 
 					/*
@@ -943,7 +980,34 @@ public class OfxImporter {
 					Long quantity = stock.parse(units);
 
 					StockEntry firstStockEntry = firstEntry.getExtension(StockEntryInfo.getPropertySet(), true);
-					
+
+					firstStockEntry.setAmount(quantity);
+					firstStockEntry.setCommodity(stock);
+
+					StockEntry otherStockEntry = transaction.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
+					otherStockEntry.setAccount(account);
+					otherStockEntry.setAmount(-quantity);
+					otherStockEntry.setCommodity(stock);
+				} else if (transactionElement.getTagName().equals("INVEXPENSE")) {
+					/*
+					 * This is an expense directly associated with particular securities.
+					 * Not quite sure what this might be.
+					 */
+					// TODO think of something better
+
+					String units = transactionElement.getString("UNITS");
+
+					/*
+					 * Wells Fargo specifies a unit price of zero for
+					 * re-invested gains. However we don't look at the unit
+					 * price because we just store the currency cost and the
+					 * number of share bought anyway.
+					 */
+
+					Long quantity = stock.parse(units);
+
+					StockEntry firstStockEntry = firstEntry.getExtension(StockEntryInfo.getPropertySet(), true);
+
 					firstStockEntry.setAmount(quantity);
 					firstStockEntry.setCommodity(stock);
 
@@ -965,7 +1029,7 @@ public class OfxImporter {
 		if (text == null) {
 			return null;
 		}
-		
+
 		String lowerCaseText = text.toLowerCase();
 		char[] charArray = lowerCaseText.toCharArray();
 
@@ -983,7 +1047,7 @@ public class OfxImporter {
 	private Stock findStock(Session session, SimpleElement secIdElement) {
 		String uniqueId = secIdElement.getString("UNIQUEID");
 		String uniqueIdType = secIdElement.getString("UNIQUEIDTYPE");
-		
+
 		ScalarPropertyAccessor<String,? super Stock> securityIdField = null;
 		if ("CUSIP".equals(uniqueIdType)) {
 			securityIdField = SecurityInfo.getCusipAccessor();
@@ -1015,7 +1079,7 @@ public class OfxImporter {
 			if (securityIdField != null) {
 				securityIdField.setValue(stock, uniqueId);
 			}
-			
+
 			/*
 			 * The name and ticker should be set later when the SECLIST element
 			 * is processed.  However just in case that does not happen, we set
