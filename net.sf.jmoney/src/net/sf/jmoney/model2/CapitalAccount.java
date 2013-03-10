@@ -46,7 +46,7 @@ import net.sf.jmoney.resources.Messages;
 public abstract class CapitalAccount extends Account {
 
 	protected IListManager<CapitalAccount> subAccounts;
-	
+
 	protected String abbreviation = null;
 
 	protected String comment = null;
@@ -57,19 +57,19 @@ public abstract class CapitalAccount extends Account {
 	 * passed to this constructor must be valid because datastores should only pass back
 	 * values that were previously saved from a CapitalAccount object.  So, for example,
 	 * we can be sure that a non-null name and currency are passed to this constructor.
-	 * 
+	 *
 	 * @param name the name of the account
 	 */
 	public CapitalAccount(
-			IObjectKey objectKey, 
+			IObjectKey objectKey,
 			ListKey parent,
 			String name,
 			IListManager<CapitalAccount> subAccounts,
 			String abbreviation,
 			String comment,
-			IValues extensionValues) { 
+			IValues<? extends CapitalAccount> extensionValues) {
 		super(objectKey, parent, name, extensionValues);
-		
+
 		this.subAccounts = subAccounts;
         this.abbreviation = abbreviation;
         this.comment = comment;
@@ -83,22 +83,22 @@ public abstract class CapitalAccount extends Account {
 	 * for the scalar properties.
 	 */
 	public CapitalAccount(
-			IObjectKey objectKey, 
-			ListKey parent) { 
+			IObjectKey objectKey,
+			ListKey parent) {
 		super(objectKey, parent);
 
 		this.name = Messages.CapitalAccount_Name;
-		
+
 		this.subAccounts = objectKey.constructListManager(CapitalAccountInfo.getSubAccountAccessor());
         this.abbreviation = null;
         this.comment = null;
 	}
 
-    @Override	
+    @Override
 	protected String getExtendablePropertySetId() {
 		return "net.sf.jmoney.capitalAccount"; //$NON-NLS-1$
 	}
-	
+
 	/**
 	 * @return the abbreviation of this account.
 	 */
@@ -113,7 +113,7 @@ public abstract class CapitalAccount extends Account {
 		return comment;
 	}
 
-    @Override	
+    @Override
 	public ObjectCollection<CapitalAccount> getSubAccountCollection() {
 		return new ObjectCollection<CapitalAccount>(subAccounts, this, CapitalAccountInfo.getSubAccountAccessor());
 	}
@@ -125,68 +125,44 @@ public abstract class CapitalAccount extends Account {
 	 * datastore through the method of the same name in the IEntryQueries
 	 * interface.  If the IEntryQueries interface has not been implemented
 	 * by the datastore then evaluate ourselves.
-	 * <P> 
+	 * <P>
 	 * @return A collection containing the entries of this account.
 	 * 				The entries are sorted using the given property and
 	 * 				given sort order.  The collection is a read-only
 	 * 				collection.
 	 */
-	public Collection<Entry> getSortedEntries(final ScalarPropertyAccessor<?,?> sortProperty, boolean descending) {
+	public Collection<Entry> getSortedEntries(final ScalarPropertyAccessor<?,?> sortProperty, final Comparator<Entry> entryComparator, boolean descending) {
 		IEntryQueries queries = (IEntryQueries)getSession().getAdapter(IEntryQueries.class);
     	if (queries != null) {
     		return queries.getSortedEntries(this, sortProperty, descending);
     	} else {
     		// IEntryQueries has not been implemented in the datastore.
     		// We must therefore provide our own implementation.
-    		
+
     		List<Entry> sortedEntries = new LinkedList<Entry>(getEntries());
-    		
-    		Comparator<Entry> entryComparator;
-    		if (sortProperty.getPropertySet() == EntryInfo.getPropertySet()) {
-    			entryComparator = new Comparator<Entry>() {
+
+    		Comparator<Entry> correctlyOrderedComparator;
+    		if (descending) {
+    			correctlyOrderedComparator = new Comparator<Entry>() {
     				@Override
 					public int compare(Entry entry1, Entry entry2) {
-    					return sortProperty.getComparator().compare(entry1, entry2);
-    				}
-    			};
-    		} else if (sortProperty.getPropertySet() == TransactionInfo.getPropertySet()) {
-    			entryComparator = new Comparator<Entry>() {
-    				@Override
-					public int compare(Entry entry1, Entry entry2) {
-    					return sortProperty.getComparator().compare(entry1.getTransaction(), entry2.getTransaction());
-    				}
-    			};
-    		} else if (sortProperty.getPropertySet() == AccountInfo.getPropertySet()) {
-    			entryComparator = new Comparator<Entry>() {
-    				@Override
-					public int compare(Entry entry1, Entry entry2) {
-    					return sortProperty.getComparator().compare(entry1.getAccount(), entry2.getAccount());
+    					return entryComparator.compare(entry2, entry1);
     				}
     			};
     		} else {
-    			throw new RuntimeException("given property cannot be used for entry sorting"); //$NON-NLS-1$
+    			correctlyOrderedComparator = entryComparator;
     		}
-    		
-    		if (descending) {
-    			final Comparator<Entry> ascendingComparator = entryComparator;
-    			entryComparator = new Comparator<Entry>() {
-    				@Override
-					public int compare(Entry entry1, Entry entry2) {
-    					return ascendingComparator.compare(entry2, entry1);
-    				}
-    			};
-    		}
-    		
-    		Collections.sort(sortedEntries, entryComparator);
-    		
+
+    		Collections.sort(sortedEntries, correctlyOrderedComparator);
+
     		return sortedEntries;
     	}
 	}
-	
+
 	/**
 	 * @param anAbbrevation the abbrevation of this account.
 	 */
-	
+
 	public void setAbbreviation(String anAbbreviation) {
         String oldAbbreviation = this.abbreviation;
         this.abbreviation = anAbbreviation;
@@ -198,7 +174,7 @@ public abstract class CapitalAccount extends Account {
 	/**
 	 * @param aComment the comment of this account.
 	 */
-	
+
 	public void setComment(String aComment) {
         String oldComment = this.comment;
         this.comment = aComment;
@@ -207,12 +183,12 @@ public abstract class CapitalAccount extends Account {
         processPropertyChange(CapitalAccountInfo.getCommentAccessor(), oldComment, aComment);
 	}
 
-    @Override	
+    @Override
 	public String toString() {
 		return name;
 	}
 
-    @Override	
+    @Override
 	public String getFullAccountName() {
 	    if (getParent() == null) {
 		       return name;
@@ -223,9 +199,9 @@ public abstract class CapitalAccount extends Account {
 
 	/**
 	 * Create a sub-account of this account.  This method is
-	 * identical to calling 
+	 * identical to calling
 	 * <code>getSubAccountCollection().createNewElement(propertySet)</code>.
-	 * 
+	 *
 	 * @param propertySet a property set derived (directly or
 	 * 			indirectly) from the CapitalAccount property set.
 	 * 			This property set must not be derivable and is
@@ -235,10 +211,10 @@ public abstract class CapitalAccount extends Account {
 	public <A extends CapitalAccount> A createSubAccount(ExtendablePropertySet<A> propertySet) {
 		return getSubAccountCollection().createNewElement(propertySet);
 	}
-        
+
 	/**
 	 * Delete a sub-account of this account.  This method is
-	 * identical to calling 
+	 * identical to calling
 	 * <code>getSubAccountCollection().deleteElement(subAccount)</code>.
 	 */
 	void deleteSubAccount(CapitalAccount subAccount) throws ReferenceViolationException {
@@ -258,13 +234,13 @@ public abstract class CapitalAccount extends Account {
     	} else {
     		// IEntryQueries has not been implemented in the datastore.
     		// We must therefore provide our own implementation.
-    		
+
     		Vector<Entry> entriesList = new Vector<Entry>();
     		entriesList.addAll(getEntries());
     		if (includeSubAccounts) {
     			addEntriesFromSubAccounts(this, entriesList);
     		}
-    		
+
             Collections.sort(entriesList, new Comparator<Entry>() {
                 @Override
 				public int compare(Entry entry1, Entry entry2) {
@@ -273,16 +249,16 @@ public abstract class CapitalAccount extends Account {
                 }
             });
 
-    		
+
     		long [] totals = new long[numberOfMonths];
 
     		Calendar calendar = Calendar.getInstance();
 
-    		
-    		
+
+
     		// calculate the sum for each month
     		int year = startYear;
-    		int month = startMonth; 
+    		int month = startMonth;
             for (int i=0; i<numberOfMonths; i++) {
     			calendar.clear();
     			calendar.setLenient(false);
@@ -301,17 +277,17 @@ public abstract class CapitalAccount extends Account {
     			calendar.set(year, month - 1, 1, 0, 0, 0);
     			Date endOfMonth = calendar.getTime();
             	// Date endOfMonth = new Date(year - 1900, month, 1);
-            	
+
             	int total = 0;
             	for (Entry entry: entriesList) {
-            		if (entry.getTransaction().getDate().compareTo(startOfMonth) >= 0 
+            		if (entry.getTransaction().getDate().compareTo(startOfMonth) >= 0
             		 && entry.getTransaction().getDate().compareTo(endOfMonth) < 0) {
             			total += entry.getAmount();
             		}
             	}
             	totals[i] = total;
             }
-            
+
             return totals;
     	}
 	}
