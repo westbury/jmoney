@@ -74,9 +74,9 @@ public class AmazonEntryInfo implements IPropertySetInfo {
 		
 	@Override
 	public PropertySet<AmazonEntry,Entry> registerProperties() {
-		IPropertyControlFactory<String> textPropertyControlFactory = new TextControlFactory();
-		IPropertyControlFactory<Date> datePropertyControlFactory = new DateControlFactory();
-		IPropertyControlFactory<IBlob> imagePropertyControlFactory = new ImageControlFactory();
+		IPropertyControlFactory<Entry,String> textPropertyControlFactory = new TextControlFactory<Entry>();
+		IPropertyControlFactory<Entry,Date> datePropertyControlFactory = new DateControlFactory<Entry>();
+		IPropertyControlFactory<Entry,IBlob> imagePropertyControlFactory = new ImageControlFactory<Entry>();
 		
 		IPropertyDependency<Entry> x = new IPropertyDependency<Entry>() {
 			@Override
