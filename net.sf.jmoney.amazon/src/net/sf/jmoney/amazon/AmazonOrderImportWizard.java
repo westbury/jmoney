@@ -6,6 +6,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
 
+import net.sf.jmoney.Helper;
 import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.wizards.CsvImportWizard;
 import net.sf.jmoney.importer.wizards.ImportException;
@@ -16,7 +17,6 @@ import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
-import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
@@ -42,7 +42,7 @@ import org.eclipse.ui.IImportWizard;
  * If only one is imported then the data from that one import is in the datastore, but if both are imported
  * then everything is matched.  It should not matter what order the Amazon items, the Amazon orders, and the
  * charge or bank account are imported.
- *  
+ *
  * @author westbury.nigel2
  *
  */
@@ -138,7 +138,7 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 			}
 
 			chargedAccount = giftCardAccount;
-			
+
 			// TODO figure out actual currency of gift certificate
 			thisCurrency = session.getCurrencyForCode("USD");
 		} else {
@@ -159,7 +159,7 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 		AmazonEntry matchingEntry = AmazonItemImportWizard.findMatchingEntry(orderId, trackingNumber, shipmentDate, unmatchedAccount);
 
 		long totalCharged = column_totalCharged.getAmount();
-		
+
 		/*
 		 * Auto-match the new entry in the charge account the same way that any other
 		 * entry would be auto-matched.  This combines the entry if the entry already exists in the
@@ -168,20 +168,20 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 		 * An entry in the charge account has already been matched to an
 		 * Amazon order if it has an order id set.  This matcher will not return
 		 * entries that have already been matched.
-		 * 
+		 *
 		 * Although we have already eliminated orders that have already been imported,
 		 * this test ensures we don't mess up when more than one order can match to the
 		 * same debit in the charge account.  This is not likely but two orders of the same
 		 * amount and the same or very close dates may cause this.
-		 * 
+		 *
 		 * Note that we search ten days ahead for a matching entry in the charge account.
 		 * Although Amazon usually charge on the day of shipment there have been cases where
-		 * the change appears at the bank seven days later. 
+		 * the change appears at the bank seven days later.
 		 */
 		MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
 			@Override
 			protected boolean alreadyMatched(Entry entry) {
-				return entry.getPropertyValue(AmazonEntryInfo.getOrderIdAccessor()) != null;
+				return AmazonEntryInfo.getOrderIdAccessor().getValue(entry) != null;
 			}
 		};
 		Entry matchedEntryInChargeAccount = matchFinder.findMatch(chargedAccount, -totalCharged, shipmentDate, 10, null);
@@ -194,10 +194,10 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 		if (matchedEntryInChargeAccount == null) {
 			matchedEntryInChargeAccount = matchFinder.findMatch(chargedAccount, -totalCharged, column_orderDate.getDate(), 10, null);
 		}
-		
+
 		if (matchingEntry == null) {
 			// Create new transaction
-			
+
 			Transaction trans = session.createTransaction();
 			trans.setDate(column_orderDate.getDate());
 
@@ -216,15 +216,15 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 				chargeAccountEntry.setTrackingNumber(trackingNumber);
 				chargeAccountEntry.setShipmentDate(shipmentDate);
 			} else {
-				// 
+				//
 				if (matchedEntryInChargeAccount.getTransaction().hasMoreThanTwoEntries()) {
 					throw new ImportException("matched entry in charge account has more than one other entry");
 				}
-				
+
 				Entry otherMatchedEntry = matchedEntryInChargeAccount.getTransaction().getOther(matchedEntryInChargeAccount);
 				// Any checks on the other entry before we delete it?
 				matchedEntryInChargeAccount.getTransaction().deleteEntry(otherMatchedEntry);
-				
+
 				unmatchedEntry = matchedEntryInChargeAccount.getTransaction().createEntry().getExtension(AmazonEntryInfo.getPropertySet(), true);
 			}
 
@@ -241,32 +241,32 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 			if (matchingEntry.getAmount() != -column_subtotal.getAmount()) {
 				throw new ImportException("the total price of the items in the matching transaction does not match the 'Subtotal' amount in the order table.");
 			}
-			 
+
 			if (matchedEntryInChargeAccount != null) {
 				if (matchedEntryInChargeAccount.getTransaction().hasMoreThanTwoEntries()) {
 					/*
 					 * In this case we just don't merge the transactions.  We leave both the original
 					 * transaction with the user-entered data and the transaction imported from
-					 * Amazon.  
-					 * 
+					 * Amazon.
+					 *
 					 * We could try to match the entries in each transaction but that would
 					 * be difficult and risky.  As long as users get into the habit of importing from
 					 * Amazon before manually editing the data then this should not happen.
-					 * 
+					 *
 					 */
 					DateFormat df = new SimpleDateFormat("dd-MMM-yyyy");
-					MessageDialog.openWarning(getShell(), "Unmerged Transaction", 
+					MessageDialog.openWarning(getShell(), "Unmerged Transaction",
 							MessageFormat.format(
-									"A transaction was found in the {0} account on {1} that matches an Amazon import.  However that transaction has split entries and cannot be automatically merged with the Amazon data.", 
-									chargedAccount.getName(), 
+									"A transaction was found in the {0} account on {1} that matches an Amazon import.  However that transaction has split entries and cannot be automatically merged with the Amazon data.",
+									chargedAccount.getName(),
 									df.format(matchedEntryInChargeAccount.getTransaction().getDate())));
-					
+
 					/* Put the Amazon transaction into the charge account, and reconcile
 					 it in lieu of the original transaction.  The user then has the least
 					amount of work to tidy this up.
 					*/
 					matchingEntry.setAccount(chargedAccount);
-					
+
 					// TODO make this an optional dependency on the reconciliation plugin.
 					BankStatement statement = ReconciliationEntryInfo.getStatementAccessor().getValue(matchedEntryInChargeAccount);
 					ReconciliationEntryInfo.getStatementAccessor().setValue(matchedEntryInChargeAccount, null);
@@ -288,12 +288,11 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 					// so set this accordingly.
 					matchedEntryInChargeAccount = matchingEntry.getBaseObject();
 				} else {
-
 					// Copy across the properties
-					for (ScalarPropertyAccessor<?,? super Entry> propertyAccessor : EntryInfo.getPropertySet().getScalarProperties3()) {
-						copyProperty(matchingEntry,
-								matchedEntryInChargeAccount, propertyAccessor);
-					}
+					Helper.copyScalarValues(
+							EntryInfo.getPropertySet(),
+							matchedEntryInChargeAccount,
+							matchingEntry.getBaseObject());
 
 					/*
 					 * If the other entry has an account that is not the default
@@ -306,7 +305,7 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 						for (Entry itemEntry : matchingEntry.getTransaction().getEntryCollection()) {
 							if (itemEntry != matchingEntry.getBaseObject()) {
 								itemEntry.setAccount(otherEntry.getAccount());
-								itemEntry.setMemo("" + itemEntry.getMemo() + " - " + otherEntry.getMemo()); 
+								itemEntry.setMemo("" + itemEntry.getMemo() + " - " + otherEntry.getMemo());
 							}
 						}
 					}
@@ -343,7 +342,7 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 				 * is imported from the bank's server.
 				 */
 				matchingEntry.setAccount(chargedAccount);
-				
+
 				/*
 				 * We also change the amount from the 'Subtotal' amount to
 				 * the 'Total Charged' amount.  The subtotal is the total of all
@@ -354,7 +353,7 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 				 */
 				matchingEntry.setAmount(-totalCharged);
 			}
-			
+
 			matchedEntryInChargeAccount = matchingEntry.getBaseObject();
 		}
 
@@ -370,14 +369,14 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 	 * An attempt had been made to separate out the shipping and promotional discounts into
 	 * separate entries.  However that approach did not work out very well.  The various adjustments
 	 * in the CSV files exported by Amazon just are not consistent and in some cases just don't add up.
-	 * 
-	 * @throws ImportException 
+	 *
+	 * @throws ImportException
 	 */
 	private void distribute(Entry fixedEntry) throws ImportException {
 		if (fixedEntry.getAmount() == 0) {
 			throw new ImportException("Can't cope with zero amount charged.");
 		}
-		
+
 		long netTotal = 0;
 		for (Entry itemEntry : fixedEntry.getTransaction().getEntryCollection()) {
 			if (itemEntry != fixedEntry) {
@@ -414,12 +413,5 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 		}
 
 		assert(leftToDistribute == 0);
-	}
-
-	private <T> void copyProperty(AmazonEntry destinationEntry,
-			Entry sourceEntry,
-			ScalarPropertyAccessor<T,? super Entry> propertyAccessor) {
-		T value = sourceEntry.getPropertyValue(propertyAccessor);
-		destinationEntry.setPropertyValue(propertyAccessor, value);
 	}
 }

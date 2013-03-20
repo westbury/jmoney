@@ -6,15 +6,9 @@ import java.util.Iterator;
 
 import net.sf.jmoney.entrytable.EntryData;
 import net.sf.jmoney.entrytable.InvalidUserEntryException;
-import net.sf.jmoney.isolation.TransactionManager;
-import net.sf.jmoney.model2.Account;
-import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.Entry;
-import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
-import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Transaction.EntryCollection;
 import net.sf.jmoney.property.model.RealProperty;
 import net.sf.jmoney.property.model.RealPropertyAccount;
@@ -25,7 +19,7 @@ import net.sf.jmoney.property.pages.StockEntryRowControl.TransactionType;
 public class StockEntryData extends EntryData {
 
 	private RealPropertyAccount account;
-	
+
 	private TransactionType transactionType;
 
 	private Entry mainEntry;
@@ -42,9 +36,9 @@ public class StockEntryData extends EntryData {
 		// being edited inside a transaction.  If this is the new entry row
 		// and is the committed version then entry will be null, so we can't
 		// analyze it and we can't determine the account.
-		
+
 		// TODO We should consider merging the two instances into one.
-		
+
 		// TODO Call this on-demand.
 		if (entry != null) {
 			account = (RealPropertyAccount)entry.getAccount();
@@ -102,14 +96,14 @@ public class StockEntryData extends EntryData {
 	public void forceTransactionToBuy() {
 		forceTransactionToBuyOrSell(TransactionType.Buy);
 	}
-	
+
 	public void forceTransactionToSell() {
 		forceTransactionToBuyOrSell(TransactionType.Sell);
 	}
-	
+
 	private void forceTransactionToBuyOrSell(TransactionType transactionType) {
 		this.transactionType = transactionType;
-			
+
 		EntryCollection entries = getEntry().getTransaction().getEntryCollection();
 		for (Iterator<Entry> iter = entries.iterator(); iter.hasNext(); ) {
 			Entry entry = iter.next();
@@ -118,12 +112,12 @@ public class StockEntryData extends EntryData {
 				iter.remove();
 			}
 		}
-		
+
 		if (purchaseOrSaleEntry == null) {
 			purchaseOrSaleEntry = entries.createEntry();
 			purchaseOrSaleEntry.setAccount(account);
 			RealPropertyEntry stockEntry = purchaseOrSaleEntry.getExtension(RealPropertyEntryInfo.getPropertySet(), true);
-			
+
 			/*
 			 * If this was an transaction connected with a stock but did not
 			 * involve an entry that changed the amount of a stock (e.g. a
@@ -142,7 +136,7 @@ public class StockEntryData extends EntryData {
 		// the transaction balanced.  Quicken has a dialog box that
 		// asks the user what to adjust (with a 'recommended' choice
 		// that in my experience is never the correct choice!).
-		
+
 //		dividendEntry.setAmount(-mainEntry.getAmount());
 	}
 
@@ -155,12 +149,12 @@ public class StockEntryData extends EntryData {
 		 * to transform the transaction to the required type.  This method does not need
 		 * to change the transaction data at all.  It does adjust the UI to give the user
 		 * full flexibility.
-		 * 
+		 *
 		 * Note that the user may edit the transaction so that it matches one of the
 		 * types (buy, sell, dividend etc).  In that case, the transaction will appear
 		 * as that type, not as a custom type, if it is saved and re-loaded.
 		 */
-		
+
 		// Must be at least one entry
 		EntryCollection entries = getEntry().getTransaction().getEntryCollection();
 		if (entries.size() == 1) {
@@ -200,7 +194,7 @@ public class StockEntryData extends EntryData {
 	 * calculates the share price from the data in the model.  It does
 	 * this by adding up all the cash entries to get the gross proceeds
 	 * or cost and then dividing by the number of shares.
-	 * 
+	 *
 	 * @return the calculated price to four decimal places, or null
 	 * 		if the price cannot be calculated (e.g. if the share quantity
 	 * 		is zero)
@@ -217,7 +211,7 @@ public class StockEntryData extends EntryData {
 				totalCash += eachEntry.getAmount();
 			}
 		}
-		
+
 		BigDecimal price = null;
 		if (totalCash != 0 && totalShares.compareTo(BigDecimal.ZERO) != 0) {
 			/*
@@ -226,7 +220,7 @@ public class StockEntryData extends EntryData {
 			 */
 			price = BigDecimal.valueOf(-totalCash).movePointLeft(2).divide(totalShares, 4, RoundingMode.HALF_UP);
 		}
-		
+
 		return price;
 	}
 
@@ -234,15 +228,15 @@ public class StockEntryData extends EntryData {
 		if (transactionType == null) {
 			throw new InvalidUserEntryException("No transaction type selected.", null);
 		}
-		
+
 		/*
 		 * Check for zero amounts. Some fields may be zeroes (for example, commissions and
 		 * withheld taxes), others may not (for example, quantity of stock sold).
-		 * 
+		 *
 		 * We do leave entries with zero amounts.  This makes the code simpler
 		 * because the transaction is already set up for the transaction type,
-		 * and it is easier to determine the transaction type.  
-		 * 
+		 * and it is easier to determine the transaction type.
+		 *
 		 * It is possible that the total proceeds of a sale are zero.  Anyone who
 		 * has disposed of shares in a sub-prime mortgage company in order to
 		 * claim the capital loss will know that the commission may equal the sale
@@ -287,72 +281,11 @@ public class StockEntryData extends EntryData {
 	 */
 	@Override
 	public void copyFrom(EntryData sourceEntryData) {
-//		StockEntryData sourceEntryData = ()sourceEntryData2;
-		
-		Entry selectedEntry = sourceEntryData.getEntry();
-		
-		Entry newEntry = getEntry();
-		TransactionManager transactionManager = (TransactionManager)newEntry.getDataManager();
-		
-//		newEntry.setMemo(selectedEntry.getMemo());
-//		newEntry.setAmount(selectedEntry.getAmount());
-
-		/*
-		 * Copy all values that are numbers, flags, text, or references to accounts or commodities.
-		 * We do not copy dates or statement numbers.
-		 */
-		for (ScalarPropertyAccessor accessor : EntryInfo.getPropertySet().getScalarProperties3()) {
-			Object value = selectedEntry.getPropertyValue(accessor);
-			if (value instanceof Integer
-					|| value instanceof Long
-					|| value instanceof Boolean
-					|| value instanceof String) {
-				newEntry.setPropertyValue(accessor, value);
-			}
-			if (value instanceof Commodity
-					|| value instanceof Account) {
-				newEntry.setPropertyValue(accessor, transactionManager.getCopyInTransaction((ExtendableObject)value));
-			}
-		}
-		
-		/*
-		 * In the bank account entries, the new entry row will always have a second entry created.
-		 * In other enty types such as a stock entry, the new entry row will have only one row.
-		 */
-		Entry thisEntry = getSplitEntries().isEmpty()
-		? null : getOtherEntry();
-
-		for (Entry origEntry: sourceEntryData.getSplitEntries()) {
-			if (thisEntry == null) {
-				thisEntry = getEntry().getTransaction().createEntry();
-			}
-//			thisEntry.setAccount(transactionManager.getCopyInTransaction(origEntry.getAccount()));
-//			thisEntry.setMemo(origEntry.getMemo());
-//			thisEntry.setAmount(origEntry.getAmount());
-			
-			/*
-			 * Copy all values that are numbers, flags, text, or references to accounts or commodities.
-			 * We do not copy dates or statement numbers.
-			 */
-			for (ScalarPropertyAccessor accessor : EntryInfo.getPropertySet().getScalarProperties3()) {
-				Object value = origEntry.getPropertyValue(accessor);
-				if (value instanceof Integer
-						|| value instanceof Long
-						|| value instanceof Boolean
-						|| value instanceof String) {
-				thisEntry.setPropertyValue(accessor, value);
-				}
-				if (value instanceof Commodity
-						|| value instanceof Account) {
-				thisEntry.setPropertyValue(accessor, transactionManager.getCopyInTransaction((ExtendableObject)value));
-				}
-			}
-			thisEntry = null;
-		}
+		super.copyFrom(sourceEntryData);
 
 		// Hack, because analyze assumes this has not yet been set.
 		mainEntry = null;
-		
+
 		analyzeTransaction();
 	}
 }

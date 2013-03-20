@@ -11,15 +11,11 @@ import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IScalarPropertyAccessor;
 import net.sf.jmoney.isolation.ReferenceViolationException;
 import net.sf.jmoney.isolation.SessionChangeListener;
-import net.sf.jmoney.isolation.TransactionManager;
-import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.CapitalAccount;
-import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
-import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Transaction.EntryCollection;
 import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.StockAccount;
@@ -280,7 +276,7 @@ public class StockEntryData extends EntryData {
 						if (commissionEntry == null) {
 							commissionEntry = getEntry().getTransaction().createEntry();
 							commissionEntry.setAccount(account.getCommissionAccount());
-							commissionEntry.setPropertyValue(StockEntryInfo.getSecurityAccessor(), (Security)purchaseOrSaleEntry.getCommodity());
+							StockEntryInfo.getSecurityAccessor().setValue(commissionEntry, (Security)purchaseOrSaleEntry.getCommodity());
 						}
 						commissionEntry.setAmount(event.diff.getNewValue());
 					}
@@ -304,7 +300,7 @@ public class StockEntryData extends EntryData {
 						if (tax1Entry == null) {
 							tax1Entry = getEntry().getTransaction().createEntry();
 							tax1Entry.setAccount(account.getTax1Account());
-							tax1Entry.setPropertyValue(StockEntryInfo.getSecurityAccessor(), (Security)purchaseOrSaleEntry.getCommodity());
+							StockEntryInfo.getSecurityAccessor().setValue(tax1Entry, (Security)purchaseOrSaleEntry.getCommodity());
 						}
 						tax1Entry.setAmount(event.diff.getNewValue());
 					}
@@ -328,7 +324,7 @@ public class StockEntryData extends EntryData {
 						if (tax2Entry == null) {
 							tax2Entry = getEntry().getTransaction().createEntry();
 							tax2Entry.setAccount(account.getTax2Account());
-							tax2Entry.setPropertyValue(StockEntryInfo.getSecurityAccessor(), (Security)purchaseOrSaleEntry.getCommodity());
+							StockEntryInfo.getSecurityAccessor().setValue(tax2Entry, (Security)purchaseOrSaleEntry.getCommodity());
 						}
 						tax2Entry.setAmount(event.diff.getNewValue());
 					}
@@ -352,7 +348,7 @@ public class StockEntryData extends EntryData {
 						if (withholdingTaxEntry == null) {
 							withholdingTaxEntry = getEntry().getTransaction().createEntry();
 							withholdingTaxEntry.setAccount(account.getWithholdingTaxAccount());
-							withholdingTaxEntry.setPropertyValue(StockEntryInfo.getSecurityAccessor(), dividendEntry.getPropertyValue(StockEntryInfo.getSecurityAccessor()));
+							StockEntryInfo.getSecurityAccessor().setValue(withholdingTaxEntry, (Security)purchaseOrSaleEntry.getCommodity());
 						}
 						withholdingTaxEntry.setAmount(event.diff.getNewValue());
 					}
@@ -500,7 +496,7 @@ public class StockEntryData extends EntryData {
 		if (dividendEntry == null) {
 			dividendEntry = entries.createEntry();
 			dividendEntry.setAccount(account.getDividendAccount());
-			dividendEntry.setPropertyValue(StockEntryInfo.getSecurityAccessor(), security);
+			StockEntryInfo.getSecurityAccessor().setValue(dividendEntry, security);
 		}
 
 		long grossDividend = -getEntry().getAmount();
@@ -524,7 +520,7 @@ public class StockEntryData extends EntryData {
 		if (isPurchaseOrSale()) {
 			return (Security)purchaseOrSaleEntry.getCommodityInternal();
 		} else if (isDividend()) {
-			return dividendEntry.getPropertyValue(StockEntryInfo.getSecurityAccessor());
+			return StockEntryInfo.getSecurityAccessor().getValue(dividendEntry);
 		} else {
 			return null;
 		}
@@ -851,68 +847,7 @@ public class StockEntryData extends EntryData {
 	 */
 	@Override
 	public void copyFrom(EntryData sourceEntryData) {
-		//		StockEntryData sourceEntryData = ()sourceEntryData2;
-
-		Entry selectedEntry = sourceEntryData.getEntry();
-
-		Entry newEntry = getEntry();
-		TransactionManager transactionManager = (TransactionManager)newEntry.getDataManager();
-
-		//		newEntry.setMemo(selectedEntry.getMemo());
-		//		newEntry.setAmount(selectedEntry.getAmount());
-
-		/*
-		 * Copy all values that are numbers, flags, text, or references to accounts or commodities.
-		 * We do not copy dates or statement numbers.
-		 */
-		for (ScalarPropertyAccessor accessor : EntryInfo.getPropertySet().getScalarProperties3()) {
-			Object value = selectedEntry.getPropertyValue(accessor);
-			if (value instanceof Integer
-					|| value instanceof Long
-					|| value instanceof Boolean
-					|| value instanceof String) {
-				newEntry.setPropertyValue(accessor, value);
-			}
-			if (value instanceof Commodity
-					|| value instanceof Account) {
-				newEntry.setPropertyValue(accessor, transactionManager.getCopyInTransaction((IModelObject)value));
-			}
-		}
-
-		/*
-		 * In the bank account entries, the new entry row will always have a second entry created.
-		 * In other enty types such as a stock entry, the new entry row will have only one row.
-		 */
-		Entry thisEntry = getSplitEntries().isEmpty()
-				? null : getOtherEntry();
-
-		for (Entry origEntry: sourceEntryData.getSplitEntries()) {
-			if (thisEntry == null) {
-				thisEntry = getEntry().getTransaction().createEntry();
-			}
-			//			thisEntry.setAccount(transactionManager.getCopyInTransaction(origEntry.getAccount()));
-			//			thisEntry.setMemo(origEntry.getMemo());
-			//			thisEntry.setAmount(origEntry.getAmount());
-
-			/*
-			 * Copy all values that are numbers, flags, text, or references to accounts or commodities.
-			 * We do not copy dates or statement numbers.
-			 */
-			for (ScalarPropertyAccessor accessor : EntryInfo.getPropertySet().getScalarProperties3()) {
-				Object value = origEntry.getPropertyValue(accessor);
-				if (value instanceof Integer
-						|| value instanceof Long
-						|| value instanceof Boolean
-						|| value instanceof String) {
-					thisEntry.setPropertyValue(accessor, value);
-				}
-				if (value instanceof Commodity
-						|| value instanceof Account) {
-					thisEntry.setPropertyValue(accessor, transactionManager.getCopyInTransaction((IModelObject)value));
-				}
-			}
-			thisEntry = null;
-		}
+		super.copyFrom(sourceEntryData);
 
 		// Hack, because analyze assumes this has not yet been set.
 		//		mainEntry = null;
@@ -933,18 +868,18 @@ public class StockEntryData extends EntryData {
 		if (isPurchaseOrSale()) {
 			purchaseOrSaleEntry.setCommodity(security);
 			if (commissionEntry != null) {
-				commissionEntry.setPropertyValue(StockEntryInfo.getSecurityAccessor(), security);
+				StockEntryInfo.getSecurityAccessor().setValue(commissionEntry, security);
 			}
 			if (tax1Entry != null) {
-				tax1Entry.setPropertyValue(StockEntryInfo.getSecurityAccessor(), security);
+				StockEntryInfo.getSecurityAccessor().setValue(tax1Entry, security);
 			}
 			if (tax2Entry != null) {
-				tax2Entry.setPropertyValue(StockEntryInfo.getSecurityAccessor(), security);
+				StockEntryInfo.getSecurityAccessor().setValue(tax2Entry, security);
 			}
 		} else if (isDividend()) {
-			dividendEntry.setPropertyValue(StockEntryInfo.getSecurityAccessor(), security);
+			StockEntryInfo.getSecurityAccessor().setValue(dividendEntry, security);
 			if (withholdingTaxEntry != null) {
-				withholdingTaxEntry.setPropertyValue(StockEntryInfo.getSecurityAccessor(), security);
+				StockEntryInfo.getSecurityAccessor().setValue(withholdingTaxEntry, security);
 			}
 		}
 	}
