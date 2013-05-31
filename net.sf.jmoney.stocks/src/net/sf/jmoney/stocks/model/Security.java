@@ -82,7 +82,7 @@ public abstract class Security extends Commodity {
 
 	/**
 	 * If 12 characters, this is assumed to be an ISIN.
-	 * 
+	 *
 	 * @return the 9 digit CUSIP if a US security or the CINS (one letter
 	 *         followed by 8 digits) if a non-US security
 	 */
@@ -96,7 +96,7 @@ public abstract class Security extends Commodity {
 
 	/**
 	 * This is a helper method.
-	 * 
+	 *
 	 * @return
 	 */
 	public String getSedol() {
@@ -106,15 +106,15 @@ public abstract class Security extends Commodity {
 			return null;
 		}
 	}
-	
+
 	public static String convertSedolToIsin(String sedol) {
 		return appendIsinCheckDigit("GB00" + sedol);
 	}
-	
+
 	private static String appendIsinCheckDigit(String isin) {
 		return isin + calculateIsinCheckDigit(isin);
 	}
-	
+
 	public String getSymbol() {
 		return symbol;
 	}
@@ -163,8 +163,8 @@ public abstract class Security extends Commodity {
 	 */
 	// TODO: This property should be for currency only.
 	@Override
-	public short getScaleFactor() {
-		return 1000;
+	public int getScaleFactor() {
+		return SCALE_FACTOR;
 	}
 
 
@@ -172,7 +172,7 @@ public abstract class Security extends Commodity {
 
 	/**
 	 * This is a helper method that checks that an ISIN is valid.
-	 * 
+	 *
 	 * @param isin the ISIN to be validated
 	 * @return true if a valid ISIN, false otherwise
 	 */

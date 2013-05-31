@@ -46,7 +46,6 @@ import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionInfo;
@@ -350,8 +349,8 @@ public class TransactionDialog extends Dialog {
    		for (ScalarPropertyAccessor<?,? super Transaction> propertyAccessor: TransactionInfo.getPropertySet().getScalarProperties3()) {
         	Label propertyLabel = new Label(composite, 0);
         	propertyLabel.setText(propertyAccessor.getDisplayName() + ':');
-        	IPropertyControl<? super Transaction> propertyControl = propertyAccessor.createPropertyControl(composite);
-        	propertyControl.load(topEntry.getTransaction());
+        	Control propertyControl = propertyAccessor.createPropertyControl(composite, topEntry.getTransaction());
+//        	propertyControl.load(topEntry.getTransaction());
 
         	// Create an ICellControl2, which is really just an IPropertyControl but with 2 extra methods.
         	// We do this by wrapping.   Can this be cleaned up a little?

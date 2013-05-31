@@ -31,19 +31,19 @@ import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
+import org.eclipse.core.databinding.observable.value.IValueChangeListener;
+import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
 import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 
 /**
  * Note that this class has neither get/set methods for the value being edited
  * and no support for property change listeners.  This is
- * because objects of this class are tied to an Account object.  
+ * because objects of this class are tied to an Account object.
  * Changes to this
- * object are reflected by this object in the Account class objects.  
+ * object are reflected by this object in the Account class objects.
  * Consumers who are interested in changes to the Account class objects should
  * add themselves as listeners to the appropriate PropertyAccessor object.
  *
@@ -75,8 +75,8 @@ public class AccountEditor<S extends ExtendableObject, A extends Account> implem
 //			}
 //		}
 	};
-	
-    /** 
+
+    /**
      * @param propertyAccessor the accessor for the property to be edited
      * 			by this control.  The property must be of type Account.
      * 			If the property is of a type derived from Account
@@ -93,29 +93,19 @@ public class AccountEditor<S extends ExtendableObject, A extends Account> implem
 		 * Selection changes are reflected immediately in the account object.
 		 * This allows other properties to enable/disable themselves if they
 		 * become applicable/inapplicable as a result of the account change.
-		 * 
+		 *
 		 * More obscure, but an account change may result in the change of the
 		 * currency of the amounts in an entry and thus the amount controls can
 		 * re-format the amounts for the new currency.
 		 */
 
-        propertyControl.addSelectionListener(new SelectionListener() {
-        	@Override
-			public void widgetSelected(SelectionEvent e) {
-        		save(); 
-        	} 
-        	@Override
-			public void widgetDefaultSelected(SelectionEvent e) { 
-        		/*
-        		 * Although users would normally select an account
-        		 * using a single click, a double click causes a
-        		 * change in the selection and so to be consistent we
-        		 * should propagate the change at this time.
-        		 */
-        		save(); 
+        propertyControl.account.addValueChangeListener(new IValueChangeListener<A>() {
+			@Override
+			public void handleValueChange(ValueChangeEvent event) {
+        		save();
         	}
         });
-    	
+
     	propertyControl.addDisposeListener(new DisposeListener() {
 			@Override
 			public void widgetDisposed(DisposeEvent e) {
@@ -125,7 +115,7 @@ public class AccountEditor<S extends ExtendableObject, A extends Account> implem
 			}
 		});
     }
-    
+
     /**
      * Load the control with the value from the given account.
      */
@@ -134,7 +124,7 @@ public class AccountEditor<S extends ExtendableObject, A extends Account> implem
     	if (extendableObject != null) {
     		extendableObject.getDataManager().removeChangeListener(amountChangeListener);
     	}
-    	
+
     	extendableObject = object;
 
     	if (object != null) {

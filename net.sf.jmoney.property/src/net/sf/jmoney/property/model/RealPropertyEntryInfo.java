@@ -41,7 +41,7 @@ import net.sf.jmoney.model2.ScalarPropertyAccessor;
 /**
  * Add extra properties to the Entry objects that are entries that represent
  * an acquisition or disposal of a real property.
- * 
+ *
  * An entry for an amount of a real property exists any time the number of
  * the real property in an account changes.  This can happen when a property
  * is acquired in any way, disposed of in any way, or transfered from one
@@ -52,7 +52,7 @@ import net.sf.jmoney.model2.ScalarPropertyAccessor;
  * stock or bond concerned.  In the case of, for example, the bank account
  * entries, the currency is not kept in the entry but is kept in the account
  * object.  However, a stock account will usually contain stock in many different
- * companies (unless it is your employee stock purchase plan account). 
+ * companies (unless it is your employee stock purchase plan account).
  * Therefore a reference to the stock Commodity
  * object is kept in the Entry object.
  * <P>
@@ -68,28 +68,28 @@ public class RealPropertyEntryInfo implements IPropertySetInfo {
 
 		public RealPropertyEntry construct(Entry extendedObject, IValues<Entry> values) {
 			return new RealPropertyEntry(
-					extendedObject, 
+					extendedObject,
 					values.getReferencedObjectKey(getSecurityAccessor()),
 					values.getScalarValue(getBargainDateAccessor())
 			);
 		}
 	});
-	
+
 	private static ReferencePropertyAccessor<RealProperty,Entry> securityAccessor;
 	private static ScalarPropertyAccessor<Date,Entry> bargainDateAccessor;
-	
+
 	public PropertySet registerProperties() {
 		IReferenceControlFactory<RealPropertyEntry,Entry,RealProperty> securityPropertyControlFactory = new RealPropertyControlFactory<RealPropertyEntry,Entry>() {
 			public IObjectKey getObjectKey(RealPropertyEntry parentObject) {
 				return parentObject.securityKey;
 			}
 		};
-		
+
 		IPropertyControlFactory<Entry,Date> datePropertyControlFactory = new DateControlFactory<Entry>();
-		
+
 		securityAccessor = propertySet.addProperty("security", "RealProperty", RealProperty.class, 2, 20, securityPropertyControlFactory, null);
 		bargainDateAccessor = propertySet.addProperty("bargainDate", "Bargain Date", Date.class, 0, 20, datePropertyControlFactory, null);
-		
+
 		return propertySet;
 	}
 
@@ -105,12 +105,12 @@ public class RealPropertyEntryInfo implements IPropertySetInfo {
 	 */
 	public static ReferencePropertyAccessor<RealProperty,Entry> getSecurityAccessor() {
 		return securityAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ScalarPropertyAccessor<Date,Entry> getBargainDateAccessor() {
 		return bargainDateAccessor;
-	}	
+	}
 }

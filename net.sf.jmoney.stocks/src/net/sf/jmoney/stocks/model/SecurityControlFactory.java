@@ -6,6 +6,8 @@ import net.sf.jmoney.model2.IReferenceControlFactory;
 import net.sf.jmoney.model2.PropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 
@@ -42,6 +44,16 @@ public abstract class SecurityControlFactory<P, S extends ExtendableObject> exte
 				Security stock = control.getSecurity();
 				propertyAccessor.setValue(fObject, stock);
 			}};
+	}
+
+	@Override
+	public Control createPropertyControl(Composite parent, final ScalarPropertyAccessor<Security,S> propertyAccessor, IObservableValue<? extends S> modelObservable) {
+		SecurityControl<Security> control = new SecurityControl<Security>(parent, null, Security.class);
+
+		Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
+		.to(control.commodity);
+
+		return control;
 	}
 
 	@Override

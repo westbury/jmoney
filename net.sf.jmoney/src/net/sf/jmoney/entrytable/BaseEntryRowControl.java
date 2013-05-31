@@ -93,7 +93,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	 * The EntryData object on which this row is based. This will contain the
 	 * committed version of the entry, or a null Entry object if this row
 	 * represents the 'new entry' row.
-	 * 
+	 *
 	 * Note that this field should not be used as input to the cell controls.
 	 * This row implementation does its row editing inside a transaction and
 	 * will create an uncommitted version of the EntryData that is used as input
@@ -152,7 +152,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	 * selected.
 	 * <P>
 	 * Also draws the lines between the controls.
-	 * 
+	 *
 	 * @param gc
 	 */
 	protected void drawBorder(GC gc) {
@@ -198,7 +198,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 			 * just on the right then we would not get every case, and the end
 			 * conditions would not be handled correctly. Using the tree
 			 * structure just gives us better control over the drawing.
-			 * 
+			 *
 			 * This method is called on the layout because it uses the cached
 			 * positions of the controls.
 			 */
@@ -214,7 +214,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	 * transaction, so the input to the contained controls is the uncommitted
 	 * version. However, the committed version should be passed to this method.
 	 * This method will create the transaction to be used for editing this row.
-	 * 
+	 *
 	 * @param committedEntryData
 	 *            the committed version of the EntryData that is to provide the
 	 *            contents of this row, or null if this is the new entry row.
@@ -274,7 +274,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 
 		if (isSelected) {
 			// This call may be needed only to update the header
-			rowTable.setCurrentRow(input, uncommittedEntryData);
+			rowTable.setCurrentRow(input.getValue(), uncommittedEntryData);
 		}
 	}
 
@@ -286,9 +286,9 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	 * This method should be called whenever a row is to lose selection.
 	 * It makes whatever changes are necessary to the display of the row
 	 * and saves if necessary the data in the row.
-	 * 
+	 *
 	 * @return true if this method succeeded (or failed in some way that
-	 * 		is not the user's fault and that the user cannot correct), 
+	 * 		is not the user's fault and that the user cannot correct),
 	 * 		false if this method could not save the data because the user
 	 * 		has not properly entered the data and so selection should remain
 	 * 		on the row (in which case this method will display an appropriate
@@ -314,7 +314,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	 * <P>
 	 * If false is returned then the caller should not move the selection off
 	 * this row.
-	 * 
+	 *
 	 * @return true if the changes are either valid and were committed or were
 	 *         discarded by the user, false if the changes were neither committed
 	 *         nor discarded (and thus remain outstanding)
@@ -411,7 +411,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 			 * the next new transaction. (A new row will have been created for
 			 * the new entry that we have just committed because the table is
 			 * listening for new entries).
-			 * 
+			 *
 			 * This listener should also have caused the balance for the new
 			 * entry row to be updated.
 			 */
@@ -519,7 +519,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	 * 		entries with zero amounts (but note that the transaction
 	 * 		should remain intact for further editing, because the commit
 	 * 		may not go ahead for whatever reason.
-	 * 
+	 *
 	 * @throws InvalidUserEntryException
 	 */
 	protected abstract void specificValidation()
@@ -529,11 +529,11 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	 * Given an accounting transaction, which must be empty (no properties set
 	 * or entries created), create entries and set properties as appropriate for
 	 * a new entry.
-	 * 
+	 *
 	 * Because the appropriate initialization of a new entry is dependent on
 	 * what is being shown in the table, this initialization is passed on to the
 	 * context provider.
-	 * 
+	 *
 	 * @param newTransaction
 	 * @return
 	 */
@@ -548,11 +548,11 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	 * method should be called only when this row contains a new entry that has
 	 * no properties set and that has not yet been committed (i.e. it is the
 	 * blank row that the user may use for creating new entries).
-	 * 
+	 *
 	 * Certain properties are copied in from the given entry. The given entry
 	 * must be a committed entry in the same session manager to which this entry
 	 * would be committed.
-	 * 
+	 *
 	 * This method leaves this row uncommitted. Therefore it is important that
 	 * the caller always sets focus to this row after calling this method. (By
 	 * design, only the focus row should ever have uncommitted data).
@@ -581,7 +581,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 
 	/**
 	 * Private method used when duplicating a transaction.
-	 * 
+	 *
 	 * @param sourceEntry
 	 * @param targetEntry
 	 */
@@ -596,14 +596,14 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 		setSelected(true);
 		getChildren()[currentColumn].setFocus();
 	}
-	
+
 	/**
 	 * Gets the column that has the focus.
-	 * 
+	 *
 	 * This method is used to preserve the column selection when cursoring up
 	 * and down between rows. If the column cannot be determined that simply
 	 * return 0 so that the first column gets the focus in the new row.
-	 * 
+	 *
 	 * @return the 0-based index of the cell in this row that has the focus
 	 */
 	public int getCurrentColumn() {
@@ -688,6 +688,4 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	public T getContent() {
 		return committedEntryData;
 	}
-
-	public abstract void amountChanged();
 }

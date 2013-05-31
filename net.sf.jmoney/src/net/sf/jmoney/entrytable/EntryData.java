@@ -22,9 +22,12 @@
 
 package net.sf.jmoney.entrytable;
 
-import java.util.ArrayList;
 import java.util.Collection;
 
+import net.sf.jmoney.isolation.IModelObject;
+import net.sf.jmoney.isolation.IScalarPropertyAccessor;
+import net.sf.jmoney.isolation.SessionChangeAdapter;
+import net.sf.jmoney.isolation.SessionChangeListener;
 import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Commodity;
@@ -33,6 +36,12 @@ import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
+import org.eclipse.core.databinding.observable.list.IObservableList;
+import org.eclipse.core.databinding.observable.list.WritableList;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.IValueChangeListener;
+import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.runtime.Assert;
 
 /**
@@ -63,6 +72,33 @@ public class EntryData {
 
 	private int index;
 
+	// bound to entry.getAmount()
+	protected IObservableValue<Long> netAmount = new WritableValue<Long>();
+
+	/*
+	 * This listener updates all our writable values.
+	 *
+	 * The model keeps only a weak reference to this listener, removing it
+	 * if no one else is referencing the listener.  We therefore must maintain
+	 * a reference for as long as this object exists.
+	 */
+	// TODO: We may potentially have a large number of EntryData objects.  Most
+	// will not be for visible entries.  Therefore it would be nice if this
+	// listener were maintained by a custom IObservableValue that created this
+	// listener only while it in turn has listeners.
+	private SessionChangeListener modelNetAmountListener = new SessionChangeAdapter() {
+		@Override
+		public void objectChanged(IModelObject changedObject,
+				IScalarPropertyAccessor changedProperty, Object oldValue,
+				Object newValue) {
+			if (changedObject == getEntry()
+					&& changedProperty == EntryInfo.getAmountAccessor()) {
+				Long newAmount = (Long)newValue;
+				netAmount.setValue(newAmount);
+			}
+		}
+	};
+
 	/**
 	 * @param entry
 	 *            the entry to be edited, or null if a new entry is to be
@@ -75,6 +111,29 @@ public class EntryData {
 	public EntryData(Entry entry, IDataManagerForAccounts dataManager) {
 		this.entry = entry;
 		this.dataManager = dataManager;
+
+		if (entry != null) {
+			dataManager.addChangeListenerWeakly(modelNetAmountListener);
+
+			netAmount.addValueChangeListener(new IValueChangeListener<Long>() {
+				@Override
+				public void handleValueChange(ValueChangeEvent<Long> event) {
+					if (event.diff.getNewValue() == null) {
+						getEntry().setAmount(0);
+					} else {
+						getEntry().setAmount(event.diff.getNewValue());
+					}
+				}
+			});
+		}
+	}
+
+	public IObservableValue<Long> netAmount() {
+		return netAmount;
+	}
+
+	public long getNetAmount() {
+		return netAmount.getValue() == null ? 0 : netAmount.getValue();
 	}
 
 	public void setIndex(int index) {
@@ -146,13 +205,15 @@ public class EntryData {
 	 *
 	 * We must be careful with this cached list because it is not kept up to date.
 	 */
-	private ArrayList<Entry> buildOtherEntriesList() {
-		ArrayList<Entry> otherEntries = new ArrayList<Entry>();
+	private IObservableList<Entry> buildOtherEntriesList() {
+		WritableList<Entry> otherEntries = new WritableList<Entry>();
 			for (Entry entry2 : entry.getTransaction().getEntryCollection()) {
 				if (!entry2.equals(entry)) {
 					otherEntries.add(entry2);
 				}
 			}
+
+
 			return otherEntries;
 	}
 

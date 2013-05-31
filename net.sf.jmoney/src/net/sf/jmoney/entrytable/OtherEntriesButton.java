@@ -27,6 +27,7 @@ import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
@@ -38,28 +39,28 @@ import org.eclipse.swt.widgets.Label;
 /**
  * This class represents a button that appears in each row and, when pressed,
  * drops down a shell showing details of the other entries.
- * 
+ *
  * This class is similar to OtherEntriesBlock but there are no columns in the
  * main table for the properties in the other entries, the shell has its own
  * columns with their own headers inside the shell.
- * 
+ *
  * @author Nigel Westbury
  */
 public class OtherEntriesButton extends CellBlock<EntryData, EntryRowControl> {
 
 	private final static int DROPDOWN_BUTTON_WIDTH = 15;
-	
+
 	static private Image downArrowImage = null;
 
 	private Block<Entry, ISplitEntryContainer> otherEntriesRootBlock;
-	
+
 	public OtherEntriesButton(Block<Entry, ISplitEntryContainer> otherEntriesRootBlock) {
 		super(DROPDOWN_BUTTON_WIDTH, 0);
 		this.otherEntriesRootBlock = otherEntriesRootBlock;
 	}
 
-    @Override	
-	public IPropertyControl<EntryData> createCellControl(Composite parent, final RowControl rowControl, final EntryRowControl coordinator) {
+    @Override
+	public IPropertyControl<EntryData> createCellControl(Composite parent, IObservableValue<? extends EntryData> master, final RowControl rowControl, final EntryRowControl coordinator) {
 		if (downArrowImage == null) {
 			ImageDescriptor descriptor = JMoneyPlugin.createImageDescriptor("comboArrow.gif"); //$NON-NLS-1$
 			downArrowImage = descriptor.createImage();
@@ -83,7 +84,7 @@ public class OtherEntriesButton extends CellBlock<EntryData, EntryRowControl> {
 		 * the header and rows must match. Maybe these objects could
 		 * just point to the header controls, in which case this would
 		 * not be necessary.
-		 * 
+		 *
 		 * Note also we use Label, not an empty Composite, because we
 		 * don't want a preferred height that is higher than the labels.
 		 */

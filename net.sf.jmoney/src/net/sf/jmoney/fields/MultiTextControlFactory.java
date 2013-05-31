@@ -30,13 +30,18 @@ import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Text;
 
 /**
  * A control factory to edit multi line text.
- * 
+ *
  * @author Nigel Westbury
  * @author Johann Gyger
  */
@@ -48,6 +53,19 @@ public class MultiTextControlFactory<S extends ExtendableObject> implements IPro
         GridData gridData = new GridData(SWT.FILL, SWT.FILL, true, true);
         multiText.getControl().setLayoutData(gridData);
         return multiText;
+    }
+
+    @Override
+	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<String,S> propertyAccessor, IObservableValue<? extends S> modelObservable) {
+    	Text propertyControl = new Text(parent, SWT.MULTI | SWT.WRAP);
+
+        GridData gridData = new GridData(SWT.FILL, SWT.FILL, true, true);
+        propertyControl.setLayoutData(gridData);
+
+		Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
+		.to(SWTObservables.observeText(propertyControl, SWT.Modify));
+
+		return propertyControl;
     }
 
     @Override

@@ -73,8 +73,13 @@ import net.sf.jmoney.stocks.model.StockEntryInfo;
 import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
 
 import org.eclipse.core.commands.IHandler;
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.bind.IBidiConverter;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
 import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.DisposeEvent;
@@ -90,10 +95,11 @@ import org.eclipse.ui.forms.SectionPart;
 import org.eclipse.ui.forms.widgets.ExpandableComposite;
 import org.eclipse.ui.forms.widgets.FormToolkit;
 import org.eclipse.ui.handlers.IHandlerService;
+import org.eclipse.ui.statushandlers.StatusManager;
 
 /**
  * TODO
- * 
+ *
  * @author Johann Gyger
  */
 public class EntriesSection extends SectionPart implements IEntriesContent {
@@ -117,7 +123,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		IndividualBlock<StockEntryData, StockEntryRowControl> actionColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Action", 50, 1) {
 
 			@Override
-			public IPropertyControl<StockEntryData> createCellControl(Composite parent, RowControl rowControl, final StockEntryRowControl coordinator) {
+			public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final CCombo control = new CCombo(parent, SWT.NONE);
 				control.add("buy");
 				control.add("sell");
@@ -220,7 +226,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		IndividualBlock<StockEntryData, StockEntryRowControl> shareNameColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Stock", 50, 1) {
 
 			@Override
-			public IPropertyControl<StockEntryData> createCellControl(Composite parent, RowControl rowControl, final StockEntryRowControl coordinator) {
+			public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final SecurityControl<Security> control = new SecurityControl<Security>(parent, null, Security.class);
 
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
@@ -238,12 +244,12 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 						/*
 						 * We have to find the appropriate entry in the transaction that contains
 						 * the stock.
-						 * 
+						 *
 						 * - If this is a purchase or sale, then the stock will be set as the commodity
 						 * for one of the entries.  We find this entry.
 						 * - If this is a dividend payment then the stock will be set as an additional
 						 * field in the dividend category.
-						 * 
+						 *
 						 * Note that controls are re-used, so we must be sure to explicitly enable the controls
 						 * because we may be re-using a control that has been disabled.
 						 */
@@ -301,7 +307,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 						/*
 						 * If the user changes the transaction type, the stock control remains
 						 * the same as it was in the previous transaction type.
-						 * 
+						 *
 						 * For example, suppose an entry is a purchase of stock in Foo company.
 						 * The user changes the entry to a dividend.  The entry will then
 						 * be a dividend from stock in Foo company.  The user changes the stock
@@ -341,8 +347,56 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		IndividualBlock<StockEntryData, StockEntryRowControl> priceColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Price", 60, 1) {
 
 			@Override
-			public IPropertyControl<StockEntryData> createCellControl(Composite parent, RowControl rowControl, final StockEntryRowControl coordinator) {
+			public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final Text control = new Text(parent, SWT.RIGHT);
+
+		    	IBidiConverter<BigDecimal,String> amountToText = new IBidiConverter<BigDecimal,String>() {
+					@Override
+					public String modelToTarget(BigDecimal sharePrice) {
+						if (sharePrice != null) {
+							long lPrice = sharePrice.movePointRight(4).longValue();
+							return account.getPriceFormatter().format(lPrice);
+						} else {
+							return "";
+						}
+					}
+
+					@Override
+					public BigDecimal targetToModel(String amountString) throws CoreException {
+						if (amountString.trim().length() == 0) {
+							return null;
+						} else {
+							long amount = account.getPriceFormatter().parse(amountString);
+							return new BigDecimal(amount).movePointLeft(4);
+						}
+					}
+				};
+
+				Bind.twoWay(coordinator.getUncommittedEntryData().sharePrice())
+				.convertWithTracking(amountToText)
+				.to(SWTObservables.observeText(control, SWT.Modify));
+
+				coordinator.getUncommittedEntryData().sharePrice().addValueChangeListener(new IValueChangeListener<BigDecimal>() {
+
+					@Override
+					public void handleValueChange(
+							ValueChangeEvent<BigDecimal> event) {
+						System.out.println("Price now:" + event.diff.getNewValue());
+						// TODO Auto-generated method stub
+
+					}});
+
+				Bind.bounceBack(amountToText)
+				.to(SWTObservables.observeText(control, SWT.FocusOut));
+
+//				return propertyControl;
+
+
+
+
+
+
+
 
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
 
@@ -353,43 +407,49 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 
 					@Override
 					public void load(StockEntryData data) {
-						assert(data.isPurchaseOrSale());
-						// TODO:This is a bit funny.  We are passed the data object but
-						// the co-ordinator is keeping track of the share price?
-						setControlValue(coordinator.getSharePrice());
+						// Nothing to do because it is bound
 
-						// Listen for changes in the stock price
-						coordinator.addStockPriceChangeListener(new IPropertyChangeListener<BigDecimal>() {
-							@Override
-							public void propertyChanged(BigDecimal newValue) {
-								setControlValue(newValue);
-							}
-						});
+						//						assert(data.isPurchaseOrSale());
+//						// TODO:This is a bit funny.  We are passed the data object but
+//						// the co-ordinator is keeping track of the share price?
+//						setControlValue(coordinator.getSharePrice());
+//
+//						// Listen for changes in the stock price
+//						coordinator.addStockPriceChangeListener(new IPropertyChangeListener<BigDecimal>() {
+//							@Override
+//							public void propertyChanged(BigDecimal newValue) {
+//								setControlValue(newValue);
+//							}
+//						});
 					}
 
 					private void setControlValue(BigDecimal sharePrice) {
-						if (sharePrice != null) {
-							long lPrice = sharePrice.movePointRight(4).longValue();
-							control.setText(account.getPriceFormatter().format(lPrice));
-						} else {
-							control.setText("");
-						}
+						// Nothing to do because it is bound
+
+						//						if (sharePrice != null) {
+//							long lPrice = sharePrice.movePointRight(4).longValue();
+//							control.setText(account.getPriceFormatter().format(lPrice));
+//						} else {
+//							control.setText("");
+//						}
 					}
 
 					@Override
 					public void save() {
-						long amount = account.getPriceFormatter().parse(control.getText());
+						// Nothing to do because now bound
 
-						/*
-						 * The share price is a calculated amount so is not
-						 * stored in any property. However, we do tell the row
-						 * control because it needs to save the value so it can
-						 * be checked for consistency when the transaction is
-						 * saved and also because other values may need to be
-						 * adjusted as a result of the new share price.
-						 */
-						coordinator.setSharePrice(new BigDecimal(amount).movePointLeft(4));
-						//						coordinator.sharePriceChanged(new BigDecimal(amount).movePointLeft(4));
+//						long amount = account.getPriceFormatter().parse(control.getText());
+//
+//						/*
+//						 * The share price is a calculated amount so is not
+//						 * stored in any property. However, we do tell the row
+//						 * control because it needs to save the value so it can
+//						 * be checked for consistency when the transaction is
+//						 * saved and also because other values may need to be
+//						 * adjusted as a result of the new share price.
+//						 */
+//						coordinator.setSharePrice(new BigDecimal(amount).movePointLeft(4));
+//						//						coordinator.sharePriceChanged(new BigDecimal(amount).movePointLeft(4));
 					}
 
 					@Override
@@ -414,7 +474,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		IndividualBlock<StockEntryData, StockEntryRowControl> shareNumberColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Quantity", EntryInfo.getAmountAccessor().getMinimumWidth(), EntryInfo.getAmountAccessor().getWeight()) {
 
 			@Override
-			public IPropertyControl<StockEntryData> createCellControl(Composite parent, RowControl rowControl, final StockEntryRowControl coordinator) {
+			public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final Text control = new Text(parent, SWT.RIGHT);
 
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
@@ -458,6 +518,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 
 					@Override
 					public void save() {
+						try {
 						IAmountFormatter formatter = getFormatter();
 						long quantity = formatter.parse(control.getText());
 						//						if (data.getTransactionType() == TransactionType.Sell) {
@@ -469,6 +530,10 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 						//						entry.setAmount(quantity);
 						//
 						//						coordinator.quantityChanged();
+						} catch (CoreException e) {
+							StatusManager.getManager().handle(e.getStatus());
+							return;
+						}
 					}
 
 					@Override
@@ -504,7 +569,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 
 			@Override
 			public IPropertyControl<StockEntryData> createCellControl(
-					Composite parent, RowControl rowControl,
+					Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl,
 					StockEntryRowControl coordinator) {
 
 				final Control control = new Label(parent, SWT.NONE);
@@ -541,7 +606,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 			new IndividualBlock<StockEntryData, StockEntryRowControl>("Withholding Tax", EntryInfo.getAmountAccessor().getMinimumWidth(), EntryInfo.getAmountAccessor().getWeight()) {
 
 			@Override
-			public IPropertyControl<StockEntryData> createCellControl(Composite parent, RowControl rowControl, final StockEntryRowControl coordinator) {
+			public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final Text control = new Text(parent, SWT.RIGHT);
 
 				final ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
@@ -589,9 +654,14 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 
 					@Override
 					public void save() {
+						try {
 						// Parse the commission amount using the appropriate currency object as the parser.
 						long amount = account.getWithholdingTaxAccount().getCurrency().parse(control.getText());
 						data.setWithholdingTax(amount);
+						} catch (CoreException e) {
+							StatusManager.getManager().handle(e.getStatus());
+							return;
+						}
 					}
 
 					@Override
@@ -619,7 +689,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 			IndividualBlock<StockEntryData, StockEntryRowControl> commissionColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Commission", EntryInfo.getAmountAccessor().getMinimumWidth(), EntryInfo.getAmountAccessor().getWeight()) {
 
 				@Override
-				public IPropertyControl<StockEntryData> createCellControl(Composite parent, RowControl rowControl, final StockEntryRowControl coordinator) {
+				public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 					final Text control = new Text(parent, SWT.RIGHT);
 
 					final ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
@@ -667,9 +737,14 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 
 						@Override
 						public void save() {
+							try {
 							// Parse the commission amount using the appropriate currency object as the parser.
 							long amount = account.getCommissionAccount().getCurrency().parse(control.getText());
 							data.setCommission(amount);
+						} catch (CoreException e) {
+							StatusManager.getManager().handle(e.getStatus());
+							return;
+						}
 						}
 
 						@Override
@@ -697,7 +772,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 			IndividualBlock<StockEntryData, StockEntryRowControl> tax1Column = new IndividualBlock<StockEntryData, StockEntryRowControl>(account.getTax1Name(), 60, 1) {
 
 				@Override
-				public IPropertyControl<StockEntryData> createCellControl(Composite parent, RowControl rowControl, final StockEntryRowControl coordinator) {
+				public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 					final Text control = new Text(parent, SWT.RIGHT);
 
 					final ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
@@ -745,9 +820,13 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 
 						@Override
 						public void save() {
+							try {
 							// Parse the amount using the appropriate currency object as the parser.
 							long amount = account.getTax1Account().getCurrency().parse(control.getText());
 							data.setTax1Amount(amount);
+							} catch (CoreException e) {
+								StatusManager.getManager().handle(e.getStatus());
+							}
 						}
 
 						@Override
@@ -775,7 +854,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 			IndividualBlock<StockEntryData, StockEntryRowControl> tax2Column = new IndividualBlock<StockEntryData, StockEntryRowControl>(account.getTax2Name(), 60, 1) {
 
 				@Override
-				public IPropertyControl<StockEntryData> createCellControl(Composite parent, RowControl rowControl, final StockEntryRowControl coordinator) {
+				public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 					final Text control = new Text(parent, SWT.RIGHT);
 
 					final ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
@@ -823,9 +902,14 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 
 						@Override
 						public void save() {
+							try {
 							// Parse the amount using the appropriate currency object as the parser.
 							long amount = account.getTax2Account().getCurrency().parse(control.getText());
 							data.setTax2Amount(amount);
+							} catch (CoreException e) {
+								StatusManager.getManager().handle(e.getStatus());
+								return;
+							}
 						}
 
 						@Override
@@ -919,7 +1003,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 					}
 
 					@Override
-					public IPropertyControl<StockEntryData> createCellControl(Composite parent, final RowControl rowControl, final StockEntryRowControl coordinator) {
+					public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, final RowControl rowControl, final StockEntryRowControl coordinator) {
 						final StackControl<StockEntryData, StockEntryRowControl> control = new StackControl<StockEntryData, StockEntryRowControl>(parent, rowControl, coordinator, this);
 
 						coordinator.addTransactionTypeChangeListener(new ITransactionTypeChangeListener() {

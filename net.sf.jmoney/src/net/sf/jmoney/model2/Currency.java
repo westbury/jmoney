@@ -25,9 +25,14 @@ package net.sf.jmoney.model2;
 import java.text.NumberFormat;
 import java.text.ParseException;
 
+import net.sf.jmoney.JMoneyPlugin;
 import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ListKey;
+
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 
 
 /**
@@ -146,12 +151,13 @@ public class Currency extends Commodity {
 	}
 
 	@Override
-	public long parse(String amountString) {
+	public long parse(String amountString) throws CoreException {
 		Number amount = new Double(0);
 		try {
 			amount = getNumberFormat().parse(amountString);
 		} catch (ParseException pex) {
-			// If bad user entry, leave as zero
+			IStatus status = new Status(Status.ERROR, JMoneyPlugin.PLUGIN_ID, "'" + amountString + "' is not a valid currency amount.");
+			throw new CoreException(status);
 		}
 		return Math.round(
 				amount.doubleValue() * getScaleFactor());
@@ -167,7 +173,7 @@ public class Currency extends Commodity {
 	 * @return the scale factor for this currency (10 to the number of decimals)
 	 */
     @Override
-	public short getScaleFactor() {
+	public int getScaleFactor() {
 		return SCALE_FACTOR[decimals];
 	}
 }

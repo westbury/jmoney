@@ -44,6 +44,8 @@ import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.reconciliation.ReconciliationPlugin;
 
+import org.eclipse.core.databinding.observable.value.IValueChangeListener;
+import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.DialogMessageArea;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -87,13 +89,13 @@ import org.eclipse.swt.widgets.Table;
 /**
  * An input dialog that allows the user to configure the methods for importing statement data
  * for a particular account.
- * 
+ *
  * @author Nigel Westbury
  */
 public class ImportOptionsDialog extends Dialog {
-	
+
 	private TransactionManager transactionManager;
-	
+
 	/**
 	 * The account for which we are configuring, which is in our own transaction.
 	 */
@@ -108,13 +110,13 @@ public class ImportOptionsDialog extends Dialog {
 	AccountControl<IncomeExpenseAccount> defaultAccountControl;
 
 	Image errorImage;
-	
+
 	/**
 	 * When adding new patterns, we add to the end by default.
 	 * We must set an index that is more than all prior ordering
 	 * indexes.  This field contains the lowest integer that is
 	 * more than all existing values (or 0 if no patterns
-	 * currently exist). 
+	 * currently exist).
 	 */
 	int nextOrderingIndex;
 
@@ -124,7 +126,7 @@ public class ImportOptionsDialog extends Dialog {
 	 * <p>
 	 * Note that the <code>open</code> method blocks for input dialogs.
 	 * </p>
-	 * 
+	 *
 	 * @param parentShell
 	 *            the parent shell
 	 */
@@ -135,7 +137,7 @@ public class ImportOptionsDialog extends Dialog {
 		 * is trivial (the transaction is simply not committed).
 		 */
 		transactionManager = new TransactionManagerForAccounts(account.getDataManager());
-		ExtendableObject accountInTransaction = transactionManager.getCopyInTransaction(account.getBaseObject()); 
+		ExtendableObject accountInTransaction = transactionManager.getCopyInTransaction(account.getBaseObject());
 		this.account = accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
 
 		// Load the error indicator
@@ -167,19 +169,19 @@ public class ImportOptionsDialog extends Dialog {
 		super.configureShell(shell);
 		shell.setText("Import Options for " + account.getName());
 	}
-	
+
 	@Override
 	public boolean close() {
 		boolean closed = super.close();
-		
+
 		// Dispose the image
 		if (closed) {
 			errorImage.dispose();
 		}
-		
+
 		return closed;
 	}
-	
+
 	@Override
 	protected void createButtonsForButtonBar(Composite parent) {
 		// create OK and Cancel buttons by default
@@ -197,7 +199,7 @@ public class ImportOptionsDialog extends Dialog {
 		// Message label
 		messageArea = new DialogMessageArea();
 		messageArea.createContents(composite);
-		
+
 		// Ensure the message area is shown and fills the space
 		messageArea.setTitleLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 		messageArea.setMessageLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
@@ -206,10 +208,10 @@ public class ImportOptionsDialog extends Dialog {
 		/*
 		 * It should not be possible for there to be errors when the dialog box is first
 		 * opened, because we don't allow the user to save the data when there are errors.
-		 * However, just in case, we ensure that any errors are shown. 
+		 * However, just in case, we ensure that any errors are shown.
 		 */
 		updateErrorMessage();
-		
+
 		Label label = new Label(composite, SWT.WRAP);
 		label.setText("JMoney allows you to import bank account statements from the bank's servers. " +
 				"Before these records can be imported into JMoney, you must specify categories that are to be assigned to each entry " +
@@ -260,9 +262,9 @@ public class ImportOptionsDialog extends Dialog {
 			defaultAccountControl.setAccount(account.getDefaultCategory());
 		}
 
-		defaultAccountControl.addSelectionListener(new SelectionAdapter() {
+		defaultAccountControl.account.addValueChangeListener(new IValueChangeListener<IncomeExpenseAccount>() {
 			@Override
-			public void widgetSelected(SelectionEvent e) {
+			public void handleValueChange(ValueChangeEvent<IncomeExpenseAccount> event) {
 				IncomeExpenseAccount defaultCategory = defaultAccountControl.getAccount();
 				account.setDefaultCategory(defaultCategory);
 				updateErrorMessage();
@@ -305,7 +307,7 @@ public class ImportOptionsDialog extends Dialog {
 		// Set up the table
 		final Table table = viewer.getTable();
 		table.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-		
+
 		TableViewerFocusCellManager focusCellManager = new TableViewerFocusCellManager(viewer, new FocusCellOwnerDrawHighlighter(viewer));
 		ColumnViewerEditorActivationStrategy actSupport = new ColumnViewerEditorActivationStrategy(viewer) {
 			@Override
@@ -320,7 +322,7 @@ public class ImportOptionsDialog extends Dialog {
 
 		TableViewerEditor.create(viewer, focusCellManager, actSupport, ColumnViewerEditor.TABBING_HORIZONTAL
 				| ColumnViewerEditor.TABBING_MOVE_TO_ROW_NEIGHBOR
-				| ColumnViewerEditor.TABBING_VERTICAL 
+				| ColumnViewerEditor.TABBING_VERTICAL
 				| ColumnViewerEditor.KEYBOARD_ACTIVATION);
 
 		// Set the content and label providers
@@ -401,22 +403,22 @@ public class ImportOptionsDialog extends Dialog {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param pattern
 	 * @return null if the pattern is valid, or a string describing the error
-	 * 		if the pattern is not valid 
+	 * 		if the pattern is not valid
 	 */
 	protected String isMemoPatternValid(MemoPattern pattern) {
 		if (pattern.getPattern() == null) {
-			return "No regex pattern has been entered"; 
-		} 
+			return "No regex pattern has been entered";
+		}
 
 		try {
 			Pattern.compile(pattern.getPattern());
 		} catch (PatternSyntaxException e) {
 			return "The regex pattern is not valid: " + e.getDescription();
 		}
-		
+
 		if (pattern.getAccount() == null) {
 			return "No account has been entered";
 		}
@@ -531,7 +533,7 @@ public class ImportOptionsDialog extends Dialog {
 					} catch (ReferenceViolationException e1) {
 						MessageDialog.openError(getShell(), "Pattern in Use", "The pattern cannot be removed because it is in use else where.  " + e1.getLocalizedMessage() + "  The object referencing is " + ((ExtendablePropertySet)e1.getPropertySet()).getObjectDescription());
 					}
-				}		
+				}
 			}
 		});
 
@@ -544,7 +546,7 @@ public class ImportOptionsDialog extends Dialog {
 				IStructuredSelection ssel = (IStructuredSelection)viewer.getSelection();
 				if (ssel.size() == 1) {
 					MemoPattern thisPattern = (MemoPattern) ssel.getFirstElement();
-					
+
 					// Find the previous MemoPattern in the order.
 					MemoPattern abovePattern = null;
 					ObjectCollection<MemoPattern> patterns = account.getPatternCollection();
@@ -565,7 +567,7 @@ public class ImportOptionsDialog extends Dialog {
 					 * affected so do not request a refresh of the labels.
 					 */
 					viewer.refresh(false);
-				}		
+				}
 			}
 		});
 
@@ -578,7 +580,7 @@ public class ImportOptionsDialog extends Dialog {
 				IStructuredSelection ssel = (IStructuredSelection)viewer.getSelection();
 				if (ssel.size() == 1) {
 					MemoPattern thisPattern = (MemoPattern) ssel.getFirstElement();
-					
+
 					// Find the next MemoPattern in the order.
 					MemoPattern belowPattern = null;
 					ObjectCollection<MemoPattern> patterns = account.getPatternCollection();
@@ -609,7 +611,7 @@ public class ImportOptionsDialog extends Dialog {
 	/**
 	 * Sets or clears the error message.
 	 * If not <code>null</code>, the OK button is disabled.
-	 * 
+	 *
 	 * @param errorMessage
 	 *            the error message, or <code>null</code> to clear
 	 */
@@ -629,14 +631,14 @@ public class ImportOptionsDialog extends Dialog {
 				}
 			}
 		}
-	
+
 		if (errorMessage == null) {
 //			messageArea.clearErrorMessage();    ?????
 			messageArea.restoreTitle();
 		} else {
 			messageArea.updateText(errorMessage, IMessageProvider.ERROR);
 		}
-		
+
 		// If called during createDialogArea, the okButton
 		// will not have been created yet.
 		Button okButton = getButton(IDialogConstants.OK_ID);
@@ -663,6 +665,7 @@ public class ImportOptionsDialog extends Dialog {
 		 * Gets the elements for the table.  The elements are the MemoPattern
 		 * objects for the account.
 		 */
+		@Override
 		public Object[] getElements(Object input) {
 			PatternMatcherAccount account = (PatternMatcherAccount)input;
 			return account.getPatternCollection().toArray(new MemoPattern[0]);
@@ -671,6 +674,7 @@ public class ImportOptionsDialog extends Dialog {
 		/**
 		 * Disposes any resources
 		 */
+		@Override
 		public void dispose() {
 			// We don't create any resources, so we don't dispose any
 		}
@@ -678,6 +682,7 @@ public class ImportOptionsDialog extends Dialog {
 		/**
 		 * Called when the input changes
 		 */
+		@Override
 		public void inputChanged(Viewer arg0, Object arg1, Object arg2) {
 			// Nothing to do
 		}
@@ -691,7 +696,7 @@ public class ImportOptionsDialog extends Dialog {
 		public int compare(Viewer viewer, Object e1, Object e2) {
 			MemoPattern pattern1 = (MemoPattern) e1;
 			MemoPattern pattern2 = (MemoPattern) e2;
-			
+
 			return pattern1.getOrderingIndex() - pattern2.getOrderingIndex();
 		}
 	}

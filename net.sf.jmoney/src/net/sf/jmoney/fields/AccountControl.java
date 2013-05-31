@@ -28,8 +28,14 @@ import java.util.Comparator;
 import java.util.Vector;
 
 import net.sf.jmoney.model2.Account;
+import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Session;
 
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.conversion.Converter;
+import org.eclipse.core.databinding.conversion.IConverter;
+import org.eclipse.core.databinding.observable.value.WritableValue;
+import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusEvent;
@@ -38,7 +44,6 @@ import org.eclipse.swt.events.KeyAdapter;
 import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.events.ShellAdapter;
 import org.eclipse.swt.events.ShellEvent;
 import org.eclipse.swt.graphics.Rectangle;
@@ -55,31 +60,29 @@ import org.eclipse.swt.widgets.Text;
 
 /**
  * A control for entering accounts.
- * 
+ *
  * This control contains both a text box and a list box that appears when the
  * text box gains focus.
- * 
+ *
  * @author Nigel Westbury
  */
 public class AccountControl<A extends Account> extends AccountComposite<A> {
 
 	Text textControl;
-	
+
 	private Session session;
 	private Class<A> accountClass;
-	
+
     /**
      * List of accounts put into account list.
      */
     private Vector<A> allAccounts;
-    
+
 	/**
 	 * Currently selected account, or null if no account selected
 	 */
-	private A account;
-	
-	private Vector<SelectionListener> listeners = new Vector<SelectionListener>();
-	
+	public WritableValue<A> account = new WritableValue<A>();
+
 	/**
 	 * @param parent
 	 * @param style
@@ -90,22 +93,32 @@ public class AccountControl<A extends Account> extends AccountComposite<A> {
 		this.accountClass = accountClass;
 
 		setBackgroundMode(SWT.INHERIT_FORCE);
-		
+
 		setLayout(new FillLayout(SWT.VERTICAL));
-		
+
 		textControl = new Text(this, SWT.LEFT);
-		
+
+		IConverter<A,String> accountToTextConverter = new Converter<A,String>(Commodity.class, String.class) {
+			@Override
+			public String convert(A account) {
+				return (account == null) ? "" : account.getName();
+			}
+		};
+		Bind.oneWay(account)
+			.convert(accountToTextConverter)
+			.to(SWTObservables.observeText(textControl, SWT.Modify));
+
 		textControl.addFocusListener(new FocusListener() {
 
 			Shell shell;
 			boolean closingShell = false;
-			
+
 			@Override
 			public void focusGained(FocusEvent e) {
 				if (closingShell) {
 					return;
 				}
-				
+
 				shell = new Shell(parent.getShell(), SWT.ON_TOP);
 		        shell.setLayout(new RowLayout());
 
@@ -117,28 +130,26 @@ public class AccountControl<A extends Account> extends AccountComposite<A> {
 		        // the time control gets focus).
 		        allAccounts = new Vector<A>();
 		        addAccounts("", AccountControl.this.session.getAccountCollection(), listControl, AccountControl.this.accountClass); //$NON-NLS-1$
-		        
+
 //		        shell.setSize(listControl.computeSize(SWT.DEFAULT, listControl.getItemHeight()*10));
-		        
+
                 // Set the currently set account into the list control.
     	        listControl.select(allAccounts.indexOf(account));
-                
+
     	        listControl.addSelectionListener(
                 		new SelectionAdapter() {
-                		    @Override	
+                		    @Override
 							public void widgetSelected(SelectionEvent e) {
 								int selectionIndex = listControl.getSelectionIndex();
-								account = allAccounts.get(selectionIndex);
-								textControl.setText(account.getName());
-								fireAccountChangeEvent();
+								account.setValue(allAccounts.get(selectionIndex));
 							}
                 		});
 
     			listControl.addKeyListener(new KeyAdapter() {
     				String pattern;
     				int lastTime = 0;
-    				
-    			    @Override	
+
+    			    @Override
     				public void keyPressed(KeyEvent e) {
     					if (Character.isLetterOrDigit(e.character)) {
     						if ((e.time - lastTime) < 1000) {
@@ -147,9 +158,9 @@ public class AccountControl<A extends Account> extends AccountComposite<A> {
     							pattern = String.valueOf(Character.toUpperCase(e.character));
     						}
     						lastTime = e.time;
-    						
+
     						/*
-    						 * 
+    						 *
     						 Starting at the currently selected account,
     						 search for an account starting with these characters.
     						 */
@@ -157,7 +168,7 @@ public class AccountControl<A extends Account> extends AccountComposite<A> {
     						if (startIndex == -1) {
     							startIndex = 0;
     						}
-    						
+
     						int match = -1;
     						int i = startIndex;
     						do {
@@ -165,27 +176,26 @@ public class AccountControl<A extends Account> extends AccountComposite<A> {
     								match = i;
     								break;
     							}
-    							
+
     							i++;
     							if (i == allAccounts.size()) {
     								i = 0;
     							}
     						} while (i != startIndex);
-    						
+
     						if (match != -1) {
-    							account = allAccounts.get(match);
+    							account.setValue(allAccounts.get(match));
     							listControl.select(match);
     							listControl.setTopIndex(match);
-    							textControl.setText(account.getName());
     						}
-    						
+
     						e.doit = false;
     					}
     				}
     			});
 
     			shell.pack();
-    	        
+
     	        /*
 				 * Position the shell below the text box, unless the account
 				 * control is so near the bottom of the display that the shell
@@ -202,9 +212,9 @@ public class AccountControl<A extends Account> extends AccountComposite<A> {
     	        }
 
     	        shell.open();
-    	        
+
     	        shell.addShellListener(new ShellAdapter() {
-    			    @Override	
+    			    @Override
     	        	public void shellDeactivated(ShellEvent e) {
     	        		closingShell = true;
     	        		shell.close();
@@ -221,12 +231,6 @@ public class AccountControl<A extends Account> extends AccountComposite<A> {
 		});
 	}
 
-	private void fireAccountChangeEvent() {
-		for (SelectionListener listener: listeners) {
-			listener.widgetSelected(null);
-		}
-	}
-	
 	private void addAccounts(String prefix, Collection<? extends Account> accounts, List listControl, Class<A> accountClass) {
     	Vector<A> matchingAccounts = new Vector<A>();
         for (Account account: accounts) {
@@ -234,7 +238,7 @@ public class AccountControl<A extends Account> extends AccountComposite<A> {
         		matchingAccounts.add(accountClass.cast(account));
         	}
         }
-		
+
 		// Sort the accounts by name.
 		Collections.sort(matchingAccounts, new Comparator<Account>() {
 			@Override
@@ -242,13 +246,13 @@ public class AccountControl<A extends Account> extends AccountComposite<A> {
 				return account1.getName().compareTo(account2.getName());
 			}
 		});
-		
+
 		for (A matchingAccount: matchingAccounts) {
     		allAccounts.add(matchingAccount);
 			listControl.add(prefix + matchingAccount.getName());
     		addAccounts(prefix + matchingAccount.getName() + ":", matchingAccount.getSubAccountCollection(), listControl, accountClass); //$NON-NLS-1$
 		}
-        
+
     }
 
     /**
@@ -256,53 +260,33 @@ public class AccountControl<A extends Account> extends AccountComposite<A> {
 	 */
 	@Override
 	public void setAccount(A account) {
-		this.account = account;
-		
-		if (account == null) {
-			textControl.setText(""); //$NON-NLS-1$
-	} else {
-        textControl.setText(account.getName());
+		this.account.setValue(account);
 	}
-}
 
 	/**
 	 * @return the account, or null if no account has been set in
 	 * 				the control
 	 */
-    @Override	
+    @Override
 	public A getAccount() {
-		return account;
-	}
-
-	/**
-	 * @param listener
-	 */
-	public void addSelectionListener(SelectionListener listener) {
-		listeners.add(listener);
-	}
-
-	/**
-	 * @param listener
-	 */
-	public void removeSelectionListener(SelectionListener listener) {
-		listeners.remove(listener);
+		return account.getValue();
 	}
 
 	public Control getControl() {
 		return this;
 	}
 
-    @Override	
+    @Override
 	public void rememberChoice() {
 		// We don't remember choices, so nothing to do
-	}	
+	}
 
-    @Override	
+    @Override
 	public void init(IDialogSettings section) {
 		// No state to restore
 	}
 
-    @Override	
+    @Override
 	public void saveState(IDialogSettings section) {
 		// No state to save
 	}

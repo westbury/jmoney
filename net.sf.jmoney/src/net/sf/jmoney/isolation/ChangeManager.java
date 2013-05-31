@@ -254,7 +254,7 @@ public class ChangeManager {
 			int index = 0;
 			for (IScalarPropertyAccessor<?,? super E2> propertyAccessor : actualPropertySet
 					.getScalarProperties3()) {
-				if (index != propertyAccessor.getIndexIntoScalarProperties()) {
+				if (index != actualPropertySet.getIndexIntoScalarProperties(propertyAccessor)) {
 					throw new RuntimeException("index mismatch"); //$NON-NLS-1$
 				}
 
@@ -287,13 +287,13 @@ public class ChangeManager {
 
 				@Override
 				public <V> V getScalarValue(IScalarPropertyAccessor<V,? super E> propertyAccessor) {
-					return propertyAccessor.getClassOfValueObject().cast(oldValues[propertyAccessor.getIndexIntoScalarProperties()]);
+					return propertyAccessor.getClassOfValueObject().cast(oldValues[actualPropertySet.getIndexIntoScalarProperties(propertyAccessor)]);
 				}
 
 				@Override
 				public IObjectKey getReferencedObjectKey(
 						IReferencePropertyAccessor<? extends IModelObject,? super E> propertyAccessor) {
-					KeyProxy keyProxy = (KeyProxy)oldValues[propertyAccessor.getIndexIntoScalarProperties()];
+					KeyProxy keyProxy = (KeyProxy)oldValues[actualPropertySet.getIndexIntoScalarProperties(propertyAccessor)];
 					return keyProxy == null ? null : keyProxy.key;
 				}
 

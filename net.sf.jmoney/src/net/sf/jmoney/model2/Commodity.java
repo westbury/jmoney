@@ -27,6 +27,8 @@ import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ListKey;
 
+import org.eclipse.core.runtime.CoreException;
+
 
 /**
  *
@@ -87,9 +89,11 @@ protected Commodity(
      * @return a long value representing the amount of this commodity
      * in units that are at least as small as the smallest possible
      * quantity of the commodity.
+     *
+     * @throws CoreException if the string value does not parse
      */
 	@Override
-	public abstract long parse(String amountString);
+	public abstract long parse(String amountString) throws CoreException;
 
     /**
      * Converts an amount of this commodity from integer to string format.
@@ -103,5 +107,5 @@ protected Commodity(
 	 *
 	 * @return the scale factor for this currency (10 to the number of decimals).
 	 */
-	public abstract short getScaleFactor();
+	public abstract int getScaleFactor();
 }

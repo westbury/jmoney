@@ -22,6 +22,7 @@
 
 package net.sf.jmoney.reconciliation;
 
+import net.sf.jmoney.fields.NonEditableTextControlFactory;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
@@ -34,106 +35,65 @@ import net.sf.jmoney.model2.PropertyControlFactory;
 import net.sf.jmoney.model2.PropertySet;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.bind.IBidiConverter;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 
 /**
  * Provides the metadata for the extra properties added to each
  * entry by this plug-in.
- * 
+ *
  * @author Nigel Westbury
  */
 public class ReconciliationEntryInfo implements IPropertySetInfo {
 
 	private static ExtensionPropertySet<ReconciliationEntry,Entry> propertySet = PropertySet.addExtensionPropertySet(ReconciliationEntry.class, EntryInfo.getPropertySet(), new IExtensionObjectConstructors<ReconciliationEntry,Entry>() {
 
+		@Override
 		public ReconciliationEntry construct(Entry extendedObject) {
 			return new ReconciliationEntry(extendedObject);
 		}
 
+		@Override
 		public ReconciliationEntry construct(Entry extendedObject, IValues<Entry> values) {
 			Integer a = values.getScalarValue(getStatusAccessor());
 			BankStatement b = values.getScalarValue(getStatementAccessor());
 			String c = values.getScalarValue(getUniqueIdAccessor());
 			return new ReconciliationEntry(
-					extendedObject, 
+					extendedObject,
 					a,
 					b,
 					c
 			);
 		}
 	});
-	
+
 	private static ScalarPropertyAccessor<Integer,Entry> statusAccessor = null;
 	private static ScalarPropertyAccessor<BankStatement,Entry> statementAccessor = null;
 	private static ScalarPropertyAccessor<String,Entry> uniqueIdAccessor = null;
-	
+
+	@Override
 	public PropertySet registerProperties() {
-		class NonEditableTextControlFactory extends PropertyControlFactory<Entry,String> {
-			
-			public IPropertyControl<Entry> createPropertyControl(Composite parent, final ScalarPropertyAccessor<String,Entry> propertyAccessor) {
-				
-				// Property is not editable
-		        final Label control = new Label(parent, SWT.NONE);
-		        return new IPropertyControl<Entry>() {
-
-					public Control getControl() {
-						return control;
-					}
-
-					public void load(Entry object) {
-						String text = propertyAccessor.getValue(object);
-						if (text == null) {
-							control.setText("");
-						} else {
-							control.setText(text);
-						}
-					}
-
-					public void save() {
-						/*
-						 * The property is not editable so there is nothing
-						 * to do here.
-						 */
-					}
-		        };
-			}
-
-			@Override
-			public String formatValueForMessage(Entry extendableObject, ScalarPropertyAccessor<? extends String,Entry> propertyAccessor) {
-				String value = propertyAccessor.getValue(extendableObject);
-				return (value == null) ? "<blank>" : value;
-			}
-
-			@Override
-			public String formatValueForTable(Entry extendableObject, ScalarPropertyAccessor<? extends String,Entry> propertyAccessor) {
-				String value = propertyAccessor.getValue(extendableObject);
-				return (value == null) ? "" : value;
-			}
-
-			public String getDefaultValue() {
-				return null;
-			}
-
-			public boolean isEditable() {
-				return true;
-			}
-		}
 
 		IPropertyControlFactory<Entry,BankStatement> statementControlFactory = new PropertyControlFactory<Entry,BankStatement>() {
+			@Override
 			public IPropertyControl<Entry> createPropertyControl(Composite parent, final ScalarPropertyAccessor<BankStatement,Entry> propertyAccessor) {
 		        final Text control = new Text(parent, SWT.NONE);
 		        return new IPropertyControl<Entry>() {
 
 		        	private Entry object;
-		        	
+
+					@Override
 					public Control getControl() {
 						return control;
 					}
 
+					@Override
 					public void load(Entry object) {
 						this.object = object;
 						BankStatement statement = propertyAccessor.getValue(object);
@@ -144,19 +104,58 @@ public class ReconciliationEntryInfo implements IPropertySetInfo {
 						}
 					}
 
+					@Override
 					public void save() {
 						// TODO: make this more robust.
-						// And the control is better if a Combo.
+						// And the control is better if a CCombo.
 						String text = control.getText();
 						BankStatement value;
-						if (text.length() == 0) {
+						if (text.trim().isEmpty()) {
 							value = null;
 						} else {
-							value = new BankStatement(control.getText());
+							value = new BankStatement(text);
 						}
 						propertyAccessor.setValue(object, value);
 					}
 		        };
+			}
+
+			@Override
+			public Control createPropertyControl(
+					Composite parent,
+					ScalarPropertyAccessor<BankStatement, Entry> propertyAccessor,
+					IObservableValue<? extends Entry> modelObservable) {
+		        final Text propertyControl = new Text(parent, SWT.NONE);
+
+		        IBidiConverter<BankStatement,String> integerToStringConverter = new IBidiConverter<BankStatement,String>() {
+					@Override
+					public String modelToTarget(BankStatement fromValue) {
+				    	if (fromValue == null) {
+				    		return ""; //$NON-NLS-1$
+				    	} else {
+				    		return fromValue.toString();
+				    	}
+					}
+
+					@Override
+					public BankStatement targetToModel(String text) {
+						// TODO: make this more robust.
+						// And the control is better if a CCombo.
+						BankStatement value;
+						if (text.trim().isEmpty()) {
+							value = null;
+						} else {
+							value = new BankStatement(text);
+						}
+						return value;
+					}
+				};
+
+				Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
+				.convert(integerToStringConverter)
+				.to(SWTObservables.observeText(propertyControl, SWT.Modify));
+
+				return propertyControl;
 			}
 
 			@Override
@@ -179,21 +178,23 @@ public class ReconciliationEntryInfo implements IPropertySetInfo {
 				}
 			}
 
+			@Override
 			public BankStatement getDefaultValue() {
 				// By default, not on any statement (unreconciled)
 				return null;
 			}
 
+			@Override
 			public boolean isEditable() {
 				return true;
 			}
 		};
-		
+
 		// TODO: correct localized text:
 		statusAccessor    = propertySet.addProperty("status", ReconciliationPlugin.getResourceString("Entry.statusShort"), Integer.class, 1, 30, new StatusControlFactory(), null);
 		statementAccessor = propertySet.addProperty("statement", ReconciliationPlugin.getResourceString("Entry.statementShort"), BankStatement.class, 1, 80, statementControlFactory, null);
 		uniqueIdAccessor  = propertySet.addProperty("uniqueId", ReconciliationPlugin.getResourceString("Entry.uniqueIdShort"), String.class, 1, 80, new NonEditableTextControlFactory(), null);
-		
+
 		return propertySet;
 	}
 
@@ -216,7 +217,7 @@ public class ReconciliationEntryInfo implements IPropertySetInfo {
 	 */
 	public static ScalarPropertyAccessor<BankStatement,Entry> getStatementAccessor() {
 		return statementAccessor;
-	}	
+	}
 
 	/**
 	 * @return

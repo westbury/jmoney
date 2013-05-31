@@ -15,4 +15,7 @@ Require-Bundle: org.eclipse.ui,
  net.sf.jmoney,
  net.sf.jmoney.reconciliation,
  net.sf.jmoney.importer;bundle-version="1.0.0",
- org.eclipse.core.databinding.property
+ org.eclipse.core.databinding.property,
+ org.eclipse.core.databinding.observable;bundle-version="1.5.0",
+ org.eclipse.jface.databinding;bundle-version="1.7.0",
+ org.eclipse.core.databinding;bundle-version="1.5.0"

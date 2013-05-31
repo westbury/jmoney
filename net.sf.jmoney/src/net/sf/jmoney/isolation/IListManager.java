@@ -22,7 +22,7 @@
 
 package net.sf.jmoney.isolation;
 
-import java.util.Collection;
+import java.util.Set;
 
 
 /**
@@ -30,16 +30,16 @@ import java.util.Collection;
  * a list of child objects within the model.  That is, whenever
  * an object in the model contains a list of child objects, that
  * list is managed by an implementation of this interface.
- * 
+ *
  * @param E type of the elements in this list
  */
-public interface IListManager<E extends IModelObject> extends Collection<E> {
+public interface IListManager<E extends IModelObject> extends Set<E> {
 
 	/**
 	 * This method creates a new object in this collection
 	 * in the datastore.  The new object will be initialized
 	 * with default values.
-	 * 
+	 *
 	 * @param propertySet the property set of the object to create
 	 * 			(this parameter is required because some lists
 	 * 			contain objects of a derivable type, in which case
@@ -52,12 +52,12 @@ public interface IListManager<E extends IModelObject> extends Collection<E> {
 	 * This method creates a new object in this collection
 	 * in the datastore.  The new object will be initialized
 	 * with property values taken from the given interface.
-	 * 
-	 * @param values values to be set in the properties of the new object 
+	 *
+	 * @param values values to be set in the properties of the new object
 	 * @return the newly created object.
 	 */
 	<F extends E> F createNewElement(IExtendablePropertySet<F> propertySet, IValues<F> values);
-	
+
 	/**
 	 * Deletes the given object from this list. Because objects are 'owned' by
 	 * the lists, removing it from the list means deleting the object altogether
@@ -69,19 +69,19 @@ public interface IListManager<E extends IModelObject> extends Collection<E> {
 	 * violation, and return <code>false</code>. If the data-store is serialized
 	 * to/from a file then the implementation must check for references before
 	 * attempting the delete.
-	 * 
+	 *
 	 * @param element
 	 * @return true if the element was deleted, false if it could not be deleted
 	 *         because there were references to it
 	 */
 	void deleteElement(E element) throws ReferenceViolationException;
-	
+
 	/**
 	 * Moves the given object into this list, removing it from its
 	 * original list.
-	 * 
+	 *
 	 * @param element
-	 * @param originalList 
+	 * @param originalList
 	 */
 	<F extends E> void moveElement(F element, IListManager<? super F> originalList);
 }

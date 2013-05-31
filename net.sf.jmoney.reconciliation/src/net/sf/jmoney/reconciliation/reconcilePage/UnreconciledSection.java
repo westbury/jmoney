@@ -60,6 +60,7 @@ import net.sf.jmoney.reconciliation.ReconciliationEntryInfo;
 import net.sf.jmoney.reconciliation.ReconciliationPlugin;
 import net.sf.jmoney.reconciliation.resources.Messages;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.util.LocalSelectionTransfer;
@@ -106,6 +107,7 @@ public class UnreconciledSection extends SectionPart {
 		this.toolkit = toolkit;
 
 		unreconciledTableContents = new IEntriesContent() {
+			@Override
 			public Collection<Entry> getEntries() {
 				/* The caller always sorts, so there is no point in us returning
 				 * sorted results.  It may be at some point we decide it is more
@@ -130,6 +132,7 @@ public class UnreconciledSection extends SectionPart {
 				return requiredEntries;
 			}
 
+			@Override
 			public boolean isEntryInTable(Entry entry) {
 				// This entry is to be shown if the account
 				// matches and no statement is set.
@@ -138,11 +141,13 @@ public class UnreconciledSection extends SectionPart {
 				&& statement == null;
 			}
 
+			@Override
 			public boolean filterEntry(EntryData data) {
 				// No filter here, so entries always match
 				return true;
 			}
 
+			@Override
 			public long getStartBalance() {
 				// TODO: figure out how we keep this up to date.
 				// The EntriesTree class has no mechanism for refreshing
@@ -150,6 +155,7 @@ public class UnreconciledSection extends SectionPart {
 				return 0;
 			}
 
+			@Override
 			public Entry createNewEntry(Transaction newTransaction) {
 				Entry entryInTransaction = newTransaction.createEntry();
 				Entry otherEntry = newTransaction.createEntry();
@@ -193,6 +199,7 @@ public class UnreconciledSection extends SectionPart {
 		URL installURL = ReconciliationPlugin.getDefault().getBundle().getEntry("/icons/reconcile.gif");
 		final Image reconcileImage = ImageDescriptor.createFromURL(installURL).createImage();
 		parent.addDisposeListener(new DisposeListener(){
+			@Override
 			public void widgetDisposed(DisposeEvent e) {
 				reconcileImage.dispose();
 			}
@@ -200,7 +207,7 @@ public class UnreconciledSection extends SectionPart {
 
 		CellBlock<EntryData, EntryRowControl> reconcileButton = new CellBlock<EntryData, EntryRowControl>(20, 0) {
 			@Override
-			public IPropertyControl<EntryData> createCellControl(Composite parent, RowControl rowControl, final EntryRowControl coordinator) {
+			public IPropertyControl<EntryData> createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, final EntryRowControl coordinator) {
 				ButtonCellControl cellControl = new ButtonCellControl(parent, coordinator, reconcileImage, "Reconcile this Entry to the above Statement") {
 					@Override
 					protected void run(EntryRowControl rowControl) {
@@ -217,6 +224,7 @@ public class UnreconciledSection extends SectionPart {
 				dragSource.setTransfer(types);
 
 				dragSource.addDragListener(new DragSourceListener() {
+					@Override
 					public void dragStart(DragSourceEvent event) {
 						Entry uncommittedEntry = coordinator.getUncommittedEntryData().getEntry();
 						UncommittedObjectKey uncommittedKey = (UncommittedObjectKey)uncommittedEntry.getObjectKey();
@@ -229,6 +237,7 @@ public class UnreconciledSection extends SectionPart {
 							event.doit = false;
 						}
 					}
+					@Override
 					public void dragSetData(DragSourceEvent event) {
 						// Provide the data of the requested type.
 						if (LocalSelectionTransfer.getTransfer().isSupportedType(event.dataType)) {
@@ -238,6 +247,7 @@ public class UnreconciledSection extends SectionPart {
 							LocalSelectionTransfer.getTransfer().setSelection(new StructuredSelection(sourceEntry));
 						}
 					}
+					@Override
 					public void dragFinished(DragSourceEvent event) {
 						if (event.detail == DND.DROP_MOVE) {
 							/*
@@ -252,6 +262,7 @@ public class UnreconciledSection extends SectionPart {
 				});
 
 				fUnreconciledEntriesControl.addDisposeListener(new DisposeListener() {
+					@Override
 					public void widgetDisposed(DisposeEvent e) {
 						dragSource.dispose();
 					}

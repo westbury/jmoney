@@ -24,9 +24,15 @@ package net.sf.jmoney.entrytable;
 
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
+import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.pages.entries.ForeignCurrencyDialog;
 
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.observable.value.ComputedValue;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.IValueChangeListener;
+import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
 import org.eclipse.swt.widgets.Composite;
 
 public class EntryRowControl extends BaseEntryRowControl<EntryData, EntryRowControl> {
@@ -38,34 +44,120 @@ public class EntryRowControl extends BaseEntryRowControl<EntryData, EntryRowCont
 	}
 
 	@Override
+	public void setInput(final EntryData inputEntryData) {
+		/*
+		 * We do this first even though it is done again when the super method
+		 * is called.  This sets the 'input' value in the base object and means
+		 * the following code can use that field.
+		 */
+		input.setValue(inputEntryData);
+
+		/*
+		 * Bind the default values if and only if this is a new transaction
+		 */
+		if (committedEntryData.getEntry() == null) {
+
+			/*
+			 * This is listening to changes from the model.  It may be that we really
+			 * only want this processing to happen if the change comes from the UI.
+			 * If the change comes through the model from somewhere else then we really
+			 * should not be doing this.  However it is not currently a problem because
+			 * we use transactions, and to fix it properly would require an API to listen
+			 * to bindings rather than observables.  (So we get the change only if it
+			 * originates from the target).
+			 */
+
+
+			/**
+			 * If this transaction has two entries and the commodities of the two entries
+			 * are not known to be different then the other entry is the value of this observable,
+			 * otherwise this observable has a value of null.
+			 */
+			// TODO none of the getters in the following are tracked.  They need to be.
+			IObservableValue<Entry> otherEntryObservable = new ComputedValue<Entry>() {
+				@Override
+				protected Entry calculate() {
+					if (!inputEntryData.hasSplitEntries()) {
+						Entry entry = inputEntryData.getEntry();
+						Entry otherEntry = inputEntryData.getOtherEntry();
+						Commodity commodity1 = entry.getCommodityInternal();
+						Commodity commodity2 = otherEntry.getCommodityInternal();
+						if (commodity1 == null || commodity2 == null || commodity1.equals(commodity2)) {
+							return otherEntry;
+						}
+					}
+					return null;
+				}
+			};
+
+			if (otherEntryObservable.getValue() != null) {
+				Entry entry = inputEntryData.getEntry();
+				Entry otherEntry = inputEntryData.getOtherEntry();
+
+				final IObservableValue<Long> target = EntryInfo.getAmountAccessor().observe(otherEntry);
+				final IObservableValue<Long> source = EntryInfo.getAmountAccessor().observe(entry);
+				IObservableValue<Long> sourceNegated = new ComputedValue<Long>() {
+					@Override
+					protected Long calculate() {
+						return -source.getValue();
+					}
+				};
+
+				Bind.oneWay(sourceNegated).untilTargetChanges().to(target);
+
+				/*
+				 * If any changes happen to the transaction which mean the other entry is no longer
+				 * a suitable target, even if another entry should happen to become a suitable target,
+				 * then we stop the binding.
+				 *
+				 * The way to stop a binding is to dispose the target observable.
+				 */
+				otherEntryObservable.addValueChangeListener(new IValueChangeListener<Entry>() {
+					@Override
+					public void handleValueChange(
+							ValueChangeEvent<Entry> event) {
+						if (!target.isDisposed()) {
+							target.dispose();
+						}
+					}
+				});
+			}
+
+//			inputEntryData.netAmount.addValueChangeListener(new IValueChangeListener<Long>() {
+//				@Override
+//				public void handleValueChange(ValueChangeEvent event) {
+//					if (!inputEntryData.hasSplitEntries()) {
+//						Entry entry = inputEntryData.getEntry();
+//						Entry otherEntry = inputEntryData.getOtherEntry();
+//						Commodity commodity1 = entry.getCommodityInternal();
+//						Commodity commodity2 = otherEntry.getCommodityInternal();
+//						if (commodity1 == null || commodity2 == null || commodity1.equals(commodity2)) {
+//							otherEntry.setAmount(-entry.getAmount());
+//						}
+//					}
+//				}
+//			});
+
+		}
+
+		/*
+		 * This must be called after we have set our own stuff up.  The reason
+		 * being that this call loads controls (such as the stock price control).
+		 * These controls will not load correctly if this object is not set up.
+		 */
+		super.setInput(inputEntryData);
+	}
+
+	@Override
 	protected EntryData createUncommittedEntryData(Entry entryInTransaction,
 			TransactionManagerForAccounts transactionManager) {
-		EntryData entryData = new EntryData(entryInTransaction, transactionManager);
+		final EntryData entryData = new EntryData(entryInTransaction, transactionManager);
 		return entryData;
 	}
 
 	@Override
 	protected EntryRowControl getThis() {
 		return this;
-	}
-
-	@Override
-	public void amountChanged() {
-		
-		// If there are two entries in the transaction and
-		// if both entries have accounts in the same currency or
-		// one or other account is not known or one or other account
-		// is a multi-currency account then we set the amount in
-		// the other entry to be the same but opposite signed amount.
-		Entry entry = uncommittedEntryData.getEntry();
-		if (entry.getTransaction().hasTwoEntries()) {
-			Entry otherEntry = entry.getTransaction().getOther(entry);
-			Commodity commodity1 = entry.getCommodityInternal();
-			Commodity commodity2 = otherEntry.getCommodityInternal();
-			if (commodity1 == null || commodity2 == null || commodity1.equals(commodity2)) {
-				otherEntry.setAmount(-entry.getAmount());
-			}
-		}
 	}
 
 	@Override
@@ -101,4 +193,4 @@ public class EntryRowControl extends BaseEntryRowControl<EntryData, EntryRowCont
 		}
 	}
 }
-	
+

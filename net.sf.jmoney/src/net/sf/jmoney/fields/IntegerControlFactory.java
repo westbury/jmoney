@@ -29,13 +29,18 @@ import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.bind.IBidiConverter;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
 
 /**
  * A control factory for integer properties.
- * 
+ *
  * @author Nigel Westbury
  */
 public class IntegerControlFactory<S extends ExtendableObject> implements IPropertyControlFactory<S,Integer> {
@@ -45,10 +50,42 @@ public class IntegerControlFactory<S extends ExtendableObject> implements IPrope
         return new IntegerEditor<S>(parent, 0, propertyAccessor);
     }
 
-   @Override
-public String formatValueForMessage(S extendableObject, ScalarPropertyAccessor<? extends Integer,S> propertyAccessor) {
-	   Integer value = propertyAccessor.getValue(extendableObject);
-       return value.toString();
+    @Override
+	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<Integer,S> propertyAccessor, IObservableValue<? extends S> modelObservable) {
+    	Text propertyControl = new Text(parent, SWT.NONE);
+
+    	IBidiConverter<Integer,String> integerToStringConverter = new IBidiConverter<Integer,String>() {
+			@Override
+			public String modelToTarget(Integer fromValue) {
+		    	if (fromValue == null) {
+		    		return ""; //$NON-NLS-1$
+		    	} else {
+		    		return fromValue.toString();
+		    	}
+			}
+
+			@Override
+			public Integer targetToModel(String text) {
+		        try {
+		        	return Integer.parseInt(text);
+		        } catch (IllegalArgumentException e) {
+		        	// TODO show validation errors
+		        	return null;
+		        }
+			}
+		};
+
+		Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
+		.convert(integerToStringConverter)
+		.to(SWTObservables.observeText(propertyControl, SWT.Modify));
+
+		return propertyControl;
+    }
+
+    @Override
+    public String formatValueForMessage(S extendableObject, ScalarPropertyAccessor<? extends Integer,S> propertyAccessor) {
+    	Integer value = propertyAccessor.getValue(extendableObject);
+    	return value.toString();
     }
 
     @Override
@@ -80,7 +117,7 @@ public String formatValueForMessage(S extendableObject, ScalarPropertyAccessor<?
 
 /**
  * A property control to handle generic integer input.
- * 
+ *
  * @author Nigel Westbury
  */
 class IntegerEditor<S extends ExtendableObject> implements IPropertyControl<S> {

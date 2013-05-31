@@ -1,5 +1,8 @@
 package net.sf.jmoney.model2;
 
+
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 
@@ -11,9 +14,8 @@ public abstract class CommodityControlFactory<S extends ExtendableObject, P> ext
 
 	@Override
 	public IPropertyControl<S> createPropertyControl(Composite parent, final ScalarPropertyAccessor<Commodity,S> propertyAccessor) {
-
 		final CommodityControl<Commodity> control = new CommodityControl<Commodity>(parent, null, Commodity.class);
-		
+
 		return new IPropertyControl<S>() {
 
 			private S fObject;
@@ -26,7 +28,7 @@ public abstract class CommodityControlFactory<S extends ExtendableObject, P> ext
 			@Override
 			public void load(S object) {
 		        fObject = object;
-		        
+
 		        control.setSession(object.getSession(), propertyAccessor.getClassOfValueObject());
 		        control.setCommodity(propertyAccessor.getValue(object));
 			}
@@ -35,7 +37,18 @@ public abstract class CommodityControlFactory<S extends ExtendableObject, P> ext
 			public void save() {
 				Commodity commodity = control.getCommodity();
 				propertyAccessor.setValue(fObject, commodity);
-			}};
+			}
+		};
+	}
+
+	@Override
+	public Control createPropertyControl(Composite parent, final ScalarPropertyAccessor<Commodity,S> propertyAccessor, IObservableValue<? extends S> modelObservable) {
+		CommodityControl<Commodity> control = new CommodityControl<Commodity>(parent, null, Commodity.class);
+
+		Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
+		.to(control.commodity);
+
+		return control;
 	}
 
 	@Override

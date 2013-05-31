@@ -25,22 +25,17 @@ package net.sf.jmoney.stocks.model;
 import java.util.Date;
 
 import net.sf.jmoney.fields.AmountControlFactory;
-import net.sf.jmoney.fields.AmountEditor;
 import net.sf.jmoney.fields.CurrencyControlFactory;
 import net.sf.jmoney.fields.DateControlFactory;
 import net.sf.jmoney.fields.IntegerControlFactory;
-import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IObjectKey;
-import net.sf.jmoney.isolation.IScalarPropertyAccessor;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ListKey;
-import net.sf.jmoney.isolation.SessionChangeAdapter;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.CommodityInfo;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.IExtendableObjectConstructors;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.IPropertySetInfo;
 import net.sf.jmoney.model2.IReferenceControlFactory;
@@ -49,13 +44,11 @@ import net.sf.jmoney.model2.ReferencePropertyAccessor;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.stocks.StocksPlugin;
 
-import org.eclipse.swt.widgets.Composite;
-
 /**
  * The class descriptor for the Bond class.
  * <P>
  * @author Nigel Westbury
- * 
+ *
  */
 public class BondInfo implements IPropertySetInfo {
 
@@ -101,47 +94,18 @@ public class BondInfo implements IPropertySetInfo {
 			}
 		};
 
-		IPropertyControlFactory<Bond,Long> amountControlFactory = new AmountControlFactory<Bond>() {
-
-			@Override
-			protected Commodity getCommodity(Bond extendableObject) {
+        IPropertyControlFactory<Bond,Long> amountControlFactory = new AmountControlFactory<Bond>() {
+        	/**
+        	 * @trackedGetter
+        	 */
+		    @Override
+			protected Commodity getCommodity(Bond object) {
 				/*
 				 * All properties in this object that are amounts are in the
 				 * currency in which this bond is denominated. We therefore
 				 * return the currency in which this bond is denominated.
 				 */
-				return extendableObject.getCurrency();
-			}
-
-			@Override
-			public IPropertyControl<Bond> createPropertyControl(Composite parent,
-					ScalarPropertyAccessor<Long,Bond> propertyAccessor) {
-				final AmountEditor<Bond> editor = new AmountEditor<Bond>(parent, propertyAccessor, this);
-
-				// The format of the amount will change if either
-				// the currency property of this bond changes or if
-				// any of the properties in the currency change.
-				editor.setListener(new SessionChangeAdapter() {
-					@Override
-					public void objectChanged(IModelObject changedObject, IScalarPropertyAccessor changedProperty, Object oldValue, Object newValue) {
-						Bond bond = (Bond)editor.getObject();
-						if (bond == null) {
-							return;
-						}
-						// Has the currency property of the bond changed?
-						if (changedObject == bond
-								&& changedProperty == BondInfo.getCurrencyAccessor()) {
-							editor.updateCommodity(bond.getCurrency());
-						}
-						// If any property in the commodity object changed then
-						// the format of the amount might also change.
-						if (changedObject == bond.getCurrency()) {
-							editor.updateCommodity(bond.getCurrency());
-						}
-					}
-				});
-
-				return editor;
+				return object.getCurrency();
 			}
 		};
 

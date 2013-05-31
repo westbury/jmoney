@@ -31,6 +31,12 @@ import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.stocks.wizards.NewStockWizard;
 
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.conversion.Converter;
+import org.eclipse.core.databinding.conversion.IConverter;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.WritableValue;
+import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.jface.window.Window;
 import org.eclipse.jface.wizard.WizardDialog;
 import org.eclipse.swt.SWT;
@@ -38,7 +44,6 @@ import org.eclipse.swt.events.KeyAdapter;
 import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.events.ShellAdapter;
 import org.eclipse.swt.events.ShellEvent;
 import org.eclipse.swt.events.ShellListener;
@@ -76,11 +81,9 @@ public class SecurityControl<A extends Security> extends Composite {
     private Vector<A> allSecurities;
 
 	/**
-	 * Currently selected security, or null if no security selected
+	 * Currently selected commodity, or null if no commodity selected
 	 */
-	private A security;
-
-	private final Vector<SelectionListener> listeners = new Vector<SelectionListener>();
+	public final WritableValue<A> commodity = new WritableValue<A>();
 
 	/**
 	 * @param parent
@@ -96,6 +99,16 @@ public class SecurityControl<A extends Security> extends Composite {
 		setLayout(new FillLayout(SWT.VERTICAL));
 
 		textControl = new Text(this, SWT.LEFT);
+
+		IConverter<A,String> commodityToTextConverter = new Converter<A,String>(Commodity.class, String.class) {
+			@Override
+			public String convert(A commodity) {
+				return (commodity == null) ? "" : commodity.getName();
+			}
+		};
+		Bind.oneWay(commodity)
+			.convert(commodityToTextConverter)
+			.to(SWTObservables.observeText(textControl, SWT.Modify));
 
 		textControl.addKeyListener(new KeyAdapter() {
 
@@ -165,16 +178,14 @@ public class SecurityControl<A extends Security> extends Composite {
 //        shell.setSize(listControl.computeSize(SWT.DEFAULT, listControl.getItemHeight()*10));
 
         // Set the currently set security into the list control.
-        listControl.select(allSecurities.indexOf(security));
+        listControl.select(allSecurities.indexOf(commodity.getValue()));
 
         listControl.addSelectionListener(
         		new SelectionAdapter() {
         		    @Override
 					public void widgetSelected(SelectionEvent e) {
 						int selectionIndex = listControl.getSelectionIndex();
-						security = allSecurities.get(selectionIndex);
-						textControl.setText(security.getName());
-						fireSecurityChangeEvent();
+						commodity.setValue(allSecurities.get(selectionIndex));
 					}
         		});
 
@@ -217,10 +228,9 @@ public class SecurityControl<A extends Security> extends Composite {
 					} while (i != startIndex);
 
 					if (match != -1) {
-						security = allSecurities.get(match);
+						commodity.setValue(allSecurities.get(match));
 						listControl.select(match);
 						listControl.setTopIndex(match);
-						textControl.setText(security.getName());
 					}
 
 					e.doit = false;
@@ -275,12 +285,6 @@ public class SecurityControl<A extends Security> extends Composite {
         });
 	}
 
-	private void fireSecurityChangeEvent() {
-		for (SelectionListener listener: listeners) {
-			listener.widgetSelected(null);
-		}
-	}
-
 	private void addSecurities(String prefix, Collection<? extends Commodity> securities, List listControl, Class<A> securityClass) {
     	Vector<A> matchingSecurities = new Vector<A>();
         for (Commodity security: securities) {
@@ -308,13 +312,7 @@ public class SecurityControl<A extends Security> extends Composite {
 	 * @param object
 	 */
 	public void setSecurity(A security) {
-		this.security = security;
-
-		if (security == null) {
-			textControl.setText("");
-		} else {
-			textControl.setText(security.getName());
-		}
+		commodity.setValue(security);
 	}
 
 	/**
@@ -322,21 +320,11 @@ public class SecurityControl<A extends Security> extends Composite {
 	 * 				the control
 	 */
 	public A getSecurity() {
-		return security;
+		return commodity.getValue();
 	}
 
-	/**
-	 * @param listener
-	 */
-	public void addSelectionListener(SelectionListener listener) {
-		listeners.add(listener);
-	}
-
-	/**
-	 * @param listener
-	 */
-	public void removeSelectionListener(SelectionListener listener) {
-		listeners.remove(listener);
+	public IObservableValue<A> commodity() {
+		return commodity;
 	}
 
 	public Control getControl() {

@@ -22,6 +22,8 @@
 
 package net.sf.jmoney.model2;
 
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.HashMap;
@@ -83,6 +85,43 @@ public abstract class ExtendableObject implements IModelObject, IAdaptable {
 	protected ListKey parentKey;
 
 	protected abstract String getExtendablePropertySetId();
+
+	/**
+	 * We currently support both Bean properties and our own listener
+	 * framework.  The Bean system is used by data binding only.  Data
+	 * binding can be configured to use other listener frameworks
+	 * and this may be done as some point because the Bean framework is
+	 * not very efficient when you need to listen for changes to thousands
+	 * of objects.
+	 */
+	private PropertyChangeSupport propertyChangeSupport = new PropertyChangeSupport(
+			this);
+
+	public void addPropertyChangeListener(PropertyChangeListener listener) {
+		propertyChangeSupport.addPropertyChangeListener(listener);
+	}
+
+	public void addPropertyChangeListener(String propertyName,
+			PropertyChangeListener listener) {
+		propertyChangeSupport.addPropertyChangeListener(propertyName,
+				listener);
+	}
+
+	public void removePropertyChangeListener(PropertyChangeListener listener) {
+		propertyChangeSupport.removePropertyChangeListener(listener);
+	}
+
+	public void removePropertyChangeListener(String propertyName,
+			PropertyChangeListener listener) {
+		propertyChangeSupport.removePropertyChangeListener(propertyName,
+				listener);
+	}
+
+	protected void firePropertyChange(String propertyName, Object oldValue,
+			Object newValue) {
+		propertyChangeSupport.firePropertyChange(propertyName, oldValue,
+				newValue);
+	}
 
 	/**
 	 * Constructs a new object with property values obtained from
@@ -311,6 +350,16 @@ public abstract class ExtendableObject implements IModelObject, IAdaptable {
             			listener.performRefresh();
             		}
            		});
+
+		/*
+		 * Fire the Bean listener. Do this only if the property is not in an
+		 * extension. If it is in an extension then the listeners are kept
+		 * separately in each extension object and are fired by the
+		 * ExtensionObject (as this is required by the Bean framework).
+		 */
+		if (!propertyAccessor.getPropertySet().isExtension()) {
+			firePropertyChange(propertyAccessor.localName, oldValue, newValue);
+		}
 	}
 
 	/**

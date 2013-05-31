@@ -22,6 +22,7 @@
 
 package net.sf.jmoney.stocks.model;
 
+import java.text.MessageFormat;
 import java.util.Comparator;
 
 import net.sf.jmoney.fields.AccountControlFactory;
@@ -33,7 +34,6 @@ import net.sf.jmoney.isolation.ListKey;
 import net.sf.jmoney.model2.AccountInfo;
 import net.sf.jmoney.model2.CapitalAccountInfo;
 import net.sf.jmoney.model2.Currency;
-import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.IExtendableObjectConstructors;
 import net.sf.jmoney.model2.IPropertyControl;
@@ -46,7 +46,14 @@ import net.sf.jmoney.model2.ReferencePropertyAccessor;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.stocks.resources.Messages;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.jface.window.Window;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 
 /**
  * This class implements an extension to the net.sf.jmoney.fields
@@ -129,6 +136,41 @@ public class StockAccountInfo implements IPropertySetInfo {
 			@Override
 			public IPropertyControl<StockAccount> createPropertyControl(Composite parent, ScalarPropertyAccessor<RatesTable,StockAccount> propertyAccessor) {
 				return new RatesEditor(parent, propertyAccessor);
+			}
+
+			@Override
+			public Control createPropertyControl(
+					final Composite parent,
+					final ScalarPropertyAccessor<RatesTable, StockAccount> ratesPropertyAccessor,
+					final IObservableValue<? extends StockAccount> modelObservable) {
+				Button control = new Button(parent, SWT.PUSH);
+				control.setText("Setup...");
+				control.addSelectionListener(new SelectionAdapter() {
+					@Override
+					public void widgetSelected(SelectionEvent e) {
+
+						StockAccount account = modelObservable.getValue();
+
+						Object[] messageArgs = new Object[] {
+								ratesPropertyAccessor.getDisplayName(),
+								account.getName()
+						};
+						String title = new MessageFormat("Setup {0} rates for {1}", java.util.Locale.US).format(messageArgs);
+
+
+						RatesDialog dialog = new RatesDialog(parent.getShell(), title, ratesPropertyAccessor.getValue(account), account.getCurrency());
+						if (dialog.open() == Window.OK) {
+							ratesPropertyAccessor.setValue(account, dialog.getRates());
+						}
+					}
+				});
+
+				/*
+				 * No binding at all is needed. The data are always fetched and
+				 * saved when the user pressed the button.
+				 */
+
+				return control;
 			}
 
 			@Override

@@ -38,6 +38,8 @@ import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
@@ -47,6 +49,7 @@ import org.eclipse.swt.events.TraverseListener;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
+import org.eclipse.ui.statushandlers.StatusManager;
 
 /**
  * Represents a table column that is either the debit or the credit column. Use
@@ -59,7 +62,7 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry, SplitEntryR
 	private class DebitAndCreditCellControl implements ICellControl2<Entry> {
 		private Text textControl;
 		private Entry entry = null;
-		
+
 		private SessionChangeListener amountChangeListener = new SessionChangeAdapter() {
 			@Override
 			public void objectChanged(IModelObject changedObject, IScalarPropertyAccessor changedProperty, Object oldValue, Object newValue) {
@@ -92,7 +95,7 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry, SplitEntryR
 	    	if (entry != null) {
 	    		entry.getDataManager().removeChangeListener(amountChangeListener);
 	    	}
-	    	
+
 			entry = data;
 
         	/*
@@ -100,7 +103,7 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry, SplitEntryR
         	 * of this property.
         	 */
 			entry.getDataManager().addChangeListener(amountChangeListener);
-			
+
 			setControlContent();
 		}
 
@@ -118,17 +121,17 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry, SplitEntryR
 			if (commodityForFormatting == null) {
 				commodityForFormatting = commodity;
 			}
-			
+
 			if (isDebit) {
 				// Debit column
-				textControl.setText(amount < 0 
-						? commodityForFormatting.format(-amount) 
+				textControl.setText(amount < 0
+						? commodityForFormatting.format(-amount)
 								: "" //$NON-NLS-1$
 				);
 			} else {
 				// Credit column
-				textControl.setText(amount > 0 
-						? commodityForFormatting.format(amount) 
+				textControl.setText(amount > 0
+						? commodityForFormatting.format(amount)
 								: "" //$NON-NLS-1$
 				);
 			}
@@ -149,7 +152,13 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry, SplitEntryR
 			}
 
 			String amountString = textControl.getText();
-			long amount = commodityForFormatting.parse(amountString);
+			long amount;
+			try {
+				amount = commodityForFormatting.parse(amountString);
+			} catch (CoreException e) {
+				StatusManager.getManager().handle(e.getStatus());
+				return;
+			}
 
 			long previousEntryAmount = entry.getAmount();
 			long newEntryAmount;
@@ -158,7 +167,7 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry, SplitEntryR
 				if (amount != 0) {
 					newEntryAmount = -amount;
 				} else {
-					if (previousEntryAmount < 0) { 
+					if (previousEntryAmount < 0) {
 						newEntryAmount  = 0;
 					} else {
 						newEntryAmount = previousEntryAmount;
@@ -168,7 +177,7 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry, SplitEntryR
 				if (amount != 0) {
 					newEntryAmount = amount;
 				} else {
-					if (previousEntryAmount > 0) { 
+					if (previousEntryAmount > 0) {
 						newEntryAmount  = 0;
 					} else {
 						newEntryAmount = previousEntryAmount;
@@ -201,11 +210,11 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry, SplitEntryR
 	public static SplitEntryDebitAndCreditColumns createCreditColumn(Commodity commodityForFormatting) {
     	return new SplitEntryDebitAndCreditColumns("credit", Messages.SplitEntryDebitAndCreditColumns_Credit, commodityForFormatting, false);  //$NON-NLS-1$
 	}
-	
+
 	public static SplitEntryDebitAndCreditColumns createDebitColumn(Commodity commodityForFormatting) {
     	return new SplitEntryDebitAndCreditColumns("debit", Messages.SplitEntryDebitAndCreditColumns_Debit, commodityForFormatting, true);      //$NON-NLS-1$
 	}
-	
+
 	private SplitEntryDebitAndCreditColumns(String id, String name, Commodity commodity, boolean isDebit) {
 		super(name, 70, 2);
 		this.id = id;
@@ -217,12 +226,12 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry, SplitEntryR
 		return id;
 	}
 
-    @Override	
-	public IPropertyControl<Entry> createCellControl(Composite parent, RowControl rowControl, SplitEntryRowControl coordinator) {
-    	
+    @Override
+	public IPropertyControl<Entry> createCellControl(Composite parent, IObservableValue<? extends Entry> master, RowControl rowControl, SplitEntryRowControl coordinator) {
+
 		final Text textControl = new Text(parent, SWT.TRAIL);
 
-		ICellControl2<Entry> cellControl = new DebitAndCreditCellControl(textControl); 
+		ICellControl2<Entry> cellControl = new DebitAndCreditCellControl(textControl);
 
 		FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, cellControl);
 		textControl.addFocusListener(controlFocusListener);
@@ -245,7 +254,7 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry, SplitEntryR
 				}
 			}
 		});
-		
+
     	return cellControl;
 	}
 

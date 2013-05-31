@@ -29,7 +29,11 @@ import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
+import org.eclipse.core.databinding.beans.BeansObservables;
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 
 /**
  * A control factory to edit images.  Well, we don't allow the users to actually
@@ -38,7 +42,7 @@ import org.eclipse.swt.widgets.Composite;
  * is imported from a site such as Paypal or Amazon.  Few users are going to take pictures
  * of their purchases and manually attach pictures, so this is really only here for
  * completeness.
- * 
+ *
  * @author Nigel Westbury
  */
 public class ImageControlFactory<S extends ExtendableObject> implements IPropertyControlFactory<S,IBlob> {
@@ -46,6 +50,37 @@ public class ImageControlFactory<S extends ExtendableObject> implements IPropert
     @Override
 	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<IBlob,S> propertyAccessor) {
         return new ImageEditor<S>(parent, propertyAccessor);
+    }
+
+    @Override
+	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<IBlob,S> propertyAccessor, IObservableValue<? extends S> modelObservable) {
+    	ImageControl propertyControl = new ImageControl(parent);
+
+//    	IBidiConverter<IBlob,String> dateToText = new IBidiConverter<IBlob,String>() {
+//			@Override
+//			public String modelToTarget(IBlob date) {
+//		    	if (date == null) {
+//		    		return ""; //$NON-NLS-1$
+//		    	} else {
+//		    		return fIBlobFormat.format(date);
+//		    	}
+//			}
+//
+//			@Override
+//			public IBlob targetToModel(String text) {
+//		        try {
+//		        	return fDateFormat.parse(text);
+//		        } catch (IllegalArgumentException e) {
+//		        	// TODO show validation errors
+//		        	return null;
+//		        }
+//			}
+//		};
+
+		Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
+		.to(BeansObservables.observeDetailValue(modelObservable, "blob", IBlob.class));
+
+		return propertyControl;
     }
 
     @Override

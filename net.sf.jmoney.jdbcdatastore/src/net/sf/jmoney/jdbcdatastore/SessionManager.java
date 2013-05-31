@@ -838,7 +838,7 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 			
 			for (ScalarPropertyAccessor<?,?> propertyAccessor: propertySet2.getScalarProperties2()) {
 
-				if (propertyAccessor.getIndexIntoScalarProperties() != propertyIndex) {
+				if (propertySet2.getIndexIntoScalarProperties(propertyAccessor) != propertyIndex) {
 					throw new RuntimeException("index mismatch");
 				}
 				// See if the value of the property has changed.
@@ -881,7 +881,7 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 					int parameterNumber = 1;
 					for (ScalarPropertyAccessor<?,?> propertyAccessor: propertySet2.getScalarProperties2()) {
 						// See if the value of the property has changed.
-						int thisPropertyIndex = propertyAccessor.getIndexIntoScalarProperties();
+						int thisPropertyIndex = propertySet2.getIndexIntoScalarProperties(propertyAccessor);
 						Object oldValue = oldValues[thisPropertyIndex];
 						Object newValue = newValues[thisPropertyIndex];
 						thisPropertyIndex++;

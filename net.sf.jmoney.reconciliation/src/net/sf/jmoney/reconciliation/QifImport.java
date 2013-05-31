@@ -62,49 +62,50 @@ import org.eclipse.swt.widgets.Shell;
  * into the reconciliation page where the user has the ability to either edit
  * the entries manually (e.g. set the category) or drag an existing entry onto
  * this entry so to merge the two entries.
- * 
+ *
  * @author Nigel Westbury
  */
 public class QifImport implements IBankStatementSource {
-	
+
 	private static NumberFormat number = NumberFormat.getInstance(Locale.US);
-	
+
 	private Calendar calendar = Calendar.getInstance();
-	
+
 	/**
 	 * Indicates whether the QIF file uses the mm/dd/yyyy or dd/mm/yyyy format.
 	 * Set by the <code>isUSDateFormat</code> method
 	 */
 	private boolean usesUSDates;
-	
+
+	@Override
 	public Collection<EntryData> importEntries(Shell shell, CurrencyAccount account, Date defaultStartDate, Date defaultEndDate) {
 		FileDialog dialog = new FileDialog(shell);
 		dialog.setFilterExtensions(new String [] { "*.qif" } );
 		dialog.setFilterNames(new String [] { "Quicken Import Files (*.qif)" } );
 		String fileName = dialog.open();
-		
+
 		if (fileName == null) {
 			return null;
 		}
-		
+
 		File qifFile = new File(fileName);
 		Vector<EntryData> entries = new Vector<EntryData>();
-		
+
 		ImportStatementDialog dialog2 = new ImportStatementDialog(shell, defaultStartDate, defaultEndDate, null);
 		if (dialog2.open() != Dialog.OK) {
 			return null;
 		}
 		Date startDate = dialog2.getStartDate();
 		Date endDate = dialog2.getEndDate();
-		
+
 		Reader reader = null;
 		BufferedReader buffer = null;
 		try {
 			reader = new FileReader(qifFile);
 			buffer = new BufferedReader(reader);
-			
+
 			usesUSDates = isUSDateFormat(qifFile);
-			
+
 			String line = buffer.readLine();
 			if (!line.startsWith("!Type:Bank")
 					&& !line.startsWith("!Type:CCard")
@@ -118,7 +119,7 @@ public class QifImport implements IBankStatementSource {
 			// Bank of America outputs empty lines at the end
 			while (line != null && line.length() >= 1) {
 				EntryData entryData = new EntryData();
-				
+
 				do {
 					// Bank of America outputs empty lines at the end
 					if (line.length() >= 1) {
@@ -143,7 +144,7 @@ public class QifImport implements IBankStatementSource {
 							break;
 						}
 					}
-					
+
 					line = buffer.readLine();
 				} while (line.charAt(0) != '^');
 
@@ -154,7 +155,7 @@ public class QifImport implements IBankStatementSource {
 				   || entryDate.compareTo(endDate) <= 0)) {
 					entries.add(entryData);
 				}
-				
+
 				line = buffer.readLine();
 			}
 		} catch (FileNotFoundException e) {
@@ -176,21 +177,21 @@ public class QifImport implements IBankStatementSource {
 				e.printStackTrace();
 			}
 		}
-		
+
 		return entries;
 	}
-	
+
 	/**
 	 * @param line
 	 * @param currency
 	 * @return
 	 */
 	private long parseAmount(String line, Currency currency) {
-		short factor = currency.getScaleFactor();
+		int factor = currency.getScaleFactor();
 		Number n = number.parse(line, new ParsePosition(1));
 		return n == null ? 0 : Math.round(n.doubleValue() * factor);
 	}
-	
+
 	/**
 	 * Parses the date string and returns a date object: <br>
 	 * 11/2/98 ->> 11/2/1998 <br>
@@ -223,7 +224,7 @@ public class QifImport implements IBankStatementSource {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Scans a QIF file to determine whether the date format is US or
 	 * EU ie: mm/dd/yyyy or dd/mm/yyyy
@@ -238,7 +239,7 @@ public class QifImport implements IBankStatementSource {
 	 * If both formats put the dates in order then we give up
 	 * and assume US format.  This scenario would be extremely
 	 * unlikely.
-	 * 
+	 *
 	 * @param qifFile
 	 *            the file to scan
 	 * @return
@@ -246,18 +247,18 @@ public class QifImport implements IBankStatementSource {
 	 */
 	private boolean isUSDateFormat(File file) throws IOException {
 		String line;
-		
+
 		int lastDateIfUS = 0;
 		int lastDateIfEU = 0;
 		boolean usDatesInOrder = true;
 		boolean euDatesInOrder = true;
-		
+
 		Reader reader = null;
 		BufferedReader buffer = null;
 		try {
 			reader = new FileReader(file);
 			buffer = new BufferedReader(reader);
-			
+
 			line = buffer.readLine();
 			while (line != null) {
 				if (line.charAt(0) == 'D') {
@@ -270,15 +271,15 @@ public class QifImport implements IBankStatementSource {
 					if (number2 > 12) {
 						return true;
 					}
-					
+
 					int year = Integer.parseInt(st.nextToken().trim());
-					
+
 					int dateIfUS = number1*100 + number2 + year*10000;
 					if (dateIfUS < lastDateIfUS) {
 						usDatesInOrder = false;
 					}
 					lastDateIfUS = dateIfUS;
-					
+
 					int dateIfEU = number1*100 + number2 + year*10000;
 					if (dateIfEU < lastDateIfEU) {
 						euDatesInOrder = false;
@@ -296,7 +297,7 @@ public class QifImport implements IBankStatementSource {
 				reader.close();
 			}
 		}
-		
+
 		// No month or day above 12, but if the dates are in
 		// order only when we assume EU format then indicate
 		// EU format, otherwise assume US format.

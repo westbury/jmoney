@@ -25,25 +25,29 @@ package net.sf.jmoney.pricehistory;
 import java.util.Date;
 
 import net.sf.jmoney.fields.AmountControlFactory;
-import net.sf.jmoney.fields.AmountEditor;
 import net.sf.jmoney.fields.DateControlFactory;
-import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IObjectKey;
-import net.sf.jmoney.isolation.IScalarPropertyAccessor;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ListKey;
-import net.sf.jmoney.isolation.SessionChangeAdapter;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.IExtendableObjectConstructors;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.IPropertySetInfo;
 import net.sf.jmoney.model2.PropertySet;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.bind.IBidiConverter;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Text;
+import org.eclipse.ui.statushandlers.StatusManager;
 
 /**
  * This class is a listener class to the net.sf.jmoney.fields
@@ -52,12 +56,12 @@ import org.eclipse.swt.widgets.Composite;
  * This extension registers the Price properties.  By registering
  * the properties, every one can know how to display, edit, and store
  * the properties.
- * 
+ *
  * @author Nigel Westbury
  */
 public class PriceInfo implements IPropertySetInfo {
 
-	
+
 	private static ExtendablePropertySet<Price> propertySet = PropertySet.addBaseFinalPropertySet(Price.class, "Commodity Historical Price", new IExtendableObjectConstructors<Price>() {
 
 		@Override
@@ -69,15 +73,15 @@ public class PriceInfo implements IPropertySetInfo {
 		public Price construct(IObjectKey objectKey,
 				ListKey<? super Price,?> parentKey, IValues<Price> values) {
 			return new Price(
-					objectKey, 
-					parentKey, 
+					objectKey,
+					parentKey,
 					values.getScalarValue(PriceInfo.getDateAccessor()),
 					values.getScalarValue(PriceInfo.getPriceAccessor()),
 					values
 			);
 		}
 	});
-	
+
 	private static ScalarPropertyAccessor<Date,Price> dateAccessor = null;
 	private static ScalarPropertyAccessor<Long,Price> priceAccessor = null;
 
@@ -86,7 +90,7 @@ public class PriceInfo implements IPropertySetInfo {
         IPropertyControlFactory<Price,Date> dateControlFactory = new DateControlFactory<Price>();
 
         IPropertyControlFactory<Price,Long> amountControlFactory = new AmountControlFactory<Price>() {
-		    @Override	
+		    @Override
 			protected Commodity getCommodity(Price object) {
 				// If not enough information has yet been set to determine
 				// the currency of the amount in this entry, return
@@ -100,44 +104,56 @@ public class PriceInfo implements IPropertySetInfo {
 			}
 
 			@Override
-			public IPropertyControl<Price> createPropertyControl(Composite parent, ScalarPropertyAccessor<Long,Price> propertyAccessor) {
-		    	final AmountEditor<Price> editor = new AmountEditor<Price>(parent, propertyAccessor, this);
-		        
-				/*
-				 * The format of the amount will change if the currency set in
-				 * the commodity object changes.
-				 */
-		        editor.setListener(new SessionChangeAdapter() {
-		        		@Override	
-		        		public void objectChanged(IModelObject changedObject, IScalarPropertyAccessor changedProperty, Object oldValue, Object newValue) {
-		        			Price entry = (Price)editor.getObject();
-		        			if (entry == null) {
-		        			    return;
-		        			}
-		        			
-		        			Commodity commodity = (Commodity)entry.getParentKey().getObject();
-	        				Currency currency = CommodityPricingInfo.getCurrencyAccessor().getValue(commodity);
-	        				// TODO what if the currency is changed to be null?
-		        			
-		        			// Has the currency property of the parent commodity changed?
-		        			if (changedObject == commodity && changedProperty == CommodityPricingInfo.getCurrencyAccessor()) {
-								editor.updateCommodity(currency);	
-		        			}
-		        			// If any property in the currency object changed then
-		        			// the format of the amount might also change.
-		        			if (changedObject == currency) {
-		        				editor.updateCommodity(currency);	
-		        			}
-		        		}
-		        	});   	
-		        
-		        return editor;
-			}};
+			public Control createPropertyControl(Composite parent,
+					ScalarPropertyAccessor<Long,Price> propertyAccessor, final IObservableValue<? extends Price> modelObservable) {
+		    	Text propertyControl = new Text(parent, SWT.TRAIL);
+
+		    	IBidiConverter<Long,String> amountToText = new IBidiConverter<Long,String>() {
+					@Override
+					public String modelToTarget(Long fromObject) {
+						Commodity commodity = getCommodity(modelObservable.getValue());
+						return commodity.format(fromObject.longValue());
+					}
+
+					@Override
+					public Long targetToModel(String amountString) {
+						Commodity commodity = getCommodity(modelObservable.getValue());
+				        if (amountString.trim().length() == 0) {
+							/*
+							 * The text box is empty so this maps to null. The property
+							 * may be 'long' in the model and so not accept nulls.
+							 * However that is the responsibility of the binding chain
+							 * outside of this class to detect that and behave
+							 * accordingly.
+							 */
+				        	return null;
+				        } else {
+				        	try {
+				        		return commodity.parse(amountString);
+				        	} catch (CoreException e) {
+				        		StatusManager.getManager().handle(e.getStatus());
+				        		return null;
+				        	}
+				        }
+					}
+				};
+
+				Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
+				.convertWithTracking(amountToText)
+				.to(SWTObservables.observeText(propertyControl, SWT.Modify));
+
+				Bind.bounceBack(amountToText)
+				.to(SWTObservables.observeText(propertyControl, SWT.FocusOut));
+
+				return propertyControl;
+			}
+
+			};
 
 
 		dateAccessor  = propertySet.addProperty("date",  "Date",  Date.class,1, 20,  dateControlFactory,   null);
 		priceAccessor = propertySet.addProperty("price", "Price", Long.class, 2, 50, amountControlFactory, null);
-		
+
 		return propertySet;
 	}
 
@@ -153,12 +169,12 @@ public class PriceInfo implements IPropertySetInfo {
 	 */
 	public static ScalarPropertyAccessor<Date,Price> getDateAccessor() {
 		return dateAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ScalarPropertyAccessor<Long,Price> getPriceAccessor() {
 		return priceAccessor;
-	}	
+	}
 }

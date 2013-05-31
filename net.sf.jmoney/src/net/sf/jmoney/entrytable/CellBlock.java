@@ -27,6 +27,7 @@ import java.util.Collection;
 
 import net.sf.jmoney.model2.IPropertyControl;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.widgets.Composite;
@@ -44,10 +45,10 @@ public abstract class CellBlock<T,R> extends Block<T,R> {
 	 * This is not set until buildCellList is called.
 	 */
 	private int index;
-	
+
 	/**
 	 * Create a control for editing the value in this cell.
-	 * 
+	 *
 	 * @param parent the parent composite, usually being the RowControl
 	 * 		but may be a child composite in certain circumstances
 	 * @param rowControl the row control that contains this cell, this
@@ -59,7 +60,7 @@ public abstract class CellBlock<T,R> extends Block<T,R> {
 	 * 		being given a class of that type
 	 * @return an IPropertyControl wrapper around an SWT control
 	 */
-	public abstract IPropertyControl<T> createCellControl(Composite parent, RowControl rowControl, R coordinator);
+	public abstract IPropertyControl<T> createCellControl(Composite parent, IObservableValue<? extends T> input, RowControl rowControl, R coordinator);
 
 	public CellBlock(int minimumWidth, int weight) {
 		this.minimumWidth = minimumWidth;
@@ -71,7 +72,7 @@ public abstract class CellBlock<T,R> extends Block<T,R> {
 		index = startIndex;
 		return 1;
 	}
-	
+
 	@Override
 	public Collection<CellBlock<? super T,? super R>> buildCellList() {
 		ArrayList<CellBlock<? super T,? super R>> cellList = new ArrayList<CellBlock<? super T,? super R>>();

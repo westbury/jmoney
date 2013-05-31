@@ -22,48 +22,20 @@
 
 package net.sf.jmoney.fields;
 
-import net.sf.jmoney.isolation.IModelObject;
-import net.sf.jmoney.isolation.IScalarPropertyAccessor;
-import net.sf.jmoney.isolation.SessionChangeAdapter;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.CurrencyAccount;
-import net.sf.jmoney.model2.CurrencyAccountInfo;
-import net.sf.jmoney.model2.IPropertyControl;
-import net.sf.jmoney.model2.ScalarPropertyAccessor;
-
-import org.eclipse.swt.widgets.Composite;
 
 /**
  * A control factory to edit an amount of a commodity.
- * 
+ *
  * @author Nigel Westbury
  * @author Johann Gyger
  */
+// TODO make this an anonymous class
 public class AmountInCurrencyAccountControlFactory<S extends CurrencyAccount> extends AmountControlFactory<S> {
 
     @Override
-	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<Long,S> propertyAccessor) {
-    	final AmountEditor<S> editor = new AmountEditor<S>(parent, propertyAccessor, this);
-        
-        editor.setListener(new SessionChangeAdapter() {
-		    @Override	
-        	public void objectChanged(IModelObject extendableObject, IScalarPropertyAccessor changedProperty, Object oldValue, Object newValue) {
-        			if (extendableObject.equals(editor.getObject()) && changedProperty == CurrencyAccountInfo.getCurrencyAccessor()) {
-        				editor.updateCommodity((Commodity)newValue);
-        			}
-        		}
-        	});   	
-        
-        return editor;
-    }
-
-    @Override	
-    protected Commodity getCommodity(CurrencyAccount object) {
+    protected Commodity getCommodity(S object) {
     	return object.getCurrency();
     }
-
-    @Override	
-	public boolean isEditable() {
-		return true;
-	}
 }

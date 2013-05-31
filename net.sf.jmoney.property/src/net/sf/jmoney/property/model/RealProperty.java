@@ -29,7 +29,7 @@ import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 
 public class RealProperty extends Commodity {
-	
+
 	/**
 	 * The income account into which all dividends from stock in this
 	 * account are entered.
@@ -47,7 +47,7 @@ public class RealProperty extends Commodity {
 			IObjectKey rentalIncomeAccountKey,
 			IValues extensionValues) {
 		super(objectKey, parentKey, name, extensionValues);
-		
+
 		this.rentalIncomeAccountKey = rentalIncomeAccountKey;
 	}
 
@@ -65,23 +65,23 @@ public class RealProperty extends Commodity {
 	protected String getExtendablePropertySetId() {
 		return "net.sf.jmoney.property.realProperty";
 	}
-	
+
 	@Override
 	public long parse(String amountString) {
 			return Long.parseLong(amountString);
 	}
-	
+
 	@Override
 	public String format(long amount) {
 		return Long.toString(amount);
 	}
-	
+
 	/**
 	 * @return The scale factor.  Always 1 for real property for the time being.
 	 */
 	// TODO: This property should be for currency only.
 	@Override
-	public short getScaleFactor() {
+	public int getScaleFactor() {
 		return 1;
 	}
 

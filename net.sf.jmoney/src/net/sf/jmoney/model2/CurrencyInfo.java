@@ -28,7 +28,9 @@ import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ListKey;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 
 /**
  * This class is a listener class to the net.sf.jmoney.fields
@@ -43,7 +45,7 @@ import org.eclipse.swt.widgets.Composite;
  * follow the Eclipse paradigm (every one should be treated equal,
  * including oneself), these are registered through the same extension
  * point that plug-ins must also use to register their properties.
- * 
+ *
  * @author Nigel Westbury
  * @author Johann Gyger
  */
@@ -54,7 +56,7 @@ public class CurrencyInfo implements IPropertySetInfo {
 		@Override
 		public Currency construct(IObjectKey objectKey, ListKey parentKey) {
 			return new Currency(
-					objectKey, 
+					objectKey,
 					parentKey
 			);
 		}
@@ -63,8 +65,8 @@ public class CurrencyInfo implements IPropertySetInfo {
 		public Currency construct(IObjectKey objectKey,
 				ListKey<? super Currency,?> parentKey, IValues<Currency> values) {
 			return new Currency(
-					objectKey, 
-					parentKey, 
+					objectKey,
+					parentKey,
 					values.getScalarValue(CommodityInfo.getNameAccessor()),
 					values.getScalarValue(CurrencyInfo.getCodeAccessor()),
 					values.getScalarValue(CurrencyInfo.getDecimalsAccessor()),
@@ -79,10 +81,18 @@ public class CurrencyInfo implements IPropertySetInfo {
 	@Override
 	public PropertySet registerProperties() {
 		IPropertyControlFactory<Currency,String> textControlFactory = new TextControlFactory<Currency>();
-		
+
 		IPropertyControlFactory<Currency,Integer> numberControlFactory = new PropertyControlFactory<Currency,Integer>() {
 			@Override
 			public IPropertyControl<Currency> createPropertyControl(Composite parent, ScalarPropertyAccessor<Integer,Currency> propertyAccessor) {
+				// Property is not editable
+				return null;
+			}
+
+			@Override
+			public Control createPropertyControl(Composite parent,
+					ScalarPropertyAccessor<Integer, Currency> propertyAccessor,
+					IObservableValue<? extends Currency> modelObservable) {
 				// Property is not editable
 				return null;
 			}
@@ -100,7 +110,7 @@ public class CurrencyInfo implements IPropertySetInfo {
 
 		codeAccessor = propertySet.addProperty("code", Messages.CurrencyInfo_Code, String.class, 0, 8, textControlFactory, null); //$NON-NLS-1$
 		decimalsAccessor = propertySet.addProperty("decimals", Messages.CurrencyInfo_DecimalPlace, Integer.class, 0, 8, numberControlFactory, null); //$NON-NLS-1$
-		
+
 		return propertySet;
 	}
 
@@ -116,12 +126,12 @@ public class CurrencyInfo implements IPropertySetInfo {
 	 */
 	public static ScalarPropertyAccessor<String,Currency> getCodeAccessor() {
 		return codeAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ScalarPropertyAccessor<Integer,Currency> getDecimalsAccessor() {
 		return decimalsAccessor;
-	}	
+	}
 }

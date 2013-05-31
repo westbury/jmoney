@@ -28,6 +28,7 @@ import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.layout.GridData;
@@ -40,13 +41,13 @@ import org.eclipse.swt.widgets.Control;
  * entries.  If there are multiple other entries (split entries)
  * then these values are displayed in a list.  This creates variable
  * height rows.
- * 
+ *
  * @author Nigel Westbury
  */
 public class OtherEntriesPropertyBlock extends IndividualBlock<EntryData, EntryRowControl> {
 	protected ScalarPropertyAccessor<?,Entry> accessor;
 	private String id;
-	
+
 	public OtherEntriesPropertyBlock(ScalarPropertyAccessor<?,Entry> accessor) {
 		super(
 				accessor.getDisplayName(),
@@ -79,23 +80,23 @@ public class OtherEntriesPropertyBlock extends IndividualBlock<EntryData, EntryR
 		return id;
 	}
 
-    @Override	
-	public IPropertyControl<EntryData> createCellControl(Composite parent, RowControl rowControl, EntryRowControl coordinator) {
+    @Override
+	public IPropertyControl<EntryData> createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, EntryRowControl coordinator) {
 		// Because this may be multi-valued, setup the container only.
 		final Composite composite = new Composite(parent, SWT.NONE);
-		
+
 		composite.setBackgroundMode(SWT.INHERIT_FORCE);
-		
+
 		GridLayout layout = new GridLayout(1, false);
 		layout.marginHeight = 1;
 		layout.verticalSpacing = 1;
 		composite.setLayout(layout);
-		
+
 		return new IPropertyControl<EntryData>() {
 
 			private Vector<IPropertyControl> propertyControls = new Vector<IPropertyControl>();
 			private FocusListener controlFocusListener;
-			
+
 			@Override
 			public Control getControl() {
 				return composite;
@@ -108,13 +109,13 @@ public class OtherEntriesPropertyBlock extends IndividualBlock<EntryData, EntryR
 					child.dispose();
 				}
 				propertyControls.clear();
-				
+
 				for (Entry entry: data.getSplitEntries()) {
-					IPropertyControl propertyControl = accessor.createPropertyControl(composite); 
+					IPropertyControl propertyControl = accessor.createPropertyControl(composite);
 					propertyControl.load(entry);
 					propertyControls.add(propertyControl);
 
-					propertyControl.getControl().setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));					
+					propertyControl.getControl().setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
 					addFocusListenerRecursively(propertyControl.getControl(), controlFocusListener);
 				}

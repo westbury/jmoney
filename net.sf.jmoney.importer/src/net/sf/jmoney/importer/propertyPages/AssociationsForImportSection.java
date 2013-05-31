@@ -15,6 +15,8 @@ import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Session;
 
+import org.eclipse.core.databinding.observable.value.IValueChangeListener;
+import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
@@ -25,8 +27,6 @@ import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.swt.custom.CLabel;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -83,11 +83,11 @@ extends AbstractPropertySection {
 				existingAssociations.put(aa.getId(), aa);
 			}
 		}
-		
+
 		for (Control child : composite.getChildren()) {
 			child.dispose();
 		}
-		
+
 		labelTexts = new HashMap<AssociationMetadata, AccountControl<Account>>();
 
 		/*
@@ -129,11 +129,10 @@ extends AbstractPropertySection {
 				if (aa2 != null) {
 					accountControl.setAccount(aa2.getAccount());
 				}
-				
-				accountControl.addSelectionListener(new SelectionAdapter() {
 
+				accountControl.account.addValueChangeListener(new IValueChangeListener<Account>() {
 					@Override
-					public void widgetSelected(SelectionEvent e) {
+					public void handleValueChange(ValueChangeEvent<Account> event) {
 						Account a2 = accountControl.getAccount();
 						AccountAssociation aa2 = existingAssociations.get(association.getId());
 						if (a2 == null) {
@@ -159,12 +158,12 @@ extends AbstractPropertySection {
 						}
 					}
 				});
-				
+
 //				accountControl.addModifyListener(listener);
 //				accountControl.
 			}
 		}
-	
+
 	}
 
 	@Override

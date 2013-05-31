@@ -7,6 +7,7 @@ import java.util.List;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.stocks.model.RatesTable.Band;
 
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusAdapter;
 import org.eclipse.swt.events.FocusEvent;
@@ -33,32 +34,32 @@ class RatesEditorControl extends Composite {
 			percentageText = new Text(parent, SWT.BORDER);
 			label2 = new Label(parent, SWT.NONE);
 			upperBoundText = new Text(parent, SWT.BORDER);
-			
+
 			label1.setText("plus");
 			percentageText.setLayoutData(new GridData(30, SWT.DEFAULT));
 			upperBoundText.setLayoutData(new GridData(30, SWT.DEFAULT));
-			
+
 			FocusListener listener = new FocusAdapter() {
 				@Override
 				public void focusGained(FocusEvent e) {
 					lastFocusRow = RowControls.this;
 				}
 			};
-			
+
 			percentageText.addFocusListener(listener);
 			upperBoundText.addFocusListener(listener);
 		}
-		
+
 		Label label1;
 		Text  percentageText;
 		Label label2;
 		Text  upperBoundText;
-		
+
 		public void configureAsMiddleRow() {
 			label2.setText("percent of the amount up to");
 			upperBoundText.setVisible(true);
 		}
-		
+
 		public void configureAsLastRow() {
 			label2.setText("percent of the rest");
 			upperBoundText.setVisible(false);
@@ -89,7 +90,7 @@ class RatesEditorControl extends Composite {
 
 	private Button addRowButton;
 	private Button removeRowButton;
-	
+
 	/**
 	 * @param parent
 	 */
@@ -138,7 +139,7 @@ class RatesEditorControl extends Composite {
 				RowControls newRow = new RowControls(middleRow);
 
 				int lastFocusRowIndex = rows.indexOf(lastFocusRow);
-				
+
 				rows.add(lastFocusRowIndex+1, newRow);
 				if (lastFocusRowIndex != rows.size()-2) {
 					Control followingControl = rows.get(lastFocusRowIndex+2).label1;
@@ -146,7 +147,7 @@ class RatesEditorControl extends Composite {
 					newRow.percentageText.moveAbove(followingControl);
 					newRow.label2.moveAbove(followingControl);
 					newRow.upperBoundText.moveAbove(followingControl);
-					
+
 					newRow.configureAsMiddleRow();
 					if (rows.size() == 2) {
 						// Existing row was only row, now it is last row
@@ -158,7 +159,7 @@ class RatesEditorControl extends Composite {
 					previousRow.configureAsMiddleRow();
 					newRow.configureAsLastRow();
 				}
-				
+
 				removeRowButton.setEnabled(true);
 
 				middleRow.pack(true);
@@ -189,8 +190,8 @@ class RatesEditorControl extends Composite {
 						rows.get(lastFocusRowIndex-1).configureAsLastRow();
 					}
 				}
-				
-				
+
+
 				middleRow.pack(true);
 				pack(true);
 				getParent().pack(true);
@@ -243,7 +244,7 @@ class RatesEditorControl extends Composite {
 		}
 
 		// Note: Either ratesTable is null, or it is completely valid.
-		
+
 		if (ratesTable != null) {
 			fixedAmountControl.setText(currencyForFormatting.format(ratesTable.getFixedAmount()));
 
@@ -267,18 +268,18 @@ class RatesEditorControl extends Composite {
 			} else {
 			for (int rowIndex = 0; rowIndex < bands.size(); rowIndex++) {
 				Band band = bands.get(rowIndex);
-				
+
 				final RowControls row = new RowControls(middleRow);
 				rows.add(row);
-				
+
 				BigDecimal percentage = band.getProportion();
 				row.percentageText.setText(percentage.movePointRight(2).toString());
-				
+
 				if (rowIndex != bands.size()-1) {
 					Band nextBand = bands.get(rowIndex+1);
-					
+
 					row.configureAsMiddleRow();
-					
+
 					row.upperBoundText.setText(currencyForFormatting.format(nextBand.getBandStart()));
 //					row.upperBoundText.addFocusListener(
 //							new FocusAdapter() {
@@ -299,9 +300,9 @@ class RatesEditorControl extends Composite {
 
 			row.configureAsOnlyRow();
 		}
-		
+
 		removeRowButton.setEnabled(rows.size() > 1);
-		
+
 		// TODO: what is this?
 		middleRow.pack();
 		pack();
@@ -350,7 +351,12 @@ class RatesEditorControl extends Composite {
 	}
 
 	public RatesTable getRatesTable() {
-		long fixedAmount = currencyForFormatting.parse(fixedAmountControl.getText());
+		long fixedAmount;
+		try {
+			fixedAmount = currencyForFormatting.parse(fixedAmountControl.getText());
+		} catch (CoreException e1) {
+			fixedAmount = 0;
+		}
 
 		/*
 		 * Note that the Band objects contain the start of the range in which the
@@ -360,7 +366,7 @@ class RatesEditorControl extends Composite {
 		 * each band.
 		 */
 		long bandStart = 0;
-		
+
 		ArrayList<Band> bands = new ArrayList<Band>();
 		for (RowControls row: rows) {
 			BigDecimal proportion;
@@ -375,7 +381,7 @@ class RatesEditorControl extends Composite {
 
 			try {
 				bandStart = currencyForFormatting.parse(row.upperBoundText.getText());
-			} catch (NumberFormatException e) {
+			} catch (CoreException e) {
 				bandStart = 0;
 			}
 		}

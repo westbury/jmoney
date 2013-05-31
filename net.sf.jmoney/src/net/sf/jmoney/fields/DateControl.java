@@ -56,7 +56,7 @@ import org.eclipse.swt.widgets.Text;
  * <P>
  * This control uses the current date format set in the JMoney
  * preferences.
- * 
+ *
  * @author Nigel Westbury
  */
 public class DateControl extends DateComposite {
@@ -67,7 +67,7 @@ public class DateControl extends DateComposite {
 	/**
 	 * The text box containing the date
 	 */
-	private Text textControl;
+	Text textControl;
 
 	/**
 	 * The small button to the right of the date that brings up the date picker
@@ -77,7 +77,7 @@ public class DateControl extends DateComposite {
 	static private Image threeDotsImage = null;
 
 	private DateTime swtcal = null;
-	
+
 	/**
 	 * @param parent
 	 * @param style
@@ -86,13 +86,13 @@ public class DateControl extends DateComposite {
 		super(parent, SWT.NULL);
 
 		setBackgroundMode(SWT.INHERIT_FORCE);
-		
+
 		setLayout(new DialogCellLayout());
 
 		textControl = new Text(this, SWT.LEFT);
-		
+
 		textControl.addKeyListener(new KeyAdapter() {
-		    @Override	
+		    @Override
 			public void keyPressed(KeyEvent e) {
 				// CTRL + and CTRL - increment and decrement the date respectively.
 				// It would be even easier for the user the CTRL did not have to be
@@ -100,20 +100,20 @@ public class DateControl extends DateComposite {
 				// that contains '-'.
 				if (e.stateMask == SWT.CONTROL
 						&& (e.character == '+' || e.character == '-')) {
-					
+
 		            Calendar calendar = Calendar.getInstance();
 		            calendar.setTime(
 		            		fDateFormat.parse(
 		            				textControl.getText()
 		            		)
 		            );
-	            	
+
 					if (e.character == '+') {
 						calendar.add(Calendar.DAY_OF_MONTH, 1);
 					} else {
 		            	calendar.add(Calendar.DAY_OF_MONTH, -1);
 					}
-					
+
 					textControl.setText(
 							fDateFormat.format(
 									calendar.getTime()
@@ -124,7 +124,7 @@ public class DateControl extends DateComposite {
 				}
 			}
 		});
-		
+
 		button = new Button(this, SWT.DOWN);
 		if (threeDotsImage == null) {
 			ImageDescriptor descriptor = JMoneyPlugin.createImageDescriptor("dots_button.gif"); //$NON-NLS-1$
@@ -133,12 +133,12 @@ public class DateControl extends DateComposite {
 		button.setImage(threeDotsImage);
 
 		button.addSelectionListener(new SelectionAdapter() {
-		    @Override	
+		    @Override
 			public void widgetSelected(SelectionEvent event) {
 				final Shell shell = new Shell(parent.getShell(), SWT.ON_TOP);
 		        shell.setLayout(new RowLayout());
     	        swtcal = new DateTime(shell, SWT.CALENDAR);
-    	        
+
                 // Set the currently set date into the calendar control
                 // (If the parse method returned null then the text control did not
                 // contain a valid date.  In this case no date is set into the
@@ -156,7 +156,7 @@ public class DateControl extends DateComposite {
     	        	// Ignore this error (the calendar control
     	        	// does not require a date to be set).
     	        }
-                
+
     	        swtcal.addSelectionListener(
     	        		new SelectionAdapter() {
     	        			@Override
@@ -167,13 +167,13 @@ public class DateControl extends DateComposite {
     	        				 * First reset all fields. Otherwise differences in the time
     	        				 * part, even if the difference is only milliseconds, will cause
     	        				 * the date comparisons to fail.
-    	        				 * 
+    	        				 *
     	        				 * Note also it is critical that whatever is done here is exactly the
     	        				 * same as that done in VerySimpleDateFormat, otherwise dates will not
     	        				 * match.  For example, if you replace clear() here with setTimeInMillis(0)
     	        				 * then we get a different object (because data other than the date and time
     	        				 * such as time zone information will be different).
-    	        				 */ 
+    	        				 */
     	        				cal.clear();
 
     	        				cal.set(swtcal.getYear(), swtcal.getMonth(), swtcal.getDay());
@@ -184,7 +184,7 @@ public class DateControl extends DateComposite {
     	        );
 
     	        shell.pack();
-    	        
+
     	        // Position the calendar shell below the date control,
     	        // unless the date control is so near the bottom of the display that
     	        // the calendar control would go off the bottom of the display,
@@ -197,11 +197,11 @@ public class DateControl extends DateComposite {
     	        } else {
         	        shell.setLocation(rect.x, rect.y - calendarShellHeight);
     	        }
-    	        
+
     	        shell.open();
-    	        
+
     	        shell.addShellListener(new ShellAdapter() {
-    	    	    @Override	
+    	    	    @Override
     	        	public void shellDeactivated(ShellEvent e) {
     	        		shell.close();
     	        		swtcal = null;
@@ -215,7 +215,7 @@ public class DateControl extends DateComposite {
 	 * Internal class for laying out the dialog.
 	 */
 	private class DialogCellLayout extends Layout {
-	    @Override	
+	    @Override
 		public void layout(Composite editor, boolean force) {
 			Rectangle bounds = editor.getClientArea();
 			Point size = textControl.computeSize(SWT.DEFAULT, SWT.DEFAULT, force);
@@ -223,12 +223,12 @@ public class DateControl extends DateComposite {
 			button.setBounds(bounds.width-size.y, 0, size.y, bounds.height);
 		}
 
-	    @Override	
+	    @Override
 		public Point computeSize(Composite editor, int wHint, int hHint, boolean force) {
 			if (JMoneyPlugin.DEBUG) System.out.println("wHint =" + wHint + ", " + hHint); //$NON-NLS-1$ //$NON-NLS-2$
 			if (wHint != SWT.DEFAULT && hHint != SWT.DEFAULT)
 				return new Point(wHint, hHint);
-			Point contentsSize = textControl.computeSize(SWT.DEFAULT, SWT.DEFAULT, force); 
+			Point contentsSize = textControl.computeSize(SWT.DEFAULT, SWT.DEFAULT, force);
 			Point buttonSize =  button.computeSize(SWT.DEFAULT, SWT.DEFAULT, force);
 			if (JMoneyPlugin.DEBUG) System.out.println("contents =" + contentsSize.x + ", " + contentsSize.y); //$NON-NLS-1$ //$NON-NLS-2$
 			if (JMoneyPlugin.DEBUG) System.out.println("contents =" + buttonSize.x + ", " + buttonSize.y); //$NON-NLS-1$ //$NON-NLS-2$
@@ -238,27 +238,27 @@ public class DateControl extends DateComposite {
 			Point result = new Point(60 + buttonSize.x,
 //							        Math.max(contentsSize.y, buttonSize.y));
 				contentsSize.y);
-			return result;			
+			return result;
 		}
 	}
 
 	/**
 	 * @param object
 	 */
-    @Override	
-	public void setDate(Date date) {
-		if (date == null) {
-        textControl.setText(""); //$NON-NLS-1$
-	} else {
-        this.textControl.setText(fDateFormat.format(date));
-	}
-}
+    @Override
+    public void setDate(Date date) {
+    	if (date == null) {
+    		textControl.setText(""); //$NON-NLS-1$
+    	} else {
+    		this.textControl.setText(fDateFormat.format(date));
+    	}
+    }
 
 	/**
 	 * @return the date, or null if a valid date is not set in
 	 * 				the control
 	 */
-    @Override	
+    @Override
 	public Date getDate() {
         String text = textControl.getText();
         try {

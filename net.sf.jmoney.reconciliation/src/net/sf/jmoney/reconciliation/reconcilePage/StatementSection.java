@@ -63,6 +63,7 @@ import net.sf.jmoney.reconciliation.ReconciliationEntryInfo;
 import net.sf.jmoney.reconciliation.ReconciliationPlugin;
 import net.sf.jmoney.reconciliation.resources.Messages;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.util.LocalSelectionTransfer;
 import org.eclipse.jface.viewers.ISelection;
@@ -133,6 +134,7 @@ public class StatementSection extends SectionPart {
         container = toolkit.createComposite(getSection());
 
         reconciledTableContents = new IEntriesContent() {
+			@Override
 			public Collection<Entry> getEntries() {
 		        Vector<Entry> requiredEntries = new Vector<Entry>();
 
@@ -167,6 +169,7 @@ public class StatementSection extends SectionPart {
 		        return requiredEntries;
 			}
 
+			@Override
 			public boolean isEntryInTable(Entry entry) {
 		        // If no statement is set, nothing is in the table.
 		        // The table will not be visible in this situation, but
@@ -183,15 +186,18 @@ public class StatementSection extends SectionPart {
 	        	 && fPage.getStatement().equals(statement);
 			}
 
+			@Override
 			public boolean filterEntry(EntryData data) {
 				// No filter here, so entries always match
 				return true;
 			}
 
+			@Override
 			public long getStartBalance() {
 				return openingBalance;
 			}
 
+			@Override
 			public Entry createNewEntry(Transaction newTransaction) {
 				Entry entryInTransaction = newTransaction.createEntry();
 				Entry otherEntry = newTransaction.createEntry();
@@ -248,6 +254,7 @@ public class StatementSection extends SectionPart {
 		URL installURL = ReconciliationPlugin.getDefault().getBundle().getEntry("/icons/unreconcile.gif");
 		final Image unreconcileImage = ImageDescriptor.createFromURL(installURL).createImage();
 		parent.addDisposeListener(new DisposeListener(){
+			@Override
 			public void widgetDisposed(DisposeEvent e) {
 				unreconcileImage.dispose();
 			}
@@ -256,7 +263,7 @@ public class StatementSection extends SectionPart {
 		CellBlock<EntryData, EntryRowControl> unreconcileButton = new CellBlock<EntryData, EntryRowControl>(20, 0) {
 
 			@Override
-			public IPropertyControl<EntryData> createCellControl(Composite parent, final RowControl rowControl, final EntryRowControl coordinator) {
+			public IPropertyControl<EntryData> createCellControl(Composite parent, IObservableValue<? extends EntryData> master, final RowControl rowControl, final EntryRowControl coordinator) {
 				ButtonCellControl cellControl = new ButtonCellControl(parent, coordinator, unreconcileImage, "Remove Entry from this Statement") {
 					@Override
 					protected void run(EntryRowControl rowControl) {
@@ -347,6 +354,7 @@ public class StatementSection extends SectionPart {
 				});
 
 				fReconciledEntriesControl.getControl().addDisposeListener(new DisposeListener() {
+					@Override
 					public void widgetDisposed(DisposeEvent e) {
 						dropTarget.dispose();
 					}

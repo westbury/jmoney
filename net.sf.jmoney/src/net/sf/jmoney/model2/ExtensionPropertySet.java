@@ -65,7 +65,7 @@ public class ExtensionPropertySet<X extends ExtensionObject,E extends Extendable
 
 		extensionGivenExtendableObject = new ValueProperty<E,X>() {
 			@Override
-			public Object getValueType() {
+			public Class<X> getValueType() {
 				return ExtensionPropertySet.this.classOfObject;
 			}
 
@@ -172,13 +172,13 @@ public class ExtensionPropertySet<X extends ExtensionObject,E extends Extendable
 
 		// TODO when generics are added to BeanProperties, use class as the value type
 		// and return a properly typed result.
-		final IValueProperty<X,V> beanValueProperty = BeanProperties.value(classOfObject, accessor.localName/*, accessor.getValueType()*/);
+		final IValueProperty<X,V> beanValueProperty = BeanProperties.value(classOfObject, accessor.localName, accessor.getClassOfValueObject());
 
 		return new ValueProperty<E,V>() {
 
 			@Override
 			public Object getValueType() {
-				return classOfObject;
+				return accessor.getValueType();
 			}
 
 			@Override

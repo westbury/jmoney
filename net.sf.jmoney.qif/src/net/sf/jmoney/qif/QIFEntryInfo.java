@@ -35,6 +35,11 @@ import net.sf.jmoney.model2.PropertyControlFactory;
 import net.sf.jmoney.model2.PropertySet;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.conversion.Converter;
+import org.eclipse.core.databinding.conversion.IConverter;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -55,7 +60,7 @@ import org.eclipse.swt.widgets.Label;
  * <LI>A plug-in can depend on this plug-in.  That plug-in can then
  * 		access the properties in this class.</LI>
  * <LI>A propagator plug-in can progagate property values between this
- * 		class and properties in other Entry extension property set 
+ * 		class and properties in other Entry extension property set
  * 		classes.
  * 		This approach should be taken if using a plug-in that was
  * 		developed without any knowledge of this plug-in.</LI>
@@ -78,16 +83,16 @@ public class QIFEntryInfo implements IPropertySetInfo {
 		@Override
 		public QIFEntry construct(Entry extendedObject, IValues<Entry> values) {
 			return new QIFEntry(
-					extendedObject, 
+					extendedObject,
 					values.getScalarValue(getReconcilingStateAccessor()),
-					values.getScalarValue(getAddressAccessor()) 
+					values.getScalarValue(getAddressAccessor())
 			);
 		}
 	});
-	
+
 	private static ScalarPropertyAccessor<Character,Entry> reconcilingStateAccessor;
 	private static ScalarPropertyAccessor<String,Entry> addressAccessor;
-	
+
 	@Override
 	public PropertySet registerProperties() {
 		IPropertyControlFactory<Entry,String> textControlFactory = new TextControlFactory<Entry>();
@@ -97,7 +102,7 @@ public class QIFEntryInfo implements IPropertySetInfo {
 			public IPropertyControl<Entry> createPropertyControl(Composite parent, final ScalarPropertyAccessor<Character,Entry> propertyAccessor) {
 				// This property is not editable???
 				final Label control = new Label(parent, SWT.NONE);
-				
+
 		    	return new IPropertyControl<Entry>() {
 					@Override
 					public Control getControl() {
@@ -115,6 +120,27 @@ public class QIFEntryInfo implements IPropertySetInfo {
 			}
 
 			@Override
+			public Control createPropertyControl(Composite parent,
+					ScalarPropertyAccessor<Character, Entry> propertyAccessor,
+					IObservableValue<? extends Entry> modelObservable) {
+		        final Label control = new Label(parent, SWT.NONE);
+
+		        // TODO remove this converter and use a standard one
+		        IConverter<Character,String> converter = new Converter<Character,String>(Character.class, String.class) {
+					@Override
+					public String convert(Character fromObject) {
+						return fromObject.toString();
+					}
+				};
+
+				Bind.oneWay(propertyAccessor.observeDetail(modelObservable))
+				.convert(converter)
+				.to(SWTObservables.observeText(control));
+
+				return control;
+			}
+
+			@Override
 			public String formatValueForMessage(Entry extendableObject, ScalarPropertyAccessor<? extends Character,Entry> propertyAccessor) {
 				return "'" + propertyAccessor.getValue(extendableObject).toString() + "'";
 			}
@@ -129,10 +155,10 @@ public class QIFEntryInfo implements IPropertySetInfo {
 				return false;
 			}
 		};
-		
+
 		reconcilingStateAccessor = propertySet.addProperty("reconcilingState", "Reconciled", Character.class, 1, 30, stateControlFactory, null);
 		addressAccessor = propertySet.addProperty("address", "Address", String.class, 3, 100, textControlFactory, null);
-		
+
 		return propertySet;
 	}
 
@@ -148,12 +174,12 @@ public class QIFEntryInfo implements IPropertySetInfo {
 	 */
 	public static ScalarPropertyAccessor<Character,Entry> getReconcilingStateAccessor() {
 		return reconcilingStateAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ScalarPropertyAccessor<String,Entry> getAddressAccessor() {
 		return addressAccessor;
-	}	
+	}
 }

@@ -28,30 +28,61 @@ import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IReferenceControlFactory;
 import net.sf.jmoney.model2.PropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
+import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.IValueChangeListener;
+import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 
 /**
  * A control factory to select an account.
- * 
+ *
  * @author Nigel Westbury
  * @author Johann Gyger
  */
 public abstract class AccountControlFactory<P, S extends ExtendableObject, A extends Account> extends PropertyControlFactory<S,A> implements IReferenceControlFactory<P,S,A> {
-    
+
     @Override
 	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<A,S> propertyAccessor) {
         return new AccountEditor<S,A>(parent, propertyAccessor);
     }
 
-    @Override	
+	@Override
+	public Control createPropertyControl(Composite parent,
+			final ScalarPropertyAccessor<A, S> propertyAccessor,
+			IObservableValue<? extends S> modelObservable) {
+	    final AccountControl<A> control = new AccountControl<A>(parent, null, propertyAccessor.getClassOfValueObject());
+
+	    Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
+		.to(control.account);
+
+	    // HACK
+	    modelObservable.addValueChangeListener(new IValueChangeListener<S>() {
+			@Override
+			public void handleValueChange(ValueChangeEvent<S> event) {
+				if (event.diff.getNewValue() == null) {
+					control.setSession(null, propertyAccessor.getClassOfValueObject());
+				} else {
+					Session session = event.diff.getNewValue().getSession();
+					control.setSession(session, propertyAccessor.getClassOfValueObject());
+				}
+			}
+		});
+
+		return control;
+	}
+
+	@Override
 	public String formatValueForMessage(S extendableObject, ScalarPropertyAccessor<? extends A,S> propertyAccessor) {
         Account value = propertyAccessor.getValue(extendableObject);
         return value == null ? Messages.AccountControlFactory_None : value.getFullAccountName();
     }
 
-    @Override	
+    @Override
     public String formatValueForTable(S extendableObject, ScalarPropertyAccessor<? extends A,S> propertyAccessor) {
         Account value = propertyAccessor.getValue(extendableObject);
         return value == null ? "" : value.getFullAccountName(); //$NON-NLS-1$

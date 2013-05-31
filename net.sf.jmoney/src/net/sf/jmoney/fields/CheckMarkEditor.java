@@ -26,6 +26,7 @@ import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -64,7 +65,15 @@ public class CheckMarkEditor<S extends ExtendableObject> implements IPropertyCon
         });
     }
 
-    /* (non-Javadoc)
+    public CheckMarkEditor(Composite parent,
+			IObservableValue<Boolean> modelObservable) {
+        propertyControl = new Button(parent, SWT.CHECK);
+        this.propertyAccessor = null;
+
+
+	}
+
+	/* (non-Javadoc)
      * @see net.sf.jmoney.model2.IPropertyControl#load(net.sf.jmoney.model2.ExtendableObject)
      */
     @Override

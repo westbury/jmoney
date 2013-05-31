@@ -9,7 +9,4 @@ public interface IScalarPropertyAccessor<V, E extends IModelObject> extends IVal
 
 	Class<V> getClassOfValueObject();
 
-	// TODO see if we can get rid of this method
-	int getIndexIntoScalarProperties();
-
 }

@@ -30,6 +30,7 @@ import java.util.Vector;
 
 import net.sf.jmoney.isolation.IExtendablePropertySet;
 import net.sf.jmoney.isolation.IObjectKey;
+import net.sf.jmoney.isolation.IScalarPropertyAccessor;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ListKey;
 
@@ -103,6 +104,8 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	 * This field is valid for non-derivable property sets only.
 	 */
 	private Vector<PageEntry> pageExtensions = null;
+
+	private Map<IScalarPropertyAccessor, Integer> indexIntoScalarProperties = new HashMap<IScalarPropertyAccessor, Integer>();
 
 	/**
 	 * Constructs a property set object.
@@ -190,15 +193,36 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 
 	public void initPropertiesPass2() {
 		int scalarIndex = 0;
-		for (ExtendablePropertySet base = getBasePropertySet(); base != null; base = base.getBasePropertySet()) {
-			scalarIndex += base.getScalarProperties2().size();
+		for (ScalarPropertyAccessor propertyAccessor : getScalarProperties3()) {
+			indexIntoScalarProperties.put(propertyAccessor, scalarIndex++);
 		}
+	}
 
-		for (ScalarPropertyAccessor propertyAccessor: getScalarProperties2()) {
-			propertyAccessor.setIndexIntoScalarProperties(scalarIndex++);
-		}
-
-
+	/**
+	 * It is often useful to have an array of property values
+	 * of an extendable object.  This array contains all scalar
+	 * properties in the extendable object, including extension
+	 * properties and properties from any base property sets.
+	 * <P>
+	 * In these arrays, the properties (including extension properties)
+	 * from the base property sets are put first in the array.
+	 * This means a given property will always be at the same index
+	 * in the array regardless of the actual derived property set.
+	 * <P>
+	 * This index is guaranteed to match the order in which
+	 * properties are returned by the PropertySet.getPropertyIterator_Scalar3().
+	 * i.e. if this method returns n then in every case where the
+	 * collection returned by getPropertyIterator_Scalar3 contains this property,
+	 * this property will be returned as the (n+1)'th element in the collection.
+	 *
+	 * @return the index of this property in the list of scalar
+	 * 			properties for the class.  This method returns zero
+	 * 			for the first scalar property returned by
+	 * 			PropertySet.getPropertyIterator3() and so on.
+	 */
+	@Override
+	public int getIndexIntoScalarProperties(IScalarPropertyAccessor<?,?> property) {
+		return indexIntoScalarProperties.get(property);
 	}
 
 	/**
@@ -681,7 +705,7 @@ public class ExtendablePropertySet<E extends ExtendableObject> extends PropertyS
 	}
 
 	@Override
-	public IValueProperty<?,?> createValueProperty(ScalarPropertyAccessor accessor) {
-		return BeanProperties.value(classOfObject, accessor.localName);
+	public <T> IValueProperty<E,T> createValueProperty(ScalarPropertyAccessor<T,E> accessor) {
+		return BeanProperties.value(classOfObject, accessor.localName, accessor.getClassOfValueObject());
 	}
 }

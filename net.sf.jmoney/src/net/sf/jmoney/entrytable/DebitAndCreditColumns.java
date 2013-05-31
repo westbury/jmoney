@@ -32,6 +32,8 @@ import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
@@ -41,6 +43,7 @@ import org.eclipse.swt.events.TraverseListener;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
+import org.eclipse.ui.statushandlers.StatusManager;
 
 /**
  * Represents a table column that is either the debit or the credit column. Use
@@ -54,7 +57,7 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 		private Text textControl;
 		private BaseEntryRowControl coordinator;
 		private Entry entry = null;
-		
+
 		private SessionChangeListener amountChangeListener = new SessionChangeAdapter() {
 			@Override
 			public void objectChanged(IModelObject changedObject, IScalarPropertyAccessor changedProperty, Object oldValue, Object newValue) {
@@ -73,7 +76,7 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 			textControl.addFocusListener(controlFocusListener);
 //				textControl.addKeyListener(keyListener);
 //				textControl.addTraverseListener(traverseListener);
-			
+
 			textControl.addTraverseListener(new TraverseListener() {
 				@Override
 				public void keyTraversed(TraverseEvent e) {
@@ -113,7 +116,7 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 	    	if (entry != null) {
 	    		entry.getDataManager().removeChangeListener(amountChangeListener);
 	    	}
-	    	
+
 			entry = data.getEntry();
 
         	/*
@@ -121,7 +124,7 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
         	 * of this property.
         	 */
 			entry.getDataManager().addChangeListener(amountChangeListener);
-			
+
 			setControlContent();
 		}
 
@@ -139,17 +142,17 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 			if (commodityForFormatting == null) {
 				commodityForFormatting = commodity;
 			}
-			
+
 			if (isDebit) {
 				// Debit column
-				textControl.setText(amount < 0 
-						? commodityForFormatting.format(-amount) 
+				textControl.setText(amount < 0
+						? commodityForFormatting.format(-amount)
 								: "" //$NON-NLS-1$
 				);
 			} else {
 				// Credit column
-				textControl.setText(amount > 0 
-						? commodityForFormatting.format(amount) 
+				textControl.setText(amount > 0
+						? commodityForFormatting.format(amount)
 								: "" //$NON-NLS-1$
 				);
 			}
@@ -170,7 +173,13 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 			}
 
 			String amountString = textControl.getText();
-			long amount = commodityForFormatting.parse(amountString);
+			long amount;
+			try {
+				amount = commodityForFormatting.parse(amountString);
+			} catch (CoreException e) {
+				StatusManager.getManager().handle(e.getStatus());
+				return;
+			}
 
 			long previousEntryAmount = entry.getAmount();
 			long newEntryAmount;
@@ -179,7 +188,7 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 				if (amount != 0) {
 					newEntryAmount = -amount;
 				} else {
-					if (previousEntryAmount < 0) { 
+					if (previousEntryAmount < 0) {
 						newEntryAmount  = 0;
 					} else {
 						newEntryAmount = previousEntryAmount;
@@ -189,7 +198,7 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 				if (amount != 0) {
 					newEntryAmount = amount;
 				} else {
-					if (previousEntryAmount > 0) { 
+					if (previousEntryAmount > 0) {
 						newEntryAmount  = 0;
 					} else {
 						newEntryAmount = previousEntryAmount;
@@ -197,27 +206,7 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 				}
 			}
 
-			/*
-			 * We specifically don't notify changes to the coordinator if the amount is
-			 * the same.  This is because some 'smart' entries may calculate values
-			 * (e.g. a stock entry might do this).  If the coordinator thinks the user
-			 * has entered a value then that prevents the coordinator from updating the
-			 * value with updated calculated values.
-			 */
-			if (newEntryAmount != entry.getAmount()) {
-				entry.setAmount(newEntryAmount);
-
-				/*
-				 * Tell the coordinator about this change. This enables the row
-				 * control to update other controls based on this change.
-				 * 
-				 * Note that the row control cannot get these changes by
-				 * listening to model changes because it needs to do processing
-				 * only when the user changed the properties, and it would then
-				 * have no way of knowing where the change came from.
-				 */
-				coordinator.amountChanged();
-			}
+			entry.setAmount(newEntryAmount);
 		}
 
 		// TODO: Remove this
@@ -243,11 +232,11 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 	public static DebitAndCreditColumns createCreditColumn(Commodity commodityForFormatting) {
     	return new DebitAndCreditColumns("credit", Messages.DebitAndCreditColumns_CreditName, commodityForFormatting, false);  //$NON-NLS-1$
 	}
-	
+
 	public static DebitAndCreditColumns createDebitColumn(Commodity commodityForFormatting) {
     	return new DebitAndCreditColumns("debit", Messages.DebitAndCreditColumns_DebitName, commodityForFormatting, true);      //$NON-NLS-1$
 	}
-	
+
 	private DebitAndCreditColumns(String id, String name, Commodity commodity, boolean isDebit) {
 		super(name, 70, 2);
 		this.id = id;
@@ -259,9 +248,9 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 		return id;
 	}
 
-    @Override	
-	public IPropertyControl<EntryData> createCellControl(Composite parent, RowControl rowControl, BaseEntryRowControl coordinator) {
-    	
+    @Override
+	public IPropertyControl<EntryData> createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, BaseEntryRowControl coordinator) {
+
 		ICellControl2<EntryData> cellControl = new DebitAndCreditCellControl(parent, rowControl, coordinator);
 
 		return cellControl;

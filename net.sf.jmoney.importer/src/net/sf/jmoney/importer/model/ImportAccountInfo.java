@@ -23,7 +23,9 @@
 package net.sf.jmoney.importer.model;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ObjectCollection;
@@ -40,9 +42,13 @@ import net.sf.jmoney.model2.PropertyControlFactory;
 import net.sf.jmoney.model2.PropertySet;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.bind.IBidiConverter;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
@@ -51,7 +57,7 @@ import org.eclipse.swt.widgets.Control;
 /**
  * Provides the metadata for the extra properties added to each
  * currency account by this plug-in.
- * 
+ *
  * @author Nigel Westbury
  */
 public class ImportAccountInfo implements IPropertySetInfo {
@@ -66,16 +72,16 @@ public class ImportAccountInfo implements IPropertySetInfo {
 		@Override
 		public ImportAccount construct(CapitalAccount extendedObject, IValues<CapitalAccount> values) {
 			return new ImportAccount(
-					extendedObject, 
+					extendedObject,
 					values.getScalarValue(getImportDataExtensionIdAccessor()),
-					values.getListManager(extendedObject.getObjectKey(), getAssociationsAccessor()) 
+					values.getListManager(extendedObject.getObjectKey(), getAssociationsAccessor())
 			);
 		}
 	});
-	
+
 	private static ScalarPropertyAccessor<String,CapitalAccount> importDataExtensionIdAccessor = null;
 	private static ListPropertyAccessor<AccountAssociation,CapitalAccount> associationsAccessor = null;
-	
+
 	@Override
 	public PropertySet<ImportAccount,CapitalAccount> registerProperties() {
 
@@ -83,13 +89,13 @@ public class ImportAccountInfo implements IPropertySetInfo {
 			@Override
 			public IPropertyControl<CapitalAccount> createPropertyControl(Composite parent,
 					ScalarPropertyAccessor<String,CapitalAccount> propertyAccessor) {
-				
+
 				final List<String> ids = new ArrayList<String>();
 				final Combo control = new Combo(parent, SWT.READ_ONLY);
-				
+
 				ids.add(null);
 				control.add("none");
-				
+
 				IExtensionRegistry registry = Platform.getExtensionRegistry();
 				for (IConfigurationElement element: registry.getConfigurationElementsFor("net.sf.jmoney.importer.importdata")) { //$NON-NLS-1$
 					if (element.getName().equals("import-format")) { //$NON-NLS-1$
@@ -101,7 +107,7 @@ public class ImportAccountInfo implements IPropertySetInfo {
 				}
 
 				control.setVisibleItemCount(15);
-				
+
 				return new IPropertyControl<CapitalAccount>() {
 
 					private CapitalAccount account;
@@ -114,7 +120,7 @@ public class ImportAccountInfo implements IPropertySetInfo {
 					@Override
 					public void load(CapitalAccount account) {
 						this.account = account;
-						
+
 						String importFormatId = getImportDataExtensionIdAccessor().getValue(account);
 						int index = ids.indexOf(importFormatId);
 						control.select(index);
@@ -125,6 +131,56 @@ public class ImportAccountInfo implements IPropertySetInfo {
 						String importFormatId = ids.get(control.getSelectionIndex());
 						getImportDataExtensionIdAccessor().setValue(account, importFormatId);
 					}};
+			}
+
+			@Override
+			public Control createPropertyControl(
+					Composite parent,
+					ScalarPropertyAccessor<String, CapitalAccount> propertyAccessor,
+					IObservableValue<? extends CapitalAccount> modelObservable) {
+
+				final Map<String,String> labels = new HashMap<String,String>();
+				final Map<String,String> ids = new HashMap<String,String>();
+				final Combo control = new Combo(parent, SWT.READ_ONLY);
+
+				ids.put("none", null);
+				control.add("none");
+
+				IExtensionRegistry registry = Platform.getExtensionRegistry();
+				for (IConfigurationElement element: registry.getConfigurationElementsFor("net.sf.jmoney.importer.importdata")) { //$NON-NLS-1$
+					if (element.getName().equals("import-format")) { //$NON-NLS-1$
+						String label = element.getAttribute("label"); //$NON-NLS-1$
+						String id = element.getAttribute("id"); //$NON-NLS-1$
+						labels.put(id,label);
+						ids.put(label,id);
+						control.add(label);
+					}
+				}
+
+				control.setVisibleItemCount(15);
+
+
+		    	IBidiConverter<String,String> idToLabelConverter = new IBidiConverter<String,String>() {
+					@Override
+					public String modelToTarget(String fromValue) {
+				    	if (fromValue == null) {
+				    		return "none"; //$NON-NLS-1$
+				    	} else {
+				    		return labels.get(fromValue);
+				    	}
+					}
+
+					@Override
+					public String targetToModel(String text) {
+				        return ids.get(text);
+					}
+				};
+
+				Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
+				.convert(idToLabelConverter)
+				.to(SWTObservables.observeSelection(control));
+
+				return control;
 			}
 
 			@Override
@@ -145,10 +201,10 @@ public class ImportAccountInfo implements IPropertySetInfo {
 				return parentObject.getAssociationCollection();
 			}
 		};
-	
+
 		importDataExtensionIdAccessor = propertySet.addProperty("importDataExtensionId", "Table Structure", String.class, 1, 5, importDataControlFactory, null);
 		associationsAccessor = propertySet.addPropertyList("associations", "Associations", AccountAssociationInfo.getPropertySet(), associationListGetter);
-		
+
 		return propertySet;
 	}
 
@@ -164,12 +220,12 @@ public class ImportAccountInfo implements IPropertySetInfo {
 	 */
 	public static ScalarPropertyAccessor<String,CapitalAccount> getImportDataExtensionIdAccessor() {
 		return importDataExtensionIdAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ListPropertyAccessor<AccountAssociation,CapitalAccount> getAssociationsAccessor() {
 		return associationsAccessor;
-	}	
+	}
 }

@@ -22,36 +22,87 @@
 
 package net.sf.jmoney.fields;
 
+import net.sf.jmoney.JMoneyPlugin;
+import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IReferenceControlFactory;
 import net.sf.jmoney.model2.PropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
+import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.bind.IBidiConverter;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 
 /**
  * A control factory to select a currency.
- * 
+ *
  * @author Nigel Westbury
  * @author Johann Gyger
  */
-public abstract class CurrencyControlFactory<P, S extends ExtendableObject> extends PropertyControlFactory<S,Currency> implements IReferenceControlFactory<P,S,Currency> { 
+public abstract class CurrencyControlFactory<P, S extends ExtendableObject> extends PropertyControlFactory<S,Currency> implements IReferenceControlFactory<P,S,Currency> {
 
     @Override
 	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<Currency,S> propertyAccessor) {
         return new CurrencyEditor<S>(parent, propertyAccessor);
     }
 
-    @Override	
+    @Override
+	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<Currency,S> propertyAccessor, IObservableValue<? extends S> modelObservable) {
+        CCombo propertyControl = new CCombo(parent, 0);
+
+        Session session = JMoneyPlugin.getDefault().getSession();
+
+        // TODO should we keep the combo list synchronized with the
+        // currency list?
+
+        for (Commodity commodity: session.getCommodityCollection()) {
+            if (commodity instanceof Currency) {
+                propertyControl.add(commodity.getName());
+            }
+        }
+
+        IBidiConverter<Currency,String> currencyToName = new IBidiConverter<Currency,String>() {
+			@Override
+			public String modelToTarget(Currency fromObject) {
+				return fromObject.getName();
+			}
+
+			@Override
+			public Currency targetToModel(String amountString) {
+		        Session session = JMoneyPlugin.getDefault().getSession();
+		        for (Commodity commodity: session.getCommodityCollection()) {
+		            if (commodity instanceof Currency) {
+		                if (commodity.getName().equals(amountString)) {
+		                	return (Currency)commodity;
+		                }
+		            }
+		        }
+		        throw new RuntimeException("error - text from target is not a valid selection");
+			}
+		};
+
+		Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
+		.convert(currencyToName)
+		.to(SWTObservables.observeSelection(propertyControl));
+
+		return propertyControl;
+    }
+
+    @Override
     public String formatValueForMessage(S extendableObject, ScalarPropertyAccessor<? extends Currency,S> propertyAccessor) {
         Currency value = propertyAccessor.getValue(extendableObject);
         return value == null ? Messages.CurrencyControlFactory_None : "'" + value.getName() + "'";  //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
     }
 
-    @Override	
+    @Override
     public String formatValueForTable(S extendableObject, ScalarPropertyAccessor<? extends Currency,S> propertyAccessor) {
         Currency value = propertyAccessor.getValue(extendableObject);
         return value == null ? "" : value.getCode(); //$NON-NLS-1$

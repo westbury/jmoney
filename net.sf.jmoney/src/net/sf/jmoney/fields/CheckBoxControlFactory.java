@@ -29,21 +29,34 @@ import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 
 /**
  * A control factory to edit boolean values using a check box.
- * 
+ *
  * @author Nigel Westbury
  */
 public class CheckBoxControlFactory<S extends ExtendableObject> implements IPropertyControlFactory<S,Boolean> {
 
     public CheckBoxControlFactory() {
     }
-    
+
     @Override
 	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<Boolean,S> propertyAccessor) {
   		return new CheckMarkEditor<S>(parent, propertyAccessor);
+    }
+
+    @Override
+	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<Boolean,S> propertyAccessor, IObservableValue<? extends S> modelObservable) {
+    	Button button = new Button(parent, SWT.CHECK);
+  		Bind.twoWay(propertyAccessor.observeDetail(modelObservable)).to(SWTObservables.observeSelection(button));
+  		return button;
     }
 
     @Override

@@ -30,6 +30,7 @@ import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Transaction;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -103,7 +104,7 @@ abstract public class PropertyBlock<T extends EntryData, R extends RowControl, S
 	}
 
     @Override
-	public IPropertyControl<T> createCellControl(Composite parent, final RowControl rowControl, final R coordinator) {
+	public IPropertyControl<T> createCellControl(Composite parent, IObservableValue<? extends T> master, final RowControl rowControl, final R coordinator) {
 		final IPropertyControl<? super S> propertyControl = accessor.createPropertyControl(parent);
 
 		ICellControl2<T> cellControl = new ICellControl2<T>() {

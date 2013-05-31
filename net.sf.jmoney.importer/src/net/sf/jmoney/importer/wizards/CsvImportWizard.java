@@ -1,9 +1,9 @@
 /*
- * 
+ *
  *  JMoney - A Personal Finance Manager
  *  Copyright (c) 2004,2009 Nigel Westbury <westbury@users.sourceforge.net>
- * 
- * 
+ *
+ *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -71,7 +72,7 @@ public abstract class CsvImportWizard extends Wizard {
 
 	/**
 	 * This form of the constructor is used when being called from
-	 * the Eclipse 'import' menu. 
+	 * the Eclipse 'import' menu.
 	 */
 	public CsvImportWizard() {
 		IDialogSettings workbenchSettings = Activator.getDefault().getDialogSettings();
@@ -101,9 +102,9 @@ public abstract class CsvImportWizard extends Wizard {
 			if (allImported && mainPage.IsDeleteFile()) {
 				boolean isDeleted = csvFile.delete();
 				if (!isDeleted) {
-					MessageDialog.openWarning(window.getShell(), "OFX file not deleted", 
+					MessageDialog.openWarning(window.getShell(), "OFX file not deleted",
 							MessageFormat.format(
-									"All entries in {0} have been imported and an attempt was made to delete the file.  However the file deletion failed.", 
+									"All entries in {0} have been imported and an attempt was made to delete the file.  However the file deletion failed.",
 									csvFile.getName()));
 				}
 			}
@@ -139,10 +140,10 @@ public abstract class CsvImportWizard extends Wizard {
 			 * into the column objects.  It would be possible to allow the columns to be in any order or
 			 * to allow columns to be optional, setting the column indexes here based on the column in
 			 * which the matching header was found.
-			 * 
+			 *
 			 * At this time, however, there is no known requirement for that, so we simply validate that
 			 * the first row contains exactly these columns in this order and set the indexes sequentially.
-			 * 
+			 *
 			 * We trim the text in the header.  This is helpful because some banks add spaces.  For example
 			 * Paypal puts a space before the text in each header cell.
 			 */
@@ -205,7 +206,7 @@ public abstract class CsvImportWizard extends Wizard {
 			 * can now commit the imported entries to the datastore.
 			 */
 			String transactionDescription = MessageFormat.format("Import {0}", file.getName());
-			transactionManager.commit(transactionDescription);									
+			transactionManager.commit(transactionDescription);
 
 			return true;
 		} catch (FileNotFoundException e) {
@@ -229,15 +230,15 @@ public abstract class CsvImportWizard extends Wizard {
 
 	/**
 	 * This method reads the header row.
-	 * <P> 
+	 * <P>
 	 * This default implementation will read the first row.  Implementations may override this
 	 * method to fetch the header columns some other way.  For example the column headers
 	 * may not be in the first row.
-	 *  
+	 *
 	 * @param reader
 	 * @return
 	 * @throws IOException
-	 * @throws ImportException 
+	 * @throws ImportException
 	 */
 	protected String[] readHeaderRow() throws IOException, ImportException {
 		return readNext();
@@ -248,7 +249,7 @@ public abstract class CsvImportWizard extends Wizard {
 	 * by derived classes because this class reads each row.  However
 	 * it is available in case derived classes do need to advance
 	 * the row for whatever reason.
-	 * 
+	 *
 	 * @return
 	 * @throws IOException
 	 */
@@ -296,9 +297,18 @@ public abstract class CsvImportWizard extends Wizard {
 
 		private DateFormat dateFormat;
 
+		private String dateFormatString;
+
 		public ImportedDateColumn(String name, DateFormat dateFormat) {
 			super(name);
 			this.dateFormat = dateFormat;
+			this.dateFormatString = "<unknown>";
+		}
+
+		public ImportedDateColumn(String name, String dateFormatString) {
+			super(name);
+			this.dateFormat = new SimpleDateFormat(dateFormatString);
+			this.dateFormatString = dateFormatString;
 		}
 
 		public Date getDate() throws ImportException {
@@ -310,8 +320,9 @@ public abstract class CsvImportWizard extends Wizard {
 				} catch (ParseException e) {
 					throw new ImportException(
 							MessageFormat.format(
-									"A date in format d/M/yyyy was expected but {0} was found.", 
-									currentLine[columnIndex]), 
+									"A date in format {0}was expected but {1} was found.",
+									dateFormatString,
+									currentLine[columnIndex]),
 									e);
 				}
 			}

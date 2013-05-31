@@ -27,12 +27,16 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Vector;
 
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.conversion.Converter;
+import org.eclipse.core.databinding.conversion.IConverter;
+import org.eclipse.core.databinding.observable.value.WritableValue;
+import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.KeyAdapter;
 import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.events.ShellAdapter;
 import org.eclipse.swt.events.ShellEvent;
 import org.eclipse.swt.events.ShellListener;
@@ -50,31 +54,29 @@ import org.eclipse.swt.widgets.Text;
 
 /**
  * A control for selecting a commodity.
- * 
+ *
  * This control contains both a text box and a list box that appears when the
  * text box gains focus.
- * 
+ *
  * @author Nigel Westbury
  */
 public class CommodityControl<A extends Commodity> extends Composite {
 
 	Text textControl;
-	
+
 	private Session session;
 	private Class<A> commodityClass;
-	
+
     /**
      * List of all acceptable commodities.
      */
     private Vector<A> allCommodities;
-    
+
 	/**
-	 * Currently selected commodities, or null if no commodity selected
+	 * Currently selected commodity, or null if no commodity selected
 	 */
-	private A commodity;
-	
-	private Vector<SelectionListener> listeners = new Vector<SelectionListener>();
-	
+	public final WritableValue<A> commodity = new WritableValue<A>();
+
 	/**
 	 * @param parent
 	 * @param style
@@ -85,10 +87,20 @@ public class CommodityControl<A extends Commodity> extends Composite {
 		this.commodityClass = commodityClass;
 
 		setBackgroundMode(SWT.INHERIT_FORCE);
-		
+
 		setLayout(new FillLayout(SWT.VERTICAL));
-		
+
 		textControl = new Text(this, SWT.LEFT);
+
+		IConverter<A,String> commodityToTextConverter = new Converter<A,String>(Commodity.class, String.class) {
+			@Override
+			public String convert(A commodity) {
+				return (commodity == null) ? "" : commodity.getName();
+			}
+		};
+		Bind.oneWay(commodity)
+			.convert(commodityToTextConverter)
+			.to(SWTObservables.observeText(textControl, SWT.FocusOut));
 
 		textControl.addKeyListener(new KeyAdapter() {
 
@@ -97,16 +109,16 @@ public class CommodityControl<A extends Commodity> extends Composite {
 				if (e.keyCode == SWT.ARROW_DOWN) {
 					openDropdownShell(parent, commodityClass);
 				}
-				
+
 			}
 
 			@Override
 			public void keyReleased(KeyEvent e) {
 				// TODO Auto-generated method stub
-				
+
 			}
 		});
-		
+
 //		textControl.addFocusListener(new FocusAdapter() {
 //
 //			@Override
@@ -134,28 +146,26 @@ public class CommodityControl<A extends Commodity> extends Composite {
         // the time control gets focus).
         allCommodities = new Vector<A>();
         addCommodities("", CommodityControl.this.session.getCommodityCollection(), listControl, CommodityControl.this.commodityClass);
-        
+
 //        shell.setSize(listControl.computeSize(SWT.DEFAULT, listControl.getItemHeight()*10));
-        
+
         // Set the currently set commodity into the list control.
         listControl.select(allCommodities.indexOf(commodity));
-        
+
         listControl.addSelectionListener(
         		new SelectionAdapter() {
-        		    @Override	
+        		    @Override
 					public void widgetSelected(SelectionEvent e) {
 						int selectionIndex = listControl.getSelectionIndex();
-						commodity = allCommodities.get(selectionIndex);
-						textControl.setText(commodity.getName());
-						fireCommodityChangeEvent();
+						commodity.setValue(allCommodities.get(selectionIndex));
 					}
         		});
 
 		listControl.addKeyListener(new KeyAdapter() {
 			String pattern;
 			int lastTime = 0;
-			
-		    @Override	
+
+		    @Override
 			public void keyPressed(KeyEvent e) {
 				if (Character.isLetterOrDigit(e.character)) {
 					if ((e.time - lastTime) < 1000) {
@@ -164,9 +174,9 @@ public class CommodityControl<A extends Commodity> extends Composite {
 						pattern = String.valueOf(Character.toUpperCase(e.character));
 					}
 					lastTime = e.time;
-					
+
 					/*
-					 * 
+					 *
 					 Starting at the currently selected commodity,
 					 search for a commodity starting with these characters.
 					 */
@@ -174,7 +184,7 @@ public class CommodityControl<A extends Commodity> extends Composite {
 					if (startIndex == -1) {
 						startIndex = 0;
 					}
-					
+
 					int match = -1;
 					int i = startIndex;
 					do {
@@ -182,27 +192,26 @@ public class CommodityControl<A extends Commodity> extends Composite {
 							match = i;
 							break;
 						}
-						
+
 						i++;
 						if (i == allCommodities.size()) {
 							i = 0;
 						}
 					} while (i != startIndex);
-					
+
 					if (match != -1) {
-						commodity = allCommodities.get(match);
+						commodity.setValue(allCommodities.get(match));
 						listControl.select(match);
 						listControl.setTopIndex(match);
-						textControl.setText(commodity.getName());
 					}
-					
+
 					e.doit = false;
 				}
 			}
 		});
 
 		shell.pack();
-        
+
         /*
 		 * Position the shell below the text box, unless the
 		 * control is so near the bottom of the display that the shell
@@ -237,9 +246,9 @@ public class CommodityControl<A extends Commodity> extends Composite {
         		shell.close();
         	}
         };
-        
+
         parentShell.addShellListener(parentActivationListener);
-        
+
         shell.addShellListener(new ShellAdapter() {
 			@Override
 			public void shellClosed(ShellEvent e) {
@@ -248,12 +257,6 @@ public class CommodityControl<A extends Commodity> extends Composite {
         });
 	}
 
-	private void fireCommodityChangeEvent() {
-		for (SelectionListener listener: listeners) {
-			listener.widgetSelected(null);
-		}
-	}
-	
 	private void addCommodities(String prefix, Collection<? extends Commodity> commodities, List listControl, Class<A> commodityClass) {
     	Vector<A> matchingCommodities = new Vector<A>();
         for (Commodity commodity: commodities) {
@@ -261,7 +264,7 @@ public class CommodityControl<A extends Commodity> extends Composite {
         		matchingCommodities.add(commodityClass.cast(commodity));
         	}
         }
-		
+
 		// Sort the commodities by name.
 		Collections.sort(matchingCommodities, new Comparator<Commodity>() {
 			@Override
@@ -269,25 +272,19 @@ public class CommodityControl<A extends Commodity> extends Composite {
 				return commodity1.getName().compareTo(commodity2.getName());
 			}
 		});
-		
+
 		for (A matchingCommodity : matchingCommodities) {
     		allCommodities.add(matchingCommodity);
 			listControl.add(prefix + matchingCommodity.getName());
 		}
-        
+
     }
 
     /**
 	 * @param object
 	 */
 	public void setCommodity(A commodity) {
-		this.commodity = commodity;
-
-		if (commodity == null) {
-			textControl.setText("");
-		} else {
-			textControl.setText(commodity.getName());
-		}
+		this.commodity.setValue(commodity);
 	}
 
 	/**
@@ -295,21 +292,7 @@ public class CommodityControl<A extends Commodity> extends Composite {
 	 * 				the control
 	 */
 	public A getCommodity() {
-		return commodity;
-	}
-
-	/**
-	 * @param listener
-	 */
-	public void addSelectionListener(SelectionListener listener) {
-		listeners.add(listener);
-	}
-
-	/**
-	 * @param listener
-	 */
-	public void removeSelectionListener(SelectionListener listener) {
-		listeners.remove(listener);
+		return commodity.getValue();
 	}
 
 	public Control getControl() {

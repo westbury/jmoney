@@ -49,6 +49,8 @@ import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
 
+import org.eclipse.core.databinding.observable.value.IValueChangeListener;
+import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.DialogMessageArea;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -92,7 +94,7 @@ import org.eclipse.swt.widgets.Table;
 /**
  * A dialog that allows the user to see how imported entries will be matched using the account's pattern matching rules.  The user may edit the pattern matching
  * rules in this dialog and see how the matching of the imported entries change.
- * 
+ *
  * @author Nigel Westbury
  */
 public class PatternMatchingDialog extends Dialog {
@@ -119,7 +121,7 @@ public class PatternMatchingDialog extends Dialog {
 	 * We must set an index that is more than all prior ordering
 	 * indexes.  This field contains the lowest integer that is
 	 * more than all existing values (or 0 if no patterns
-	 * currently exist). 
+	 * currently exist).
 	 */
 	int nextOrderingIndex;
 
@@ -135,10 +137,10 @@ public class PatternMatchingDialog extends Dialog {
 	 * <p>
 	 * Note that the <code>open</code> method blocks for input dialogs.
 	 * </p>
-	 * 
+	 *
 	 * @param parentShell
 	 *            the parent shell
-	 * @param importedEntries 
+	 * @param importedEntries
 	 */
 	public PatternMatchingDialog(Shell parentShell, PatternMatcherAccount account, Collection<? extends EntryData> sampleEntries) {
 		super(parentShell);
@@ -158,7 +160,7 @@ public class PatternMatchingDialog extends Dialog {
 		 * is trivial (the transaction is simply not committed).
 		 */
 		transactionManager = new TransactionManagerForAccounts(account.getDataManager());
-		ExtendableObject accountInTransaction = transactionManager.getCopyInTransaction(account.getBaseObject()); 
+		ExtendableObject accountInTransaction = transactionManager.getCopyInTransaction(account.getBaseObject());
 		this.account = accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
 
 		// Load the error indicator
@@ -229,7 +231,7 @@ public class PatternMatchingDialog extends Dialog {
 		/*
 		 * It should not be possible for there to be errors when the dialog box is first
 		 * opened, because we don't allow the user to save the data when there are errors.
-		 * However, just in case, we ensure that any errors are shown. 
+		 * However, just in case, we ensure that any errors are shown.
 		 */
 		updateErrorMessage();
 
@@ -258,14 +260,15 @@ public class PatternMatchingDialog extends Dialog {
 
 		defaultAccountControl.setAccount(account.getDefaultCategory());
 
-		defaultAccountControl.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				IncomeExpenseAccount defaultCategory = defaultAccountControl.getAccount();
-				account.setDefaultCategory(defaultCategory);
-				updateErrorMessage();
-			}
-		});
+		defaultAccountControl.account.addValueChangeListener(
+				new IValueChangeListener<IncomeExpenseAccount>() {
+					@Override
+					public void handleValueChange(ValueChangeEvent<IncomeExpenseAccount> event) {
+						IncomeExpenseAccount defaultCategory = defaultAccountControl.getAccount();
+						account.setDefaultCategory(defaultCategory);
+						updateErrorMessage();
+					}
+				});
 		applyDialogFont(composite);
 		return composite;
 	}
@@ -386,7 +389,7 @@ public class PatternMatchingDialog extends Dialog {
 
 		TableViewerEditor.create(patternViewer, focusCellManager, actSupport, ColumnViewerEditor.TABBING_HORIZONTAL
 				| ColumnViewerEditor.TABBING_MOVE_TO_ROW_NEIGHBOR
-				| ColumnViewerEditor.TABBING_VERTICAL 
+				| ColumnViewerEditor.TABBING_VERTICAL
 				| ColumnViewerEditor.KEYBOARD_ACTIVATION);
 
 		// Set the content and label providers
@@ -467,15 +470,15 @@ public class PatternMatchingDialog extends Dialog {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param pattern
 	 * @return null if the pattern is valid, or a string describing the error
-	 * 		if the pattern is not valid 
+	 * 		if the pattern is not valid
 	 */
 	protected String isMemoPatternValid(MemoPattern pattern) {
 		if (pattern.getPattern() == null) {
-			return "No regex pattern has been entered"; 
-		} 
+			return "No regex pattern has been entered";
+		}
 
 		try {
 			Pattern.compile(pattern.getPattern());
@@ -503,7 +506,7 @@ public class PatternMatchingDialog extends Dialog {
 
 				for (MemoPattern pattern: sortedPatterns) {
 					Pattern compiledPattern = pattern.getCompiledPattern();
-					
+
 					/*
 					 * The pattern may not yet have been entered if the user has just added a new
 					 * pattern.
@@ -515,7 +518,7 @@ public class PatternMatchingDialog extends Dialog {
 							 * Group zero is the entire string and the groupCount method
 							 * does not include that group, so there is really one more group
 							 * than the number given by groupCount.
-							 * 
+							 *
 							 * This code also tidies up the imported text.
 							 */
 							Object [] args = new Object[m.groupCount()+1];
@@ -530,7 +533,7 @@ public class PatternMatchingDialog extends Dialog {
 									return "";
 								} else {
 									return new java.text.MessageFormat(
-											format, 
+											format,
 											java.util.Locale.US)
 									.format(args);
 								}
@@ -597,10 +600,15 @@ public class PatternMatchingDialog extends Dialog {
 			@Override
 			protected void setValue(Object element, Object value) {
 				MemoPattern pattern = (MemoPattern)element;
-				setValue(pattern, propertyAccessor, value);
-				patternViewer.update(element, null);
-				updateSampleEntriesTable();
-				updateErrorMessage();
+				// Update only if a value change, otherwise
+				// it all goes horribly circular
+				if (value != null && !value.equals(propertyAccessor.getValue(pattern))) {
+					setValue(pattern, propertyAccessor, value);
+					patternViewer.update(element, null);
+
+					updateSampleEntriesTable();
+					updateErrorMessage();
+				}
 			}
 
 			private <V> void setValue(MemoPattern pattern, ScalarPropertyAccessor<V,MemoPattern> property, Object value) {
@@ -673,7 +681,7 @@ public class PatternMatchingDialog extends Dialog {
 					} catch (ReferenceViolationException e1) {
 						MessageDialog.openError(getShell(), "Pattern in Use", "The pattern cannot be removed because it is in use else where.  " + e1.getLocalizedMessage() + "  The object referencing is " + ((ExtendablePropertySet)e1.getPropertySet()).getObjectDescription());
 					}
-				}		
+				}
 			}
 		});
 
@@ -707,9 +715,9 @@ public class PatternMatchingDialog extends Dialog {
 					 * affected so do not request a refresh of the labels.
 					 */
 					patternViewer.refresh(false);
-					
+
 					entriesViewer.refresh(true);
-				}		
+				}
 			}
 		});
 
@@ -743,7 +751,7 @@ public class PatternMatchingDialog extends Dialog {
 					 * affected so do not request a refresh of the labels.
 					 */
 					patternViewer.refresh(false);
-					
+
 					entriesViewer.refresh(true);
 				}
 			}
@@ -755,7 +763,7 @@ public class PatternMatchingDialog extends Dialog {
 	/**
 	 * Sets or clears the error message.
 	 * If not <code>null</code>, the OK button is disabled.
-	 * 
+	 *
 	 * @param errorMessage
 	 *            the error message, or <code>null</code> to clear
 	 */
@@ -800,13 +808,13 @@ public class PatternMatchingDialog extends Dialog {
 		 */
 		sortedPatterns.remove(thisPattern);
 		sortedPatterns.remove(abovePattern);
-		
+
 		// Swap the ordering indexes
 		int thisIndex = thisPattern.getOrderingIndex();
 		int aboveIndex = abovePattern.getOrderingIndex();
 		abovePattern.setOrderingIndex(thisIndex);
 		thisPattern.setOrderingIndex(aboveIndex);
-		
+
 		/*
 		 * Now add them back to the sorted collection.
 		 */

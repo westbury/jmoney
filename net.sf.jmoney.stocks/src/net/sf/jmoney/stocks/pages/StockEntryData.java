@@ -28,6 +28,16 @@ import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.runtime.Assert;
 
+/*
+ * Latest thinking: This object exposes an interface that has a transaction type, and then,
+ * various properties such as dividend tax amount, share purchase quantity, share price etc.
+ *
+ * These may be inapplicable for certain transaction types, in which case the values will bind
+ * to null.
+ *
+ * The StockEntryRowControl does all the setting of default values.  This object does not do that,
+ * it just checks that the transaction balances.
+ */
 public class StockEntryData extends EntryData {
 
 	private StockAccount account;
@@ -62,8 +72,7 @@ public class StockEntryData extends EntryData {
 	// getPurchaseOrSaleEntry().getAmount() would be negative for a sale
 	private final IObservableValue<Long> quantity = new WritableValue<Long>();
 
-	// bould to entry.getAmount()
-	private final IObservableValue<Long> netAmount = new WritableValue<Long>();
+	private final IObservableValue<Long> dividend = new WritableValue<Long>();
 
 	private final IObservableValue<Long> withholdingTax = new WritableValue<Long>();
 
@@ -87,6 +96,149 @@ public class StockEntryData extends EntryData {
 	 */
 	private final IObservableValue<Long> tax2 = new WritableValue<Long>();
 
+	/*
+	 * This listener updates all our writable values.
+	 *
+	 * The model keeps only a weak reference to this listener, removing it
+	 * if no one else is referencing the listener.  We therefore must maintain
+	 * a reference for as long as this object exists.
+	 */
+	private SessionChangeListener modelListener = new SessionChangeListener() {
+
+		@Override
+		public void objectInserted(IModelObject newObject) {
+			if (newObject instanceof Entry) {
+				Entry newEntry = (Entry)newObject;
+				if (newEntry.getTransaction() == getEntry().getTransaction()) {
+					if (newEntry.getAccount() == account.getCommissionAccount()) {
+						if (commissionEntry != null) {
+							throw new RuntimeException("already has a commission entry!");
+						}
+						commissionEntry = newEntry;
+						commission.setValue(newEntry.getAmount());
+					} else if (newEntry.getAccount() == account.getTax1Account()) {
+						if (tax1Entry != null) {
+							throw new RuntimeException("already has a tax 1 entry!");
+						}
+						tax1Entry = newEntry;
+						tax1.setValue(newEntry.getAmount());
+					} else if (newEntry.getAccount() == account.getTax2Account()) {
+						if (tax2Entry != null) {
+							throw new RuntimeException("already has a tax 2 entry!");
+						}
+						tax2Entry = newEntry;
+						tax2.setValue(newEntry.getAmount());
+					}
+				}
+			}
+		}
+
+		@Override
+		public void objectCreated(IModelObject newObject) {
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public void objectRemoved(IModelObject deletedObject) {
+			if (deletedObject instanceof Entry) {
+				Entry deletedEntry = (Entry)deletedObject;
+				if (deletedEntry.getTransaction() == getEntry().getTransaction()) {
+					if (deletedEntry.getAccount() == account.getCommissionAccount()) {
+						if (commissionEntry == null) {
+							throw new RuntimeException("but no commission entry was set!");
+						}
+						commissionEntry = null;
+						commission.setValue(null);
+					} else if (deletedEntry.getAccount() == account.getTax1Account()) {
+						if (tax1Entry == null) {
+							throw new RuntimeException("but no tax 1 entry was set!");
+						}
+						tax1Entry = null;
+						tax1.setValue(null);
+					} else if (deletedEntry.getAccount() == account.getTax2Account()) {
+						if (tax2Entry == null) {
+							throw new RuntimeException("but no tax 1 entry was set!");
+						}
+						tax2Entry = null;
+						tax2.setValue(null);
+					}
+				}
+			}
+		}
+
+		@Override
+		public void objectDestroyed(IModelObject deletedObject) {
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public void objectChanged(IModelObject changedObject,
+				IScalarPropertyAccessor changedProperty, Object oldValue,
+				Object newValue) {
+			if (changedObject instanceof Entry) {
+				Entry changedEntry = (Entry)changedObject;
+				if (changedEntry.getTransaction() == getEntry().getTransaction()) {
+					if (changedProperty == EntryInfo.getAmountAccessor()) {
+						Long newAmount = (Long)newValue;
+
+						if (changedEntry.getAccount() == account.getCommissionAccount()) {
+							if (commissionEntry == null) {
+								throw new RuntimeException("but no commission entry was set!");
+							}
+							commission.setValue(newAmount);
+						} else if (changedEntry.getAccount() == account.getTax1Account()) {
+							if (tax1Entry == null) {
+								throw new RuntimeException("but no tax 1 entry was set!");
+							}
+							tax1.setValue(newAmount);
+						} else if (changedEntry.getAccount() == account.getTax2Account()) {
+							if (tax2Entry == null) {
+								throw new RuntimeException("but no tax 1 entry was set!");
+							}
+							tax2.setValue(newAmount);
+						}
+					}
+				}
+			}
+		}
+
+		@Override
+		public void objectMoved(IModelObject movedObject,
+				IModelObject originalParent,
+				IModelObject newParent,
+				IListPropertyAccessor originalParentListProperty,
+				IListPropertyAccessor newParentListProperty) {
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public void performRefresh() {
+			// TODO Auto-generated method stub
+
+		}
+
+		//				private void fireCommmissionChangedEvent(Long newValue) {
+		//					for (IPropertyChangeListener<Long> listener  : commissionChangeListeners) {
+		//						listener.propertyChanged(newValue);
+		//					}
+		//				}
+		//
+		//				private void fireTax1ChangedEvent(Long newValue) {
+		//					for (IPropertyChangeListener<Long> listener  : tax1ChangeListeners) {
+		//						listener.propertyChanged(newValue);
+		//					}
+		//				}
+		//
+		//				private void fireTax2ChangedEvent(Long newValue) {
+		//					for (IPropertyChangeListener<Long> listener  : tax2ChangeListeners) {
+		//						listener.propertyChanged(newValue);
+		//					}
+		//				}
+	};
+
 	public StockEntryData(Entry entry, IDataManagerForAccounts dataManager) {
 		super(entry, dataManager);
 
@@ -106,145 +258,7 @@ public class StockEntryData extends EntryData {
 
 			analyzeTransaction();
 
-			/*
-			 * Listen for changes that affect the calculated values exposed by this
-			 * wrapper object.
-			 */
-			dataManager.addChangeListenerWeakly(new SessionChangeListener() {
-
-				@Override
-				public void objectInserted(IModelObject newObject) {
-					if (newObject instanceof Entry) {
-						Entry newEntry = (Entry)newObject;
-						if (newEntry.getTransaction() == getEntry().getTransaction()) {
-							if (newEntry.getAccount() == account.getCommissionAccount()) {
-								if (commissionEntry != null) {
-									throw new RuntimeException("already has a commission entry!");
-								}
-								commissionEntry = newEntry;
-								commission.setValue(newEntry.getAmount());
-							} else if (newEntry.getAccount() == account.getTax1Account()) {
-								if (tax1Entry != null) {
-									throw new RuntimeException("already has a tax 1 entry!");
-								}
-								tax1Entry = newEntry;
-								tax1.setValue(newEntry.getAmount());
-							} else if (newEntry.getAccount() == account.getTax2Account()) {
-								if (tax2Entry != null) {
-									throw new RuntimeException("already has a tax 2 entry!");
-								}
-								tax2Entry = newEntry;
-								tax2.setValue(newEntry.getAmount());
-							}
-						}
-					}
-				}
-
-				@Override
-				public void objectCreated(IModelObject newObject) {
-					// TODO Auto-generated method stub
-
-				}
-
-				@Override
-				public void objectRemoved(IModelObject deletedObject) {
-					if (deletedObject instanceof Entry) {
-						Entry deletedEntry = (Entry)deletedObject;
-						if (deletedEntry.getTransaction() == getEntry().getTransaction()) {
-							if (deletedEntry.getAccount() == account.getCommissionAccount()) {
-								if (commissionEntry == null) {
-									throw new RuntimeException("but no commission entry was set!");
-								}
-								commissionEntry = null;
-								commission.setValue(null);
-							} else if (deletedEntry.getAccount() == account.getTax1Account()) {
-								if (tax1Entry == null) {
-									throw new RuntimeException("but no tax 1 entry was set!");
-								}
-								tax1Entry = null;
-								tax1.setValue(null);
-							} else if (deletedEntry.getAccount() == account.getTax2Account()) {
-								if (tax2Entry == null) {
-									throw new RuntimeException("but no tax 1 entry was set!");
-								}
-								tax2Entry = null;
-								tax2.setValue(null);
-							}
-						}
-					}
-				}
-
-				@Override
-				public void objectDestroyed(IModelObject deletedObject) {
-					// TODO Auto-generated method stub
-
-				}
-
-				@Override
-				public void objectChanged(IModelObject changedObject,
-						IScalarPropertyAccessor changedProperty, Object oldValue,
-						Object newValue) {
-					if (changedObject instanceof Entry) {
-						Entry changedEntry = (Entry)changedObject;
-						if (changedEntry.getTransaction() == getEntry().getTransaction()) {
-							if (changedProperty == EntryInfo.getAmountAccessor()) {
-								Long newAmount = (Long)newValue;
-
-								if (changedEntry.getAccount() == account.getCommissionAccount()) {
-									if (commissionEntry == null) {
-										throw new RuntimeException("but no commission entry was set!");
-									}
-									commission.setValue(newAmount);
-								} else if (changedEntry.getAccount() == account.getTax1Account()) {
-									if (tax1Entry == null) {
-										throw new RuntimeException("but no tax 1 entry was set!");
-									}
-									tax1.setValue(newAmount);
-								} else if (changedEntry.getAccount() == account.getTax2Account()) {
-									if (tax2Entry == null) {
-										throw new RuntimeException("but no tax 1 entry was set!");
-									}
-									tax2.setValue(newAmount);
-								}
-							}
-						}
-					}
-				}
-
-				@Override
-				public void objectMoved(IModelObject movedObject,
-						IModelObject originalParent,
-						IModelObject newParent,
-						IListPropertyAccessor originalParentListProperty,
-						IListPropertyAccessor newParentListProperty) {
-					// TODO Auto-generated method stub
-
-				}
-
-				@Override
-				public void performRefresh() {
-					// TODO Auto-generated method stub
-
-				}
-
-				//				private void fireCommmissionChangedEvent(Long newValue) {
-				//					for (IPropertyChangeListener<Long> listener  : commissionChangeListeners) {
-				//						listener.propertyChanged(newValue);
-				//					}
-				//				}
-				//
-				//				private void fireTax1ChangedEvent(Long newValue) {
-				//					for (IPropertyChangeListener<Long> listener  : tax1ChangeListeners) {
-				//						listener.propertyChanged(newValue);
-				//					}
-				//				}
-				//
-				//				private void fireTax2ChangedEvent(Long newValue) {
-				//					for (IPropertyChangeListener<Long> listener  : tax2ChangeListeners) {
-				//						listener.propertyChanged(newValue);
-				//					}
-				//				}
-			});
+			dataManager.addChangeListenerWeakly(modelListener);
 
 			quantity.addValueChangeListener(new IValueChangeListener<Long>() {
 				@Override
@@ -348,20 +362,33 @@ public class StockEntryData extends EntryData {
 						if (withholdingTaxEntry == null) {
 							withholdingTaxEntry = getEntry().getTransaction().createEntry();
 							withholdingTaxEntry.setAccount(account.getWithholdingTaxAccount());
-							StockEntryInfo.getSecurityAccessor().setValue(withholdingTaxEntry, (Security)purchaseOrSaleEntry.getCommodity());
+							// Why did we have this line?
+//							StockEntryInfo.getSecurityAccessor().setValue(withholdingTaxEntry, (Security)purchaseOrSaleEntry.getCommodity());
 						}
 						withholdingTaxEntry.setAmount(event.diff.getNewValue());
 					}
 				}
 			});
 
-			netAmount.addValueChangeListener(new IValueChangeListener<Long>() {
+			dividend.addValueChangeListener(new IValueChangeListener<Long>() {
 				@Override
 				public void handleValueChange(ValueChangeEvent<Long> event) {
 					if (event.diff.getNewValue() == null) {
-						getEntry().setAmount(0);
+						if (dividendEntry != null) {
+							try {
+								getEntry().getTransaction().getEntryCollection().deleteElement(withholdingTaxEntry);
+							} catch (ReferenceViolationException e) {
+								// This should not happen because entries are never referenced
+								throw new RuntimeException("Internal error", e);
+							}
+							dividendEntry = null;
+						}
 					} else {
-						getEntry().setAmount(event.diff.getNewValue());
+						if (dividendEntry == null) {
+							dividendEntry = getEntry().getTransaction().createEntry();
+							dividendEntry.setAccount(account.getDividendAccount());
+						}
+						dividendEntry.setAmount(event.diff.getNewValue());
 					}
 				}
 			});
@@ -388,6 +415,12 @@ public class StockEntryData extends EntryData {
 						unknownTransactionType = true;
 					}
 					dividendEntry = entry;
+				} else if (entry.getAccount() == account.getDividendAccount()) {
+					if (dividendEntry != null) {
+						unknownTransactionType = true;
+					}
+					dividendEntry = entry;
+					dividend.setValue(entry.getAmount());
 				} else if (entry.getAccount() == account.getWithholdingTaxAccount()) {
 					if (withholdingTaxEntry != null) {
 						unknownTransactionType = true;
@@ -511,7 +544,7 @@ public class StockEntryData extends EntryData {
 	 * transaction type to another.  For example if the user decided that a stock purchase
 	 * transaction was really a dividend payment.  The value returned by this method is
 	 * used to ensure the stock stays set but it is not critical if no stock is returned.
-	 * 
+	 *
 	 * @return the security involved in this transaction, or null if the transaction
 	 * 			does not involve a security (eg cash transfer), involves multiple securities
 	 * 			(eg merger), or the transaction is not complete
@@ -606,7 +639,7 @@ public class StockEntryData extends EntryData {
 		 * to transform the transaction to the required type.  This method does not need
 		 * to change the transaction data at all.  It does adjust the UI to give the user
 		 * full flexibility.
-		 * 
+		 *
 		 * Note that the user may edit the transaction so that it matches one of the
 		 * types (buy, sell, dividend etc).  In that case, the transaction will appear
 		 * as that type, not as a custom type, if it is saved and re-loaded.
@@ -729,7 +762,7 @@ public class StockEntryData extends EntryData {
 	 * calculates the share price from the data in the model.  It does
 	 * this by adding up all the cash entries to get the gross proceeds
 	 * or cost and then dividing by the number of shares.
-	 * 
+	 *
 	 * @return the calculated price to four decimal places, or null
 	 * 		if the price cannot be calculated (e.g. if the share quantity
 	 * 		is zero)
@@ -767,11 +800,11 @@ public class StockEntryData extends EntryData {
 		/*
 		 * Check for zero amounts. Some fields may be zeroes (for example, commissions and
 		 * withheld taxes), others may not (for example, quantity of stock sold).
-		 * 
+		 *
 		 * We do leave entries with zero amounts.  This makes the code simpler
 		 * because the transaction is already set up for the transaction type,
 		 * and it is easier to determine the transaction type.
-		 * 
+		 *
 		 * It is possible that the total proceeds of a sale are zero.  Anyone who
 		 * has disposed of shares in a sub-prime mortgage company in order to
 		 * claim the capital loss will know that the commission may equal the sale
@@ -861,7 +894,7 @@ public class StockEntryData extends EntryData {
 	 * The purchase and sale entry contains the security as the commodity of the value in
 	 * the amount field.  For the other entries the security is only a reference.  For example
 	 * for a dividend payment the commodity must be set to the currency of the dividend payment.
-	 * 
+	 *
 	 * @param security
 	 */
 	public void setSecurity(Security security) {
@@ -900,12 +933,16 @@ public class StockEntryData extends EntryData {
 		return tax2;
 	}
 
+	public IObservableValue<Long> dividend() {
+		return dividend;
+	}
+
 	public IObservableValue<Long> withholdingTax() {
 		return withholdingTax;
 	}
 
 	/**
-	 * 
+	 *
 	 * @return the quantity of shares being bought or sold, always being a
 	 *         positive number, or undefined if the transaction is not a
 	 *         purchase or sale transaction
@@ -929,15 +966,7 @@ public class StockEntryData extends EntryData {
 		return tax2.getValue() == null ? 0 : tax2.getValue();
 	}
 
-	public long getNetAmount() {
-		return netAmount.getValue() == null ? 0 : netAmount.getValue();
-	}
-
 	public void setQuantity(long quantityAmount) {
 		this.quantity.setValue(quantityAmount == 0 ? null : quantityAmount);
-	}
-
-	public IObservableValue<Long> netAmount() {
-		return netAmount;
 	}
 }

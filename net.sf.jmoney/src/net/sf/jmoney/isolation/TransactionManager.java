@@ -48,7 +48,7 @@ import org.eclipse.core.runtime.Status;
  * committed.  Read accesses (property getters and queries) are passed on
  * to any transaction manager which will modify the results to reflect
  * changes stored in the transaction.
- * 
+ *
  * @author Nigel Westbury
  */
 public abstract class TransactionManager extends AbstractDataManager {
@@ -84,7 +84,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 	// that needs to keep the objects in allObjects map up to date
 	// and tell our listeners.
 	protected Map<IObjectKey, ModifiedObject> modifiedObjects = new HashMap<IObjectKey, ModifiedObject>();
-	
+
 	/**
 	 * Every model object that exists in the base data manager and that has
 	 * already had a copy created in this data manager will be put in this map.
@@ -101,7 +101,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 	 * to use the committed key than to use an uncommitted key.
 	 */
 	Map<IObjectKey, IModelObject> allObjects = new HashMap<IObjectKey, IModelObject>();
-	
+
 	/**
 	 * Every list that has been modified by this transaction manager
 	 * (objects added to the list or objects removed from the list)
@@ -143,12 +143,12 @@ public abstract class TransactionManager extends AbstractDataManager {
 	 * listen to session changes within the transaction manager during an
 	 * initialization stage even though the transaction is not made active
 	 * until changes are made.
-	 *  
+	 *
 	 * @param session the session object from the committed datastore
 	 */
 	public TransactionManager(IDataManager baseDataManager) {
 		this.baseDataManager = baseDataManager;
-		
+
 		/*
 		 * Listen for changes to the base data. Note that a weak reference is
 		 * maintained to this listener so we don't have to worry about removing
@@ -171,24 +171,24 @@ public abstract class TransactionManager extends AbstractDataManager {
 	 * 			transaction manager since the last commit
 	 */
 	public boolean hasChanges() {
-		return !modifiedObjects.isEmpty() 
+		return !modifiedObjects.isEmpty()
 		|| !modifiedLists.isEmpty();
 	}
 
 	/**
      * Given an instance of an object in the datastore
-     * (i.e. committed), obtain a copy of the object that 
+     * (i.e. committed), obtain a copy of the object that
      * is in the version of the datastore managed by this
      * transaction manager.
      * <P>
      * Updates to property values in the returned object will
      * not be applied to the datastore until the changes held
      * by this transaction manager are committed to the datastore.
-     * 
+     *
      * @param an object that exists in the datastore (committed)
      * @return a copy of the given object, being an uncommitted version
      * 			of the object in this transaction, or null if the
-     * 			given object has been deleted in this transaction 
+     * 			given object has been deleted in this transaction
      */
     public <E extends IModelObject> E getCopyInTransaction(final E committedObject) {
     	/*
@@ -199,18 +199,18 @@ public abstract class TransactionManager extends AbstractDataManager {
     	if (committedObject == null) {
     		return null;
     	}
-    	
+
     	if (committedObject.getDataManager() != baseDataManager) {
     		throw new RuntimeException("Invalid call to getCopyInTransaction.  The object passed must belong to the data manager that is the base data manager of this transaction manager."); //$NON-NLS-1$
     	}
-    	
+
     	/*
 		 * First look in our map to see if this object has already been modified
 		 * within the context of this transaction manager. If it has, return the
 		 * modified version. Also check to see if the object has been deleted
 		 * within the context of this transaction manager. If it has then we
 		 * raise an error.
-		 * 
+		 *
 		 * Both these situations are not likely to happen because usually one
 		 * object is copied into the transaction manager and all other objects
 		 * are obtained by traversing from that object. However, it is good to
@@ -224,9 +224,9 @@ public abstract class TransactionManager extends AbstractDataManager {
 //			}
 			return (E)committedObject.getClass().cast(objectInTransaction);
 		}
-    	
+
 		IExtendablePropertySet<E> propertySet = committedObject.getPropertySet();
-		
+
 		ListKey<? super E,?> committedListKey = committedObject.getParentListKey();
 		ListKey<? super E,?> listKey;
 		if (committedListKey == null) {
@@ -238,7 +238,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 		}
 
 		final UncommittedObjectKey key = new UncommittedObjectKey(this, committedObject.getObjectKey());
-		
+
 		/*
 		 * If the object has been modified by this transaction, it will be in
 		 * the allObjects map (which contains all objects ever returned by this
@@ -264,7 +264,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 				return new DeltaListManager<E2,E>(TransactionManager.this, committedObject, key, listAccessor);
 			}
 		};
-		
+
 		// We can now create the object.
     	E copyInTransaction = (E)committedObject.getClass().cast(propertySet.constructImplementationObject(key, listKey, values));
 
@@ -274,7 +274,7 @@ public abstract class TransactionManager extends AbstractDataManager {
     	 * instance in future.
     	 */
     	allObjects.put(committedObject.getObjectKey(), copyInTransaction);
-    	
+
     	// We do not copy lists owned by the object at this time.
     	// If a list is iterated, we must return copies in this transaction.
     	// Originals may never be materialized.
@@ -286,7 +286,7 @@ public abstract class TransactionManager extends AbstractDataManager {
     	// list may no longer be needed, plus lists are not in general
     	// iterated more than once because the consumer should keep its
     	// own data up to date using listeners.
-    	
+
     	// This is ok because the API contract states
     	// that if the user gets the same object
     	// twice then the user must listen for changes and refresh
@@ -295,7 +295,7 @@ public abstract class TransactionManager extends AbstractDataManager {
     	// changes to the committed version.
 
     	// Therefore, a list is really a delta from the committed list.
-    	
+
     	// How does the delta get the committed list?
     	// We could pass an iterator here, but that is a once
     	// off.  We must pass a dynamic collection (a collection
@@ -313,11 +313,19 @@ public abstract class TransactionManager extends AbstractDataManager {
 	 * <P>
 	 * All datastore listeners and all listeners which are listening
 	 * for changes ......
-	 * 
+	 *
 	 */
 	public void commit() {
+		/*
+		 * First we remove our listener.  Although this is a 'weak' listener
+		 * and so will be removed by the garbage collector we want to
+		 * specifically remove it before a commit so we don't get back our
+		 * own changes or other changes after this transaction is dead.
+		 */
+		baseDataManager.removeChangeListener(baseSessionChangeListener);
+
 		baseDataManager.startTransaction();
-		
+
 		// Add all the new objects, but set references to other
 		// new objects to null because the other new object may
 		// not have yet been added to the database and thus no
@@ -330,19 +338,19 @@ public abstract class TransactionManager extends AbstractDataManager {
 		for (Map.Entry<IObjectKey, ModifiedObject> mapEntry: modifiedObjects.entrySet()) {
 			IObjectKey committedKey = mapEntry.getKey();
 			ModifiedObject newValuesMap = mapEntry.getValue();
-	
+
 			if (!newValuesMap.isDeleted()) {
 				Map<IScalarPropertyAccessor, Object> propertyMap = newValuesMap.getMap();
 /* Actually this does not work.  We must go through the setters because we are 'outside' the datastore.
  * The values would not otherwise be set in the objects themselves.
- 
+
 				IModelObject committedObject = committedKey.getObject();
 				PropertySet<?> actualPropertySet = PropertySet.getPropertySet(committedObject.getClass());
 
 				int count = actualPropertySet.getScalarProperties3().size();
 				Object [] newValues = new Object[count];
 				Object [] oldValues = new Object[count];
-				
+
 				// TODO: It may be better if we save the data from the committed
 				// object early on, before any changes.  This really depends on
 				// how we decide to cope with conflicts between the committed and
@@ -356,7 +364,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 					} else {
 						oldValues[index] = value;
 					}
-					
+
 					if (propertyMap.containsKey(accessor)) {
 						Object newValue = propertyMap.get(accessor);
 						if (newValue instanceof UncommittedObjectKey) {
@@ -369,24 +377,24 @@ public abstract class TransactionManager extends AbstractDataManager {
 						// No change in the property value
 						newValues[index] = oldValues[index];
 					}
-					
+
 					index++;
 				}
-*/				
-				
-				
-				
+*/
+
+
+
 				for (Map.Entry<IScalarPropertyAccessor, Object> mapEntry2: propertyMap.entrySet()) {
 					IScalarPropertyAccessor<?,?> accessor = mapEntry2.getKey();
 					Object newValue = mapEntry2.getValue();
-			
+
 					// TODO: If we create a method in IObjectKey for updating properties
 					// then we don't have to instantiate the committed object here.
 					// The advantages are small, however, because the key is likely to
 					// need to read the old properties from the database before setting
 					// the new property values.
 					IModelObject committedObject = committedKey.getObject();
-					
+
 					if (newValue instanceof UncommittedObjectKey) {
 						UncommittedObjectKey referencedKey = (UncommittedObjectKey)newValue;
 						// TODO: We should not have to instantiate an instance of the
@@ -399,7 +407,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 				}
 			}
 		}
-		
+
 		/*
 		 * Delete all object marked for deletion. This is a two-step process.
 		 * The first step involves iterating over all the objects marked for
@@ -411,7 +419,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 		 * deletion, and the underlying database may raise a reference constraint
 		 * violation if an object is deleted while other objects contain
 		 * references to it.
-		 * 
+		 *
 		 * This code is not perfect and needs more work to make it perfect.
 		 * Firstly, there may be a problem if the underlying database does not
 		 * allow null values for a particular reference. In that case, we should
@@ -433,7 +441,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 		for (Map.Entry<IObjectKey, ModifiedObject> mapEntry: modifiedObjects.entrySet()) {
 			IObjectKey committedKey = mapEntry.getKey();
 			ModifiedObject newValues = mapEntry.getValue();
-			
+
 			if (newValues.isDeleted()) {
 				IModelObject deletedObject = committedKey.getObject();
 
@@ -441,21 +449,21 @@ public abstract class TransactionManager extends AbstractDataManager {
 				setValues(propertySet, deletedObject);
 			}
 		}
-		
+
 		/*
 		 * Step 2: Delete the deleted objects
 		 */
 		for (DeltaListManager<?,?> modifiedList: modifiedLists) {
 			deleteObjectsInList(modifiedList);
 		}
-		
+
 		baseDataManager.commitTransaction();
-		
+
 		// Clear out the changes in the object. These changes are the
 		// delta between the datastore and the uncommitted view.
 		// Now that the changes have been committed, these changes
 		// must be cleared.
-		
+
 		// TODO: Is this loop needed if the outer list is being cleared anyway?
 		for (DeltaListManager<?,?> modifiedList: modifiedLists) {
 			modifiedList.addedObjects.clear();
@@ -468,7 +476,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 	private <S extends IModelObject> void setValues(IExtendablePropertySet<S> propertySet,
 			IModelObject deletedObjectUntyped) {
 		S deletedObject = (S)deletedObjectUntyped;
-		
+
 		for (IScalarPropertyAccessor<?,? super S> accessor: propertySet.getScalarProperties3()) {
 			Object value = accessor.getValue(deletedObject);
 			if (value instanceof IModelObject) {
@@ -486,7 +494,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 
 	private <E extends IModelObject, S extends IModelObject> void deleteObjectsInList(DeltaListManager<E,S> modifiedList) {
 		S parent = modifiedList.committedParent;
-		
+
 		for (IObjectKey objectKeyToDelete: modifiedList.getDeletedObjects()) {
 			E objectToDelete = (E)objectKeyToDelete.getObject();
 			fireDestroyEvents(objectToDelete);
@@ -495,12 +503,12 @@ public abstract class TransactionManager extends AbstractDataManager {
 			} catch (ReferenceViolationException e) {
 				/*
 				 * We are trying to delete something that has references to it.
-				 * 
+				 *
 				 * We really need to pass back this error so it can be handled by the code that started this
 				 * commit in a user-friendly way.  However that means every commit needs to catch this exception
 				 * which is a lot of places.  We therefore convert it to a runtime exception here.  Unfortunately
 				 * this means the users don't get a friendly message.
-				 * 
+				 *
 				 * Ideally we should perhaps check for references when changes are made within the transaction.
 				 * However that would be a lot of work.
 				 */
@@ -517,7 +525,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 				fireDestroyEvents(childObject);
 			}
 		}
-		
+
 		/*
 		 * Fire the event to indicate that an object has been destroyed.
 		 */
@@ -536,14 +544,14 @@ public abstract class TransactionManager extends AbstractDataManager {
 	 * may be undone and redone.  This support is available with no
 	 * coding needed by the caller other than to pass the label to be
 	 * used to describe the operation.
-	 * 
+	 *
 	 * @param label the label to be used to describe this operation
 	 * 			for undo/redo purposes
 	 */
 	public void commit(String label) {
 		IUndoContext undoContext = baseDataManager.getUndoContext();
 		IOperationHistory history = JMoneyPlugin.getDefault().getWorkbench().getOperationSupport().getOperationHistory();
-		
+
 		IUndoableOperation operation = new AbstractDataOperation(baseDataManager.getChangeManager(), label) {
 			@Override
 			public IStatus execute() throws ExecutionException {
@@ -551,7 +559,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 				return Status.OK_STATUS;
 			}
 		};
-		
+
 		operation.addContext(undoContext);
 		try {
 			history.execute(operation, null, null);
@@ -560,17 +568,17 @@ public abstract class TransactionManager extends AbstractDataManager {
 			e.printStackTrace();
 		}
 	}
-	
+
 	private <S extends IModelObject, V> void setProperty(IModelObject committedObject, IScalarPropertyAccessor<V,S> accessor, Object newValue) {
 		accessor.setValue((S)committedObject, accessor.getClassOfValueObject().cast(newValue));
 	}
 
 	/**
 	 * Add a new uncommitted object to the committed datastore.
-	 * 
+	 *
 	 * All objects in any list properties in the object are also added, hence
 	 * this method is recursive.
-	 * 
+	 *
 	 * @param newObject the uncommitted version of the new object
 	 * @param parent the committed version of the parent into which this new
 	 * 			object is to be inserted
@@ -580,14 +588,14 @@ public abstract class TransactionManager extends AbstractDataManager {
 	 */
 	private <E extends IModelObject, S extends IModelObject> E commitNewObject(final E newObject, S parent, IListPropertyAccessor<? super E,? super S> listAccessor, boolean isDescendentInsert) {
 		IExtendablePropertySet<E> actualPropertySet = (IExtendablePropertySet<E>)listAccessor.getElementPropertySet().getActualPropertySet((Class<E>)newObject.getClass());
-		
+
 		/**
 		 * Holds references to new objects that have never been committed, so
 		 * that such references can be set later after all the new objects have
 		 * been committed.
 		 */
 		final ModifiedObject deferredReferences = new ModifiedObject();
-		
+
 		IValues values = new IValues<E>() {
 			@Override
 			public IObjectKey getReferencedObjectKey(IReferencePropertyAccessor<?, ? super E> propertyAccessor) {
@@ -628,7 +636,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 				return listOwnerKey.constructListManager(listAccessor);
 			}
 		};
-	
+
 		// Create the object with the appropriate property values
 		ObjectCollection<? super E> propertyValues = listAccessor.getElements(parent);
 		final E newCommittedObject = (E)propertyValues.createNewElement(actualPropertySet, values, isDescendentInsert);
@@ -652,22 +660,22 @@ public abstract class TransactionManager extends AbstractDataManager {
 					}
 				}
 		);
-		
+
 		// Commit all the child objects in the list properties.
 		for (IListPropertyAccessor<?,? super E> subListAccessor: actualPropertySet.getListProperties3()) {
 			commitChildren(newObject, newCommittedObject, subListAccessor);
 		}
-		
+
 		// If there are property changes that must be applied later, add the property
 		// change map to the list
 		if (!deferredReferences.isEmpty()) {
 			modifiedObjects.put(newCommittedObject.getObjectKey(), deferredReferences);
 		}
-		
+
 		return newCommittedObject;
 	}
 
-	
+
 	private <E extends IModelObject, S extends IModelObject> void commitChildren(S newObject, S newCommittedObject, IListPropertyAccessor<E,? super S> subListAccessor) {
 		for (E childObject: subListAccessor.getElements(newObject)) {
 			commitNewObject(childObject, newCommittedObject, subListAccessor, true);
@@ -676,7 +684,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 
 	private <E extends IModelObject, S extends IModelObject> void commitObjectsInList(DeltaListManager<E,S> modifiedList) {
 		S parent = modifiedList.committedParent;
-		
+
 		for (IModelObject newUntypedObject: modifiedList.getAddedObjects()) {
 			E newObject = modifiedList.listAccessor.getElementPropertySet().getImplementationClass().cast(newUntypedObject);
 
@@ -686,7 +694,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 			 * Now we can fire the notifications of newly inserted objects. This
 			 * is done now after all the descendants of the object have been
 			 * created.
-			 * 
+			 *
 			 * Note that if this object references other objects that are added
 			 * in this same transaction but that have not yet been added then
 			 * the reference will be null. A later objectChanged event will be
@@ -702,16 +710,16 @@ public abstract class TransactionManager extends AbstractDataManager {
 			);
 		}
 	}
-	
+
 	class DeletedObject<E extends IModelObject, S extends IModelObject> {
 		private S parent;
 		private IListPropertyAccessor<E,S> owningListProperty;
-		
+
 		DeletedObject(S parent, IListPropertyAccessor<E,S> owningListProperty) {
 			this.parent = parent;
 			this.owningListProperty = owningListProperty;
 		}
-		
+
 		void deleteObject(IModelObject object) {
 			owningListProperty.getElements(parent).remove(object);
 		}
@@ -735,13 +743,13 @@ public abstract class TransactionManager extends AbstractDataManager {
 	 * This method is called when a nested transaction manager has completed
 	 * making changes to our data.
 	 */
-    @Override	
+    @Override
 	public void commitTransaction() {
 		/*
 		 * This method is called only when transaction are nested.
 		 * The nested transaction will call this method after it has
 		 * applied the changes to this transaction.
-		 * 
+		 *
 		 * Changes are applied to this object's data as the changes are
 		 * made and there is nothing we need do to 'commit' the changes.
 		 * However, we do need to fire the performRefresh event method
@@ -756,7 +764,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 						listener.performRefresh();
 					}
 				});
-		
+
 		insideTransaction = false;
 	}
 
@@ -771,16 +779,16 @@ public abstract class TransactionManager extends AbstractDataManager {
 		public void objectInserted(IModelObject newObject) {
 			/*
 			 * The object may contain references to objects
-			 * that have been deleted in this view.  
-			 * 
+			 * that have been deleted in this view.
+			 *
 			 * In such a situation, the object deleted in this view
 			 * could be first 'undeleted'.  If the undeleted object references
 			 * other objects that were deleted by this view then those
 			 * objects are in turn undeleted in a recursive manner.
-			 * 
+			 *
 			 * A simpler approach may be to ignore the new object until
 			 * the transaction is committed.  At that time, the commit fails
-			 * with a conflict exception.  
+			 * with a conflict exception.
 			 */
 			// TODO Implement this method
 		}
@@ -788,7 +796,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 		@Override
 		public void objectCreated(IModelObject newObject) {
 			// TODO Auto-generated method stub
-			
+
 		}
 
 		@Override
@@ -796,21 +804,21 @@ public abstract class TransactionManager extends AbstractDataManager {
 			/*
 			 * The property may have been changed to reference an
 			 * object that has been deleted in this view.
-			 * 
-			 * In such a situation, the object could be 
+			 *
+			 * In such a situation, the object could be
 			 * first 'undeleted' in this view.  If the undeleted object references
 			 * other objects that were deleted by this view then those
 			 * objects are in turn undeleted in a recursive manner.
-			 * 
+			 *
 			 * A simpler approach may be to ignore the new object until
 			 * the transaction is committed.  At that time, the commit fails
 			 * with a conflict exception.
-			 * 
+			 *
 			 * We also need to consider what happens if this property change made
 			 * another property inapplicable, and that other property was changed
 			 * in this view, or if this property has been made inapplicable as
 			 * a result of a change in this view of another property.
-			 * All sorts of possibilities to consider. 
+			 * All sorts of possibilities to consider.
 			 */
 
 			// TODO For the time being, this does, but it is imperfect.
@@ -828,7 +836,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 			 * know there are no references to the object from the
 			 * base data.  However, it is possible that a reference
 			 * was created to this object in this version of the data.
-			 * 
+			 *
 			 * If that is the case then we could just not remove the object
 			 * from this view of the data.  The object is removed from
 			 * this view of the data only if all references to it are
@@ -837,10 +845,10 @@ public abstract class TransactionManager extends AbstractDataManager {
 			 * The user should be told that the object no longer exists
 			 * and the user must remove references to it before attempting
 			 * again to commit.
-			 * 
+			 *
 			 * A simpler approach may be to ignore the deletion of the object until
 			 * the transaction is committed.  At that time, the commit fails
-			 * with a conflict exception.  
+			 * with a conflict exception.
 			 */
 			// TODO Implement this method
 		}
@@ -848,13 +856,13 @@ public abstract class TransactionManager extends AbstractDataManager {
 		@Override
 		public void objectDestroyed(IModelObject deletedObject) {
 			// TODO Auto-generated method stub
-			
+
 		}
 
 		@Override
 		public void performRefresh() {
 			// TODO Auto-generated method stub
-			
+
 		}
 
 		@Override
@@ -872,7 +880,7 @@ public abstract class TransactionManager extends AbstractDataManager {
 			 */
 		}
 	}
-	
+
 	@Override
 	public IUndoContext getUndoContext() {
 		return undoContext;

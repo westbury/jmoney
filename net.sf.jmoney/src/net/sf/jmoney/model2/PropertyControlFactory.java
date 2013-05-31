@@ -2,6 +2,10 @@ package net.sf.jmoney.model2;
 
 import java.util.Comparator;
 
+import org.eclipse.core.databinding.observable.value.WritableValue;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+
 /**
  * This class provides a default implementation of some of the methods
  * in the IPropertyControlFactory interface.  Plug-ins do not have to use
@@ -13,11 +17,36 @@ import java.util.Comparator;
  * this class to provide a default implementation of the getComparator method.
  * If the values of the property are of a class that does not implement Comparable
  * then this helper class cannot be used.
- *  
+ *
  * @author Nigel Westbury
  *
  */
 public abstract class PropertyControlFactory<S extends ExtendableObject, V extends Comparable<? super V>> implements IPropertyControlFactory<S,V> {
+
+	   @Override
+		public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<V,S> propertyAccessor) {
+	    	final WritableValue<S> observable = new WritableValue<S>();
+
+	    	final Control control = createPropertyControl(parent, propertyAccessor, observable);
+
+	        return new IPropertyControl<S>() {
+				@Override
+				public Control getControl() {
+					return control;
+				}
+
+				@Override
+				public void load(S object) {
+					observable.setValue(object);
+				}
+
+				@Override
+				public void save() {
+					// Nothing to do because should always be saved
+					// by data binding.
+				}
+			};
+	    }
 
 	@Override
 	public String formatValueForTable(S extendableObject, ScalarPropertyAccessor<? extends V,S> propertyAccessor) {

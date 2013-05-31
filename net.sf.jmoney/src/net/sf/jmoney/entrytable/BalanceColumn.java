@@ -26,6 +26,7 @@ import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusListener;
@@ -38,7 +39,7 @@ public class BalanceColumn extends IndividualBlock<EntryData, BaseEntryRowContro
 	private class BalanceCellControl implements IPropertyControl<EntryData>, IBalanceChangeListener {
 		private final Label balanceLabel;
 		private EntryData entryData = null;
-		
+
 		private BalanceCellControl(Label balanceLabel) {
 			this.balanceLabel = balanceLabel;
 		}
@@ -81,21 +82,21 @@ public class BalanceColumn extends IndividualBlock<EntryData, BaseEntryRowContro
 		Assert.isNotNull(commodityForFormatting);
 		this.commodityForFormatting = commodityForFormatting;
 	}
-	
+
 	public int compare(EntryData entryData1, EntryData entryData2) {
 		// Entries lists cannot be sorted based on the balance.
 		// The caller should not do this.
 		throw new RuntimeException("internal error - attempt to sort on balance"); //$NON-NLS-1$
 	}
 
-    @Override	
-	public IPropertyControl<EntryData> createCellControl(Composite parent, RowControl rowControl, BaseEntryRowControl coordinator) {
+    @Override
+	public IPropertyControl<EntryData> createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, BaseEntryRowControl coordinator) {
 		final Label balanceLabel = new Label(parent, SWT.TRAIL);
-		
+
 		BalanceCellControl cellControl = new BalanceCellControl(balanceLabel);
-		
+
 		coordinator.addBalanceChangeListener(cellControl);
-		
+
 		return cellControl;
 	}
 

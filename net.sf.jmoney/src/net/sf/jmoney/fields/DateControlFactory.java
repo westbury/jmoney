@@ -33,11 +33,17 @@ import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.bind.IBidiConverter;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 
 /**
  * A control factory to edit date values.
- * 
+ *
  * @author Johann Gyger
  */
 public class DateControlFactory<S extends ExtendableObject> implements IPropertyControlFactory<S,Date> {
@@ -74,6 +80,41 @@ public class DateControlFactory<S extends ExtendableObject> implements IProperty
     @Override
 	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<Date,S> propertyAccessor) {
         return new DateEditor<S>(parent, propertyAccessor);
+    }
+
+    @Override
+	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<Date,S> propertyAccessor, IObservableValue<? extends S> modelObservable) {
+        DateControl propertyControl = new DateControl(parent);
+
+    	IBidiConverter<Date,String> dateToText = new IBidiConverter<Date,String>() {
+			@Override
+			public String modelToTarget(Date date) {
+		    	if (date == null) {
+		    		return ""; //$NON-NLS-1$
+		    	} else {
+		    		return fDateFormat.format(date);
+		    	}
+			}
+
+			@Override
+			public Date targetToModel(String text) {
+		        try {
+		        	return fDateFormat.parse(text);
+		        } catch (IllegalArgumentException e) {
+		        	// TODO show validation errors
+		        	return null;
+		        }
+			}
+		};
+
+		Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
+		.convertWithTracking(dateToText)
+		.to(SWTObservables.observeText(propertyControl.textControl, SWT.Modify));
+
+		Bind.bounceBack(dateToText)
+		.to(SWTObservables.observeText(propertyControl.textControl, SWT.FocusOut));
+
+		return propertyControl;
     }
 
     @Override

@@ -21,6 +21,8 @@
  */
 package net.sf.jmoney.model2;
 
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.lang.reflect.Field;
 
 import net.sf.jmoney.isolation.IObjectKey;
@@ -35,6 +37,43 @@ import net.sf.jmoney.isolation.IObjectKey;
 public abstract class ExtensionObject {
 	protected ExtendableObject baseObject;
 	protected PropertySet propertySet;
+
+	/**
+	 * We currently support both Bean properties and our own listener
+	 * framework.  The Bean system is used by data binding only.  Data
+	 * binding can be configured to use other listener frameworks
+	 * and this may be done as some point because the Bean framework is
+	 * not very efficient when you need to listen for changes to thousands
+	 * of objects.
+	 */
+	private PropertyChangeSupport propertyChangeSupport = new PropertyChangeSupport(
+			this);
+
+	public void addPropertyChangeListener(PropertyChangeListener listener) {
+		propertyChangeSupport.addPropertyChangeListener(listener);
+	}
+
+	public void addPropertyChangeListener(String propertyName,
+			PropertyChangeListener listener) {
+		propertyChangeSupport.addPropertyChangeListener(propertyName,
+				listener);
+	}
+
+	public void removePropertyChangeListener(PropertyChangeListener listener) {
+		propertyChangeSupport.removePropertyChangeListener(listener);
+	}
+
+	public void removePropertyChangeListener(String propertyName,
+			PropertyChangeListener listener) {
+		propertyChangeSupport.removePropertyChangeListener(propertyName,
+				listener);
+	}
+
+	protected void firePropertyChange(String propertyName, Object oldValue,
+			Object newValue) {
+		propertyChangeSupport.firePropertyChange(propertyName, oldValue,
+				newValue);
+	}
 
 	public ExtensionObject(ExtendableObject extendedObject) {
 		this.baseObject = extendedObject;
@@ -92,6 +131,9 @@ public abstract class ExtensionObject {
 
 	protected <V> void processPropertyChange(ScalarPropertyAccessor<V,?> propertyAccessor, V oldValue, V newValue) {
 		baseObject.processPropertyChange(propertyAccessor, oldValue, newValue);
+
+		// Fire the Bean listener
+		firePropertyChange(propertyAccessor.localName, oldValue, newValue);
 	}
 
 	/**

@@ -27,16 +27,18 @@ import java.util.Map;
 
 import net.sf.jmoney.model2.IPropertyControl;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.swt.widgets.Composite;
 
 public class CellContainer<T,R> extends Composite {
 
 	/**
 	 * the current input, being always a non-null value if this row
-	 * is active and undefined if this row is inactive 
+	 * is active and undefined if this row is inactive
 	 */
-	protected T input;
-	
+	protected IObservableValue<T> input = new WritableValue<T>();
+
 	// Although currently the keys of this map are never used
 	// (and it may as well be a list of the values only), a map
 	// allows us to do stuff like move the focus to the control
@@ -62,24 +64,24 @@ public class CellContainer<T,R> extends Composite {
 	protected void init(RowControl rowControl, R coordinator, Block<? super T, ? super R> rootBlock) {
 		for (CellBlock<? super T, ? super R> cellBlock: rootBlock.buildCellList()) {
 			// Create the control with no content set.
-			final IPropertyControl<? super T> cellControl = cellBlock.createCellControl(this, rowControl, coordinator);
+			final IPropertyControl<? super T> cellControl = cellBlock.createCellControl(this, input, rowControl, coordinator);
 			controls.put(cellBlock, cellControl);
 
-			if (input != null) {
-				cellControl.load(input);
+			if (input.getValue() != null) {
+				cellControl.load(input.getValue());
 			}
 		}
 	}
 
 	public void setInput(T input) {
-		this.input = input;
+		this.input.setValue(input);
 
 		for (final IPropertyControl<? super T> control: controls.values()) {
-			control.load(input);
+			control.load(this.input.getValue());
 		}
 	}
 
 	public T getInput() {
-		return input;
+		return input.getValue();
 	}
 }

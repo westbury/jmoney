@@ -30,18 +30,18 @@ import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ListKey;
 
 public class Stock extends Security {
-	
-	// This implementation formats all quantities as numbers with three decimal places.
-	private int SCALE_FACTOR = 1000;
+
+	// This implementation formats all quantities as numbers with four decimal places.
+	private int SCALE_FACTOR = 10000;
 
 	private static NumberFormat numberFormat = NumberFormat.getNumberInstance();
 	static {
-		numberFormat.setMaximumFractionDigits(3);
+		numberFormat.setMaximumFractionDigits(4);
 		numberFormat.setMinimumFractionDigits(0);
 	}
-	
+
 	private String nominalValue;
-	
+
     /**
      * Constructor used by datastore plug-ins to create
      * a stock object.
@@ -67,7 +67,7 @@ public class Stock extends Security {
 			IObjectKey objectKey,
 			ListKey parentKey) {
 		super(objectKey, parentKey);
-		
+
 		this.nominalValue = null;
 	}
 
@@ -75,14 +75,14 @@ public class Stock extends Security {
 	protected String getExtendablePropertySetId() {
 		return "net.sf.jmoney.stocks.stock";
 	}
-	
+
 	/**
 	 * @return the nominal value.  For example, "ORD 25P"
 	 */
 	public String getNominalValue() {
 		return nominalValue;
 	}
-	
+
 	public void setNominalValue(String nominalValue) {
 		String oldNominalValue = this.nominalValue;
 		this.nominalValue = nominalValue;
@@ -90,7 +90,7 @@ public class Stock extends Security {
 		// Notify the change manager.
 		processPropertyChange(StockInfo.getNominalValueAccessor(), oldNominalValue, nominalValue);
 	}
-	
+
 	@Override
 	public long parse(String amountString) {
 		Number amount;
@@ -102,20 +102,20 @@ public class Stock extends Security {
 		}
 		return Math.round(amount.doubleValue() * SCALE_FACTOR);
 	}
-	
+
 	@Override
 	public String format(long amount) {
 		double a = ((double) amount) / SCALE_FACTOR;
 		return numberFormat.format(a);
 	}
-	
+
 	/**
 	 * @return The scale factor.  Always 1000 for stock for the time being.
 	 */
 	// TODO: This property should be for currency only.
 	@Override
-	public short getScaleFactor() {
-		return 1000;
+	public int getScaleFactor() {
+		return SCALE_FACTOR;
 	}
 }
 

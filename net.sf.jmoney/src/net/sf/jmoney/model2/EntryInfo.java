@@ -28,18 +28,19 @@ import net.sf.jmoney.JMoneyPlugin;
 import net.sf.jmoney.VerySimpleDateFormat;
 import net.sf.jmoney.fields.AccountControlFactory;
 import net.sf.jmoney.fields.AmountControlFactory;
-import net.sf.jmoney.fields.AmountEditor;
 import net.sf.jmoney.fields.CurrencyControlFactory;
 import net.sf.jmoney.fields.DateControlFactory;
 import net.sf.jmoney.fields.TextControlFactory;
-import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IObjectKey;
-import net.sf.jmoney.isolation.IScalarPropertyAccessor;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ListKey;
-import net.sf.jmoney.isolation.SessionChangeAdapter;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.conversion.Converter;
+import org.eclipse.core.databinding.conversion.IConverter;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -58,7 +59,7 @@ import org.eclipse.swt.widgets.Label;
  * follow the Eclipse paradigm (every one should be treated equal,
  * including oneself), these are registered through the same extension
  * point that plug-ins must also use to register their properties.
- * 
+ *
  * @author Nigel Westbury
  * @author Johann Gyger
  */
@@ -86,7 +87,7 @@ public class EntryInfo implements IPropertySetInfo {
     }
     */
 
-	
+
 	private static ExtendablePropertySet<Entry> propertySet = PropertySet.addBaseFinalPropertySet(Entry.class, Messages.EntryInfo_Description, new IExtendableObjectConstructors<Entry>() {
 
 		@Override
@@ -98,8 +99,8 @@ public class EntryInfo implements IPropertySetInfo {
 		public Entry construct(IObjectKey objectKey,
 				ListKey<? super Entry,?> parentKey, IValues<Entry> values) {
 			return new Entry(
-					objectKey, 
-					parentKey, 
+					objectKey,
+					parentKey,
 					values.getScalarValue(EntryInfo.getCheckAccessor()),
 					values.getReferencedObjectKey(EntryInfo.getAccountAccessor()),
 					values.getScalarValue(EntryInfo.getValutaAccessor()),
@@ -108,12 +109,12 @@ public class EntryInfo implements IPropertySetInfo {
 					values.getReferencedObjectKey(EntryInfo.getCommodityAccessor()),
 					values.getScalarValue(EntryInfo.getCreationAccessor()),
 					values.getReferencedObjectKey(EntryInfo.getIncomeExpenseCurrencyAccessor()),
-					values 
+					values
 			);
 		}
 	});
 
-	
+
 	private static ScalarPropertyAccessor<String,Entry> checkAccessor = null;
 	private static ReferencePropertyAccessor<Account,Entry> accountAccessor = null;
 	private static ScalarPropertyAccessor<Date,Entry> valutaAccessor = null;
@@ -135,7 +136,10 @@ public class EntryInfo implements IPropertySetInfo {
 		};
 
         IPropertyControlFactory<Entry,Long> amountControlFactory = new AmountControlFactory<Entry>() {
-		    @Override	
+        	/**
+        	 * @trackedGetter
+        	 */
+		    @Override
 			protected Commodity getCommodity(Entry object) {
 				// If not enough information has yet been set to determine
 				// the currency of the amount in this entry, return
@@ -145,47 +149,8 @@ public class EntryInfo implements IPropertySetInfo {
 	    	    	commodity = object.getSession().getDefaultCurrency();
 	    	    }
 	    	    return commodity;
-			}
-
-			@Override
-			public IPropertyControl<Entry> createPropertyControl(Composite parent, ScalarPropertyAccessor<Long,Entry> propertyAccessor) {
-		    	final AmountEditor<Entry> editor = new AmountEditor<Entry>(parent, propertyAccessor, this);
-		        
-		    	// The format of the amount will change if either
-		    	// the account property of the entry changes or if
-		    	// the commodity property of the account changes.
-		        editor.setListener(new SessionChangeAdapter() {
-		        		@Override	
-		        		public void objectChanged(IModelObject changedObject, IScalarPropertyAccessor changedProperty, Object oldValue, Object newValue) {
-		        			Entry entry = (Entry)editor.getObject();
-		        			if (entry == null) {
-		        			    return;
-		        			}
-		        			// Has the account property changed?
-		        			if (changedObject.equals(entry) && changedProperty == EntryInfo.getAccountAccessor()) {
-		        				editor.updateCommodity(entry.getCommodityInternal());	
-		        			}
-		        			// Has the currency property of the account changed?
-		        			if (changedObject ==  entry.getAccount() && changedProperty == CurrencyAccountInfo.getCurrencyAccessor()) {
-		        				editor.updateCommodity(entry.getCommodityInternal());	
-		        			}
-		        			// If any property in the commodity object changed then
-		        			// the format of the amount might also change.
-		        			if (changedObject ==  entry.getCommodityInternal()) {
-		        				editor.updateCommodity(entry.getCommodityInternal());	
-		        			}
-		        			
-		        			// TODO: All the above tests are still not complete.
-		        			// If the account for the entry can contain multiple
-		        			// commodities then the commodity may depend on properties
-		        			// in the entry object.  We really need a special listener
-		        			// that listens for any changes that would affect the
-		        			// Entry.getCommodity() value.
-		        		}
-		        	});   	
-		        
-		        return editor;
-			}};
+		    }
+        };
 
 		IPropertyControlFactory<Entry,Long> creationControlFactory = new PropertyControlFactory<Entry,Long>() {
 
@@ -209,7 +174,7 @@ public class EntryInfo implements IPropertySetInfo {
 			public IPropertyControl<Entry> createPropertyControl(Composite parent, final ScalarPropertyAccessor<Long,Entry> propertyAccessor) {
 				// This property is not editable
 				final Label control = new Label(parent, SWT.NONE);
-				
+
 		    	return new IPropertyControl<Entry>() {
 					@Override
 					public Control getControl() {
@@ -235,6 +200,29 @@ public class EntryInfo implements IPropertySetInfo {
 			public boolean isEditable() {
 				return false;
 			}
+
+			@Override
+			public Control createPropertyControl(Composite parent,
+					ScalarPropertyAccessor<Long, Entry> propertyAccessor,
+					IObservableValue<? extends Entry> modelObservable) {
+				// This property is not editable
+				final Label control = new Label(parent, SWT.NONE);
+
+		    	IConverter<Long,String> longToStringDateConverter = new Converter<Long,String>(Long.class, String.class) {
+					@Override
+					public String convert(Long fromObject) {
+						Date date = new Date(fromObject);
+//						date.setTime(fromObject);
+				        return dateFormat.format(date);
+					}
+				};
+
+				Bind.oneWay(propertyAccessor.observeDetail(modelObservable))
+				.convert(longToStringDateConverter)
+				.to(SWTObservables.observeText(control));
+
+				return control;
+			}
 		};
 
 		IReferenceControlFactory<Entry,Entry,Commodity> commodityControlFactory = new CommodityControlFactory<Entry,Entry>() {
@@ -243,35 +231,35 @@ public class EntryInfo implements IPropertySetInfo {
 				return parentObject.commodityKey;
 			}
 		};
-		
+
 		IReferenceControlFactory<Entry,Entry,Currency> currencyControlFactory = new CurrencyControlFactory<Entry,Entry>() {
 			@Override
 			public IObjectKey getObjectKey(Entry parentObject) {
 				return parentObject.incomeExpenseCurrencyKey;
 			}
 		};
-		
+
 		IPropertyDependency<Entry> onlyIfIncomeExpenseAccount = new IPropertyDependency<Entry>() {
 			@Override
 			public boolean isApplicable(Entry entry) {
 				return entry.getAccount() instanceof IncomeExpenseAccount;
 			}
 		};
-		
+
 		IPropertyDependency<Entry> onlyIfCurrencyAccount = new IPropertyDependency<Entry>() {
 			@Override
 			public boolean isApplicable(Entry entry) {
 				return entry.getAccount() instanceof CurrencyAccount;
 			}
 		};
-		
+
 		IPropertyDependency<Entry> onlyIfBankAccount = new IPropertyDependency<Entry>() {
 			@Override
 			public boolean isApplicable(Entry entry) {
 				return entry.getAccount() instanceof BankAccount;
 			}
 		};
-		
+
 		checkAccessor       = propertySet.addProperty("check",Messages.EntryInfo_Check,String.class, 2, 50,  textControlFactory, onlyIfBankAccount); //$NON-NLS-1$
 		accountAccessor     = propertySet.addProperty("account",Messages.EntryInfo_Category,Account.class, 2, 70,  accountControlFactory, null); //$NON-NLS-1$
 		valutaAccessor      = propertySet.addProperty("valuta",Messages.EntryInfo_Valuta,Date.class, 0, 74,  dateControlFactory, onlyIfCurrencyAccount); //$NON-NLS-1$
@@ -280,7 +268,7 @@ public class EntryInfo implements IPropertySetInfo {
 		commodityAccessor   = propertySet.addProperty("commodity","Commodity",Commodity.class, 2, 70, commodityControlFactory, null); //$NON-NLS-1$
 		creationAccessor    = propertySet.addProperty("creation",Messages.EntryInfo_Creation,Long.class, 0, 70,  creationControlFactory, null); //$NON-NLS-1$
 		incomeExpenseCurrencyAccessor = propertySet.addProperty("incomeExpenseCurrency",Messages.EntryInfo_Currency,Currency.class, 2, 70, currencyControlFactory, onlyIfIncomeExpenseAccount); //$NON-NLS-1$
-		
+
 		return propertySet;
 	}
 
@@ -296,54 +284,54 @@ public class EntryInfo implements IPropertySetInfo {
 	 */
 	public static ScalarPropertyAccessor<String,Entry> getCheckAccessor() {
 		return checkAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ReferencePropertyAccessor<Account,Entry> getAccountAccessor() {
 		return accountAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ScalarPropertyAccessor<Date,Entry> getValutaAccessor() {
 		return valutaAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ScalarPropertyAccessor<String,Entry> getMemoAccessor() {
 		return memoAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ScalarPropertyAccessor<Long,Entry> getAmountAccessor() {
 		return amountAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ReferencePropertyAccessor<Commodity,Entry> getCommodityAccessor() {
 		return commodityAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ScalarPropertyAccessor<Long,Entry> getCreationAccessor() {
 		return creationAccessor;
-	}	
+	}
 
 	/**
 	 * @return
 	 */
 	public static ReferencePropertyAccessor<Currency,Entry> getIncomeExpenseCurrencyAccessor() {
 		return incomeExpenseCurrencyAccessor;
-	}	
+	}
 }

@@ -22,9 +22,12 @@
 
 package net.sf.jmoney.entrytable;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,7 +84,7 @@ import org.eclipse.swt.widgets.Control;
  * <LI>Every property in an entry that may be applicable when the entry is in
  * an income and expense account</LI>
  * </UL>
- * 
+ *
  * Some properties may be applicable for both entries in the capital account and
  * for entries in income and expense accounts. There will be two columns for
  * such properties. When an entry is being show on its own child row, we have
@@ -111,11 +114,11 @@ import org.eclipse.swt.widgets.Control;
 public abstract class EntriesTable<T extends EntryData> extends Composite {
 
 	protected Session session;
-	
+
 	protected IEntriesContent entriesContent;
-	
+
 	public VirtualRowTable<T> table;
-	
+
 	/**
 	 * List of entries to show in the table. Only the top level entries are
 	 * included, the other entries in the transactions, which are shown as child
@@ -128,18 +131,18 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 	 * the user can use to enter new entries.
 	 */
 	T newEntryRow;
-	
+
 	/**
 	 * The comparator that sorts entries according to the current sort order.
 	 */
 	Comparator<EntryData> rowComparator;
-	
+
 	/**
 	 * The entries in sorted order.  This list contains the same
 	 * items that are in the entries map.
 	 */
 	List<T> sortedEntries;
-	
+
 	/**
 	 * Set of listeners for selection changes
 	 */
@@ -151,35 +154,55 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 	 * or more tables).
 	 */
 	@SuppressWarnings("unchecked")
-	public EntriesTable(Composite parent, Block rootBlock, 
+	public EntriesTable(Composite parent, Block rootBlock,
 			final IEntriesContent entriesContent, IRowProvider<T> rowProvider, final Session session, IndividualBlock<EntryData, ?> defaultSortColumn, final RowSelectionTracker<? extends BaseEntryRowControl> rowTracker) {
 		super(parent, SWT.NONE);
-		
+
 		this.session = session;
 
 		GridLayout layout = new GridLayout(1, false);
 		layout.marginWidth = 0;
 		layout.marginHeight = 0;
 		setLayout(layout);
-		
+
 		/*
 		 * Ensure indexes are set.
 		 */
 		rootBlock.initIndexes(0);
-		
+
 		this.entriesContent = entriesContent;
 
 		// Fetch and sort the list of top level entries to display.
 		buildEntryList();
 
 		newEntryRow = createNewEntryRowInput();
-		
+
 	    /*
 		 * Build the initial sort order. This must be done before we can create
 		 * the composite table because the constructor for the composite table
 		 * requires a row content provider.
 		 */
-		rowComparator = new RowComparator(defaultSortColumn, true);
+//		rowComparator = new RowComparator(defaultSortColumn, true);
+
+		rowComparator = new Comparator<EntryData>() {
+			@Override
+			public int compare(EntryData o1, EntryData o2) {
+				Date date1 = o1.getEntry().getValuta() == null
+						? o1.getEntry().getTransaction().getDate()
+								: o1.getEntry().getValuta();
+						Date date2 = o2.getEntry().getValuta() == null
+								? o2.getEntry().getTransaction().getDate()
+										: o2.getEntry().getValuta();
+								DateFormat df = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss");
+								int result = date1.compareTo(date2);
+//								if (result == 0) {
+//									result =	o1.toString().compareTo(o2.toString());
+//								}
+//								System.out.println(o1.toString() + ", " + o2.toString() + " : " + df.format(date1) + ", " + df.format(date2) + " = " + result);
+								return result;
+			}
+		};
+
 	    sort();
 
 	    IContentProvider<T> contentProvider = new IContentProvider<T>() {
@@ -191,7 +214,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 
 			@Override
 			public T getElement(int rowNumber) {
-				return sortedEntries.get(rowNumber); 
+				return sortedEntries.get(rowNumber);
 			}
 
 			@Override
@@ -199,9 +222,9 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 				return sortedEntries.indexOf(entryData);
 			}
 	    };
-	    
+
 		table = new VirtualRowTable<T>(this, rootBlock, this, contentProvider, rowProvider, rowTracker);
-		
+
 		/*
 		 * Use a single cell focus tracker for this table. The row focus tracker
 		 * is passed to this object because it may be shared with other tables
@@ -210,7 +233,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 	    FocusCellTracker cellTracker = new FocusCellTracker();
 
 	    rowProvider.init(table, rowTracker, cellTracker);
-		
+
 		GridData gridData = new GridData(SWT.FILL, SWT.FILL, true, true);
 		gridData.heightHint = 100;
 		gridData.widthHint = 100;
@@ -272,7 +295,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 
 					// TODO: This is not complete.  What happens if the entry
 					// with focus is in the transaction being deleted?
-					
+
 					for (Entry deletedEntry: deletedTransaction.getEntryCollection()) {
 						if (entries.containsKey(deletedEntry)) {
 							removeEntryFromTable(deletedEntry);
@@ -294,7 +317,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 					 * table. If the entry is not either the selected entry or
 					 * the parent of the selected entry then the changed entry
 					 * is immediately removed from the list.
-					 * 
+					 *
 					 * However, if the changed entry is the selected top-level
 					 * entry or the parent of the selected child entry then we
 					 * do not remove the entry from the list. It would confuse
@@ -306,7 +329,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 					 * forced to commit the changes and should not be so
 					 * surprised to see that the entry is no longer in the table
 					 * once the changes are committed.
-					 * 
+					 *
 					 * Note that the entry being changed may be the other entry
 					 * in the transaction, whose properties are also displayed on
 					 * the parent row. As long as properties from the 'other'
@@ -346,7 +369,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 				// (Only rows for top level entries display transaction properties).
 				if (extendableObject instanceof Transaction) {
 					Transaction transaction = (Transaction) extendableObject;
-					
+
 					for (Entry entry: transaction.getEntryCollection()) {
 						if (entries.containsKey(entry)) {
 							updateEntryInTable(entry);
@@ -363,7 +386,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 				 * for this page. It is therefore better just to refresh all the
 				 * entire entries list, but note that only the text need be
 				 * refreshed.
-				 * 
+				 *
 				 * TODO: Other properties added by plug-ins could potentially
 				 * affect this view too. Should we refresh on ANY property
 				 * change on ANY object class, or should we implement something
@@ -381,24 +404,24 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 				/*
 				 * This change may result in the entry moving in the sort order.
 				 * We can efficiently check for this by comparing the entry
-				 * against its neighbors and moving it as appropriate. 
+				 * against its neighbors and moving it as appropriate.
 				 */
 				int originalIndex = data.getIndex();
 				int index = originalIndex;
 				Assert.isTrue(index == sortedEntries.indexOf(data));
-				
+
 				/*
 				 * The start index from which we need to update balances.
 				 * This is currently set the this index, but this variable
 				 * must be updated if the current index is moved in the sort
-				 * order. 
+				 * order.
 				 */
 				int balanceRefreshStartPoint = index;
 				long balanceRefreshStartAmount = data.getBalance();
-				
+
 				// Bubble up the screen (down the sort order)
 				while (index > 0) {
-					T data2 = sortedEntries.get(index-1); 
+					T data2 = sortedEntries.get(index-1);
 					if (rowComparator.compare(data2, data) <= 0) {
 						break;
 					}
@@ -408,21 +431,21 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 					balanceRefreshStartPoint = index;
 					balanceRefreshStartAmount = data2.getBalance();
 				}
-				
+
 				// Bubble down the screen (up the sort order)
 				while (index < entries.size() - 1) {
-					T data2 = sortedEntries.get(index+1); 
-					
+					T data2 = sortedEntries.get(index+1);
+
 					if (rowComparator.compare(data, data2) <= 0) {
 						break;
 					}
-					
+
 					sortedEntries.set(index, data2);
 					index++;
 				}
 
 				sortedEntries.set(index, data);
-				
+
 				/*
 				 * It is possible that the amount of this entry changed.
 				 * Therefore we must refresh the balances of all later
@@ -442,9 +465,9 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 			private void removeEntryFromTable(Entry entry) {
 				EntryData data = entries.remove(entry);
 
-				int indexToRemove = sortedEntries.indexOf(data); 
+				int indexToRemove = sortedEntries.indexOf(data);
 				sortedEntries.remove(indexToRemove);
-				
+
 				// Update all the later entries
 				updateFollowingValues(indexToRemove, data.getBalance());
 
@@ -453,16 +476,16 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 
 			private void addEntryToTable(Entry entry) {
 				T newData = createEntryRowInput(entry);
-				
+
 				entries.put(entry, newData);
-				
+
 				/*
 				 * Find the insert point in the sorted entries.
-				 * 
+				 *
 				 * Scan the table to find the correct index to insert this row.
 				 * Because rows are likely to be inserted near the bottom of the
 				 * table, we scan backwards.
-				 * 
+				 *
 				 * We start the search at the penultimate entry. The last entry
 				 * is the uncommitted 'new entry' row. We cannot compare against
 				 * such entries as we don't have a committed entry available,
@@ -477,15 +500,15 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 					}
 					i--;
 				}
-				
+
 				int insertIndex = i;
 				long balance = sortedEntries.get(i).getBalance();
-				
+
 				// Insert the entry at the appropriate place in the sorted list.
 				sortedEntries.add(insertIndex, newData);
-				
+
 				updateFollowingValues(insertIndex, balance);
-				
+
 				table.insertRow(insertIndex);
 			}
 		}, this);
@@ -496,13 +519,13 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 	/**
 	 * Adjust the indexes and balances of all entries in the table starting at
 	 * the given start index in the sorted list.
-	 * 
+	 *
 	 * The EntryData objects hold the committed data, so changing an amount in
 	 * an entry will not update the balances until the entry is committed. If an
 	 * EntryData object represents a new entry that has never been committed
 	 * then the Entry value will be null. In that case the balance is not
 	 * changed by the entry.
-	 * 
+	 *
 	 * @param startIndex
 	 *            the index of the first entry that needs updating
 	 * @param startBalance
@@ -513,7 +536,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 		long balance = startBalance;
 		for (int index = startIndex; index < sortedEntries.size(); index++) {
 			EntryData data = sortedEntries.get(index);
-			
+
 			data.setIndex(index);
 			data.setBalance(balance);
 
@@ -527,15 +550,31 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 	 * Change the sort according to the given parameters.
 	 */
 	public void sort(IndividualBlock<EntryData, BaseEntryRowControl> sortProperty, boolean sortAscending) {
-		rowComparator = new RowComparator(sortProperty, sortAscending);
+//		rowComparator = new RowComparator(sortProperty, sortAscending);
+		rowComparator = new Comparator<EntryData>() {
+			@Override
+			public int compare(EntryData o1, EntryData o2) {
+				Date date1 = o1.getEntry().getValuta() == null
+						? o1.getEntry().getTransaction().getDate()
+								: o1.getEntry().getValuta();
+						Date date2 = o2.getEntry().getValuta() == null
+								? o2.getEntry().getTransaction().getDate()
+										: o2.getEntry().getValuta();
+				return (int)(date1.getTime() - date2.getTime());
+			}
+			@Override
+			public boolean equals(Object o2) {
+				return false;
+			}
+		};
 		sort();
 	}
-	
+
 	/**
 	 * Sort the entries according to the rowComparator field.
 	 */
 	public void sort() {
-		
+
 		/*
 		 * It would be efficient if we could create a sorted TreeSet and copy
 		 * the entries into that. However the TreeSet object unfortunately uses
@@ -547,21 +586,21 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 		 * determine equality. Java's own documentation says that the equals
 		 * method is used to determine equality but Sun's documentation is
 		 * wrong.
-		 * 
+		 *
 		 * We therefore copy the entries into a list and then sort that.
 		 */
 		sortedEntries = new ArrayList<T>();
 		sortedEntries.addAll(entries.values());
 		Collections.sort(sortedEntries, rowComparator);
-		
+
 		// Add an empty row at the end so that users can enter new entries.
 		sortedEntries.add(newEntryRow);
-		
+
         /*
          * Having sorted the entries, the indexes and balances must be updated.
          */
 		updateFollowingValues(0, entriesContent.getStartBalance());
-	}	
+	}
 
 	/**
      * Build the list of entries to be shown in the entries list. This method
@@ -588,7 +627,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 	 * the transaction is displayed.  If any entry in a split
 	 * transaction matches the filter then the entire transaction
 	 * is shown.
-	 * 
+	 *
 	 * @param transData
 	 * @return
 	 */
@@ -598,7 +637,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 		}
 
 		// TODO: decide if we should be searching split entries.
-/*		
+/*
 		if (!transData.isSimpleEntry()) {
 			for (Entry entry2: transData.getSplitEntries()) {
 				DisplayableEntry entryData = new DisplayableEntry(entry2,
@@ -622,10 +661,10 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 		 * Re-sort using the rowComparator field as a comparator.
 		 */
 	    sort();
-	    
+
 	}
 
-    @Override	
+    @Override
 	public void dispose() {
 		table.dispose();
 	}
@@ -646,7 +685,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 		DisplayableTransaction dTrans = new DisplayableTransaction(entry, 0);
 
 		// TODO: check that caller ensures this entry is in the entries content provider.
-		
+
 		// Do not add this entry to our view if a filter is on and the entry does
 		// not match the filter.
 		if (!matchesFilter(dTrans)) {
@@ -673,11 +712,11 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 				}
 			}
 		}
-		
+
 		// Insert the transaction and its entries now.
 		TreeItem parentItem = new TreeItem(fTable, 0, parentIndex);
 		parentItem.setData(dTrans);
-		
+
 		// Set the column values for this new row (note that the balance
 		// column is not set.  The balance column is always set
 		// later by the same code that updates all the following balances).
@@ -723,7 +762,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 		// the set provided by entriesContent.  However, the filter is not kept correctly.
 		// This is a problem, because the user may edit properties that make the entry
 		// disappear because it no longer passes the filter.  How do we deal with this?
-		
+
 		// get the index of the row for the transaction
 		int parentIndex = lookupEntryInAccount(entry);
 
@@ -732,13 +771,13 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 
 		// Remove from our cached set of entries
 		entries.remove(dTrans.entry);
-		
+
 		// Determine the color of this row.  It is used to switch the color of
 		// all the following rows.
 		boolean isAlternated = (alternateTransactionColor.equals(parentItem
 				.getBackground()));
 
-		
+
 		// Dispose it
 		parentItem.dispose();
 
@@ -756,18 +795,18 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 		int parentIndex = lookupEntryInAccount(entryInAccount);
 		JMoneyPlugin.myAssert(parentIndex >= 0);
 		TreeItem parentItem = fTable.getItem(parentIndex);
-		
+
 		// If there are two entries in the transaction
 		// and the changed entry in not the listed entry
 		// and the changed property was the account property
 		// and the account changed from being a capital account to an income and expense account
 		// or vica versa
 		// then we must add or remove a child item.
-		DisplayableTransaction dTrans = (DisplayableTransaction)parentItem.getData(); 
+		DisplayableTransaction dTrans = (DisplayableTransaction)parentItem.getData();
 		if (dTrans.otherEntries.size() == 1
 				&& !changedEntry.equals(entryInAccount)
 				&& changedProperty == EntryInfo.getAccountAccessor()) {
-			
+
 			if ((oldValue instanceof CapitalAccount)
 					&& !(newValue instanceof CapitalAccount)) {
 				// Remove the single child item.
@@ -784,7 +823,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 				childItem.setBackground(colorOfNewEntry);
 			}
 		}
-		
+
 		// If this is a double entry transaction then changing the other entry
 		// may affect the top-level row (the account, for example, is displayed
 		// in the top-level row).
@@ -801,9 +840,9 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 		// properly, as we do not want to mess up the user while the user
 		// is editing the row.  To move a row requires the row item to be
 		// disposed and a new row item inserted at the new position.
-		// The easiest way may be to see if this is the selected row, 
+		// The easiest way may be to see if this is the selected row,
 		// and if it is, move all the rows past this row.
-		// Until this is implemented, we leave the row out of order. 
+		// Until this is implemented, we leave the row out of order.
 
 		// Recalculate balances from this point onwards.
 		if (changedProperty == EntryInfo.getAmountAccessor()
@@ -834,9 +873,9 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 		// properly, as we do not want to mess up the user while the user
 		// is editing the row.  To move a row requires the row item to be
 		// disposed and a new row item inserted at the new position.
-		// The easiest way may be to see if this is the selected row, 
+		// The easiest way may be to see if this is the selected row,
 		// and if it is, move all the rows past this row.
-		// Until this is implemented, we leave the row out of order. 
+		// Until this is implemented, we leave the row out of order.
 	}
 
 	/**
@@ -852,11 +891,11 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 
 		Transaction transaction = entryInAccount.getTransaction();
 		DisplayableTransaction dTrans = (DisplayableTransaction)parentItem.getData();
-		
+
 		// Update the list of child entries in the
 		// DisplayableTransaction object.
 		dTrans.otherEntries.add(newEntry);
-		
+
 		Color colorOfNewEntry = parentItem.getBackground().equals(
 				transactionColor) ? entryColor : alternateEntryColor;
 
@@ -914,7 +953,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 		// Update the list of child entries in the
 		// DisplayableTransaction object.
 		dTrans.otherEntries.remove(deletedEntry);
-		
+
 		// get the child row item for the entry
 		TreeItem childItem = lookupSplitEntry(parentItem, deletedEntry);
 
@@ -943,7 +982,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 		// own listener to the tree control.  When our own listener is
 		// notified of a change in selection, the listener in turn
 		// notifies the listeners added thru this method.
-		
+
 		// This approach is necessary because not all selection changes
 		// the tree should be passed on to the listeners added thru this
 		// method.  The selection change may be ignored if, for example,
@@ -952,7 +991,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 		// a listener, SWT does not seem to generate a SelectionListener
 		// event, but we want one generated and by keeping our own list
 		// of listeners, we can do that.
-		
+
 		selectionListeners.add(tableSelectionListener);
 	}
 
@@ -968,12 +1007,12 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 	private class RowComparator implements Comparator<EntryData> {
 		private Comparator<EntryData> cellComparator;
 		private boolean ascending;
-		
+
 		RowComparator(IndividualBlock<EntryData, ?> sortProperty, boolean ascending) {
 			this.cellComparator = sortProperty.getComparator();
 			this.ascending = ascending;
 		}
-		
+
 		@Override
 		public int compare(EntryData entryData1, EntryData entryData2) {
 			int result = cellComparator.compare(entryData1, entryData2);

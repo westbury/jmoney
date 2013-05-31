@@ -10,6 +10,7 @@ import net.sf.jmoney.search.views.EntrySearch;
 import net.sf.jmoney.search.views.SearchException;
 import net.sf.jmoney.search.views.SearchView;
 
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.SWT;
@@ -25,15 +26,16 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.PartInitException;
+import org.eclipse.ui.statushandlers.StatusManager;
 public class EntrySearchDialog extends Dialog {
 
 	private IWorkbenchPage workbenchPage;
-	
+
 	private DateControl startDateControl;
 	private DateControl endDateControl;
 	private Text amountControl;
 	private Text memoControl;
-	
+
 	protected EntrySearchDialog(Shell parentShell, IWorkbenchPage workbenchPage) {
 		super(parentShell);
 		this.workbenchPage = workbenchPage;
@@ -51,7 +53,7 @@ public class EntrySearchDialog extends Dialog {
 			 * The end date, or null if no start date
 			 */
 			Date endDate = endDateControl.getDate();
-			
+
 			/**
 			 * The amount of the entry, or null if no amount restriction
 			 */
@@ -62,17 +64,22 @@ public class EntrySearchDialog extends Dialog {
 	        } else {
 	        	// TODO: Have a drop down with the currency on which
 	        	// we are searching.
-	        	Currency currency = JMoneyPlugin.getDefault().getSession().getDefaultCurrency(); 
-	            amount = currency.parse(amountString);
+	        	Currency currency = JMoneyPlugin.getDefault().getSession().getDefaultCurrency();
+	            try {
+					amount = currency.parse(amountString);
+				} catch (CoreException e) {
+					StatusManager.getManager().handle(e.getStatus());
+					return;
+				}
 	        }
 
 	    	/**
 	    	 * Text that must appear in the memo, or null if no matching on the memo
 	    	 */
 			String memo = memoControl.getText().isEmpty()
-				? null 
+				? null
 				: memoControl.getText();
-			
+
 			IEntrySearch search = new EntrySearch(startDate, endDate, amount, memo);
 
 			try {
@@ -118,10 +125,11 @@ public class EntrySearchDialog extends Dialog {
 
 		Composite fieldArea = new Composite(composite, SWT.NONE);
 		fieldArea.setLayout(new GridLayout(2, false));
-		
+
 		new Label(fieldArea, SWT.NONE).setText("Start Date:");
 		startDateControl = new DateControl(fieldArea);
 		startDateControl.addModifyListener(new ModifyListener() {
+			@Override
 			public void modifyText(ModifyEvent e) {
 				boolean isDateValid = (startDateControl.getDate() != null);
 				setErrorMessage(isDateValid ? null : "Date must be in the format " + JMoneyPlugin.getDefault().getDateFormat());
@@ -135,10 +143,11 @@ public class EntrySearchDialog extends Dialog {
 		Calendar cal = Calendar.getInstance();
 		cal.add(Calendar.YEAR, -1);
 		startDateControl.setDate(cal.getTime());
-		
+
 		new Label(fieldArea, SWT.NONE).setText("End Date:");
 		endDateControl = new DateControl(fieldArea);
 		endDateControl.addModifyListener(new ModifyListener() {
+			@Override
 			public void modifyText(ModifyEvent e) {
 				boolean isDateValid = (endDateControl.getDate() != null);
 				setErrorMessage(isDateValid ? null : "Date must be in the format " + JMoneyPlugin.getDefault().getDateFormat());
@@ -154,13 +163,13 @@ public class EntrySearchDialog extends Dialog {
 
     	// Set focus to the amount as that is the most frequently used field
     	amountControl.setFocus();
-    	
+
 		applyDialogFont(composite);
 		return composite;
 	}
 
 	protected void setErrorMessage(String string) {
 		// TODO:
-		
+
 	}
 }

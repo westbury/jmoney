@@ -26,6 +26,7 @@ import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -40,9 +41,9 @@ import org.eclipse.swt.widgets.Control;
  * object will be the other entry in the transaction.
  */
 public class SingleOtherEntryPropertyBlock extends IndividualBlock<Entry, ISplitEntryContainer> {
-	private ScalarPropertyAccessor<?,?> accessor;
-	
-	public SingleOtherEntryPropertyBlock(ScalarPropertyAccessor accessor) {
+	private ScalarPropertyAccessor<?, Entry> accessor;
+
+	public SingleOtherEntryPropertyBlock(ScalarPropertyAccessor<?,Entry> accessor) {
 		super(
 				accessor.getDisplayName(),
 				accessor.getMinimumWidth(),
@@ -52,7 +53,7 @@ public class SingleOtherEntryPropertyBlock extends IndividualBlock<Entry, ISplit
 		this.accessor = accessor;
 	}
 
-	public SingleOtherEntryPropertyBlock(ScalarPropertyAccessor accessor, String displayName) {
+	public SingleOtherEntryPropertyBlock(ScalarPropertyAccessor<?,Entry> accessor, String displayName) {
 		super(
 				displayName,
 				accessor.getMinimumWidth(),
@@ -66,59 +67,66 @@ public class SingleOtherEntryPropertyBlock extends IndividualBlock<Entry, ISplit
 		return accessor.getName();
 	}
 
-    @Override	
-	public IPropertyControl<Entry> createCellControl(Composite parent, RowControl rowControl, ISplitEntryContainer coordinator) {
-		final IPropertyControl propertyControl = accessor.createPropertyControl(parent);
-		
+    @Override
+	public IPropertyControl<Entry> createCellControl(Composite parent, IObservableValue<? extends Entry> master, RowControl rowControl, ISplitEntryContainer coordinator) {
+    	final Control propertyControl = accessor.createPropertyControl2(parent, master);
+
+
+
+
+//    	final IPropertyControl propertyControl = accessor.createPropertyControl(parent);
+
 		ICellControl2<Entry> cellControl = new ICellControl2<Entry>() {
 			@Override
 			public Control getControl() {
-				return propertyControl.getControl();
+//				return propertyControl.getControl();
+				return propertyControl;
 			}
 
-			@SuppressWarnings("unchecked")
 			@Override
 			public void load(Entry entry) {
-				propertyControl.load(entry);
+				// bound so nothing to do
+//				propertyControl.load(entry);
 			}
 
 			@Override
 			public void save() {
-				propertyControl.save();
+				// bound so nothing to do
+//				propertyControl.save();
 			}
 
 			@Override
 			public void setSelected() {
-				propertyControl.getControl().setBackground(RowControl.selectedCellColor);
+				propertyControl.setBackground(RowControl.selectedCellColor);
 			}
 
 			@Override
 			public void setUnselected() {
-				propertyControl.getControl().setBackground(null);
+				propertyControl.setBackground(null);
 			}
 		};
-		
+
 		// TODO: remove parameterization from following???
 		FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, cellControl);
 
 		// This is a little bit of a kludge.  Might be a little safer to implement a method
 		// in IPropertyControl to add the focus listener?
-		addFocusListenerRecursively(propertyControl.getControl(), controlFocusListener);
-		
+		addFocusListenerRecursively(propertyControl, controlFocusListener);
+
 //			textControl.addKeyListener(keyListener);
 //			textControl.addTraverseListener(traverseListener);
-		
+
 		return cellControl;
 	}
 
     /**
 	 * Add listeners to each control.
-	 * 
+	 *
 	 * @param control The control to listen to.
 	 */
 	private void addFocusListenerRecursively(Control control, FocusListener listener) {
 		control.addFocusListener(listener);
-		
+
 		if (control instanceof Composite) {
 			Composite composite = (Composite) control;
 			for (Control childControl : composite.getChildren()) {

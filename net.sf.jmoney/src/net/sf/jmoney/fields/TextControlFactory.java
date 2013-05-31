@@ -30,12 +30,17 @@ import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.bind.Bind;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Text;
 
 /**
  * A control factory to edit normal text.
- * 
+ *
  * @author Nigel Westbury
  * @author Johann Gyger
  */
@@ -46,9 +51,19 @@ public class TextControlFactory<S extends ExtendableObject> implements IProperty
         return new TextEditor<S>(parent, SWT.NONE, propertyAccessor);
     }
 
-   @Override
-public String formatValueForMessage(S extendableObject, ScalarPropertyAccessor<? extends String,S> propertyAccessor) {
-        String value = propertyAccessor.getValue(extendableObject);
+    @Override
+	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<String,S> propertyAccessor, IObservableValue<? extends S> modelObservable) {
+    	Text propertyControl = new Text(parent, SWT.NONE);
+
+		Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
+		.to(SWTObservables.observeText(propertyControl, SWT.Modify));
+
+		return propertyControl;
+    }
+
+    @Override
+    public String formatValueForMessage(S extendableObject, ScalarPropertyAccessor<? extends String,S> propertyAccessor) {
+    	String value = propertyAccessor.getValue(extendableObject);
         if (value == null || value.length() == 0) {
             return Messages.TextControlFactory_Empty;
         } else {

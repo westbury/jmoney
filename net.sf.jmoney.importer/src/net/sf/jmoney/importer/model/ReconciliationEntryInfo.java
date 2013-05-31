@@ -22,27 +22,21 @@
 
 package net.sf.jmoney.importer.model;
 
+import net.sf.jmoney.fields.NonEditableTextControlFactory;
 import net.sf.jmoney.importer.resources.Messages;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.ExtensionPropertySet;
 import net.sf.jmoney.model2.IExtensionObjectConstructors;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IPropertySetInfo;
-import net.sf.jmoney.model2.PropertyControlFactory;
 import net.sf.jmoney.model2.PropertySet;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
-
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Label;
 
 /**
  * Provides the metadata for the extra properties added to each
  * entry by this plug-in.
- * 
+ *
  * @author Nigel Westbury
  */
 public class ReconciliationEntryInfo implements IPropertySetInfo {
@@ -57,75 +51,18 @@ public class ReconciliationEntryInfo implements IPropertySetInfo {
 		@Override
 		public ReconciliationEntry construct(Entry extendedObject, IValues<Entry> values) {
 			return new ReconciliationEntry(
-					extendedObject, 
+					extendedObject,
 					values.getScalarValue(getUniqueIdAccessor())
 			);
 		}
 	});
-	
+
 	private static ScalarPropertyAccessor<String,Entry> uniqueIdAccessor = null;
-	
+
 	@Override
 	public PropertySet<ReconciliationEntry,Entry> registerProperties() {
-		class NonEditableTextControlFactory extends PropertyControlFactory<Entry,String> {
-			
-			@Override
-			public IPropertyControl<Entry> createPropertyControl(Composite parent, final ScalarPropertyAccessor<String,Entry> propertyAccessor) {
-				
-				// Property is not editable
-		        final Label control = new Label(parent, SWT.NONE);
-		        return new IPropertyControl<Entry>() {
+		uniqueIdAccessor  = propertySet.addProperty("uniqueId", Messages.Entry_UniqueIdShort, String.class, 1, 80, new NonEditableTextControlFactory<Entry>(), null);
 
-					@Override
-					public Control getControl() {
-						return control;
-					}
-
-					@Override
-					public void load(Entry object) {
-						String text = propertyAccessor.getValue(object);
-						if (text == null) {
-							control.setText("");
-						} else {
-							control.setText(text);
-						}
-					}
-
-					@Override
-					public void save() {
-						/*
-						 * The property is not editable so there is nothing
-						 * to do here.
-						 */
-					}
-		        };
-			}
-
-			@Override
-			public String formatValueForMessage(Entry extendableObject, ScalarPropertyAccessor<? extends String,Entry> propertyAccessor) {
-				String value = propertyAccessor.getValue(extendableObject);
-				return (value == null) ? "<blank>" : value;
-			}
-
-			@Override
-			public String formatValueForTable(Entry extendableObject, ScalarPropertyAccessor<? extends String,Entry> propertyAccessor) {
-				String value = propertyAccessor.getValue(extendableObject);
-				return (value == null) ? "" : value;
-			}
-
-			@Override
-			public String getDefaultValue() {
-				return null;
-			}
-
-			@Override
-			public boolean isEditable() {
-				return true;
-			}
-		}
-
-		uniqueIdAccessor  = propertySet.addProperty("uniqueId", Messages.Entry_UniqueIdShort, String.class, 1, 80, new NonEditableTextControlFactory(), null);
-		
 		return propertySet;
 	}
 

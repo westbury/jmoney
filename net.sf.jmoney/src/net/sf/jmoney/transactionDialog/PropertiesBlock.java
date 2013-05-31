@@ -41,6 +41,7 @@ import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.graphics.Color;
@@ -62,15 +63,15 @@ import org.eclipse.swt.widgets.Label;
  * but it does give the user the most control.
  */
 class PropertiesBlock extends CellBlock<Entry, SplitEntryRowControl> {
-	
+
 	// TODO We should not really have this field.  We should use listeners or something, not sure what.
 	TransactionDialog transactionDialog;
-	
+
 	public PropertiesBlock(TransactionDialog transactionDialog) {
 		super(400, 20);
 		this.transactionDialog = transactionDialog;
 	}
-	
+
 	// TODO: remove entry parameter from this method.
 	@Override
 	public void createHeaderControls(Composite parent, Entry entry) {
@@ -80,16 +81,16 @@ class PropertiesBlock extends CellBlock<Entry, SplitEntryRowControl> {
 	}
 
 	@Override
-	public IPropertyControl<Entry> createCellControl(Composite parent,
+	public IPropertyControl<Entry> createCellControl(Composite parent, IObservableValue<? extends Entry> master,
 			RowControl rowControl, SplitEntryRowControl coordinator) {
-    	
+
     	return new PropertiesCellControl(parent, rowControl);
 	}
 
 	private class PropertiesCellControl implements IPropertyControl<Entry> {
 		private Composite propertiesControl;
 		private Entry entry = null;
-		
+
 		final private Color labelColor;
 		final private Color controlColor;
 		private List<IPropertyControl> properties;
@@ -97,10 +98,10 @@ class PropertiesBlock extends CellBlock<Entry, SplitEntryRowControl> {
 
 		public PropertiesCellControl(Composite parent, RowControl rowControl) {
 	    	this.rowControl = rowControl;
-	    	
+
 			labelColor = Display.getCurrent().getSystemColor(SWT.COLOR_BLUE);
 			controlColor = Display.getCurrent().getSystemColor(SWT.COLOR_YELLOW);
-			
+
 			propertiesControl = new Composite(parent, SWT.NONE);
 			propertiesControl.setLayout(new RowLayout(SWT.HORIZONTAL));
 		}
@@ -119,7 +120,7 @@ class PropertiesBlock extends CellBlock<Entry, SplitEntryRowControl> {
 			/*
 			 * Note that this dialog is modal so changes cannot be made from outside the dialog.
 			 * Refreshing of the view after inserting and removing splits is handled by the commands
-			 * directly, so we are only interested in property changes. 
+			 * directly, so we are only interested in property changes.
 			 */
 			entry.getDataManager().addChangeListener(new SessionChangeAdapter() {
 				@Override
@@ -135,19 +136,19 @@ class PropertiesBlock extends CellBlock<Entry, SplitEntryRowControl> {
 							} while (c != null);
 //			    	        shell.pack();
 							transactionDialog.refreshScrolling();
-							
+
 							c = propertiesControl;
 							do {
 								c.layout(true);
 								c = c.getParent();
 							} while (c != null);
-							
+
 						}
 					}
 				}
 			}, propertiesControl);
 
-			
+
 		}
 
 		private void createPropertyControls() {
@@ -183,7 +184,7 @@ class PropertiesBlock extends CellBlock<Entry, SplitEntryRowControl> {
 			}
 
 			return accessor.isPropertyApplicable(entry);
-			
+
 			// TODO Push this into the metadata.
 //			if (account instanceof CapitalAccount) {
 //				return !accessor.getName().equals("net.sf.jmoney.paypal.entryProperties.itemUrl");

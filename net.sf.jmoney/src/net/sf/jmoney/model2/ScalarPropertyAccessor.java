@@ -11,11 +11,13 @@ import org.eclipse.core.databinding.observable.map.IObservableMap;
 import org.eclipse.core.databinding.observable.masterdetail.IObservableFactory;
 import org.eclipse.core.databinding.observable.set.IObservableSet;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.databinding.property.list.IListProperty;
 import org.eclipse.core.databinding.property.map.IMapProperty;
 import org.eclipse.core.databinding.property.set.ISetProperty;
 import org.eclipse.core.databinding.property.value.IValueProperty;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 
 public class ScalarPropertyAccessor<T, S extends ExtendableObject> extends PropertyAccessor<S> implements IScalarPropertyAccessor<T,S> {
 
@@ -51,7 +53,7 @@ public class ScalarPropertyAccessor<T, S extends ExtendableObject> extends Prope
 	/**
 	 * Index into the array of scalar properties.
 	 */
-	private int indexIntoScalarProperties = -1;
+//	private int indexIntoScalarProperties = -1;
 
 	private Comparator<S> parentComparator;
 
@@ -59,7 +61,7 @@ public class ScalarPropertyAccessor<T, S extends ExtendableObject> extends Prope
 
 	public ScalarPropertyAccessor(Class<T> classOfValueObject, PropertySet<?,S> propertySet, String localName, String displayName, int weight, int minimumWidth, final IPropertyControlFactory<S,T> propertyControlFactory, IPropertyDependency<? super S> propertyDependency) {
 		super(propertySet, localName, displayName);
-
+		this.classOfValueObject = classOfValueObject;
 		this.weight = weight;
 		this.minimumWidth = minimumWidth;
 		this.sortable = true;
@@ -304,6 +306,25 @@ public class ScalarPropertyAccessor<T, S extends ExtendableObject> extends Prope
 		return propertyControlFactory.createPropertyControl(parent, this);
 	}
 
+	public Control createPropertyControl(Composite parent, S object) {
+		/*
+		 * When a PropertyAccessor object is created, it is provided with an
+		 * interface to a factory that constructs control objects that edit the
+		 * property. We call into that factory to create an edit control.
+		 */
+		IObservableValue<S> constantValue = new WritableValue<S>(object, null);
+		return propertyControlFactory.createPropertyControl(parent, this, constantValue);
+	}
+
+	public Control createPropertyControl2(Composite parent, IObservableValue<? extends S> master) {
+		/*
+		 * When a PropertyAccessor object is created, it is provided with an
+		 * interface to a factory that constructs control objects that edit the
+		 * property. We call into that factory to create an edit control.
+		 */
+		return propertyControlFactory.createPropertyControl(parent, this, master);
+	}
+
 	/**
 	 * Format the value of a property so it can be embedded into a
 	 * message.
@@ -391,37 +412,37 @@ public class ScalarPropertyAccessor<T, S extends ExtendableObject> extends Prope
 		return classOfValueType;
 	}
 
-	/**
-	 * It is often useful to have an array of property values
-	 * of an extendable object.  This array contains all scalar
-	 * properties in the extendable object, including extension
-	 * properties and properties from any base property sets.
-	 * <P>
-	 * In these arrays, the properties (including extension properties)
-	 * from the base property sets are put first in the array.
-	 * This means a given property will always be at the same index
-	 * in the array regardless of the actual derived property set.
-	 * <P>
-	 * This index is guaranteed to match the order in which
-	 * properties are returned by the PropertySet.getPropertyIterator_Scalar3().
-	 * i.e. if this method returns n then in every case where the
-	 * collection returned by getPropertyIterator_Scalar3 contains this property,
-	 * this property will be returned as the (n+1)'th element in the collection.
-	 *
-	 * @return the index of this property in the list of scalar
-	 * 			properties for the class.  This method returns zero
-	 * 			for the first scalar property returned by
-	 * 			PropertySet.getPropertyIterator3() and so on.
-	 */
-	@Override
-	public int getIndexIntoScalarProperties() {
-		return indexIntoScalarProperties;
-	}
+//	/**
+//	 * It is often useful to have an array of property values
+//	 * of an extendable object.  This array contains all scalar
+//	 * properties in the extendable object, including extension
+//	 * properties and properties from any base property sets.
+//	 * <P>
+//	 * In these arrays, the properties (including extension properties)
+//	 * from the base property sets are put first in the array.
+//	 * This means a given property will always be at the same index
+//	 * in the array regardless of the actual derived property set.
+//	 * <P>
+//	 * This index is guaranteed to match the order in which
+//	 * properties are returned by the PropertySet.getPropertyIterator_Scalar3().
+//	 * i.e. if this method returns n then in every case where the
+//	 * collection returned by getPropertyIterator_Scalar3 contains this property,
+//	 * this property will be returned as the (n+1)'th element in the collection.
+//	 *
+//	 * @return the index of this property in the list of scalar
+//	 * 			properties for the class.  This method returns zero
+//	 * 			for the first scalar property returned by
+//	 * 			PropertySet.getPropertyIterator3() and so on.
+//	 */
+//	@Override
+//	public int getIndexIntoScalarProperties() {
+//		return indexIntoScalarProperties;
+//	}
 
 	// TODO: This method should be accessible only from within the package.
-	public void setIndexIntoScalarProperties(int indexIntoScalarProperties) {
-		this.indexIntoScalarProperties = indexIntoScalarProperties;
-	}
+//	public void setIndexIntoScalarProperties(int indexIntoScalarProperties) {
+//		this.indexIntoScalarProperties = indexIntoScalarProperties;
+//	}
 
 	/**
 	 * Indicates if this property is applicable.  An instance of an object
@@ -460,6 +481,10 @@ public class ScalarPropertyAccessor<T, S extends ExtendableObject> extends Prope
 		}
 	}
 
+	/**
+	 * @deprecated
+	 */
+	@Deprecated
 	@Override
 	public Object getValueType() {
 		return valueProperty.getValueType();
@@ -527,5 +552,10 @@ public class ScalarPropertyAccessor<T, S extends ExtendableObject> extends Prope
 	public <K, V> IMapProperty<S, K, V> map(
 			IMapProperty<? super T, K, V> detailMap) {
 		return valueProperty.map(detailMap);
+	}
+
+	@Override
+	public Class<T> getValueClass() {
+		return classOfValueObject;
 	}
 }

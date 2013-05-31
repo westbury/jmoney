@@ -80,6 +80,8 @@ import net.sf.jmoney.resources.Messages;
 import net.sf.jmoney.views.AccountEditorInput;
 
 import org.eclipse.core.commands.IHandler;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
@@ -100,6 +102,7 @@ import org.eclipse.ui.forms.widgets.FormToolkit;
 import org.eclipse.ui.forms.widgets.ScrolledForm;
 import org.eclipse.ui.handlers.IHandlerService;
 import org.eclipse.ui.part.EditorPart;
+import org.eclipse.ui.statushandlers.StatusManager;
 
 public class AssetDetailsEditor extends EditorPart {
 
@@ -194,7 +197,7 @@ public class AssetDetailsEditor extends EditorPart {
 		IndividualBlock<StockEntryData, StockEntryRowControl> actionColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Action", 50, 1) {
 
 			@Override
-			public IPropertyControl<StockEntryData> createCellControl(Composite parent, RowControl rowControl, final StockEntryRowControl coordinator) {
+			public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final CCombo control = new CCombo(parent, SWT.NONE);
 				control.add("buy");
 				control.add("sell");
@@ -278,7 +281,7 @@ public class AssetDetailsEditor extends EditorPart {
 		IndividualBlock<StockEntryData, StockEntryRowControl> shareNameColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Stock", 50, 1) {
 
 			@Override
-			public IPropertyControl<StockEntryData> createCellControl(Composite parent, RowControl rowControl, final StockEntryRowControl coordinator) {
+			public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final RealPropertyControl<RealProperty> control = new RealPropertyControl<RealProperty>(parent, null, RealProperty.class);
 
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
@@ -386,7 +389,7 @@ public class AssetDetailsEditor extends EditorPart {
 		IndividualBlock<StockEntryData, StockEntryRowControl> priceColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Price", 60, 1) {
 
 			@Override
-			public IPropertyControl<StockEntryData> createCellControl(Composite parent, RowControl rowControl, final StockEntryRowControl coordinator) {
+			public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final Text control = new Text(parent, SWT.RIGHT);
 
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
@@ -419,7 +422,12 @@ public class AssetDetailsEditor extends EditorPart {
 					}
 
 					public void save() {
-						long amount = account.getCurrency().parse(control.getText());
+						try {
+							long amount = account.getCurrency().parse(control.getText());
+						} catch (CoreException e) {
+							StatusManager.getManager().handle(e.getStatus());
+							return;
+						}
 					}
 
 					public void setSelected() {
@@ -442,7 +450,7 @@ public class AssetDetailsEditor extends EditorPart {
 		IndividualBlock<StockEntryData, StockEntryRowControl> shareNumberColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Quantity", EntryInfo.getAmountAccessor().getMinimumWidth(), EntryInfo.getAmountAccessor().getWeight()) {
 
 			@Override
-			public IPropertyControl<StockEntryData> createCellControl(Composite parent, RowControl rowControl, final StockEntryRowControl coordinator) {
+			public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final Text control = new Text(parent, SWT.RIGHT);
 
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
@@ -483,14 +491,19 @@ public class AssetDetailsEditor extends EditorPart {
 					}
 
 					public void save() {
-						IAmountFormatter formatter = getFormatter();
-						long quantity = formatter.parse(control.getText());
-						if (data.getTransactionType() == TransactionType.Sell) {
-							quantity = -quantity;
-						}
+						try {
+							IAmountFormatter formatter = getFormatter();
+							long quantity = formatter.parse(control.getText());
+							if (data.getTransactionType() == TransactionType.Sell) {
+								quantity = -quantity;
+							}
 
-						Entry entry = data.getPurchaseOrSaleEntry();
-						entry.setAmount(quantity);
+							Entry entry = data.getPurchaseOrSaleEntry();
+							entry.setAmount(quantity);
+						} catch (CoreException e) {
+							StatusManager.getManager().handle(e.getStatus());
+							return;
+						}
 					}
 
 					public void setSelected() {
@@ -568,7 +581,7 @@ public class AssetDetailsEditor extends EditorPart {
 					}
 
 				    @Override
-					public IPropertyControl<StockEntryData> createCellControl(Composite parent, final RowControl rowControl, final StockEntryRowControl coordinator) {
+					public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, final RowControl rowControl, final StockEntryRowControl coordinator) {
 						final StackControl<StockEntryData, StockEntryRowControl> control = new StackControl<StockEntryData, StockEntryRowControl>(parent, rowControl, coordinator, this);
 
 						coordinator.addTransactionTypeChangeListener(new ITransactionTypeChangeListener() {
