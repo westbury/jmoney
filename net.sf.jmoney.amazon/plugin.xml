@@ -19,6 +19,14 @@
 				Import a CSV file that resulted from an export from Amazon of orders. 
 			</description>
 		</wizard>
+		<wizard id="net.sf.jmoney.amazon.AmazonHtmlImportWizard"
+			name="Amazon Orders as HTML"
+			icon="icons/PayPal_mark_37x23.gif"
+			class="net.sf.jmoney.amazon.AmazonHtmlImportWizard">
+			<description>
+				Import the HTML page that contains Amazon order history. 
+			</description>
+		</wizard>
 	</extension>
 
    <extension
