@@ -11,4 +11,5 @@ Require-Bundle: org.junit,
  org.eclipse.core.runtime,
  org.eclipse.ui,
  net.sf.jmoney,
- net.sf.jmoney.serializeddatastore
+ net.sf.jmoney.serializeddatastore,
+ org.eclipse.core.databinding.observable;bundle-version="1.5.0"

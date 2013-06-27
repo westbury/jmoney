@@ -12,7 +12,8 @@ Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.ui,
  org.eclipse.ui.forms,
  org.eclipse.birt.report.engine,
- org.eclipse.birt.report.engine.emitter.html
+ org.eclipse.birt.report.engine.emitter.html,
+ org.eclipse.core.databinding.observable;bundle-version="1.5.0"
 Export-Package: net.sf.jmoney.oda.driver
 Bundle-ActivationPolicy: lazy
 Bundle-Vendor: JMoney.sf.net
