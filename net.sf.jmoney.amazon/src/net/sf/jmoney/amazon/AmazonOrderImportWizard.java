@@ -176,7 +176,7 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 		 *
 		 * Note that we search ten days ahead for a matching entry in the charge account.
 		 * Although Amazon usually charge on the day of shipment there have been cases where
-		 * the change appears at the bank seven days later.
+		 * the charge appears at the bank seven days later.
 		 */
 		MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
 			@Override

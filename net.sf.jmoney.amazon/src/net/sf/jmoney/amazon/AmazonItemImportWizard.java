@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -73,7 +72,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 			// src="(http:\/\/ecx\.images\-amazon\.com\/images\/[A-Z]\/[A-Z,a-z,0-9]*\._AA160_\.jpg)" class="productImage" alt="Product Details"
 			imageUrlPattern = Pattern.compile("src=\"(http:\\/\\/ecx\\.images\\-amazon\\.com\\/images\\/[A-Z]\\/[A-Z,a-z,0-9]*\\._AA160_\\.jpg)\" class=\"productImage\" alt=\"Product Details\"");
 		} catch (PatternSyntaxException e) {
-			throw new RuntimeException("pattern failed", e); 
+			throw new RuntimeException("pattern failed", e);
 		}
 	}
 
@@ -115,7 +114,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 
 		DateFormat f = new SimpleDateFormat("dd-MMM-yyyy");
 		System.out.println("Shipment date: " + (shipmentDate==null ? "null" : f.format(shipmentDate)) + ", order: " + orderId);
-		
+
 		/*
 		 * If this order has not shipped then we don't process it.  It won't have been
 		 * charged so we can't match against the charge account.  More importantly, the
@@ -138,7 +137,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 				|| column_unitPrice.getAmount() <= 0) {
 			throw new ImportException("If an item has shipped, both the unit price and the quantity are assumed to be positive (non-zero).");
 		}
-		
+
 		/*
 		 * Try each of the current row processors.  If any are 'done' then we
 		 * create their transaction and remove the processor from our list.
@@ -148,16 +147,16 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 		boolean processed = false;
 		for (Iterator<MultiRowTransaction> iter = currentMultiRowProcessors.iterator(); iter.hasNext(); ) {
 			MultiRowTransaction currentMultiRowProcessor = iter.next();
-			
+
 			boolean thisOneProcessed = currentMultiRowProcessor.processCurrentRow(session);
-			
+
 			if (thisOneProcessed) {
 				if (processed) {
 					throw new RuntimeException("Can't have two current processors that can process the same row");
 				}
 				processed = true;
 			}
-			
+
 			if (currentMultiRowProcessor.isDone()) {
 				currentMultiRowProcessor.createTransaction(session);
 				iter.remove();
@@ -195,7 +194,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 				}
 
 				chargedAccount = giftCardAccount;
-				
+
 				// TODO figure out actual currency of gift certificate
 				thisCurrency = session.getCurrencyForCode("USD");
 			} else {
@@ -217,7 +216,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 
 			/*
 			 * Look for an income and expense account that can be used by default for the purchases.
-			 * The currency of this account must match the currency of the charge account. 
+			 * The currency of this account must match the currency of the charge account.
 			 */
 			IncomeExpenseAccount unknownAmazonPurchaseAccount = null;
 			for (Iterator<IncomeExpenseAccount> iter = session.getIncomeExpenseAccountIterator(); iter.hasNext(); ) {
@@ -238,7 +237,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 				/*
 				 * We should check the charge account to make sure there is no entries.
 				 * If both the items and the order has already been imported then we should
-				 * find the matching entry in the charge account. 
+				 * find the matching entry in the charge account.
 				 */
 				for (Entry entry : chargedAccount.getEntries()) {
 					AmazonEntry amazonEntry = entry.getExtension(AmazonEntryInfo.getPropertySet(), false);
@@ -344,12 +343,12 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 
 		/**
 		 * Initial constructor called when first item in a shipment found.
-		 * 
+		 *
 		 * @param trackingNumber
 		 * @param shipmentDate
 		 * @param quantity
 		 * @param stock
-		 * @throws ImportException 
+		 * @throws ImportException
 		 */
 		public ItemsShippedTransaction(IncomeExpenseAccount unmatchedAccount, IncomeExpenseAccount unknownAmazonPurchaseAccount) throws ImportException {
 			this.unmatchedAccount = unmatchedAccount;
@@ -367,7 +366,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 					&& shipmentDate.equals(column_shipmentDate.getDate())) {
 				ItemRow item = new ItemRow();
 
-				
+
 				StringBuffer memo = new StringBuffer();
 				if (!column_category.getText().isEmpty()) {
 					memo.append(column_category.getText().toLowerCase()).append(" - ");
@@ -411,10 +410,10 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 				itemEntry.setTrackingNumber(trackingNumber);
 				itemEntry.setShipmentDate(shipmentDate);
 				itemEntry.setAsinOrIsbn(rowItem2.id);
-			
+
 //				/**
 //				 * Submit a search for the ASIN to Amazon, then we look at the html
-//				 * that comes back and find in it the URL to the picture. 
+//				 * that comes back and find in it the URL to the picture.
 //				 */
 //				String urlString2 = MessageFormat.format(
 //						"http://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords={0}",
@@ -426,11 +425,11 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 //					Matcher m = imageUrlPattern.matcher(sourceHtml);
 //					if (!m.find()) {
 //						throw new RuntimeException("no image found");
-//					}	
+//					}
 //					String imageUrlString = m.group(1);
 //					if (m.find()) {
 //						throw new RuntimeException("more than one image found");
-//					}	
+//					}
 //					System.out.println(imageUrlString);
 //					URL picture = new URL(imageUrlString);
 //					itemEntry.setPicture(new UrlBlob(picture));
@@ -469,7 +468,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 	/**
 	 * This class handles the import of items from the 'items' file when the matching record from the
 	 * 'orders' file has already been imported.
-	 * 
+	 *
 	 *  In this case the list of items replaces the entry in the unmatched entries account.
 	 */
 	public class ItemsShippedTransactionMatched extends ItemsShippedTransaction {
@@ -500,7 +499,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 	/**
 	 * This class handles the import of items from the 'items' file when no matching record from the
 	 * 'orders' file has yet been imported.
-	 * 
+	 *
 	 *  In this case the list of items is created.  However we don't know the total charged because details
 	 *  such as shipping costs are in the 'orders' file.  We therefore put an entry in the 'unmatched' account
 	 *  with the total cost of all the items.
@@ -553,7 +552,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 		public String memo;
 		public String id;
 		public long quantity;
-		public long unitPrice; 
+		public long unitPrice;
 		public long subtotal;
 	}
 
