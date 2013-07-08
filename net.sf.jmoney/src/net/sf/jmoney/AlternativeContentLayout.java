@@ -34,7 +34,7 @@ import org.eclipse.swt.widgets.Layout;
  * and fills the entire parent control and all the other
  * child controls are not visible.
  * <P>
- * This layout has no corressponding data associated with
+ * This layout has no corresponding data associated with
  * each child control.  The child control to be shown is
  * selected by calling the <code>show</code> method on this
  * layout.  This method may be called multiple times to
