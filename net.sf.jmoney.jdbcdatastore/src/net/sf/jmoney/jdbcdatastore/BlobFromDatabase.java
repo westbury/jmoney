@@ -64,7 +64,10 @@ public class BlobFromDatabase implements IBlob {
 			stmt.setInt(1, objectKey.getRowId());
 			ResultSet rs = stmt.executeQuery();
 
-			rs.next();
+			boolean rowExists = rs.next();
+			if (!rowExists) {
+				throw new RuntimeException("blob error");
+			}
 
 			Blob blob = rs.getBlob(1);
 			return blob.getBinaryStream();
