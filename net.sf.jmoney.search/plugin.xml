@@ -21,6 +21,13 @@
         </command>
      </menuContribution>
 
+     <menuContribution locationURI="toolbar:main?after=navigate">
+        <command
+              commandId="net.sf.jmoney.search.entrySearchCommand"
+              icon="icons/eview16/searchres.gif">
+        </command>
+     </menuContribution>
+
      <menuContribution locationURI="menu:search?after=additions">
         <command
               commandId="net.sf.jmoney.search.accountSearchCommand"/>
