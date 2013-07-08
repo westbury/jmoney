@@ -7,12 +7,11 @@ public class AmazonItem {
 	public String seller;
 	public String img;
 	public String asin;
-	public String price;
+	public long price;
 
 
 	public long getPrice() {
-		String x = price.substring(1).replaceFirst("\\.", "");
-		return Long.valueOf(x);
+		return price;
 	}
 
 	@Override

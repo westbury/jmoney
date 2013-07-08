@@ -14,9 +14,17 @@ public class AmazonOrder {
 	public String id2;
 	public String id;
 
-	public String total;
+	public long total;
 
 	public List<AmazonShipment> shipments = new ArrayList<AmazonShipment>();
+
+	public String giftRecipient;
+
+	/**
+	 * true if there were so many items that they were not listed on
+	 * the order list page.
+	 */
+	public boolean moreItems;
 
 	@Override
 	public String toString() {
@@ -38,7 +46,6 @@ public class AmazonOrder {
 	}
 
 	public long getTotal() {
-		String x = total.substring(1).replaceFirst("\\.", "");
-		return Long.valueOf(x);
+		return total;
 	}
 }

@@ -3,8 +3,11 @@ package net.sf.jmoney.amazon;
 import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 
 import net.sf.jmoney.Helper;
 import net.sf.jmoney.importer.MatchingEntryFinder;
@@ -357,7 +360,10 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 			matchedEntryInChargeAccount = matchingEntry.getBaseObject();
 		}
 
-		distribute(matchedEntryInChargeAccount);
+		List<Entry> itemEntries = new ArrayList<Entry>();
+		itemEntries.addAll(matchedEntryInChargeAccount.getTransaction().getEntryCollection());
+		itemEntries.remove(matchedEntryInChargeAccount);
+		distribute(matchedEntryInChargeAccount.getTransaction(), itemEntries);
 
 		AmazonItemImportWizard.assertValid(matchedEntryInChargeAccount.getTransaction());
 	}
@@ -372,43 +378,41 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 	 *
 	 * @throws ImportException
 	 */
-	private void distribute(Entry fixedEntry) throws ImportException {
-		if (fixedEntry.getAmount() == 0) {
-			throw new ImportException("Can't cope with zero amount charged.");
+	public static void distribute(Transaction trans, Collection<Entry> itemEntries) throws ImportException {
+		long transactionTotal = 0;
+		for (Entry itemEntry : trans.getEntryCollection()) {
+			transactionTotal += itemEntry.getAmount();
 		}
 
 		long netTotal = 0;
-		for (Entry itemEntry : fixedEntry.getTransaction().getEntryCollection()) {
-			if (itemEntry != fixedEntry) {
-				if ((itemEntry.getAmount() < 0) == (fixedEntry.getAmount() < 0)) {
-					throw new ImportException("Can't have positive and negative items.");
-				}
-				netTotal += itemEntry.getAmount();
+		for (Entry itemEntry : itemEntries) {
+			if (itemEntry.getAmount() < 0) {
+				throw new ImportException("Can refunds be supported here?");
 			}
+			netTotal += itemEntry.getAmount();
 		}
-
-		long toDistribute = - (netTotal + fixedEntry.getAmount());
+		
+		long toDistribute = - transactionTotal;
 		long leftToDistribute = toDistribute;
 
-		for (Entry itemEntry : fixedEntry.getTransaction().getEntryCollection()) {
-			if (itemEntry != fixedEntry) {
-				long amount = toDistribute * itemEntry.getAmount() / netTotal;
-				itemEntry.setAmount(itemEntry.getAmount() + amount);
-				leftToDistribute -= amount;
-			}
+		if (toDistribute != 0) {
+			System.out.println("to distribute: " + toDistribute);
+		}
+		for (Entry itemEntry : itemEntries) {
+			long amount = toDistribute * itemEntry.getAmount() / netTotal;
+			itemEntry.setAmount(itemEntry.getAmount() + amount);
+			leftToDistribute -= amount;
 		}
 
 		// We have rounded down, so we may be under.  We now distribute
 		// a penny to each until we get a balanced transaction.
-		for (Entry itemEntry : fixedEntry.getTransaction().getEntryCollection()) {
-			if (itemEntry != fixedEntry) {
-				if (leftToDistribute > 0) {
-					itemEntry.setAmount(itemEntry.getAmount() + 1);
-					leftToDistribute--;
-				} else if (leftToDistribute < 0) {
-					itemEntry.setAmount(itemEntry.getAmount() - 1);
-					leftToDistribute++;
-				}
+		for (Entry itemEntry : itemEntries) {
+			if (leftToDistribute > 0) {
+				itemEntry.setAmount(itemEntry.getAmount() + 1);
+				leftToDistribute--;
+			} else if (leftToDistribute < 0) {
+				itemEntry.setAmount(itemEntry.getAmount() - 1);
+				leftToDistribute++;
 			}
 		}
 
