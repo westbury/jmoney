@@ -57,12 +57,20 @@ public class ImageControl extends Composite {
 		setLayout(new FillLayout());
 
 		button = new Button(this, SWT.PUSH);
-		if (threeDotsImage == null) {
-			ImageDescriptor descriptor = JMoneyPlugin.createImageDescriptor("dots_button.gif"); //$NON-NLS-1$
-			threeDotsImage = descriptor.createImage();
-		}
-		button.setImage(threeDotsImage);
+//		if (threeDotsImage == null) {
+//			ImageDescriptor descriptor = JMoneyPlugin.createImageDescriptor("dots_button.gif"); //$NON-NLS-1$
+//			threeDotsImage = descriptor.createImage();
+//		}
+//		button.setImage(threeDotsImage);
 
+		if (blob == null) {
+			button.setText("No Picture");
+		} else {
+			button.setText("View Picture");
+		}
+
+		button.setEnabled(blob != null);
+		
 		button.addSelectionListener(new SelectionAdapter() {
 		    @Override	
 			public void widgetSelected(SelectionEvent event) {
@@ -124,6 +132,14 @@ public class ImageControl extends Composite {
 	 */
 	public void setBlob(IBlob blob) {
     	this.blob = blob;
+
+    	if (blob == null) {
+			button.setText("None");
+		} else {
+			button.setText("View");
+		}
+
+		button.setEnabled(blob != null);
 }
 
 	/**
