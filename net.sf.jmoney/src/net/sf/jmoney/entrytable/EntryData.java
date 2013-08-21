@@ -24,6 +24,7 @@ package net.sf.jmoney.entrytable;
 
 import java.util.Collection;
 
+import net.sf.jmoney.fields.IBlob;
 import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IScalarPropertyAccessor;
 import net.sf.jmoney.isolation.SessionChangeAdapter;
@@ -274,6 +275,7 @@ public class EntryData {
 		if (value instanceof Long
 				|| value instanceof Boolean
 				|| value instanceof Integer
+				|| value instanceof IBlob
 				|| value instanceof String
 				|| value instanceof Account
 				|| value instanceof Commodity
