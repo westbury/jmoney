@@ -418,4 +418,11 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 
 		assert(leftToDistribute == 0);
 	}
+
+	@Override
+	protected String getDescription() {
+		return "The selected CSV file will be imported.  The CSV file must have been exported from Amazon " +
+				"as an 'order' export.  This can be done if orders are made through amazon.com.  If you ordered through amazon.co.uk then you will not be able to get an item report.  You must instead use screen scraping (Amazon HTML import) which is quite a pain. " +
+				"You must import both orders and items into JMoney because not all the information is in either export.  JMoney will match the data in the imports to obtain a single transaction for each order.";
+	}
 }

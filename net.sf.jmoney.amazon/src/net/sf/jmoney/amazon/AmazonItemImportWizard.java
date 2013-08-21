@@ -107,7 +107,6 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 
 	@Override
 	public void importLine(String[] line) throws ImportException {
-
 		String orderId = column_orderId.getText();
 		String trackingNumber = column_trackingNumber.getText();
 		Date shipmentDate = column_shipmentDate.getDate();
@@ -139,132 +138,105 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 		}
 
 		/*
-		 * Try each of the current row processors.  If any are 'done' then we
-		 * create their transaction and remove the processor from our list.
-		 * If any can process (and only one should be able to process) then
-		 * we leave it at that.
+		 * Find the account to which this entry has been charged.
 		 */
-		boolean processed = false;
-		for (Iterator<MultiRowTransaction> iter = currentMultiRowProcessors.iterator(); iter.hasNext(); ) {
-			MultiRowTransaction currentMultiRowProcessor = iter.next();
-
-			boolean thisOneProcessed = currentMultiRowProcessor.processCurrentRow(session);
-
-			if (thisOneProcessed) {
-				if (processed) {
-					throw new RuntimeException("Can't have two current processors that can process the same row");
-				}
-				processed = true;
-			}
-
-			if (currentMultiRowProcessor.isDone()) {
-				currentMultiRowProcessor.createTransaction(session);
-				iter.remove();
-			}
+		String lastFourDigits = column_paymentCard.getText();
+		if (lastFourDigits == null) {
+			throw new ImportException("Last four digits of payment card cannot be blank.");
 		}
 
-		if (!processed) {
+		Account chargedAccount;
+		Currency thisCurrency;
+		if (lastFourDigits.equals("Gift Certificate/Card")) {
 			/*
-			 * Find the account to which this entry has been charged.
+			 * Look for an income and expense account that can be used by default for items where
+			 * the 'Payment - Last 4 Digits' column contains 'Gift Certificate/Card'.
 			 */
-			String lastFourDigits = column_paymentCard.getText();
-			if (lastFourDigits == null) {
-				throw new ImportException("Last four digits of payment card cannot be blank.");
-			}
-
-			Account chargedAccount;
-			Currency thisCurrency;
-			if (lastFourDigits.equals("Gift Certificate/Card")) {
-				/*
-				 * Look for an income and expense account that can be used by default for items where
-				 * the 'Payment - Last 4 Digits' column contains 'Gift Certificate/Card'.
-				 */
-				// TODO need to check the currency
-				BankAccount giftCardAccount = null;
-				for (Iterator<CapitalAccount> iter = session.getCapitalAccountIterator(); iter.hasNext(); ) {
-					CapitalAccount eachAccount = iter.next();
-					if (eachAccount.getName().startsWith("Amazon gift")
-							/* && eachAccount.getCurrency() == ???Account.getCurrency() */) {
-						giftCardAccount = (BankAccount)eachAccount;
-						break;
-					}
-				}
-				if (giftCardAccount == null) {
-					throw new ImportException("No account exists with a name that begins 'Amazon gift'.");
-				}
-
-				chargedAccount = giftCardAccount;
-
-				// TODO figure out actual currency of gift certificate
-				thisCurrency = session.getCurrencyForCode("USD");
-			} else {
-				if (lastFourDigits.length() != 4) {
-					throw new ImportException("Last four digits of payment card must be 4 digits or indicate a gift certificate.");
-				}
-
-				BankAccount chargedBankAccount = findChargeAccount(getShell(), session, lastFourDigits);
-				thisCurrency = chargedBankAccount.getCurrency();
-				chargedAccount = chargedBankAccount;
-			}
-
-			IncomeExpenseAccount unmatchedAccount = findUnmatchedAccount(session, thisCurrency);
-
-			/*
-			 * Look in the unmatched entries account for an entry that matches on order id and shipment date.
-			 */
-			AmazonEntry matchingEntry = findMatchingEntry(orderId,	trackingNumber, shipmentDate, unmatchedAccount);
-
-			/*
-			 * Look for an income and expense account that can be used by default for the purchases.
-			 * The currency of this account must match the currency of the charge account.
-			 */
-			IncomeExpenseAccount unknownAmazonPurchaseAccount = null;
-			for (Iterator<IncomeExpenseAccount> iter = session.getIncomeExpenseAccountIterator(); iter.hasNext(); ) {
-				IncomeExpenseAccount eachAccount = iter.next();
-				if (eachAccount.getName().startsWith("Amazon purchase")
-						&& eachAccount.getCurrency() == thisCurrency) {
-					unknownAmazonPurchaseAccount = eachAccount;
+			// TODO need to check the currency
+			BankAccount giftCardAccount = null;
+			for (Iterator<CapitalAccount> iter = session.getCapitalAccountIterator(); iter.hasNext(); ) {
+				CapitalAccount eachAccount = iter.next();
+				if (eachAccount.getName().startsWith("Amazon gift")
+						/* && eachAccount.getCurrency() == ???Account.getCurrency() */) {
+					giftCardAccount = (BankAccount)eachAccount;
 					break;
 				}
 			}
-			if (unknownAmazonPurchaseAccount == null) {
-				throw new ImportException("No account exists with a name that begins 'Amazon purchase' and a currency of " + thisCurrency.getName() + ".");
+			if (giftCardAccount == null) {
+				throw new ImportException("No account exists with a name that begins 'Amazon gift'.");
 			}
 
-			// All rows are processed by this
-			MultiRowTransaction thisMultiRowProcessor;
-			if (matchingEntry == null) {
-				/*
-				 * We should check the charge account to make sure there is no entries.
-				 * If both the items and the order has already been imported then we should
-				 * find the matching entry in the charge account.
-				 */
-				for (Entry entry : chargedAccount.getEntries()) {
-					AmazonEntry amazonEntry = entry.getExtension(AmazonEntryInfo.getPropertySet(), false);
-					if (amazonEntry != null) {
-						if (orderId.equals(amazonEntry.getOrderId())
-								&& shipmentDate.equals(amazonEntry.getShipmentDate())) {
-							throw new ImportException("Items for this shipment have already been imported.");
-						}
+			chargedAccount = giftCardAccount;
+
+			// TODO figure out actual currency of gift certificate
+			thisCurrency = session.getCurrencyForCode("USD");
+		} else {
+			if (lastFourDigits.length() != 4) {
+				throw new ImportException("Last four digits of payment card must be 4 digits or indicate a gift certificate.");
+			}
+
+			BankAccount chargedBankAccount = findChargeAccount(getShell(), session, lastFourDigits);
+			thisCurrency = chargedBankAccount.getCurrency();
+			chargedAccount = chargedBankAccount;
+		}
+
+		IncomeExpenseAccount unmatchedAccount = findUnmatchedAccount(session, thisCurrency);
+
+		/*
+		 * Look in the unmatched entries account for an entry that matches on order id and shipment date.
+		 */
+		AmazonEntry matchingEntry = findMatchingEntry(orderId,	trackingNumber, shipmentDate, unmatchedAccount);
+
+		/*
+		 * Look for an income and expense account that can be used by default for the purchases.
+		 * The currency of this account must match the currency of the charge account.
+		 */
+		IncomeExpenseAccount unknownAmazonPurchaseAccount = null;
+		for (Iterator<IncomeExpenseAccount> iter = session.getIncomeExpenseAccountIterator(); iter.hasNext(); ) {
+			IncomeExpenseAccount eachAccount = iter.next();
+			if (eachAccount.getName().startsWith("Amazon purchase")
+					&& eachAccount.getCurrency() == thisCurrency) {
+				unknownAmazonPurchaseAccount = eachAccount;
+				break;
+			}
+		}
+		if (unknownAmazonPurchaseAccount == null) {
+			throw new ImportException("No account exists with a name that begins 'Amazon purchase' and a currency of " + thisCurrency.getName() + ".");
+		}
+
+		// All rows are processed by this
+		MultiRowTransaction thisMultiRowProcessor;
+		if (matchingEntry == null) {
+			/*
+			 * We should check the charge account to make sure there is no entries.
+			 * If both the items and the order has already been imported then we should
+			 * find the matching entry in the charge account.
+			 */
+			for (Entry entry : chargedAccount.getEntries()) {
+				AmazonEntry amazonEntry = entry.getExtension(AmazonEntryInfo.getPropertySet(), false);
+				if (amazonEntry != null) {
+					if (orderId.equals(amazonEntry.getOrderId())
+							&& shipmentDate.equals(amazonEntry.getShipmentDate())) {
+						throw new ImportException("Items for this shipment have already been imported.");
 					}
 				}
-
-				thisMultiRowProcessor = new ItemsShippedTransactionUnmatched(unmatchedAccount, unknownAmazonPurchaseAccount, shipmentDate, orderId);
-			} else {
-				/*
-				 * We have a matching entry.  Now if the amount is positive then it represents items
-				 * that have not yet been imported, and if the amount is negative then it represents
-				 * the charge account entry that cannot yet be matched.
-				 */
-				if (matchingEntry.getAmount() < 0) {
-					throw new ImportException("Items for this shipment have already been imported.");
-				}
-				thisMultiRowProcessor = new ItemsShippedTransactionMatched(unmatchedAccount, unknownAmazonPurchaseAccount, matchingEntry);
 			}
 
-			thisMultiRowProcessor.processCurrentRow(session);
-			currentMultiRowProcessors.add(thisMultiRowProcessor);
+			thisMultiRowProcessor = new ItemsShippedTransactionUnmatched(unmatchedAccount, unknownAmazonPurchaseAccount, shipmentDate, orderId);
+		} else {
+			/*
+			 * We have a matching entry.  Now if the amount is positive then it represents items
+			 * that have not yet been imported, and if the amount is negative then it represents
+			 * the charge account entry that cannot yet be matched.
+			 */
+			if (matchingEntry.getAmount() < 0) {
+				throw new ImportException("Items for this shipment have already been imported.");
+			}
+			thisMultiRowProcessor = new ItemsShippedTransactionMatched(unmatchedAccount, unknownAmazonPurchaseAccount, matchingEntry);
 		}
+
+		thisMultiRowProcessor.processCurrentRow(session);
+		currentMultiRowProcessors.add(thisMultiRowProcessor);
 	}
 
 	public static AmazonEntry findMatchingEntry(String orderId, String trackingNumber, Date shipmentDate,
@@ -576,5 +548,12 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 			is.close();
 		}
 		return writer.toString();
+	}
+
+	@Override
+	protected String getDescription() {
+		return "The selected CSV file will be imported.  The CSV file must have been exported from Amazon " +
+				"as an 'item' export.  This can be done if orders are made through amazon.com.  If you ordered through amazon.co.uk then you will not be able to get an item report.  You must instead use screen scraping (Amazon HTML import) which is quite a pain. " +
+		"You must import both orders and items into JMoney because not all the information is in either export.  JMoney will match the data in the imports to obtain a single transaction for each order.";
 	}
 }

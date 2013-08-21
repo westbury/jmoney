@@ -32,6 +32,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 import net.sf.jmoney.importer.Activator;
@@ -68,6 +69,8 @@ public abstract class CsvImportWizard extends Wizard {
 
 	protected CSVReader reader;
 
+	protected int rowNumber;
+	
 	protected List<MultiRowTransaction> currentMultiRowProcessors = new ArrayList<MultiRowTransaction>();
 
 	/**
@@ -86,7 +89,7 @@ public abstract class CsvImportWizard extends Wizard {
 	public void init(IWorkbench workbench, IStructuredSelection selection) {
 		this.window = workbench.getActiveWorkbenchWindow();
 
-		mainPage = new CsvImportWizardPage(window);
+		mainPage = new CsvImportWizardPage(window, getDescription());
 
 		addPage(mainPage);
 	}
@@ -134,6 +137,7 @@ public abstract class CsvImportWizard extends Wizard {
 			startImport(transactionManager);
 
 			reader = new CSVReader(new FileReader(file));
+        	rowNumber = 0;
 
 			/*
 			 * Get the list of expected columns, validate the header row, and set the column indexes
@@ -185,8 +189,35 @@ public abstract class CsvImportWizard extends Wizard {
 					break;
 				}
 
-				importLine(currentLine);
+				/*
+				 * Try each of the current row processors.  If any are 'done' then we
+				 * create their transaction and remove the processor from our list.
+				 * If any can process (and only one should be able to process) then
+				 * we leave it at that.
+				 */
+				boolean processed = false;
+				for (Iterator<MultiRowTransaction> iter = currentMultiRowProcessors.iterator(); iter.hasNext(); ) {
+					MultiRowTransaction currentMultiRowProcessor = iter.next();
 
+					boolean thisOneProcessed = currentMultiRowProcessor.processCurrentRow(session);
+
+					if (thisOneProcessed) {
+						if (processed) {
+							throw new RuntimeException("Can't have two current processors that can process the same row");
+						}
+						processed = true;
+					}
+
+					if (currentMultiRowProcessor.isDone()) {
+						currentMultiRowProcessor.createTransaction(session);
+						iter.remove();
+					}
+				}
+
+				if (!processed) {
+					importLine(currentLine);
+				}
+				
 				currentLine = readNext();
 			}
 
@@ -218,7 +249,7 @@ public abstract class CsvImportWizard extends Wizard {
 		} catch (ImportException e) {
 			// There are data in the import file that we are unable to process
 			e.printStackTrace();
-			MessageDialog.openError(window.getShell(), "Errors in the downloaded file", e.getMessage());
+			MessageDialog.openError(window.getShell(), "Error in row " + rowNumber, e.getMessage());
 			return false;
 		} catch (Exception e) {
 			// There are data in the import file that we are unable to process
@@ -254,6 +285,7 @@ public abstract class CsvImportWizard extends Wizard {
 	 * @throws IOException
 	 */
 	final protected String[] readNext() throws IOException {
+		rowNumber++;
 		return reader.readNext();
 	}
 
@@ -380,6 +412,11 @@ public abstract class CsvImportWizard extends Wizard {
 				throw new ImportException("Unexpected currency amount " + currentLine[columnIndex] + " found.");
 			}
 		}
+		
+		public long getNonNullAmount() throws ImportException {
+			Long amount = getAmount();
+			return amount == null ? 0 : amount;
+		}
 	}
 
 	public class ImportedNumberColumn extends ImportedColumn {
@@ -402,6 +439,8 @@ public abstract class CsvImportWizard extends Wizard {
 			return Long.parseLong(numberString);
 		}
 	}
+
+	protected abstract String getDescription();
 
 	protected abstract void startImport(TransactionManagerForAccounts transactionManager) throws ImportException;
 

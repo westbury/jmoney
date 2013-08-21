@@ -938,6 +938,15 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 		};
 	}
 
+
+	@Override
+	public String getDescription() {
+		return "The selected CSV file will be imported.  As you have not selected an account into which the import is to be made, " +
+				"an investment account called 'Ameritrade' must exist and the data will be imported into that account. " +
+				"The file must have been downloaded from Ameritrade for this import to work.  To download from Ameritrade, go to Statements, History. " +
+				"If entries have already been imported, this import will not create duplicates.";
+	}
+
 //	private Stock obtainSecurity(String securityName, String securitySymbol) {
 //		Stock stock = null;
 //	

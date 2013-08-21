@@ -5,7 +5,7 @@
 		<wizard id="net.sf.jmoney.paypal.ImportWizard"
 			name="%csvImport.name"
 			icon="icons/PayPal_mark_37x23.gif"
-			class="net.sf.jmoney.paypal.CsvImportWizard">
+			class="net.sf.jmoney.paypal.PaypalImportWizard">
 			<description>
 				%csvImport.description 
 			</description>

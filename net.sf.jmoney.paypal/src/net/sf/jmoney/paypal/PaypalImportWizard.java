@@ -24,7 +24,7 @@ package net.sf.jmoney.paypal;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.text.DateFormat;
+import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,6 +39,7 @@ import net.sf.jmoney.importer.wizards.MultiRowTransaction;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.Entry;
+import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Session.NoAccountFoundException;
@@ -48,17 +49,18 @@ import net.sf.jmoney.reconciliation.ReconciliationEntryInfo;
 
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.IWorkbenchWizard;
 
 /**
  * A wizard to import data from a comma-separated file that has been downloaded
  * from Paypal.
  */
-public class PaypalImportWizard extends CsvImportToAccountWizard {
+public class PaypalImportWizard extends CsvImportToAccountWizard implements IWorkbenchWizard {
 
-	// TODO check format of all amount columns
-	// TODO check column names
 	private ImportedDateColumn   column_date                = new ImportedDateColumn("Date", new SimpleDateFormat("M/d/yyyy"));
 	private ImportedTextColumn   column_payeeName           = new ImportedTextColumn("Name");
 	private ImportedTextColumn   column_type                = new ImportedTextColumn("Type");
@@ -92,34 +94,57 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 	 * amounts are to be formatted when put in the memo
 	 */
 	Currency currency;
-
-	private MultiRowTransaction currentMultiRowProcessor = null;
-
-
-
-
-
-	// These are Ameritrade fields and should probably be removed.
-	private long priorIntraAccountTransferAmount = 0;
-	private Account interestAccount;
-	private Account expensesAccount;
-
-	// Don't put this here.  Methods should all be using sessionInTransaction
+	
 	private Session session;
-
-	private static DateFormat maturityDateFormat = new SimpleDateFormat("MM/dd/yyyy");
 
 	public PaypalImportWizard() {
 		// TODO check these dialog settings are used by the base class
 		// so the default filename location is separate for each import type.
 		IDialogSettings workbenchSettings = Activator.getDefault().getDialogSettings();
-		IDialogSettings section = workbenchSettings.getSection("AmeritradeImportWizard");//$NON-NLS-1$
+		IDialogSettings section = workbenchSettings.getSection("PaypalImportWizard");//$NON-NLS-1$
 		if (section == null) {
-			section = workbenchSettings.addNewSection("AmeritradeImportWizard");//$NON-NLS-1$
+			section = workbenchSettings.addNewSection("PaypalImportWizard");//$NON-NLS-1$
 		}
 		setDialogSettings(section);
 	}
 
+	/**
+	 * This form of this method is called when the wizard is initiated from the
+	 * 'import' menu.  No account is available from the context so we search
+	 * for a Paypal account.  If there is more than one then we fail (it would
+	 * be better to add a page that prompts the user for the Paypal account to
+	 * use, or perhaps try to identify the account from the imported file).
+	 */
+	public void init(IWorkbench workbench, IStructuredSelection selection) {
+		IWorkbenchWindow window = workbench.getActiveWorkbenchWindow();
+		Account account;
+
+		IDatastoreManager sessionManager = (IDatastoreManager)window.getActivePage().getInput();
+		
+		session = sessionManager.getSession();
+		
+		if (selection.size() == 1
+				&& selection.getFirstElement() instanceof PaypalAccount) {
+			account = (PaypalAccount)selection.getFirstElement();
+		} else {
+			try {
+				account = session.getAccountByShortName("Paypal");
+			} catch (NoAccountFoundException e) {
+				MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "No account exists called 'Paypal'");
+				throw new RuntimeException(e); 
+			} catch (SeveralAccountsFoundException e) {
+				MessageDialog.openError(Display.getDefault().getActiveShell(), "Multiple Accounts Set Up", "Multiple accounts exists called 'Paypal'");
+				throw new RuntimeException(e); 
+			}
+		}
+
+		if (!(account instanceof PaypalAccount)) {
+			MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "The account called 'Paypal' must be a Paypal account.");
+			throw new RuntimeException("Paypal account not a Paypal account"); 
+		}
+		
+		init(window, account);
+	}
 
 	@Override
 	protected void setAccount(Account accountInsideTransaction)	throws ImportException {
@@ -132,28 +157,13 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 
 		currency = paypalAccount.getCurrency();
 
-		currentMultiRowProcessor = null;
-
-		// The following is Ameritrade stuff
-		priorIntraAccountTransferAmount = 0;
-
-		try {
-			interestAccount = session.getAccountByShortName("Interest - Ameritrade");
-		} catch (NoAccountFoundException e) {
-			MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "No account exists called 'Interest - Ameritrade'");
-			throw new RuntimeException(e);
-		} catch (SeveralAccountsFoundException e) {
-			MessageDialog.openError(Display.getDefault().getActiveShell(), "Multiple Accounts Set Up", "Multiple accounts exists called 'Interest - Ameritrade'");
-			throw new RuntimeException(e);
-		}
-
 //		try {
-//			expensesAccount = session.getAccountByShortName("Stock - Expenses (US)");
+//			interestAccount = session.getAccountByShortName("Interest - Ameritrade");
 //		} catch (NoAccountFoundException e) {
-//			MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "No account exists called 'Stock - Expenses (US)'");
+//			MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "No account exists called 'Interest - Ameritrade'");
 //			throw new RuntimeException(e);
 //		} catch (SeveralAccountsFoundException e) {
-//			MessageDialog.openError(Display.getDefault().getActiveShell(), "Multiple Accounts Set Up", "Multiple accounts exists called 'Stock - Expenses (US)'");
+//			MessageDialog.openError(Display.getDefault().getActiveShell(), "Multiple Accounts Set Up", "Multiple accounts exists called 'Interest - Ameritrade'");
 //			throw new RuntimeException(e);
 //		}
 	}
@@ -177,284 +187,293 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 			rowMerchantEmail = column_payeeEmail.getText();
 		}
 
-		boolean processed = false;
-		if (currentMultiRowProcessor != null) {
-			processed = currentMultiRowProcessor.processCurrentRow(session);
-			if (currentMultiRowProcessor.isDone()) {
-				currentMultiRowProcessor.createTransaction(session);
-				currentMultiRowProcessor = null;
-			}
-		}
-
-		if (!processed) {
-			/*
-			 * If a row is not processed in a multi-row processor then the processor must be done.
-			 * Multi-row processors can be used to combine consecutive rows only.
+		if (rowType.equals("Shopping Cart Payment Sent")) {
+			/**
+			 * Shopping cart entries are split across multiple rows, with a 'Payment Sent' row
+			 * following by one or more 'Item' rows.  These must be combined into a single
+			 * transaction.  To enable us to do this, this class is used to put each row into,
+			 * and it can then output the transaction when a row is found that is in the
+			 * next transaction.
 			 */
-			if (currentMultiRowProcessor != null) {
-				throw new RuntimeException("something is wrong");
-			}
+			MultiRowTransaction thisMultiRowProcessor = new ShoppingCartPaymentSent(column_date.getDate(), column_shippingAndHandling.getAmount());
+			currentMultiRowProcessors.add(thisMultiRowProcessor);
+		} else if (rowType.equals("Shopping Cart Item")) {
+			throw new ImportException("'Shopping Cart Item' row found but it is not preceeded by a 'Shopping Cart Payment Sent' or 'eBay Payment Sent' row.");
+		} else if (rowType.equals("Refund")) {
+			/*
+			 * Refunds are combined with the original transaction.
+			 *
+			 * Because the input file is in reverse date order, we find
+			 * the refund first. We save the refund information in a
+			 * collection. Whenever a 'Shopping Cart Payment Sent' or a
+			 * 'eBayPaymentSent' or 'Express Checkout Payment Sent' is
+			 * found with a status of 'Partially Refunded' or 'Refunded'
+			 * and the payee name exactly matches then we add the refund
+			 * as another pair of split entries in the same transaction.
+			 */
+			RefundRow refundRow = new RefundRow();
+			refundRow.payeeName = this.column_payeeName.getText();
+			refundRow.grossAmount = this.column_grossAmount.getNonNullAmount();
+			refundRow.date = this.column_date.getDate();
+			refundRow.merchantEmail = this.column_payerEmail.getText();
+			refundRow.transactionId = this.column_transactionId.getText();
+			refunds.add(refundRow);
+		} else if (rowType.equals("Reversal")) {
+			/*
+			 * Reversals are processed in a similar way to refunds.  We keep
+			 * and list and match them to later entries.
+			 */
+			reversals.add(new ReversalRow());
+		} else if (rowType.equals("eBay Payment Sent")
+				|| rowType.equals("eBay Payment Received")
+				|| rowType.equals("Payment Received")
+				|| rowType.equals("Payment Sent")
+				|| rowType.equals("Preapproved Payment Sent")
+				|| rowType.equals("Web Accept Payment Sent")) {
 
-			if (rowType.equals("Shopping Cart Payment Sent")) {
-				/**
-				 * Shopping cart entries are split across multiple rows, with a 'Payment Sent' row
-				 * following by one or more 'Item' rows.  These must be combined into a single
-				 * transaction.  To enable us to do this, this class is used to put each row into,
-				 * and it can then output the transaction when a row is found that is in the
-				 * next transaction.
-				 */
-
-				currentMultiRowProcessor = new ShoppingCartPaymentSent(column_date.getDate(), column_shippingAndHandling.getAmount());
-			} else if (rowType.equals("Shopping Cart Item")) {
-				throw new ImportException("'Shopping Cart Item' row found but it is not preceeded by a 'Shopping Cart Payment Sent' or 'eBay Payment Sent' row.");
-			} else if (rowType.equals("Refund")) {
+			if (column_status.getText().equals("Refunded")) {
 				/*
-				 * Refunds are combined with the original transaction.
+				 * Find the refund entry.  We create a single transaction with two entries both
+				 * in this Paypal account.
+				 */
+				RefundRow match = null;
+				for (RefundRow refund : refunds) {
+					if (refund.payeeName.equals(column_payeeName.getText())
+							&& refund.grossAmount == -column_grossAmount.getAmount()) {
+						match = refund;
+						break;
+					}
+				}
+				if (match == null) {
+					throw new ImportException("An entry was found that says it was refunded, but no matching 'Refund' entry was found.");
+				}
+				refunds.remove(match);
+
+				createRefundTransaction(match);
+			} else if (column_status.getText().equals("Reversed")) {
+				/*
+				 * Find the reversal entry.  We don't create anything if an
+				 * entry was reversed.
+				 */
+				ReversalRow match = null;
+				for (ReversalRow reversal : reversals) {
+					if (reversal.payeeName.equals(column_payeeName.getText())
+							&& reversal.grossAmount == -column_grossAmount.getAmount()) {
+						match = reversal;
+						break;
+					}
+				}
+				if (match == null) {
+					throw new ImportException("An entry was found that says it was reversed, but no matching 'Reversal' entry was found.");
+				}
+				reversals.remove(match);
+			} else if (rowType.equals("eBay Payment Sent")) {
+				/*
+				 * Rows have been found where there is a row of type 'eBay Payment Sent' followed
+				 * by a row of type 'Shopping Cart Item'.  This seems very strange because 'Shopping
+				 * Cart Item' rows normally follow a 'Shopping Cart Payment Sent' row.  Furthermore,
+				 * the 'Shopping Cart Item' row does not have any data in it of any use except for
+				 * a quantity (in known cases always 1, but presumably this would be some other number
+				 * if the quantity were not 1).  The 'eBay Payment Sent' row does not have a quantity
+				 * so we use the quantity from the 'Shopping Cart Item' row.
 				 *
-				 * Because the input file is in reverse date order, we find
-				 * the refund first. We save the refund information in a
-				 * collection. Whenever a 'Shopping Cart Payment Sent' or a
-				 * 'eBayPaymentSent' or 'Express Checkout Payment Sent' is
-				 * found with a status of 'Partially Refunded' or 'Refunded'
-				 * and the payee name exactly matches then we add the refund
-				 * as another pair of split entries in the same transaction.
+				 * Also, ebay Payment Sent may be followed by a currency exchange.
 				 */
-				refunds.add(new RefundRow());
-			} else if (rowType.equals("Reversal")) {
-				/*
-				 * Reversals are processed in a similar way to refunds.  We keep
-				 * and list and match them to later entries.
-				 */
-				reversals.add(new ReversalRow());
-			} else if (rowType.equals("eBay Payment Sent")
-					|| rowType.equals("eBay Payment Received")
-					|| rowType.equals("Payment Received")
-					|| rowType.equals("Payment Sent")
-					|| rowType.equals("Web Accept Payment Sent")) {
-
-				if (column_status.getText().equals("Refunded")) {
-					/*
-					 * Find the refund entry.  We create a single transaction with two entries both
-					 * in this Paypal account.
-					 */
-					RefundRow match = null;
-					for (RefundRow refund : refunds) {
-						if (refund.payeeName.equals(column_payeeName.getText())
-								&& refund.grossAmount == -column_grossAmount.getAmount()) {
-							match = refund;
-							break;
-						}
-					}
-					if (match == null) {
-						throw new ImportException("An entry was found that says it was refunded, but no matching 'Refund' entry was found.");
-					}
-					refunds.remove(match);
-
-					createRefundTransaction(match);
-				} else if (column_status.getText().equals("Reversed")) {
-					/*
-					 * Find the reversal entry.  We don't create anything if an
-					 * entry was reversed.
-					 */
-					ReversalRow match = null;
-					for (ReversalRow reversal : reversals) {
-						if (reversal.payeeName.equals(column_payeeName.getText())
-								&& reversal.grossAmount == -column_grossAmount.getAmount()) {
-							match = reversal;
-							break;
-						}
-					}
-					if (match == null) {
-						throw new ImportException("An entry was found that says it was reversed, but no matching 'Reversal' entry was found.");
-					}
-					reversals.remove(match);
-				} else if (rowType.equals("eBay Payment Sent")) {
-						/*
-						 * Rows have been found where there is a row of type 'eBay Payment Sent' followed
-						 * by a row of type 'Shopping Cart Item'.  This seems very strange because 'Shopping
-						 * Cart Item' rows normally follow a 'Shopping Cart Payment Sent' row.  Furthermore,
-						 * the 'Shopping Cart Item' row does not have any data in it of any use except for
-						 * a quantity (in known cases always 1, but presumably this would be some other number
-						 * if the quantity were not 1).  The 'eBay Payment Sent' row does not have a quantity
-						 * so we use the quantity from the 'Shopping Cart Item' row.
-						 *
-						 * Also, ebay Payment Sent may be followed by a currency exchange.
-						 */
-						currentMultiRowProcessor = new EbayPaymentSent();
-				} else {
-					Transaction trans = session.createTransaction();
-					trans.setDate(column_date.getDate());
-
-					PaypalEntry mainEntry = trans.createEntry().getExtension(PaypalEntryInfo.getPropertySet(), true);
-					mainEntry.setAccount(paypalAccount);
-					mainEntry.setAmount(column_netAmount.getAmount());
-					mainEntry.setMemo("payment - " + column_payeeName.getText());
-					mainEntry.setValuta(column_date.getDate());
-					mainEntry.setMerchantEmail(rowMerchantEmail);
-					ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry.getBaseObject(), column_transactionId.getText());
-
-					/**
-					 * The memo, being set initially to the memo from the input file but may
-					 * be modified
-					 */
-					String rowMemo = column_memo.getText();
-					long rowNetAmount = column_netAmount.getAmount();
-					long rowGrossAmount = column_grossAmount.getAmount();
-					long rowFee = column_fee.getAmount();
-
-					if (column_status.getText().equals("Partially Refunded")) {
-						/*
-						 * Look for a refunds that match.  Put them in this transaction.
-						 * If the transaction is not itemized then we reduce the expense entry
-						 * by the amount of the refund.  If the transaction is itemized then we
-						 * create a separate entry for the total amount refunded.
-						 *
-						 * (Though currently we have no cases of itemized transactions here so this
-						 * is not supported.  We probably need to merge this with "Shopping Cart Payment Sent"
-						 * processing).
-						 */
-
-						long refundAmount = 0;
-
-						for (Iterator<RefundRow> iter = refunds.iterator(); iter.hasNext(); ) {
-							RefundRow refund = iter.next();
-							if (refund.payeeName.equals(column_payeeName.getText())) {
-								/*
-								 * Create the refund entry in the Paypal account
-								 */
-								PaypalEntry refundEntry = trans.createEntry().getExtension(PaypalEntryInfo.getPropertySet(), true);
-								refundEntry.setAccount(paypalAccount);
-								refundEntry.setAmount(refund.grossAmount);
-								refundEntry.setMemo("refund - " + refund.payeeName);
-								refundEntry.setValuta(refund.date);
-								refundEntry.setMerchantEmail(refund.merchantEmail);
-								ReconciliationEntryInfo.getUniqueIdAccessor().setValue(refundEntry.getBaseObject(), refund.transactionId);
-
-								refundAmount += refund.grossAmount;
-
-								iter.remove();
-							}
-						}
-
-						if (-rowNetAmount - refundAmount == column_shippingAndHandling.getAmount()) {
-							// All was refunded except s&h, so indicate accordingly in the memo
-							rowMemo = rowMemo + " (s&h not refunded after return)";
-						} else {
-							// Indicate the original amount paid and refund amount in the memo
-							rowMemo = rowMemo + " ($" + currency.format(-rowNetAmount) + " less $" + currency.format(refundAmount) + " refunded)";
-						}
-
-						// Note that the amounts in the row will be negative, which is
-						// why we add the refund amount when it may seem we should deduct
-						// the refund amount.
-						rowNetAmount += refundAmount;
-						rowGrossAmount += refundAmount;
-					}
-
-					if (rowFee != 0) {
-						// For non-sale transfers, treat the Paypal fee as a bank service
-						// charge.  For E-bay sales, absorb in the price or proceeds.
-
-						if (rowType.equals("Payment Received")
-								|| rowType.equals("Payment Sent")) {
-							if (paypalAccount.getPaypalFeesAccount() == null) {
-								throw new ImportException("A Paypal fee has been found in the imported data.  However, no category has been configured in the properties for this Paypal account for such fees.");
-							}
-
-							// Note that fee shows up as a negative amount, and we want
-							// a positive amount in the category account to be used for the fee.
-							Entry feeEntry = trans.createEntry();
-							feeEntry.setAccount(paypalAccount.getPaypalFeesAccount());
-							feeEntry.setAmount(-column_fee.getAmount());
-							feeEntry.setMemo("Paypal");
-							// Set fee to zero so it does not appear in the memo
-							rowFee = 0L;
-							rowNetAmount = rowGrossAmount;
-						}
-					}
-
-					if (rowMemo.length() == 0) {
-						// Certain transactions don't have memos, so we fill one in
-						if (rowType.equals("Payment Received")) {
-							rowMemo = column_payeeName.getText() + " - gross payment";
-						}
-						if (rowType.equals("Payment Sent")) {
-							rowMemo = column_payeeName.getText() + " - payment";
-						}
-					}
-					createCategoryEntry(trans, rowMemo, rowGrossAmount, rowNetAmount, column_shippingAndHandling.getAmount(), column_insurance.getAmount(), column_salesTax.getAmount(), rowFee, column_itemUrl.getText(), paypalAccount.getSaleAndPurchaseAccount());
-
-					assertValid(trans);
-				}
-			} else if (rowType.equals("Donation Sent")) {
-				if (paypalAccount.getDonationAccount() == null) {
-					throw new ImportException("A donation has been found in the imported data.  However, no category was set for donations.  Please go to the Paypal account properties and select a category to be used for donations.");
-				}
-
-				// Donations do not have memos set, so the payee name is used as the memo in the
-				// expense category entry.
-				createTransaction("donation sent", paypalAccount.getDonationAccount(), column_payeeName.getText());
-			} else if (rowType.equals("Add Funds from a Bank Account")) {
-				if (paypalAccount.getTransferBank() == null) {
-					throw new ImportException("A bank account transfer has been found in the imported data.  However, no bank account has been set in the properties for this Paypal account.");
-				}
-				createTransaction("transfer from bank", paypalAccount.getTransferBank(), "transfer to Paypal");
-			} else if (rowType.equals("Update to eCheck Sent")) {
-				// Updates do not involve a financial transaction
-				// so nothing to import.
-			} else if (rowType.equals("Update to eCheck Received")) {
-				// Updates do not involve a financial transaction
-				// so nothing to import.
-			} else if (rowType.equals("Update to Payment Received")) {
-				// Updates do not involve a financial transaction
-				// so nothing to import.
-			} else if (rowType.equals("eCheck Sent")) {
-				if (paypalAccount.getSaleAndPurchaseAccount() == null) {
-					throw new ImportException("An eCheck entry has been found in the imported data.  However, no sale and purchase account has been set in the properties for this Paypal account.");
-				}
-				createTransaction("payment by transfer", paypalAccount.getSaleAndPurchaseAccount(), "transfer from Paypal");
-			} else if (rowType.equals("Express Checkout Payment Sent")) {
-				if (paypalAccount.getSaleAndPurchaseAccount() == null) {
-					throw new ImportException("An 'Express Checkout' entry has been found in the imported data.  However, no sale and purchase account has been set in the properties for this Paypal account.");
-				}
-
-				if (column_status.getText().equals("Refunded")) {
-					/*
-					 * Find the refund entry.  We create a single transaction with two entries both
-					 * in this Paypal account.
-					 */
-					RefundRow match = null;
-					for (RefundRow refund : refunds) {
-						if (refund.payeeName.equals(column_payeeName.getText())
-								&& refund.grossAmount == -column_grossAmount.getAmount()) {
-							match = refund;
-							break;
-						}
-					}
-					if (match == null) {
-						throw new ImportException("An entry was found that says it was refunded, but no matching 'Refund' entry was found.");
-					}
-					refunds.remove(match);
-
-					createRefundTransaction(match);
-				} else {
-					createTransaction(column_payeeName.getText(), paypalAccount.getSaleAndPurchaseAccount(), column_payeeName.getText() + " - Paypal payment");
-				}
-			} else if (rowType.equals("Charge From Credit Card")) {
-				if (paypalAccount.getTransferCreditCard() == null) {
-					throw new ImportException("A credit card charge has been found in the imported data.  However, no credit card account has been set in the properties for this Paypal account.");
-				}
-				createTransaction("payment from credit card", paypalAccount.getTransferCreditCard(), "transfer to Paypal");
-			} else if (rowType.equals("Credit to Credit Card")) {
-				if (paypalAccount.getTransferCreditCard() == null) {
-					throw new ImportException("A credit card refund has been found in the imported data.  However, no credit card account has been set in the properties for this Paypal account.");
-				}
-				createTransaction("refund to credit card", paypalAccount.getTransferCreditCard(), "refund from Paypal");
+				MultiRowTransaction thisMultiRowProcessor = new EbayPaymentSent();
+				currentMultiRowProcessors.add(thisMultiRowProcessor);
 			} else {
-				//        	throw new UnexpectedData("type", type);
-				MessageDialog.openError(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), "Unable to read CSV file", "Entry found with unknown type: '" + rowType + "'.");
+				Transaction trans = session.createTransaction();
+				trans.setDate(column_date.getDate());
+
+				PaypalEntry mainEntry = trans.createEntry().getExtension(PaypalEntryInfo.getPropertySet(), true);
+				mainEntry.setAccount(paypalAccount);
+				mainEntry.setAmount(column_netAmount.getAmount());
+				mainEntry.setMemo("payment - " + column_payeeName.getText());
+				mainEntry.setValuta(column_date.getDate());
+				mainEntry.setMerchantEmail(rowMerchantEmail);
+				ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry.getBaseObject(), column_transactionId.getText());
+
+				/**
+				 * The memo, being set initially to the memo from the input file but may
+				 * be modified
+				 */
+				String rowMemo = column_memo.getText();
+				long rowNetAmount = column_netAmount.getAmount();
+				long rowGrossAmount = column_grossAmount.getAmount();
+				long rowFee = column_fee.getAmount();
+
+				if (column_status.getText().equals("Partially Refunded")) {
+					/*
+					 * Look for a refunds that match.  Put them in this transaction.
+					 * If the transaction is not itemized then we reduce the expense entry
+					 * by the amount of the refund.  If the transaction is itemized then we
+					 * create a separate entry for the total amount refunded.
+					 *
+					 * (Though currently we have no cases of itemized transactions here so this
+					 * is not supported.  We probably need to merge this with "Shopping Cart Payment Sent"
+					 * processing).
+					 */
+
+					long refundAmount = 0;
+
+					for (Iterator<RefundRow> iter = refunds.iterator(); iter.hasNext(); ) {
+						RefundRow refund = iter.next();
+						if (refund.payeeName.equals(column_payeeName.getText())) {
+							/*
+							 * Create the refund entry in the Paypal account
+							 */
+							PaypalEntry refundEntry = trans.createEntry().getExtension(PaypalEntryInfo.getPropertySet(), true);
+							refundEntry.setAccount(paypalAccount);
+							refundEntry.setAmount(refund.grossAmount);
+							refundEntry.setMemo("refund - " + refund.payeeName);
+							refundEntry.setValuta(refund.date);
+							refundEntry.setMerchantEmail(refund.merchantEmail);
+							ReconciliationEntryInfo.getUniqueIdAccessor().setValue(refundEntry.getBaseObject(), refund.transactionId);
+
+							refundAmount += refund.grossAmount;
+
+							iter.remove();
+						}
+					}
+
+					if (-rowNetAmount - refundAmount == column_shippingAndHandling.getAmount()) {
+						// All was refunded except s&h, so indicate accordingly in the memo
+						rowMemo = rowMemo + " (s&h not refunded after return)";
+					} else {
+						// Indicate the original amount paid and refund amount in the memo
+						rowMemo = rowMemo + " ($" + currency.format(-rowNetAmount) + " less $" + currency.format(refundAmount) + " refunded)";
+					}
+
+					// Note that the amounts in the row will be negative, which is
+					// why we add the refund amount when it may seem we should deduct
+					// the refund amount.
+					rowNetAmount += refundAmount;
+					rowGrossAmount += refundAmount;
+				}
+
+				if (rowFee != 0) {
+					// For non-sale transfers, treat the Paypal fee as a bank service
+					// charge.  For E-bay sales, absorb in the price or proceeds.
+
+					if (rowType.equals("Payment Received")
+							|| rowType.equals("Payment Sent")) {
+						if (paypalAccount.getPaypalFeesAccount() == null) {
+							throw new ImportException("A Paypal fee has been found in the imported data.  However, no category has been configured in the properties for this Paypal account for such fees.");
+						}
+
+						// Note that fee shows up as a negative amount, and we want
+						// a positive amount in the category account to be used for the fee.
+						Entry feeEntry = trans.createEntry();
+						feeEntry.setAccount(paypalAccount.getPaypalFeesAccount());
+						feeEntry.setAmount(-column_fee.getAmount());
+						feeEntry.setMemo("Paypal");
+						// Set fee to zero so it does not appear in the memo
+						rowFee = 0L;
+						rowNetAmount = rowGrossAmount;
+					}
+				}
+
+				if (rowMemo.length() == 0) {
+					// Certain transactions don't have memos, so we fill one in
+					if (rowType.equals("Payment Received")) {
+						rowMemo = column_payeeName.getText() + " - gross payment";
+					}
+					if (rowType.equals("Payment Sent")) {
+						rowMemo = column_payeeName.getText() + " - payment";
+					}
+				}
+				
+				/*
+				 * Shopping cart items have positive amounts in the 'gross amount' field
+				 * only, others have negative amounts that are in both the 'gross
+				 * amount' and the 'net amount' fields. We want to set a positive amount
+				 * in the category. (Though signs may be opposite if a refund or
+				 * something).
+				 */
+				long amount;
+				if (column_type.getText().equals("Shopping Cart Item")) {
+					
+					amount = rowGrossAmount;
+					throw new RuntimeException("should never happen");
+				} else {
+					amount = -rowNetAmount;
+				}
+
+				createCategoryEntry(trans, rowMemo, amount, column_shippingAndHandling.getAmount(), column_insurance.getAmount(), column_salesTax.getAmount(), rowFee, column_itemUrl.getText(), column_quantity.getText(), paypalAccount.getSaleAndPurchaseAccount());
+
+				assertValid(trans);
 			}
-		} // if !processed
+		} else if (rowType.equals("Donation Sent")) {
+			if (paypalAccount.getDonationAccount() == null) {
+				throw new ImportException("A donation has been found in the imported data.  However, no category was set for donations.  Please go to the Paypal account properties and select a category to be used for donations.");
+			}
+
+			// Donations do not have memos set, so the payee name is used as the memo in the
+			// expense category entry.
+			createTransaction("donation sent", paypalAccount.getDonationAccount(), column_payeeName.getText());
+		} else if (rowType.equals("Add Funds from a Bank Account")) {
+			if (paypalAccount.getTransferBank() == null) {
+				throw new ImportException("A bank account transfer has been found in the imported data.  However, no bank account has been set in the properties for this Paypal account.");
+			}
+			createTransaction("transfer from bank", paypalAccount.getTransferBank(), "transfer to Paypal");
+		} else if (rowType.equals("Update to eCheck Sent")) {
+			// Updates do not involve a financial transaction
+			// so nothing to import.
+		} else if (rowType.equals("Update to eCheck Received")) {
+			// Updates do not involve a financial transaction
+			// so nothing to import.
+		} else if (rowType.equals("Update to Payment Received")) {
+			// Updates do not involve a financial transaction
+			// so nothing to import.
+		} else if (rowType.equals("Update to Add Funds from a Bank Account")) {
+			// Updates do not involve a financial transaction
+			// so nothing to import.
+		} else if (rowType.equals("eCheck Sent")) {
+			if (paypalAccount.getSaleAndPurchaseAccount() == null) {
+				throw new ImportException("An eCheck entry has been found in the imported data.  However, no sale and purchase account has been set in the properties for this Paypal account.");
+			}
+			createTransaction("payment by transfer", paypalAccount.getSaleAndPurchaseAccount(), "transfer from Paypal");
+		} else if (rowType.equals("Express Checkout Payment Sent")) {
+			if (paypalAccount.getSaleAndPurchaseAccount() == null) {
+				throw new ImportException("An 'Express Checkout' entry has been found in the imported data.  However, no sale and purchase account has been set in the properties for this Paypal account.");
+			}
+
+			if (column_status.getText().equals("Refunded")) {
+				/*
+				 * Find the refund entry.  We create a single transaction with two entries both
+				 * in this Paypal account.
+				 */
+				RefundRow match = null;
+				for (RefundRow refund : refunds) {
+					if (refund.payeeName.equals(column_payeeName.getText())
+							&& refund.grossAmount == -column_grossAmount.getAmount()) {
+						match = refund;
+						break;
+					}
+				}
+				if (match == null) {
+					throw new ImportException("An entry was found that says it was refunded, but no matching 'Refund' entry was found.");
+				}
+				refunds.remove(match);
+
+				createRefundTransaction(match);
+			} else {
+				createTransaction(column_payeeName.getText(), paypalAccount.getSaleAndPurchaseAccount(), column_payeeName.getText() + " - Paypal payment");
+			}
+		} else if (rowType.equals("Charge From Credit Card")) {
+			if (paypalAccount.getTransferCreditCard() == null) {
+				throw new ImportException("A credit card charge has been found in the imported data.  However, no credit card account has been set in the properties for this Paypal account.");
+			}
+			createTransaction("payment from credit card", paypalAccount.getTransferCreditCard(), "transfer to Paypal");
+		} else if (rowType.equals("Credit to Credit Card")
+				|| rowType.equals("PayPal card confirmation refund")) {
+			if (paypalAccount.getTransferCreditCard() == null) {
+				throw new ImportException("A credit card refund has been found in the imported data.  However, no credit card account has been set in the properties for this Paypal account.");
+			}
+			createTransaction("refund to credit card", paypalAccount.getTransferCreditCard(), "refund from Paypal");
+		} else {
+			throw new ImportException("Entry found with unknown type: '" + rowType + "'.");
+		}
 	}
 
 	private void assertValid(Transaction trans) {
@@ -482,27 +501,15 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 	 * @param account
 	 * @throws ImportException
 	 */
-	private void createCategoryEntry(Transaction trans, String memo, long grossAmount, long netAmount, long shippingAndHandling, Long insurance, Long salesTax, long fee, String url, IncomeExpenseAccount account) {
+	private void createCategoryEntry(Transaction trans, String memo, long amount, Long shippingAndHandling, Long insurance, Long salesTax, Long fee, String url, String quantityText, IncomeExpenseAccount account) {
 		PaypalEntry lineItemEntry = trans.createEntry().getExtension(PaypalEntryInfo.getPropertySet(), true);
 		// TODO: Support pattern matching
 		lineItemEntry.setAccount(account);
+		lineItemEntry.setAmount(amount);
 
-		/*
-		 * Shopping cart items have positive amounts in the 'gross amount' field
-		 * only, others have negative amounts that are in both the 'gross
-		 * amount' and the 'net amount' fields. We want to set a positive amount
-		 * in the category. (Though signs may be opposite if a refund or
-		 * something).
-		 */
-		if (column_type.getText().equals("Shopping Cart Item")) {
-			lineItemEntry.setAmount(grossAmount);
-		} else {
-			lineItemEntry.setAmount(-netAmount);
-		}
-
-		if (column_itemUrl.getText().length() != 0) {
+		if (url.length() != 0) {
 			try {
-				URL itemUrl = new URL(column_itemUrl.getText());
+				URL itemUrl = new URL(url);
 				lineItemEntry.setItemUrl(itemUrl);
 			} catch (MalformedURLException e) {
 				// Leave the URL blank
@@ -516,37 +523,36 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 		long baseAmount = lineItemEntry.getAmount();
 		String ourMemo = memo;
 
-		if (column_quantity.getText().length() != 0
-				&& !column_quantity.getText().equals("0")
-				&& !column_quantity.getText().equals("1")) {
-			ourMemo = ourMemo + " x" + column_quantity.getText();
+		if (quantityText.trim().length() != 0
+				&& !quantityText.trim().equals("0")
+				&& !quantityText.trim().equals("1")) {
+			ourMemo = ourMemo + " x" + quantityText.trim();
 		}
 
-		if (shippingAndHandling != 0) {
+		if (shippingAndHandling != null && shippingAndHandling.longValue() != 0) {
 			adjustmentsBuffer.append("s&h $")
-			.append(currency.format(shippingAndHandling))
-			.append(separator);
+			.append(currency.format(shippingAndHandling));
 			separator = ", ";
 			baseAmount -= shippingAndHandling;
 		}
-		if (insurance != null) {
-			adjustmentsBuffer.append("insurance $")
-			.append(currency.format(insurance))
-			.append(separator);
+		if (insurance != null && insurance.longValue() != 0) {
+			adjustmentsBuffer.append(separator)
+			.append("insurance $")
+			.append(currency.format(insurance));
 			separator = ", ";
 			baseAmount -= insurance;
 		}
-		if (salesTax != null) {
-			adjustmentsBuffer.append("tax $")
-			.append(currency.format(salesTax))
-			.append(separator);
+		if (salesTax != null && salesTax.longValue() != 0) {
+			adjustmentsBuffer.append(separator)
+			.append("tax $")
+			.append(currency.format(salesTax));
 			separator = ", ";
 			baseAmount -= salesTax;
 		}
-		if (fee != 0) {
-			adjustmentsBuffer.append("less Paypal fee $")
-			.append(currency.format(fee))
-			.append(separator);
+		if (fee != null && fee.longValue() != 0) {
+			adjustmentsBuffer.append(separator)
+			.append("less Paypal fee $")
+			.append(currency.format(fee));
 			separator = ", ";
 			baseAmount -= fee;
 		}
@@ -564,6 +570,7 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 	 * If this is not your preference then please add a preference to the preferences
 	 * to indicate if a separate line item should instead be created for the
 	 * shipping and handling and implement it.
+	 * 
 	 * @throws ImportException
 	 */
 	private void distribute(long toDistribute, List<ShoppingCartRow> rowItems) throws ImportException {
@@ -652,6 +659,10 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 	public class ShoppingCartPaymentSent implements MultiRowTransaction {
 
 		private Date date;
+		private String status;
+		private long grossAmount;
+		private String payeeName;
+		private String transactionId;
 		private String merchantEmail;
 		private long shippingAndHandlingAmount;
 		private List<ShoppingCartRow> rowItems = new ArrayList<ShoppingCartRow>();
@@ -665,11 +676,17 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 		 * @param date
 		 * @param quantity
 		 * @param stock
+		 * @throws ImportException 
 		 */
-		public ShoppingCartPaymentSent(Date date, long shippingAndHandlingAmount) {
+		public ShoppingCartPaymentSent(Date date, long shippingAndHandlingAmount) throws ImportException {
 			this.date = date;
+			this.status = column_status.getText();
+			this.grossAmount = column_grossAmount.getAmount();
+			this.payeeName = column_payeeName.getText();
+			this.transactionId = column_transactionId.getText();
 			this.merchantEmail = column_payeeEmail.getText();
 			this.shippingAndHandlingAmount = shippingAndHandlingAmount;
+			
 		}
 
 		@Override
@@ -687,24 +704,24 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 
 			PaypalEntry mainEntry = trans.createEntry().getExtension(PaypalEntryInfo.getPropertySet(), true);
 			mainEntry.setAccount(paypalAccount);
-			mainEntry.setAmount(column_grossAmount.getAmount());
-			mainEntry.setMemo("payment - " + column_payeeName.getText());
+			mainEntry.setAmount(grossAmount);
+			mainEntry.setMemo("payment - " + payeeName);
 			mainEntry.setMerchantEmail(merchantEmail);
-			ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry.getBaseObject(), column_transactionId.getText());
+			ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry.getBaseObject(), transactionId);
 
 			for (ShoppingCartRow rowItem2 : rowItems) {
-				createCategoryEntry(trans, rowItem2.memo, rowItem2.grossAmount, rowItem2.netAmount, rowItem2.shippingAndHandling, rowItem2.insurance, rowItem2.salesTax, rowItem2.fee, rowItem2.url, paypalAccount.getSaleAndPurchaseAccount());
+				createCategoryEntry(trans, rowItem2.memo, rowItem2.grossAmount, rowItem2.shippingAndHandling, rowItem2.insurance, rowItem2.salesTax, rowItem2.fee, rowItem2.url, rowItem2.quantityText, paypalAccount.getSaleAndPurchaseAccount());
 			}
 
 			/*
 			 * Look for a refunds that match.  Move them into the cart so they can
 			 * be processed as part of the same transaction.
 			 */
-			if (column_status.getText().equals("Partially Refunded")) {
+			if (status.equals("Partially Refunded")) {
 				long refundAmount = 0;
 				for (Iterator<RefundRow> iter = refunds.iterator(); iter.hasNext(); ) {
 					RefundRow refund = iter.next();
-					if (refund.payeeName.equals(column_payeeName.getText())) {
+					if (refund.payeeName.equals(payeeName)) {
 						/*
 						 * Create the refund entry in the Paypal account
 						 */
@@ -726,7 +743,7 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 				PaypalEntry lineItemEntry = trans.createEntry().getExtension(PaypalEntryInfo.getPropertySet(), true);
 				lineItemEntry.setAccount(paypalAccount.getSaleAndPurchaseAccount());
 				lineItemEntry.setAmount(-refundAmount);
-				lineItemEntry.setMemo(column_payeeName.getText() + " - amount refunded");
+				lineItemEntry.setMemo(payeeName + " - amount refunded");
 			}
 			assertValid(trans);
 		}
@@ -735,10 +752,10 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 		public boolean processCurrentRow(Session session) throws ImportException {
 
 			String rowItemType = column_type.getText();
-			long itemShippingAndHandlingAmount = column_shippingAndHandling.getAmount();
+			Long itemShippingAndHandlingAmount = column_shippingAndHandling.getAmount();
 
 			if (rowItemType.equals("Shopping Cart Item")) {
-				if (itemShippingAndHandlingAmount != shippingAndHandlingAmount) {
+				if (itemShippingAndHandlingAmount != null && itemShippingAndHandlingAmount.longValue() != shippingAndHandlingAmount) {
 					throw new ImportException("shipping and handling amounts in different rows in the same transaction do not match.");
 				}
 
@@ -750,8 +767,12 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 				shoppingCartRow.salesTax = column_salesTax.getAmount();
 				shoppingCartRow.fee = column_fee.getAmount();
 				shoppingCartRow.url = column_itemUrl.getText();
+				shoppingCartRow.quantityText = column_quantity.getText();
+
 				rowItems.add(shoppingCartRow);
 				return true;
+			} else {
+				done = true;
 			}
 
 			return false;
@@ -772,7 +793,14 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 	 * if the quantity were not 1).  The 'eBay Payment Sent' row does not have a quantity
 	 * so we use the quantity from the 'Shopping Cart Item' row.
 	 *
-	 * Note: Paypal may have fixed this.  No occurances of this have been seen for a while.
+	 * Note: Paypal may have fixed this.  No occurrences of this have been seen for a while.
+	 * 
+	 * 'Currency Conversion' rows always appear in pairs.  Both rows of the pair are always
+	 * consecutive in the exported CSV file.  Both rows have different transaction ids but
+	 * they do have the same date and time.  The times appear are given to the nearest second
+	 * and appear to be the same.  It is not known if in rare cases the two rows may be given
+	 * a timestamp that differs by a second.
+
 	 */
 	public class EbayPaymentSent implements MultiRowTransaction {
 
@@ -782,7 +810,18 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 		private Date date;
 		private String transactionId;
 		private String memo;
+		private String payeeName;
+		
+		/**
+		 * Total amount paid in the currency of the eBay payment.
+		 */
 		private long grossAmount;
+		
+		/**
+		 * Three letter code of the currency of the eBay payment.
+		 */
+		private String currencyOfEbayPayment;
+
 		private long netAmount;
 		private long fee;
 		private String merchantEmail = column_payeeEmail.getText();
@@ -794,13 +833,15 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 		private Long insurance;
 		private Long salesTax;
 		private String url;
+		private String quantityText;
 
 		/**
-		 * Currently only GBP is valid here.
+		 * This is set to a non-null value if currency was converted
+		 * from the currency of the PayPal account.  This is the actual amount
+		 * deducted from the PayPal account.  It will differ from grossAmount
+		 * because it is in a different currency.
 		 */
-		private String toCurrency;
-
-		private long fromAmount;
+		private Long fromAmount;
 
 		/**
 		 * Initial constructor called when first "Ebay Payment Sent" row found.
@@ -814,8 +855,9 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 			this.date = column_date.getDate();
 			this.transactionId = column_transactionId.getText();
 			this.memo = column_memo.getText();
+			this.payeeName = column_payeeName.getText();
 
-			this.toCurrency = column_currency.getText();
+			this.currencyOfEbayPayment = column_currency.getText();
 
 			this.grossAmount = column_grossAmount.getAmount();
 			this.netAmount = column_netAmount.getAmount();
@@ -824,50 +866,91 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 			this.salesTax = column_salesTax.getAmount();
 			this.fee = column_fee.getAmount();
 			this.url = column_itemUrl.getText();
+			this.quantityText = column_quantity.getText();
 		}
 
 		@Override
 		public boolean processCurrentRow(Session session) throws ImportException {
-			done = true;
-
+			if (!column_date.getDate().equals(date)) {
+				// Date has changed so not the same transaction.
+				done = true;
+				return false;
+			}
+			
 			if (column_type.getText().equals("Shopping Cart Item")) {
 				quantityString = column_quantity.getText();
+				done = true;
 				return true;
 
 			} else if (column_type.getText().equals("Currency Conversion")) {
-				long amount = column_grossAmount.getAmount();
-				String currency = column_currency.getText();
 
-				if (amount > 0) {
-					/* This is the 'to' currency.
+				if (column_grossAmount.getAmount().longValue() != column_netAmount.getAmount().longValue()) {
+					throw new ImportException("Net and gross amounts differ in currency conversion.  This was not expected");
+				};
+				if (column_fee.getAmount().longValue() != 0) {
+					throw new ImportException("Fee found for currency conversion.  This was not expected");
+				};
+				long amount = column_grossAmount.getAmount();
+				
+				String name = column_payeeName.getText();
+				if (name.startsWith("From ")) {
+					if (amount <= 0) {
+						throw new ImportException("Amount should be positive for 'from' conversion as that is the 'to' amount.");
+					}
+					
+					checkNull(fromAmount, "The 'from' currency has been specified twice.");
+					String fromCurrency = getCurrencyCodeFromCurrencyName(name.substring(5));
+					String toCurrency = column_currency.getText();
+
+					/* The amount is the amount in the 'to' currency.
 					 * Both the currency and the amount must match the values in
 					 * the preceding 'eBay Payment Sent' row.
 					 */
-					if (amount != grossAmount) {
+					if (amount != -grossAmount) {
 						throw new ImportException("bad currency conversion");
 					}
-					if (!toCurrency.equals(currency)) {
-						throw new ImportException("bad currency conversion");
+				
+					if (!currencyOfEbayPayment.equals(toCurrency)) {
+						throw new ImportException("Currency converted to wrong currency - 'to' currency must be same as the currency of the eBay payment.");
 					}
-				} else if (amount < 0) {
-					/*
-					 * This is the 'from' currency. It must be the same as the
-					 * currency in which the Paypal account is being kept.
-					 */
-					if (fromAmount != 0) {
-						throw new ImportException("bad currency conversion");
+					
+					if (!paypalAccount.getCurrency().getCode().equals(fromCurrency)) {
+						throw new ImportException("Currency converted from wrong currency - 'from' currency must be same as currency of Paypal account.");
 					}
-					if (paypalAccount.getCurrency().getCode().equals(currency)) {
-						throw new ImportException("bad currency conversion - from currency must be same as currency of Paypal account.");
+
+				} else if (name.startsWith("To ")) {
+					if (amount >= 0) {
+						throw new ImportException("Amount should be negative for 'to' conversion as that is the 'from' amount.");
 					}
+					String toCurrencyFromName = getCurrencyCodeFromCurrencyName(name.substring(3));
+					if (!toCurrencyFromName.equals(currencyOfEbayPayment)) {
+						throw new ImportException("'to' currencies don't match.");
+					}
+					if (!column_currency.getText().equals(paypalAccount.getCurrency().getCode())) {
+						throw new ImportException("'from' currencies don't match.");
+					}
+
 					fromAmount = amount;
 				} else {
-					throw new ImportException("bad currency conversion - gross amount is zero");
+					throw new ImportException("'Name' column expected to contain 'From ...' or 'To ...'.");
 				}
+				
 				return true;
 			}
 
 			return false;
+		}
+
+		private String getCurrencyCodeFromCurrencyName(String currencyName) throws ImportException {
+			if (currencyName.equals("U.S. Dollar")) {
+				return "USD";
+			} else if (currencyName.equals("British Pound")) {
+				return "GBP";
+			} else {
+				throw new ImportException(
+						MessageFormat.format("Currency {0} in 'Name' column is not supported.", currencyName));
+			}
+			
 		}
 
 		@Override
@@ -877,27 +960,44 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 
 			PaypalEntry mainEntry = trans.createEntry().getExtension(PaypalEntryInfo.getPropertySet(), true);
 			mainEntry.setAccount(paypalAccount);
-			mainEntry.setAmount(netAmount);
-			mainEntry.setMemo("payment - " + column_payeeName.getText());
+			if (fromAmount == null) {
+				// There was no currency conversion
+				mainEntry.setAmount(netAmount);
+			} else {
+				// Currency conversion, so use amount that is in currency
+				// of the PayPal account.
+				mainEntry.setAmount(fromAmount);
+			}
+			mainEntry.setMemo("payment - " + payeeName);
 			mainEntry.setValuta(date);
 			mainEntry.setMerchantEmail(merchantEmail);
 			ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry.getBaseObject(), transactionId);
 
 			IncomeExpenseAccount categoryAccount;
-			if (toCurrency == null) {
+			if (currencyOfEbayPayment == null || currencyOfEbayPayment.equals(paypalAccount.getCurrency().getCode())) {
 				// There was no currency conversion.
+				if (fromAmount != null) {
+					throw new ImportException("Currency conversion rows but payment was in same currency as Paypal account.");
+				}
 				categoryAccount = paypalAccount.getSaleAndPurchaseAccount();
-			} else if (toCurrency.equals("GBP")) {
+				createCategoryEntry(trans, memo, -netAmount, shippingAndHandling, insurance, salesTax, fee, url, quantityText, categoryAccount);
+			} else if (currencyOfEbayPayment.equals("GBP")) {
+				if (fromAmount == null) {
+					throw new ImportException("No currency conversion rows found but payment was in different currency than Paypal account.");
+				}
 				// TODO: think of a way of avoiding this cast.
 				categoryAccount = (IncomeExpenseAccount)getAssociatedAccount("net.sf.jmoney.paypal.expenses.GBP");
 				if (categoryAccount == null) {
 					throw new ImportException("A GBP purchase has been found.  This is a foreign exchange purchase but no account has been set up for GBP purchases.");
 				}
+				createCategoryEntry(trans, memo, grossAmount, shippingAndHandling, insurance, salesTax, fee, url, quantityText, categoryAccount);
+				
+				// This is overwritten.  Really needs cleaning up.
+				mainEntry.setAmount(fromAmount);
 			} else {
-				throw new ImportException("The given currency is not supported.  Only transactions in USD or GBP currently supported.");
+				throw new ImportException(MessageFormat.format("Currency {0} is not supported.  Only transactions in USD or GBP are currently supported.", currencyOfEbayPayment));
 			}
 
-			createCategoryEntry(trans, memo, grossAmount, netAmount, shippingAndHandling, insurance, salesTax, fee, url, categoryAccount);
 			assertValid(trans);
 		}
 
@@ -950,6 +1050,13 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 	}
 
 
+	public void checkNull(Object object, String message) throws ImportException {
+		if (object != null) {
+			throw new ImportException(message);
+		}
+		
+	}
+
 	@Override
 	protected String getSourceLabel() {
 		return "Paypal";
@@ -962,5 +1069,15 @@ public class PaypalImportWizard extends CsvImportToAccountWizard {
 				new AssociationMetadata("net.sf.jmoney.paypal.expenses", "Expenses Account"),
 				new AssociationMetadata("net.sf.jmoney.paypal.expenses.GBP", "Purchases (GBP)"),
 		};
+	}
+
+
+	@Override
+	protected String getDescription() {
+		return "The selected CSV file will be imported.  As you have not selected an account into which the import is to be made, " +
+				"a single Paypal account must exist and the data will be imported into that account. " +
+				"The file must have been downloaded from Paypal for this import to work.  To download from Paypal, go to 'Download History' on the 'History' menu, choose 'Comma Delimited - All Activity'." +
+				"You should also check the box 'Include shopping cart details' at the bottom to get itemized entries. " +
+				"If entries have already been imported, this import will create duplicates but this needs to be fixed by incorporating this better into the reconciliation plug-in.";
 	}
 }

@@ -61,12 +61,12 @@ import au.com.bytecode.opencsv.CSVReader;
  */
 public abstract class CsvImportToAccountWizard extends CsvImportWizard implements IAccountImportWizard {
 
+	private Account accountOutsideTransaction;
+
 	/**
 	 * Set when <code>importFile</code> is called.
 	 */
 	private Account accountInsideTransaction;
-
-	private Account accountOutsideTransaction;
 
 
 	public CsvImportToAccountWizard() {
@@ -79,8 +79,9 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 	}
 
 	/**
-	 * This form of this method is calledthe constructor is called when started 
-	 * 
+	 * This form of this method is called when the wizard is initiated from JMoney
+	 * code and a Paypal account is available from the context.
+	 * <P>
 	 * We will cache window object in order to be able to provide parent shell
 	 * for the message dialog.
 	 */
@@ -89,10 +90,10 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 		this.window = window;
 		this.accountOutsideTransaction = account;
 
-		mainPage = new CsvImportWizardPage(window);
+		mainPage = new CsvImportWizardPage(window, getDescription());
 		addPage(mainPage);
 	}
-	
+
 	/**
 	 * Given an id for an account association, returns the account that is associated with the
 	 * account into which we are importing.
@@ -176,7 +177,8 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 			startImport(transactionManager);
 			
         	reader = new CSVReader(new FileReader(file));
-
+        	rowNumber = 0;
+        	
     		/*
     		 * Get the list of expected columns, validate the header row, and set the column indexes
     		 * into the column objects.  It would be possible to allow the columns to be in any order or

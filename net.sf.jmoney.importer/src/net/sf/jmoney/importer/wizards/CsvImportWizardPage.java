@@ -50,6 +50,8 @@ public class CsvImportWizardPage extends WizardPage  {
 
 	private IWorkbenchWindow window;
 	
+	private String description;
+	
 	private Text filePathText;
 	
 	private Button deleteCheckbox;
@@ -57,11 +59,12 @@ public class CsvImportWizardPage extends WizardPage  {
 	/**
 	 * Create an instance of this class
 	 */
-	protected CsvImportWizardPage(IWorkbenchWindow window) {
+	protected CsvImportWizardPage(IWorkbenchWindow window, String description) {
 		super(NAME);
 		this.window = window;
+		this.description = description;
 		setTitle("Choose File");
-		setDescription("Select the CSV file to import");
+		setDescription("Import data from a CSV file");
 	}
 
 	@Override
@@ -90,11 +93,7 @@ public class CsvImportWizardPage extends WizardPage  {
 		});
 		
 		Label label = new Label(composite, SWT.WRAP);
-		label.setText(
-				"The selected CSV file will be imported.  As you have not selected an account into which the import is to be made, " +
-				"an investment account called 'Ameritrade' must exist and the data will be imported into that account. " +
-				"The file must have been downloaded from Ameritrade for this import to work.  To download from Ameritrade, go to Statements, History. " +
-				"If entries have already been imported, this import will not create duplicates.");
+		label.setText(description);
 		GridData gd = new GridData(SWT.FILL, SWT.FILL, true, true);
 		gd.horizontalSpan = 2;
 		gd.widthHint = 600;
@@ -103,7 +102,6 @@ public class CsvImportWizardPage extends WizardPage  {
 		deleteCheckbox = new Button(composite, SWT.CHECK);
 		deleteCheckbox.setText("Delete file when imported");
 		
-		setDescription("Import data from a CSV file that has been downloaded from Ameritrade.");
 		setPageComplete(false);
 		filePathText.addModifyListener(new ModifyListener() {
 			@Override

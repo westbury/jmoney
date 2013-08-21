@@ -7,6 +7,7 @@ public class ShoppingCartRow {
 	public Long netAmount;
 	public Long fee;
 	public String url;
+	public String quantityText;
 	public Long insurance;
 	public Long salesTax;
 
