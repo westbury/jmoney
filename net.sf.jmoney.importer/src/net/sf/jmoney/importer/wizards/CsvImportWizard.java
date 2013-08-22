@@ -136,110 +136,21 @@ public abstract class CsvImportWizard extends Wizard {
 
 			startImport(transactionManager);
 
-			reader = new CSVReader(new FileReader(file));
+    		reader = new CSVReader(new FileReader(file));
         	rowNumber = 0;
 
-			/*
-			 * Get the list of expected columns, validate the header row, and set the column indexes
-			 * into the column objects.  It would be possible to allow the columns to be in any order or
-			 * to allow columns to be optional, setting the column indexes here based on the column in
-			 * which the matching header was found.
-			 *
-			 * At this time, however, there is no known requirement for that, so we simply validate that
-			 * the first row contains exactly these columns in this order and set the indexes sequentially.
-			 *
-			 * We trim the text in the header.  This is helpful because some banks add spaces.  For example
-			 * Paypal puts a space before the text in each header cell.
-			 */
-			String headerRow[] = readHeaderRow();
-
-			ImportedColumn[] expectedColumns = getExpectedColumns();
-			for (int columnIndex = 0; columnIndex < expectedColumns.length; columnIndex++) {
-				if (expectedColumns[columnIndex] != null) {
-					if (!headerRow[columnIndex].trim().equals(expectedColumns[columnIndex].getName())) {
-						MessageDialog.openError(getShell(), "Unexpected Data", "Expected '" + expectedColumns[columnIndex].getName()
-								+ "' in row 1, column " + (columnIndex+1) + " but found '" + headerRow[columnIndex] + "'.");
-						return false;
-					}
-					expectedColumns[columnIndex].setColumnIndex(columnIndex);
-				}
-			}
-
-			/*
-			 * Read the data
-			 */
-
-			currentLine = readNext();
-			while (currentLine != null) {
-
-				/*
-				 * If it contains a single empty string then we ignore this line but we don't terminate.
-				 * Nationwide Building Society puts such a line after the header.
-				 */
-				if (currentLine.length == 1 && currentLine[0].isEmpty()) {
-					currentLine = readNext();
-					continue;
-				}
-
-				/*
-				 * There may be extra columns in the file that we ignore, but if there are
-				 * fewer columns than expected then we can't import the row.
-				 */
-				if (currentLine.length < expectedColumns.length) {
-					break;
-				}
-
-				/*
-				 * Try each of the current row processors.  If any are 'done' then we
-				 * create their transaction and remove the processor from our list.
-				 * If any can process (and only one should be able to process) then
-				 * we leave it at that.
-				 */
-				boolean processed = false;
-				for (Iterator<MultiRowTransaction> iter = currentMultiRowProcessors.iterator(); iter.hasNext(); ) {
-					MultiRowTransaction currentMultiRowProcessor = iter.next();
-
-					boolean thisOneProcessed = currentMultiRowProcessor.processCurrentRow(session);
-
-					if (thisOneProcessed) {
-						if (processed) {
-							throw new RuntimeException("Can't have two current processors that can process the same row");
-						}
-						processed = true;
-					}
-
-					if (currentMultiRowProcessor.isDone()) {
-						currentMultiRowProcessor.createTransaction(session);
-						iter.remove();
-					}
-				}
-
-				if (!processed) {
-					importLine(currentLine);
-				}
-				
-				currentLine = readNext();
-			}
-
-			if (currentLine != null) {
-				// Ameritrade contains this.
-				assert (currentLine.length == 1);
-				assert (currentLine[0].equals("***END OF FILE***"));
-			}
-
-			for (MultiRowTransaction currentMultiRowProcessor : currentMultiRowProcessors) {
-				currentMultiRowProcessor.createTransaction(session);
-			}
-
-			/*
-			 * All entries have been imported and all the properties
-			 * have been set and should be in a valid state, so we
-			 * can now commit the imported entries to the datastore.
-			 */
-			String transactionDescription = MessageFormat.format("Import {0}", file.getName());
-			transactionManager.commit(transactionDescription);
-
-			return true;
+        	if (processRows(session)) {
+        		/*
+        		 * All entries have been imported so we
+        		 * can now commit the imported entries to the datastore.
+        		 */
+        		String transactionDescription = MessageFormat.format("Import {0}", file.getName());
+        		transactionManager.commit(transactionDescription);									
+        		return true;
+        	} else {
+        		return false;
+        	}
+			
 		} catch (FileNotFoundException e) {
 			// This should not happen because the file dialog only allows selection of existing files.
 			throw new RuntimeException(e);
@@ -257,6 +168,106 @@ public abstract class CsvImportWizard extends Wizard {
 			MessageDialog.openError(window.getShell(), "Errors in the downloaded file", e.getMessage());
 			return false;
 		}
+	}
+
+	/**
+	 * 
+	 * @param session
+	 * @return true if processing completed, false if processing did not complete
+	 * 			because the user cancelled or some other reason
+	 * @throws IOException
+	 * @throws ImportException
+	 */
+	protected boolean processRows(Session session)
+			throws IOException, ImportException {
+		/*
+		 * Get the list of expected columns, validate the header row, and set the column indexes
+		 * into the column objects.  It would be possible to allow the columns to be in any order or
+		 * to allow columns to be optional, setting the column indexes here based on the column in
+		 * which the matching header was found.
+		 *
+		 * At this time, however, there is no known requirement for that, so we simply validate that
+		 * the first row contains exactly these columns in this order and set the indexes sequentially.
+		 *
+		 * We trim the text in the header.  This is helpful because some banks add spaces.  For example
+		 * Paypal puts a space before the text in each header cell.
+		 */
+		String headerRow[] = readHeaderRow();
+
+		ImportedColumn[] expectedColumns = getExpectedColumns();
+		for (int columnIndex = 0; columnIndex < expectedColumns.length; columnIndex++) {
+			if (expectedColumns[columnIndex] != null) {
+				if (!headerRow[columnIndex].trim().equals(expectedColumns[columnIndex].getName())) {
+					throw new ImportException("Expected '" + expectedColumns[columnIndex].getName()
+							+ "' in row 1, column " + (columnIndex+1) + " but found '" + headerRow[columnIndex] + "'.");
+				}
+				expectedColumns[columnIndex].setColumnIndex(columnIndex);
+			}
+		}
+
+		currentLine = readNext();
+		while (currentLine != null) {
+
+			/*
+			 * If it contains a single empty string then we ignore this line but we don't terminate.
+			 * Nationwide Building Society puts such a line after the header.
+			 */
+			if (currentLine.length == 1 && currentLine[0].isEmpty()) {
+				currentLine = readNext();
+				continue;
+			}
+
+			/*
+			 * There may be extra columns in the file that we ignore, but if there are
+			 * fewer columns than expected then we can't import the row.
+			 */
+			if (currentLine.length < expectedColumns.length) {
+				break;
+			}
+
+			/*
+			 * Try each of the current row processors.  If any are 'done' then we
+			 * create their transaction and remove the processor from our list.
+			 * If any can process (and only one should be able to process) then
+			 * we leave it at that.
+			 */
+			boolean processed = false;
+			for (Iterator<MultiRowTransaction> iter = currentMultiRowProcessors.iterator(); iter.hasNext(); ) {
+				MultiRowTransaction currentMultiRowProcessor = iter.next();
+
+				boolean thisOneProcessed = currentMultiRowProcessor.processCurrentRow(session);
+
+				if (thisOneProcessed) {
+					if (processed) {
+						throw new RuntimeException("Can't have two current processors that can process the same row");
+					}
+					processed = true;
+				}
+
+				if (currentMultiRowProcessor.isDone()) {
+					currentMultiRowProcessor.createTransaction(session);
+					iter.remove();
+				}
+			}
+
+			if (!processed) {
+				importLine(currentLine);
+			}
+			
+			currentLine = readNext();
+		}
+
+		if (currentLine != null) {
+			// Ameritrade contains this.
+			assert (currentLine.length == 1);
+			assert (currentLine[0].equals("***END OF FILE***"));
+		}
+
+		for (MultiRowTransaction currentMultiRowProcessor : currentMultiRowProcessors) {
+			currentMultiRowProcessor.createTransaction(session);
+		}
+		
+		return true;
 	}
 
 	/**

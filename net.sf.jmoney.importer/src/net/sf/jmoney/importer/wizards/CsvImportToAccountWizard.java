@@ -68,6 +68,8 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 	 */
 	private Account accountInsideTransaction;
 
+	private Collection<EntryData> importedEntries = new ArrayList<EntryData>();
+
 
 	public CsvImportToAccountWizard() {
 		IDialogSettings workbenchSettings = Activator.getDefault().getDialogSettings();
@@ -122,6 +124,72 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 	}
 
 	protected abstract void setAccount(Account accountInsideTransaction) throws ImportException;
+
+	protected void addEntryToBeProcessed(EntryData entryData) {
+		importedEntries.add(entryData);
+	}
+	
+	@Override
+	protected boolean processRows(Session session) throws IOException, ImportException {
+		if (!super.processRows(session)) {
+			return false;
+		}
+		
+		/*
+		 * Import the entries using the matcher dialog
+		 */
+
+		PatternMatcherAccount matcherAccount = accountInsideTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
+
+		/**
+		 * We can't import if there is no default category into which
+		 * entries can be put.
+		 */
+		// TODO actually this is not entirely true.  Some importers (i.e. Paypal)
+		// set a default which is overwritten by any pattern matches but is not
+		// overwritten by the default.  A default should not be required in these
+		// cases.  We really need to consolidate the way we handle default accounts
+		// (set here somehow based on the currency or set by the importer)
+		if (matcherAccount.getDefaultCategory() == null) {
+			MessageDialog.openError(window.getShell(), "Import Error", MessageFormat.format("No default category is set for {0}.", accountInsideTransaction.getName()));
+			return false;
+		}
+
+		/*
+		 * If any entries need match processing, do that now.
+		 */
+		if (!importedEntries.isEmpty()) {
+//			// HACK - convert Entry to EntryData
+//			Collection<EntryData> importedEntries2 = new ArrayList<EntryData>();
+//
+//			for (Entry entry : importedEntries) {
+//				EntryData entryData = new EntryData();
+//				entryData.amount = entry.getAmount();
+//				entryData.check = entry.getCheck();
+//				entryData.valueDate = entry.getTransaction().getDate();
+//				entryData.clearedDate = entry.getValuta();
+//				entryData.setMemo(entry.getMemo());
+//				entryData.setPayee(entry.getMemo());
+//				importedEntries2.add(entryData);
+//			}
+
+			Dialog dialog = new PatternMatchingDialog(window.getShell(), matcherAccount, importedEntries);
+			if (dialog.open() == Dialog.OK) {
+				ImportMatcher matcher = new ImportMatcher(matcherAccount);
+
+				for (EntryData entryData: importedEntries) {
+					Entry entry = matcher.process(entryData, accountInsideTransaction.getSession());
+					//				ReconciliationEntryInfo.getUniqueIdAccessor().setValue(entry, entryData.uniqueId);
+				}
+
+				return true;
+			} else {
+				return false;
+			}
+		}
+		
+		return true;
+	}
 
 	/**
 	 * This method returns a label that describes the source and is suitable for use

@@ -11,6 +11,14 @@ import net.sf.jmoney.model2.PropertyAccessor;
 import net.sf.jmoney.model2.Transaction;
 
 public class EntryData {
+	/**
+	 * If an entry has already been created, it is set here.
+	 * This is more flexible because an import could have information
+	 * about itemized entries (e.g. a Paypal import) in which case
+	 * creating the transaction from the EntryData will not work.
+	 */
+	public Entry entry = null;
+	
 	public Date clearedDate = null;
 	public Date valueDate = null;
 	public String check = null;
@@ -63,10 +71,10 @@ public class EntryData {
 	 * is called.
 	 *
 	 * @param transaction
-	 * @param entry1 the entry in the bank account.  The account
-	 * 					property will already have been set
-	 * @param entry2 the other entry, typically an entry in an
-	 * 					income and expense account
+	 * @param entry1 the 'other' entry, typically being the charge account,
+	 * 			never null
+	 * @param entry2 the entry whose description and category is to be determined, typically an entry in an
+	 * 					income and expense account, never null
 	 */
 	public void assignPropertyValues(Transaction transaction, Entry entry1, Entry entry2) {
 		if (valueDate == null) {
@@ -97,6 +105,12 @@ public class EntryData {
 	 * @return the text which may be empty but must never be null
 	 */
 	public String getTextToMatch() {
+		// Get values at this time.  We can't get them earlier because
+		// they may not have been set.
+		if (entry != null) {
+			fillFromEntry();
+		}
+		
 		String text = "";
 		if (memo != null) {
 			text += "memo=" + memo;
@@ -126,6 +140,13 @@ public class EntryData {
 		text += "amount=" + myAmount;
 		return text;
 	}
+	public void fillFromEntry() {
+		valueDate = entry.getTransaction().getDate();
+		clearedDate = entry.getValuta();
+		setMemo(entry.getMemo());
+		setAmount(entry.getAmount());
+		setUniqueId(ReconciliationEntryInfo.getUniqueIdAccessor().getValue(entry));
+	}
 
 	public String getName() {
 		return name;
@@ -147,5 +168,9 @@ public class EntryData {
 
 	public Date getClearedDate() {
 		return clearedDate;
+	}
+	
+	public void setEntry(Entry entry) {
+		this.entry = entry;
 	}
 }

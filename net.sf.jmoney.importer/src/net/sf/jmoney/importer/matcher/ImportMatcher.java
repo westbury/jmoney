@@ -12,9 +12,13 @@ import net.sf.jmoney.importer.model.MemoPattern;
 import net.sf.jmoney.importer.model.MemoPatternInfo;
 import net.sf.jmoney.importer.model.PatternMatcherAccount;
 import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
+import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
+
+import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.ui.PlatformUI;
 
 public class ImportMatcher {
 
@@ -40,6 +44,16 @@ public class ImportMatcher {
 
 	}
 
+	/**
+	 * 
+	 * @param text
+	 * @param entry1 the 'other' entry, typically being the charge account,
+	 * 			may be null
+	 * @param entry2 the entry whose description and category is to be determined,
+	 * 			never null
+	 * @param defaultMemo
+	 * @param defaultDescription
+	 */
 	public void matchAndFill(String text, Entry entry1, Entry entry2, String defaultMemo, String defaultDescription) {
    		for (MemoPattern pattern: sortedPatterns) {
    			Matcher m = pattern.getCompiledPattern().matcher(text);
@@ -60,8 +74,9 @@ public class ImportMatcher {
 
    				String format = MemoPatternInfo.getCheckAccessor().getValue(pattern);
 
-   				// TODO: What effect does the locale have in the following?
-   				if (pattern.getCheck() != null) {
+   				// TODO: Remove this.  The check number should not be set using
+   				// the import pattern matching.
+   				if (entry1 != null && pattern.getCheck() != null) {
    					entry1.setCheck(
    							new java.text.MessageFormat(
    									pattern.getCheck(),
@@ -69,7 +84,7 @@ public class ImportMatcher {
    							.format(args));
    				}
 
-   				if (pattern.getMemo() != null) {
+   				if (entry1 != null && pattern.getMemo() != null) {
    					entry1.setMemo(
    							new java.text.MessageFormat(
    									pattern.getMemo(),
@@ -85,6 +100,21 @@ public class ImportMatcher {
        								.format(args));
    				}
 
+   				/*
+   				 * Before setting the account, check that if a default
+   				 * account was previously set then the currency is the
+   				 * same.  The amount will end up being just plain wrong
+   				 * if we change the currency.
+   				 */
+   				if (entry2.getAccount() != null) {
+   					Commodity currencyBefore = entry2.getCommodity();
+   	           		entry2.setAccount(pattern.getAccount());
+   					Commodity currencyAfter = entry2.getCommodity();
+   					if (currencyBefore != currencyAfter) {
+   						MessageDialog.openError(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), "Problem Transaction", "Currency is being changed by pattern match.");
+   						throw new RuntimeException("currency change on pattern match");
+   					}
+   				}
            		entry2.setAccount(pattern.getAccount());
 
            		break;
@@ -94,10 +124,16 @@ public class ImportMatcher {
 		/*
 		 * If nothing matched, set the default account, the memo, and the
 		 * description (the memo in the other account) but no other property.
+		 * 
+		 * The account may already have been set.  That will be the case, for
+		 * example, in the Paypal import because the default account depends on
+		 * the currency.
 		 */
    		if (entry2.getAccount() == null) {
    			entry2.setAccount(account.getDefaultCategory());
-			entry1.setMemo(defaultMemo == null ? null : convertToMixedCase(defaultMemo));
+   			if (entry1 != null) {
+   				entry1.setMemo(defaultMemo == null ? null : convertToMixedCase(defaultMemo));
+   			}
 			entry2.setMemo(defaultDescription == null ? null : convertToMixedCase(defaultDescription));
    		}
 	}
@@ -154,6 +190,19 @@ public class ImportMatcher {
 	 * @return the entry for this transaction.
 	 */
 	public Entry process(net.sf.jmoney.importer.matcher.EntryData entryData, Session session) {
+		// Fill the fields from the entry.  This is for convenience
+		// so other places just use the EntryData fields.  This needs
+		// cleaning up.
+		if (entryData.entry != null) {
+			entryData.fillFromEntry();
+		}
+
+		
+		// No auto-matching if the transaction has already been created.
+		// It will just find itself!
+		// TODO auto-matching should be done earlier if other processes/imports
+		// are putting entries into the Paypal accounts.
+		if (entryData.entry == null) {
 		/*
 		 * First we try auto-matching.
 		 *
@@ -179,11 +228,35 @@ public class ImportMatcher {
 			ReconciliationEntryInfo.getUniqueIdAccessor().setValue(matchedEntry, entryData.uniqueId);
 			return matchedEntry;
 		}
-
-   		Transaction transaction = session.createTransaction();
-   		Entry entry1 = transaction.createEntry();
-   		Entry entry2 = transaction.createEntry();
-   		entry1.setAccount(account.getBaseObject());
+		}
+		
+		/*
+		 * Two possibilities here.  If there is an 'entry' then the
+		 * transaction has already been created and we should use it.
+		 * If no 'entry' then we must create a transaction.
+		 * 
+		 * TODO tidy this up by always creating the transaction before
+		 * calling this method.
+		 */
+		Transaction transaction;
+		Entry entry1;
+		Entry entry2;
+		if (entryData.entry == null) {
+			transaction = session.createTransaction();
+			entry1 = transaction.createEntry();
+			entry2 = transaction.createEntry();
+			entry1.setAccount(account.getBaseObject());
+			
+			// Set values that don't depend on matching
+			entryData.assignPropertyValues(transaction, entry1, entry2);
+		} else {
+			transaction = entryData.entry.getTransaction();
+			entry2 = entryData.entry;
+			
+			// If the transaction was already created then we don't update
+			// properties in the other entry.
+			entry1 = null;
+		}
 
    		/*
    		 * Scan for a match in the patterns.  If a match is found,
@@ -191,8 +264,6 @@ public class ImportMatcher {
    		 */
 		String text = entryData.getTextToMatch();
 		matchAndFill(text, entry1, entry2, entryData.getDefaultMemo(), entryData.getDefaultDescription());
-
-   		entryData.assignPropertyValues(transaction, entry1, entry2);
 
    		return entry1;
 	}

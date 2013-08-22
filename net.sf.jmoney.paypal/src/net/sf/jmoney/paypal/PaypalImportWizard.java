@@ -32,12 +32,15 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
+import net.sf.jmoney.importer.MatchingEntryFinder;
+import net.sf.jmoney.importer.matcher.EntryData;
 import net.sf.jmoney.importer.wizards.AssociationMetadata;
 import net.sf.jmoney.importer.wizards.CsvImportToAccountWizard;
 import net.sf.jmoney.importer.wizards.ImportException;
 import net.sf.jmoney.importer.wizards.MultiRowTransaction;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.BankAccount;
+import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IDatastoreManager;
@@ -424,7 +427,8 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 			if (paypalAccount.getTransferBank() == null) {
 				throw new ImportException("A bank account transfer has been found in the imported data.  However, no bank account has been set in the properties for this Paypal account.");
 			}
-			createTransaction("transfer from bank", paypalAccount.getTransferBank(), "transfer to Paypal");
+			// TODO: check this is US dollars, or determine correct paypal account for the currency.
+			createTransaction("transfer from bank", paypalAccount, paypalAccount.getTransferBank(), "transfer to Paypal");
 		} else if (rowType.equals("Update to eCheck Sent")) {
 			// Updates do not involve a financial transaction
 			// so nothing to import.
@@ -480,9 +484,21 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 		} else if (rowType.equals("Charge From Credit Card")) {
 			String currency = column_currency.getText();
 			BankAccount creditCard;
+			CapitalAccount paypalAccountForCurrency;
 			if (currency.equals("USD")) {
+				paypalAccountForCurrency = paypalAccount;
 				creditCard = paypalAccount.getTransferCreditCard();
 			} else if (currency.equals("GBP")) {
+				try {
+					paypalAccountForCurrency = (CapitalAccount)session.getAccountByShortName("Paypal (£)");
+				} catch (NoAccountFoundException e) {
+					MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "No account exists called 'Paypal (£)'");
+					throw new RuntimeException(e); 
+				} catch (SeveralAccountsFoundException e) {
+					MessageDialog.openError(Display.getDefault().getActiveShell(), "Multiple Accounts Set Up", "Multiple accounts exists called 'Paypal (£)'");
+					throw new RuntimeException(e); 
+				}
+
 				creditCard = (BankAccount)getAssociatedAccount("net.sf.jmoney.paypal.creditcard.GBP");
 			} else {
 				throw new ImportException("unsupported currency");
@@ -490,13 +506,40 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 			if (creditCard == null) {
 				throw new ImportException("A credit card charge has been found in the imported data.  However, no credit card account has been set in the properties for this Paypal account.");
 			}
-			createTransaction("payment from credit card", creditCard, "transfer to Paypal");
+			createTransaction("payment from credit card", paypalAccountForCurrency, creditCard, "transfer to Paypal");
 		} else if (rowType.equals("Credit to Credit Card")
 				|| rowType.equals("PayPal card confirmation refund")) {
 			if (paypalAccount.getTransferCreditCard() == null) {
 				throw new ImportException("A credit card refund has been found in the imported data.  However, no credit card account has been set in the properties for this Paypal account.");
 			}
-			createTransaction("refund to credit card", paypalAccount.getTransferCreditCard(), "refund from Paypal");
+
+			String currency = column_currency.getText();
+			BankAccount creditCard;
+			CapitalAccount paypalAccountForCurrency;
+			if (currency.equals("USD")) {
+				paypalAccountForCurrency = paypalAccount;
+				creditCard = paypalAccount.getTransferCreditCard();
+			} else if (currency.equals("GBP")) {
+				try {
+					paypalAccountForCurrency = (CapitalAccount)session.getAccountByShortName("Paypal (£)");
+				} catch (NoAccountFoundException e) {
+					MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "No account exists called 'Paypal (£)'");
+					throw new RuntimeException(e); 
+				} catch (SeveralAccountsFoundException e) {
+					MessageDialog.openError(Display.getDefault().getActiveShell(), "Multiple Accounts Set Up", "Multiple accounts exists called 'Paypal (£)'");
+					throw new RuntimeException(e); 
+				}
+
+				creditCard = (BankAccount)getAssociatedAccount("net.sf.jmoney.paypal.creditcard.GBP");
+			} else {
+				throw new ImportException("unsupported currency");
+			}
+			if (creditCard == null) {
+				throw new ImportException("A credit card charge has been found in the imported data.  However, no credit card account has been set in the properties for this Paypal account.");
+			}
+
+			
+			createTransaction("refund to credit card", paypalAccountForCurrency, creditCard, "refund from Paypal");
 		} else {
 			throw new ImportException("Entry found with unknown type: '" + rowType + "'.");
 		}
@@ -529,8 +572,22 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 	 */
 	private void createCategoryEntry(Transaction trans, String memo, long amount, Long shippingAndHandling, Long insurance, Long salesTax, Long fee, String url, String quantityText, IncomeExpenseAccount account) {
 		PaypalEntry lineItemEntry = trans.createEntry().getExtension(PaypalEntryInfo.getPropertySet(), true);
-		// TODO: Support pattern matching
+
+		/*
+		 * Pattern matching will be used to select the income and expense account.
+		 * However we do set the account.  This overrides the default account from
+		 * the pattern matching but specific pattern matches will override this account.
+		 * (But with a check that the account from the specific pattern matching
+		 * does not have a different currency).
+		 * 
+		 * We add this entry to the list.
+		 */
 		lineItemEntry.setAccount(account);
+		
+		EntryData entryData = new EntryData();
+		entryData.setEntry(lineItemEntry.getBaseObject());
+		addEntryToBeProcessed(entryData);
+		
 		lineItemEntry.setAmount(amount);
 
 		if (url.length() != 0) {
@@ -639,7 +696,92 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 		}
 	}
 
-	private void createTransaction(String paypalAccountMemo, Account otherAccount, String otherAccountMemo) throws ImportException {
+	/**
+	 * This version will match against existing entries in the charge account and
+	 * reconcile them.
+	 * 
+	 * Not sure if this is really necessary because the import for the other account
+	 * should have put an entry into the Paypal account.  This does however mean that
+	 * we don't need a Paypal account for each currency to hold entries that have been
+	 * imported from the charge account but not yet imported from Paypal.
+	 * 
+	 * @param paypalAccountMemo
+	 * @param otherAccount
+	 * @param otherAccountMemo
+	 * @throws ImportException
+	 */
+	private void createTransaction(String paypalAccountMemo, final CapitalAccount paypalAccountForCurrency, CapitalAccount otherAccount, String otherAccountMemo) throws ImportException {
+		/*
+		 * Auto-match the new entry in the charge account the same way that any other
+		 * entry would be auto-matched.  This combines the entry if the entry already exists in the
+		 * charge account (typically because transactions have been downloaded from the bank and imported).
+		 *
+		 * An entry in the charge account has already been matched to a
+		 * Paypal payment if it has a transaction id set.  This matcher will not return
+		 * entries that have already been matched.
+		 *
+		 * Although we have already eliminated orders that have already been imported,
+		 * this test ensures we don't mess up when more than one order can match to the
+		 * same debit in the charge account.  This is not likely but two orders of the same
+		 * amount and the same or very close dates may cause this.
+		 *
+		 * Note that we search two days ahead for a matching entry in the charge account.
+		 * Although we know the date Paypal charged the amount, it can sometimes appear up to
+		 * two days later in the charge account.
+		 */
+		MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
+			@Override
+			protected boolean alreadyMatched(Entry entry) {
+				if (entry.getOtherAccount() == paypalAccountForCurrency
+						&& ReconciliationEntryInfo.getUniqueIdAccessor().getValue(entry.getTransaction().getOther(entry)) != null) {
+						return true;
+				} else {
+					return false;
+				}
+			}
+		};
+		Entry matchedEntryInChargeAccount = matchFinder.findMatch(otherAccount, -column_grossAmount.getAmount(), column_date.getDate(), 2, null);
+
+		/*
+		 * Create an entry for the amount charged to the charge account.
+		 * 
+		 * Note that if a match is found but that entry has split entries then we don't
+		 * merge the transactions.  We leave two transactions that must be manually merged.
+		 * This is just because it is too hard otherwise to ensure we don't lose data. 
+		 */
+		Transaction trans;
+		if (matchedEntryInChargeAccount == null
+				|| matchedEntryInChargeAccount.getTransaction().hasMoreThanTwoEntries()) {
+			
+			if (matchedEntryInChargeAccount != null && matchedEntryInChargeAccount.getTransaction().hasMoreThanTwoEntries()) {
+				MessageDialog.openInformation(getShell(), "Problem Transaction", "For amount " + (-column_grossAmount.getAmount()) + ", transaction already split so you must manually merge.");
+			}
+
+			trans = session.createTransaction();
+			trans.setDate(column_date.getDate());
+
+			Entry otherEntry = trans.createEntry();
+			otherEntry.setAccount(otherAccount);
+			otherEntry.setAmount(-column_grossAmount.getAmount());
+			otherEntry.setMemo(otherAccountMemo);
+		} else {
+			trans = matchedEntryInChargeAccount.getTransaction();
+			matchedEntryInChargeAccount.setMemo(otherAccountMemo);
+			
+			Entry otherMatchedEntry = matchedEntryInChargeAccount.getTransaction().getOther(matchedEntryInChargeAccount);
+			// Any checks on the other entry before we delete it?
+			matchedEntryInChargeAccount.getTransaction().deleteEntry(otherMatchedEntry);
+		}
+
+		Entry mainEntry = trans.createEntry();
+		mainEntry.setAccount(paypalAccountForCurrency);
+		mainEntry.setAmount(column_grossAmount.getAmount());
+		mainEntry.setMemo(paypalAccountMemo);
+		mainEntry.setValuta(column_date.getDate());
+		ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry, column_transactionId.getText());
+	}
+
+	private void createTransaction(String paypalAccountMemo, IncomeExpenseAccount otherAccount, String otherAccountMemo) throws ImportException {
 		Transaction trans = session.createTransaction();
 		trans.setDate(column_date.getDate());
 
@@ -687,6 +829,13 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 		private Date date;
 		private String status;
 		private long grossAmount;
+		private long netAmount;
+
+		/**
+		 * Three letter code of the currency of the eBay payment.
+		 */
+		private String currencyOfPayment;
+
 		private String payeeName;
 		private String transactionId;
 		private String merchantEmail;
@@ -702,7 +851,9 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 		private boolean done = false;
 
 		/**
-		 * Initial constructor called when first "Mandatory Exchange" row found.
+		 * Initial constructor called when we find one of:
+		 * - "Shopping Cart Payment Sent"
+		 * - "Express Checkout Payment Sent"
 		 *
 		 * @param date
 		 * @param quantity
@@ -713,12 +864,13 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 			this.date = date;
 			this.status = column_status.getText();
 			this.grossAmount = column_grossAmount.getAmount();
+			this.netAmount = column_netAmount.getAmount();
 			this.payeeName = column_payeeName.getText();
 			this.transactionId = column_transactionId.getText();
 			this.merchantEmail = column_payeeEmail.getText();
 			this.shippingAndHandlingAmount = shippingAndHandlingAmount;
 			
-			String currencyOfPayment = column_currency.getText();
+			this.currencyOfPayment = column_currency.getText();
 			currencyConversionHandler = new CurrencyConversionHandler(-grossAmount, currencyOfPayment);
 		}
 
@@ -737,13 +889,74 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 
 			PaypalEntry mainEntry = trans.createEntry().getExtension(PaypalEntryInfo.getPropertySet(), true);
 			mainEntry.setAccount(paypalAccount);
-			mainEntry.setAmount(grossAmount);
+			if (!currencyConversionHandler.isConversion()) {
+				// There was no currency conversion
+				mainEntry.setAmount(netAmount);
+			} else {
+				// Currency conversion, so use amount that is in currency
+				// of the PayPal account.
+				mainEntry.setAmount(currencyConversionHandler.getFromAmount());
+			}
 			mainEntry.setMemo("payment - " + payeeName);
 			mainEntry.setMerchantEmail(merchantEmail);
 			ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry.getBaseObject(), transactionId);
 
+			
+			IncomeExpenseAccount categoryAccount;
+			if (currencyOfPayment == null || currencyOfPayment.equals(paypalAccount.getCurrency().getCode())) {
+				// There was no currency conversion.
+				if (currencyConversionHandler.isConversion()) {
+					throw new ImportException("Currency conversion rows but payment was in same currency as Paypal account.");
+				}
+				categoryAccount = paypalAccount.getSaleAndPurchaseAccount();
+			} else if (currencyOfPayment.equals("GBP")) {
+				if (!currencyConversionHandler.isConversion()) {
+					/*
+					 * TODO: This is not the correct thing to do.  The Paypal account should be a
+					 * multi-currency account that can contain more than one currency.  This appears to
+					 * be how Paypal treat the account.  The 'balance' column actually appears to contain
+					 * the balance of the currency which has just been credited or debited from the account,
+					 * so may differ from row to row.  JMoney can support this with little effort because this
+					 * is basically what stock accounts do.
+					 * 
+					 * For the time being, I don't have time to change the Paypal account at the moment so it
+					 * is just put into a different Paypal account.
+					 */
+					// HACK
+					Account ukAccount;
+					try {
+						ukAccount = session.getAccountByShortName("Paypal (£)");
+					} catch (NoAccountFoundException e) {
+						MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "No account exists called 'Paypal (£)'");
+						throw new RuntimeException(e); 
+					} catch (SeveralAccountsFoundException e) {
+						MessageDialog.openError(Display.getDefault().getActiveShell(), "Multiple Accounts Set Up", "Multiple accounts exists called 'Paypal (£)'");
+						throw new RuntimeException(e); 
+					}
+
+					// Overwrite the Paypal account
+					mainEntry.setAccount(ukAccount);
+
+					// TODO: think of a way of avoiding this cast.
+					categoryAccount = (IncomeExpenseAccount)getAssociatedAccount("net.sf.jmoney.paypal.purchases.GBP");
+					if (categoryAccount == null) {
+						throw new ImportException("A GBP purchase has been found.  This is a foreign exchange purchase but no account has been set up for GBP purchases.");
+					}
+				
+//					throw new ImportException("No currency conversion rows found but payment was in different currency than Paypal account.");
+				} else {
+					// TODO: think of a way of avoiding this cast.
+					categoryAccount = (IncomeExpenseAccount)getAssociatedAccount("net.sf.jmoney.paypal.purchases.GBP");
+					if (categoryAccount == null) {
+						throw new ImportException("A GBP purchase has been found.  This is a foreign exchange purchase but no account has been set up for GBP purchases.");
+					}
+				}
+			} else {
+				throw new ImportException(MessageFormat.format("Currency {0} is not supported.  Only transactions in USD or GBP are currently supported.", currencyOfPayment));
+			}
+			
 			for (ShoppingCartRow rowItem2 : rowItems) {
-				createCategoryEntry(trans, rowItem2.memo, rowItem2.grossAmount, rowItem2.shippingAndHandling, rowItem2.insurance, rowItem2.salesTax, rowItem2.fee, rowItem2.url, rowItem2.quantityText, paypalAccount.getSaleAndPurchaseAccount());
+				createCategoryEntry(trans, rowItem2.memo, rowItem2.grossAmount, rowItem2.shippingAndHandling, rowItem2.insurance, rowItem2.salesTax, rowItem2.fee, rowItem2.url, rowItem2.quantityText, categoryAccount);
 			}
 
 			/*
@@ -856,7 +1069,7 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 		/**
 		 * Three letter code of the currency of the eBay payment.
 		 */
-		private String currencyOfEbayPayment;
+		private String currencyOfPayment;
 
 		private long netAmount;
 		private long fee;
@@ -891,7 +1104,7 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 			this.memo = column_memo.getText();
 			this.payeeName = column_payeeName.getText();
 
-			this.currencyOfEbayPayment = column_currency.getText();
+			this.currencyOfPayment = column_currency.getText();
 
 			this.grossAmount = column_grossAmount.getAmount();
 			this.netAmount = column_netAmount.getAmount();
@@ -902,7 +1115,7 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 			this.url = column_itemUrl.getText();
 			this.quantityText = column_quantity.getText();
 			
-			currencyConversionHandler = new CurrencyConversionHandler(-grossAmount, currencyOfEbayPayment);
+			currencyConversionHandler = new CurrencyConversionHandler(-grossAmount, currencyOfPayment);
 		}
 
 		@Override
@@ -951,14 +1164,14 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 			ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry.getBaseObject(), transactionId);
 
 			IncomeExpenseAccount categoryAccount;
-			if (currencyOfEbayPayment == null || currencyOfEbayPayment.equals(paypalAccount.getCurrency().getCode())) {
+			if (currencyOfPayment == null || currencyOfPayment.equals(paypalAccount.getCurrency().getCode())) {
 				// There was no currency conversion.
 				if (currencyConversionHandler.isConversion()) {
 					throw new ImportException("Currency conversion rows but payment was in same currency as Paypal account.");
 				}
 				categoryAccount = paypalAccount.getSaleAndPurchaseAccount();
 				createCategoryEntry(trans, memo, -netAmount, shippingAndHandling, insurance, salesTax, fee, url, quantityText, categoryAccount);
-			} else if (currencyOfEbayPayment.equals("GBP")) {
+			} else if (currencyOfPayment.equals("GBP")) {
 				if (!currencyConversionHandler.isConversion()) {
 					throw new ImportException("No currency conversion rows found but payment was in different currency than Paypal account.");
 				}
@@ -969,7 +1182,7 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 				}
 				createCategoryEntry(trans, memo, -netAmount, shippingAndHandling, insurance, salesTax, fee, url, quantityText, categoryAccount);
 			} else {
-				throw new ImportException(MessageFormat.format("Currency {0} is not supported.  Only transactions in USD or GBP are currently supported.", currencyOfEbayPayment));
+				throw new ImportException(MessageFormat.format("Currency {0} is not supported.  Only transactions in USD or GBP are currently supported.", currencyOfPayment));
 			}
 
 			assertValid(trans);
