@@ -2,6 +2,16 @@
 <?eclipse version="3.0"?>
 <plugin>
 
+	<extension point="org.eclipse.ui.importWizards">
+		<wizard id="net.sf.jmoney.paypal.ImportWizard"
+			name="%importWizard.name"
+			class="net.sf.jmoney.ameritrade.AmeritradeImportWizard">
+			<description>
+				%importWizard.description 
+			</description>
+		</wizard>
+	</extension>
+
    <extension
          point="net.sf.jmoney.importer.importdata">
 

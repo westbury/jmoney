@@ -31,12 +31,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
 import net.sf.jmoney.importer.wizards.AssociationMetadata;
 import net.sf.jmoney.importer.wizards.CsvImportToAccountWizard;
 import net.sf.jmoney.importer.wizards.ImportException;
+import net.sf.jmoney.importer.wizards.MultiRowTransaction;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
+import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Session.NoAccountFoundException;
 import net.sf.jmoney.model2.Session.SeveralAccountsFoundException;
@@ -52,27 +55,31 @@ import net.sf.jmoney.stocks.model.StockInfo;
 
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.IWorkbenchWizard;
 
 /**
  * A wizard to import data from a comma-separated file that has been downloaded
  * from Ameritrade.
  */
-public class AmeritradeImportWizard extends CsvImportToAccountWizard {
+public class AmeritradeImportWizard extends CsvImportToAccountWizard implements IWorkbenchWizard {
 
-	private ImportedDateColumn column_date                   = new ImportedDateColumn("DATE", new SimpleDateFormat("MM/dd/yyyy"));
-	private ImportedTextColumn column_uniqueId               = new ImportedTextColumn("TRANSACTION ID");
-	private ImportedTextColumn column_description            = new ImportedTextColumn("DESCRIPTION");
-	private ImportedTextColumn column_quantity               = new ImportedTextColumn("QUANTITY");
-	private ImportedTextColumn column_symbol                 = new ImportedTextColumn("SYMBOL");
-	private ImportedTextColumn column_price                  = new ImportedTextColumn("PRICE");
-	private ImportedTextColumn column_commission             = new ImportedTextColumn("COMMISSION");
-	private ImportedTextColumn column_amount                 = new ImportedTextColumn("AMOUNT");
-	private ImportedTextColumn column_salesFee               = new ImportedTextColumn("SALES FEE");
-	private ImportedTextColumn column_shortTermRedemptionFee = new ImportedTextColumn("SHORT-TERM RDM FEE");
-	private ImportedTextColumn column_fundRedemptionFee      = new ImportedTextColumn("FUND REDEMPTION FEE");
-	private ImportedTextColumn column_deferredSalesCharge    = new ImportedTextColumn("DEFERRED SALES CHARGE");
+	private ImportedDateColumn column_date                     = new ImportedDateColumn("DATE", new SimpleDateFormat("MM/dd/yyyy"));
+	private ImportedTextColumn column_uniqueId                 = new ImportedTextColumn("TRANSACTION ID");
+	private ImportedTextColumn column_description              = new ImportedTextColumn("DESCRIPTION");
+	private ImportedTextColumn column_quantityString           = new ImportedTextColumn("QUANTITY");
+	private ImportedTextColumn column_symbol                   = new ImportedTextColumn("SYMBOL");
+	private ImportedTextColumn column_price                    = new ImportedTextColumn("PRICE");
+	private ImportedAmountColumn column_commission             = new ImportedAmountColumn("COMMISSION");
+	private ImportedAmountColumn column_amount                 = new ImportedAmountColumn("AMOUNT");
+	private ImportedAmountColumn column_balance                = new ImportedAmountColumn("NET CASH BALANCE");
+	private ImportedAmountColumn column_regFee                 = new ImportedAmountColumn("REG FEE");
+	private ImportedAmountColumn column_shortTermRedemptionFee = new ImportedAmountColumn("SHORT-TERM RDM FEE");
+	private ImportedAmountColumn column_fundRedemptionFee      = new ImportedAmountColumn("FUND REDEMPTION FEE");
+	private ImportedAmountColumn column_deferredSalesCharge    = new ImportedAmountColumn("DEFERRED SALES CHARGE");
 
 	Pattern patternAdr;
 	Pattern patternForeignTax;
@@ -80,6 +87,7 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 	Pattern patternBondInterestRate;
 	Pattern patternBondMaturityDate;
 	Pattern patternMandatoryReverseSplit;
+	BondSalePatternMatcher patternBondSale;
 
 //	static {
 //		try {
@@ -92,13 +100,11 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 
 	private StockAccount account;
 	
-	private MultiRowTransaction currentMultiRowProcessor = null;
-
-	private long priorIntraAccountTransferAmount = 0;
-	
 	private Account interestAccount;
 
 	private Account expensesAccount;
+
+	private Account foreignTaxAccount;
 
 	// Don't put this here.  Methods should all be using sessionInTransaction
 	private Session session;
@@ -116,6 +122,43 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 		setDialogSettings(section);
 	}
 
+	/**
+	 * This form of this method is called when the wizard is initiated from the
+	 * 'import' menu.  No account is available from the context so we search
+	 * for a Paypal account.  If there is more than one then we fail (it would
+	 * be better to add a page that prompts the user for the Paypal account to
+	 * use, or perhaps try to identify the account from the imported file).
+	 */
+	public void init(IWorkbench workbench, IStructuredSelection selection) {
+		IWorkbenchWindow window = workbench.getActiveWorkbenchWindow();
+		Account account;
+
+		IDatastoreManager sessionManager = (IDatastoreManager)window.getActivePage().getInput();
+		
+		session = sessionManager.getSession();
+		
+		if (selection.size() == 1
+				&& selection.getFirstElement() instanceof StockAccount) {
+			account = (StockAccount)selection.getFirstElement();
+		} else {
+			try {
+				account = session.getAccountByShortName("Ameritrade");
+			} catch (NoAccountFoundException e) {
+				MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "No account exists called 'Paypal'");
+				throw new RuntimeException(e); 
+			} catch (SeveralAccountsFoundException e) {
+				MessageDialog.openError(Display.getDefault().getActiveShell(), "Multiple Accounts Set Up", "Multiple accounts exists called 'Paypal'");
+				throw new RuntimeException(e); 
+			}
+		}
+
+		if (!(account instanceof StockAccount)) {
+			MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "The account called 'Paypal' must be a Paypal account.");
+			throw new RuntimeException("Selected Ameritrade account not a stock account"); 
+		}
+		
+		init(window, account);
+	}
 
 	@Override
 	protected void setAccount(Account accountInsideTransaction)	throws ImportException {
@@ -126,36 +169,18 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 		this.account = (StockAccount)accountInsideTransaction;
 		this.session = accountInsideTransaction.getSession();
 
-		currentMultiRowProcessor = null;
-		priorIntraAccountTransferAmount = 0;
-
-		try {
-			interestAccount = session.getAccountByShortName("Interest - Ameritrade");
-		} catch (NoAccountFoundException e) {
-			MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "No account exists called 'Interest - Ameritrade'");
-			throw new RuntimeException(e); 
-		} catch (SeveralAccountsFoundException e) {
-			MessageDialog.openError(Display.getDefault().getActiveShell(), "Multiple Accounts Set Up", "Multiple accounts exists called 'Interest - Ameritrade'");
-			throw new RuntimeException(e); 
-		}
-
-		try {
-			expensesAccount = session.getAccountByShortName("Stock - Expenses (US)");
-		} catch (NoAccountFoundException e) {
-			MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "No account exists called 'Stock - Expenses (US)'");
-			throw new RuntimeException(e); 
-		} catch (SeveralAccountsFoundException e) {
-			MessageDialog.openError(Display.getDefault().getActiveShell(), "Multiple Accounts Set Up", "Multiple accounts exists called 'Stock - Expenses (US)'");
-			throw new RuntimeException(e); 
-		}
+		interestAccount = getAssociatedAccount("net.sf.jmoney.ameritrade.interest");
+		expensesAccount = getAssociatedAccount("net.sf.jmoney.ameritrade.expenses");
+		foreignTaxAccount = getAssociatedAccount("net.sf.jmoney.ameritrade.foreigntaxes");
 		
 		try {
 			patternAdr = Pattern.compile("ADR FEES \\([A-Z]*\\)");
 			patternForeignTax = Pattern.compile("FOREIGN TAX WITHHELD \\([A-Z]*\\)");
-			patternBondInterest = Pattern.compile("INTEREST INCOME - SECURITIES \\(([0-9,A-Z]*)\\)");
+			patternBondInterest = Pattern.compile("INTEREST INCOME - SECURITIES \\(([0-9,A-Z]*)\\) (.*)");
 			patternBondInterestRate = Pattern.compile(" coupon\\: (\\d\\.\\d\\d)\\%");
 			patternBondMaturityDate = Pattern.compile(" maturity: (\\d\\d/\\d\\d/20\\d\\d)");
 			patternMandatoryReverseSplit = Pattern.compile("MANDATORY REVERSE SPLIT \\(([0-9,A-Z]*)\\)");
+			patternBondSale = new BondSalePatternMatcher();
 		} catch (PatternSyntaxException e) {
 			throw new RuntimeException("pattern failed"); 
 		}
@@ -164,18 +189,28 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 	@Override
 	public void importLine(String[] line) throws ImportException {
 		Date date = column_date.getDate();
-		String uniqueId = line[1];
-		String memo = line[2];
-		String quantityString = line[3];
-		String security = line[4];
-		String price = line[5];
-		String commissionString = line[6];
-		String totalString = line[7];
-		String salesFee = line[8];
-		String shortTermRedemptionFee = line[9];
-		String fundRedemptionFee = line[10];
-		String deferredSalesCharge = line[11];
+		String uniqueId = column_uniqueId.getText();
+		String memo = column_description.getText();
+		String quantityString = column_quantityString.getText();
+		String security = column_symbol.getText();
+		String price = column_price.getText();
+		Long commission = column_commission.getAmount();
+		Long total = column_amount.getAmount();
+		long salesFee = column_regFee.getNonNullAmount();
+		long shortTermRedemptionFee = column_shortTermRedemptionFee.getNonNullAmount();
+		long fundRedemptionFee = column_fundRedemptionFee.getNonNullAmount();
+		long deferredSalesCharge = column_deferredSalesCharge.getNonNullAmount();
 		
+		/*
+		 * See if an entry already exists with this uniqueId.
+		 */
+		for (Entry entry : account.getEntries()) {
+			if (uniqueId.equals(ReconciliationEntryInfo.getUniqueIdAccessor().getValue(entry))) {
+				// This row has already been imported so ignore it.
+				return;
+			}
+		}
+
 		/*
 		 * For some extraordinary reason, every entry has the net amount in the 'AMOUNT' column
 		 * except for bond interest entries and the tax withholding entries on bond interest.
@@ -183,33 +218,12 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 		 * in the Ameritrade export code, which seems to output a mess to say the least.  So if
 		 * the 'AMOUNT' column is empty, use the 'SHORT-TERM RDM FEE' column. 
 		 */
-		Long total = getAmount(totalString);
-		if (total == 0) {
-			total = getAmount(shortTermRedemptionFee);
+		if (total == null || total.longValue() == 0) {
+			total = shortTermRedemptionFee;
 		}
 		
-        Long commission = getAmount(commissionString);
-
-        // Find the security
-		// Create it.  The name is not available in the import file,
-		// so for time being we use the symbol as the name.
-//        Stock stock = obtainSecurity(security, security);		        
-
-        long totalSalesFee =
-        	getAmount(salesFee) + getAmount(deferredSalesCharge);
-        long totalRedemptionFee =
-        	getAmount(shortTermRedemptionFee) + getAmount(fundRedemptionFee);
-
-		boolean processed = false;
-		if (currentMultiRowProcessor != null) {
-			processed = currentMultiRowProcessor.process(date, memo, security, quantityString, total, session, account);
-			if (currentMultiRowProcessor.isDone()) {
-				currentMultiRowProcessor.createTransaction(session, account);
-				currentMultiRowProcessor = null;
-			}
-		}
-
-		if (!processed) {	
+        long totalSalesFee = salesFee + deferredSalesCharge;
+        long totalRedemptionFee = shortTermRedemptionFee + fundRedemptionFee;
 
 			Matcher matcher;
 
@@ -263,8 +277,10 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 
 				StockEntry mainEntry = createStockEntry(trans);
 				mainEntry.setAccount(account);
+				mainEntry.setCommodity(account.getCurrency());
 				mainEntry.setAmount(total);
-				//		        	mainEntry.setUniqueId(uniqueId);  // TODO
+				ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry.getBaseObject(), uniqueId);
+				
 				StockEntry saleEntry = createStockEntry(trans);
 				saleEntry.setAccount(account);
 
@@ -297,6 +313,59 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 					entry.setSecurity(stockOrBond);
 				}
 
+			} else if (patternBondSale.matches(memo)) {
+				if (!security.isEmpty()) {
+					throw new ImportException("Isn't there usually a security for bond disposals?");
+				}
+				security = patternBondSale.getSymbol();
+				Security stockOrBond = findSecurityByCusip(session, security);
+				
+				boolean isDisposal = true;
+				
+				Transaction trans = session.createTransaction();
+				trans.setDate(date);
+
+				StockEntry mainEntry = createStockEntry(trans);
+				mainEntry.setAccount(account);
+				mainEntry.setCommodity(account.getCurrency());
+				mainEntry.setAmount(total);
+				ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry.getBaseObject(), uniqueId);
+				
+				StockEntry saleEntry = createStockEntry(trans);
+				saleEntry.setAccount(account);
+
+				long quantity = stockOrBond.parse(quantityString);
+				
+				if (!isDisposal) {
+					saleEntry.setAmount(quantity);
+				} else {
+					saleEntry.setAmount(-quantity);
+				}
+
+				saleEntry.setCommodity(stockOrBond);
+
+				if (commission != null && commission.longValue() != 0) {
+					StockEntry commissionEntry = trans.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
+					commissionEntry.setAccount(account.getCommissionAccount());
+					commissionEntry.setAmount(commission);
+					commissionEntry.setSecurity(stockOrBond);
+				}
+
+				if (totalSalesFee != 0) {
+					StockEntry entry = trans.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
+					entry.setAccount(account.getTax1Account());
+					entry.setAmount(totalSalesFee);
+					entry.setSecurity(stockOrBond);
+				}
+
+				if (totalRedemptionFee != 0) {
+					StockEntry entry = trans.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
+					entry.setAccount(account.getTax2Account());
+					entry.setAmount(totalRedemptionFee);
+					entry.setSecurity(stockOrBond);
+				}
+
+				
 			} else if ((matcher = patternBondInterest.matcher(memo)).matches()) {
 				Transaction trans = session.createTransaction();
 				trans.setDate(date);
@@ -304,7 +373,9 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 				Entry mainEntry = trans.createEntry();
 				mainEntry.setAccount(account);
 				mainEntry.setMemo("bond interest");
+				mainEntry.setCommodity(account.getCurrency());
 				mainEntry.setAmount(total);
+				ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry, uniqueId);
 
 				StockEntry otherEntry = trans.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
 				otherEntry.setAccount(account.getDividendAccount());
@@ -366,7 +437,8 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 
 				otherEntry.setSecurity(bond); 
 
-			} else if (memo.startsWith("QUALIFIED DIVIDEND ")) {
+			} else if (memo.startsWith("QUALIFIED DIVIDEND ")
+					|| memo.startsWith("ORDINARY DIVIDEND ")) {
 				Stock stock = getStockBySymbol(session, security);
 
 				Transaction trans = session.createTransaction();
@@ -374,45 +446,73 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 
 				Entry mainEntry = trans.createEntry();
 				mainEntry.setAccount(account);
-				mainEntry.setMemo("qualified dividend");
+				if (memo.startsWith("QUALIFIED DIVIDEND ")) {
+					mainEntry.setMemo("qualified dividend");
+				} else {
+					mainEntry.setMemo("ordinary dividend");
+				}
+				mainEntry.setCommodity(account.getCurrency());
 				mainEntry.setAmount(total);
+				ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry, uniqueId);
 
 				StockEntry otherEntry = trans.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
 				otherEntry.setAccount(account.getDividendAccount());
-				otherEntry.setMemo("qualified");
+				if (memo.startsWith("QUALIFIED DIVIDEND ")) {
+					otherEntry.setMemo("qualified");
+				} else {
+					otherEntry.setMemo("ordinary");
+				}
 				otherEntry.setAmount(-total);
 				otherEntry.setSecurity(stock); 
 
 				// Now seems to add (<symbol>) after the following text, so we use 'startsWith'	
 			} else if (memo.equals("W-8 WITHHOLDING") || memo.startsWith("BACKUP WITHHOLDING (W-9)")) {
-				Transaction trans = session.createTransaction();
-				trans.setDate(date);
+				/*
+				 * Ameritrade might output a row for 'MONEY MARKET INTEREST' with an amount of zero,
+				 * and if there is withholding tax then there will be an entry for that too with
+				 * an amount of zero.
+				 * JMoney does not like entries with zero amounts and users don't want to see them
+				 * either so don't include these.
+				 */
+				if (total != 0) {
+					Transaction trans = session.createTransaction();
+					trans.setDate(date);
 
-				Entry mainEntry = trans.createEntry();
-				mainEntry.setAccount(account);
-				mainEntry.setMemo("withholding");
-				mainEntry.setAmount(total);
+					Entry mainEntry = trans.createEntry();
+					mainEntry.setAccount(account);
+					mainEntry.setMemo("withholding");
+					mainEntry.setCommodity(account.getCurrency());
+					mainEntry.setAmount(total);
+					ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry, uniqueId);
 
-				Entry otherEntry = trans.createEntry();
-				otherEntry.setAccount(account.getWithholdingTaxAccount());
-				if (memo.equals("W-8 WITHHOLDING")) {
-					otherEntry.setMemo("W-8");
-				} else {
-					otherEntry.setMemo("W-9");
+					Entry otherEntry = trans.createEntry();
+					otherEntry.setAccount(account.getWithholdingTaxAccount());
+					if (memo.equals("W-8 WITHHOLDING")) {
+						otherEntry.setMemo("W-8");
+					} else {
+						otherEntry.setMemo("W-9");
+					}
+					otherEntry.setAmount(-total);
 				}
-				otherEntry.setAmount(-total);
 				//		        } else if (memo.startsWith("MANDATORY - NAME CHANGE ")) {
 
 				//		        } else if (memo.startsWith("STOCK SPLIT ")) {
 
 			} else if (memo.equals("FREE BALANCE INTEREST ADJUSTMENT")) {
+				if (interestAccount == null) {
+					throw new ImportException("A 'FREE BALANCE INTEREST ADJUSTMENT' transaction occurs but no category is set for 'Interest'. "
+							+ "Go to the 'Account Associations' in the properties for the Ameritrade account and set the category to be used for interest payments.");
+				}
+
 				Transaction trans = session.createTransaction();
 				trans.setDate(date);
 
 				Entry mainEntry = trans.createEntry();
 				mainEntry.setAccount(account);
-				mainEntry.setMemo("interest");
+				mainEntry.setMemo("free balance interest");
+				mainEntry.setCommodity(account.getCurrency());
 				mainEntry.setAmount(total);
+				ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry, uniqueId);
 
 				Entry otherEntry = trans.createEntry();
 				otherEntry.setAccount(interestAccount);
@@ -422,18 +522,56 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 				//		        } else if (memo.equals("WIRE OUTGOING (ACD WIRE DISBURSEMENTS)")) {
 
 			} else if (memo.equals("MARGIN INTEREST ADJUSTMENT")) {
+				if (interestAccount == null) {
+					throw new ImportException("A 'MARGIN INTEREST ADJUSTMENT' transaction occurs but no category is set for 'Interest'. "
+							+ "Go to the 'Account Associations' in the properties for the Ameritrade account and set the category to be used for interest payments.");
+				}
+
 				Transaction trans = session.createTransaction();
 				trans.setDate(date);
 
 				Entry mainEntry = trans.createEntry();
 				mainEntry.setAccount(account);
 				mainEntry.setMemo("margin interest");
+				mainEntry.setCommodity(account.getCurrency());
 				mainEntry.setAmount(total);
+				ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry, uniqueId);
 
 				Entry otherEntry = trans.createEntry();
 				otherEntry.setAccount(interestAccount);
 				otherEntry.setAmount(-total);
+			} else if (memo.equals("MONEY MARKET INTEREST (MMDA10)")) {
+				/*
+				 * Ameritrade might output a row for 'MONEY MARKET INTEREST' with an amount of zero.
+				 * JMoney does not like entries with zero amounts and users don't want to see them
+				 * either so don't include these.
+				 */
+				if (total != 0) {
+					if (interestAccount == null) {
+						throw new ImportException("A 'MONEY MARKET INTEREST' transaction occurs but no category is set for 'Interest'. "
+								+ "Go to the 'Account Associations' in the properties for the Ameritrade account and set the category to be used for interest payments.");
+					}
+
+					Transaction trans = session.createTransaction();
+					trans.setDate(date);
+
+					Entry mainEntry = trans.createEntry();
+					mainEntry.setAccount(account);
+					mainEntry.setMemo("money market interest");
+					mainEntry.setCommodity(account.getCurrency());
+					mainEntry.setAmount(total);
+					ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry, uniqueId);
+
+					Entry otherEntry = trans.createEntry();
+					otherEntry.setAccount(interestAccount);
+					otherEntry.setAmount(-total);
+				}
 			} else if (memo.startsWith("FOREIGN TAX WITHHELD ")) {
+				if (foreignTaxAccount == null) {
+					throw new ImportException("A 'FOREIGN TAX WITHHELD' transaction occurs but no account is set for 'Foreign Tax'. "
+							+ "Go to the 'Account Associations' in the properties for the Ameritrade account and set the account to be used for foreign tax amounts.");
+				}
+
 				Stock stock = getStockBySymbol(session, security);
 
 				Transaction trans = session.createTransaction();
@@ -442,7 +580,9 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 				Entry mainEntry = trans.createEntry();
 				mainEntry.setAccount(account);
 				mainEntry.setMemo("Foreign tax withheld");
+				mainEntry.setCommodity(account.getCurrency());
 				mainEntry.setAmount(total);
+				ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry, uniqueId);
 
 				StockEntry otherEntry = trans.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
 				otherEntry.setAccount(expensesAccount);
@@ -450,6 +590,11 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 				otherEntry.setAmount(-total);
 				otherEntry.setSecurity(stock);
 			} else if ((matcher = patternAdr.matcher(memo)).matches()) {
+				if (expensesAccount == null) {
+					throw new ImportException("An 'ADR Fee' transaction occurs but no account is set for expenses. "
+							+ "Go to the 'Account Associations' in the properties for the Ameritrade account and set the account to be used for expenses.");
+				}
+
 				Stock stock = getStockBySymbol(session, security);
 
 				Transaction trans = session.createTransaction();
@@ -458,7 +603,9 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 				Entry mainEntry = trans.createEntry();
 				mainEntry.setAccount(account);
 				mainEntry.setMemo("ADR fee");
+				mainEntry.setCommodity(account.getCurrency());
 				mainEntry.setAmount(total);
+				ReconciliationEntryInfo.getUniqueIdAccessor().setValue(mainEntry, uniqueId);
 
 				StockEntry otherEntry = createStockEntry(trans);
 				otherEntry.setAccount(expensesAccount);
@@ -466,22 +613,35 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 				otherEntry.setAmount(-total);
 				otherEntry.setSecurity(stock);
 			} else if (memo.equals("INTRA-ACCOUNT TRANSFER")) {
-				if (priorIntraAccountTransferAmount == 0) {
-					priorIntraAccountTransferAmount = total;
-				} else {
-					if (priorIntraAccountTransferAmount + total != 0) {
-						MessageDialog.openError(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), "Unable to read CSV file", "Entry found with unbalanced account transfer: '" + memo + "'.");
-					}
-					priorIntraAccountTransferAmount = 0;
-				}
+				MultiRowTransaction thisMultiRowProcessor = new IntraAccountTransfer(date, total);
+				currentMultiRowProcessors.add(thisMultiRowProcessor);
+			} else if (memo.equals("MONEY MARKET PURCHASE (MMDA10)")) {
+				if (!"MMDA10".equals(column_symbol.getText())) {
+					throw new ImportException("Security must be 'MMDA10' for security part of Money Market transfers.");
+				};
+				MultiRowTransaction thisMultiRowProcessor = new MoneyMarketPurchase(date, true);
+				currentMultiRowProcessors.add(thisMultiRowProcessor);
+			} else if (memo.equals("MONEY MARKET PURCHASE")) {
+				MultiRowTransaction thisMultiRowProcessor = new MoneyMarketPurchase(date, false);
+				currentMultiRowProcessors.add(thisMultiRowProcessor);
+			} else if (memo.equals("MONEY MARKET REDEMPTION (MMDA10)")) {
+				if (!"MMDA10".equals(column_symbol.getText())) {
+					throw new ImportException("Security must be 'MMDA10' for security part of Money Market transfers.");
+				};
+				MultiRowTransaction thisMultiRowProcessor = new MoneyMarketRedemption(date, true);
+				currentMultiRowProcessors.add(thisMultiRowProcessor);
+			} else if (memo.equals("MONEY MARKET REDEMPTION")) {
+				MultiRowTransaction thisMultiRowProcessor = new MoneyMarketRedemption(date, false);
+				currentMultiRowProcessors.add(thisMultiRowProcessor);
 			} else if ((matcher = patternMandatoryReverseSplit.matcher(memo)).matches()) {
 				String extractedSecurity = matcher.group(1);
 
-				if (currentMultiRowProcessor != null) {
-					throw new RuntimeException("something is wrong");
+				if (!currentMultiRowProcessors.isEmpty()) {
+					throw new ImportException("something is wrong");
 				}
 
-				currentMultiRowProcessor = new MandatorySplit(session, date, extractedSecurity, quantityString);
+				MultiRowTransaction thisMultiRowProcessor = new MandatorySplit(session, date, extractedSecurity, quantityString);
+				currentMultiRowProcessors.add(thisMultiRowProcessor);
 			} else if (memo.startsWith("MANDATORY - EXCHANGE ")) {
 				Stock stock = getStockBySymbol(session, security);
 
@@ -493,15 +653,15 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 				 */
 				Long quantity = stock.parse(quantityString);
 
-				if (currentMultiRowProcessor != null) {
-					throw new RuntimeException("something is wrong");
+				if (!currentMultiRowProcessors.isEmpty()) {
+					throw new ImportException("something is wrong");
 				}
 
-				currentMultiRowProcessor = new MandatoryExchange(date, quantity, stock);
+				MultiRowTransaction thisMultiRowProcessor = new MandatoryExchange(date, quantity, stock);
+				currentMultiRowProcessors.add(thisMultiRowProcessor);
 			} else {
-				MessageDialog.openError(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), "Unable to read CSV file", "Entry found with unknown memo: '" + memo + "'.");
+				throw new ImportException("Entry found with unknown memo: '" + memo + "'.");
 			}
-		} // if !processed
 	}
 
 	private Stock getStockBySymbol(Session session, String symbol) {
@@ -580,53 +740,6 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
     	return trans.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
 	}
     
-	long getAmount(String amountString) {
-		if (amountString.length() == 0) {
-			return 0;
-		}
-
-		boolean negate = false;
-		if (amountString.startsWith("-")) {
-			amountString = amountString.substring(1);
-			negate = true;
-		}
-
-		String parts [] = amountString.split("\\.");
-		long amount = Long.parseLong(parts[0]) * 100;
-		if (parts.length > 1) {
-			amount += Long.parseLong(parts[1]);
-		}
-
-		if (negate) {
-			amount = -amount;
-		}
-
-		return amount;
-	}
-	
-	public interface MultiRowTransaction {
-
-		/**
-		 * 
-		 * @return true if this row was processed, false if this row is not a
-		 * 		part of this transaction and should be separately processed
-		 * 		by the caller
-		 */
-		boolean process(Date date, String memo, String security,
-				String quantityString, long total,
-				Session session, StockAccount account);
-
-		/**
-		 * 
-		 * @return true if this transaction has received all its row and is
-		 * 		ready to be created in the datastore, false if there may be
-		 * 		more rows in this transaction
-		 */
-		boolean isDone();
-
-		void createTransaction(Session session, StockAccount account);
-	}
-
 	public class MandatoryExchange implements MultiRowTransaction {
 
 		private Date date;
@@ -638,6 +751,8 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 		private long fractionalSharesAmount;
 
 		private boolean done = false;
+		private String originalTransactionId;
+		private String newTransactionId;
 
 		/**
 		 * Initial constructor called when first "Mandatory Exchange" row found.
@@ -650,6 +765,7 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 			this.date = date;
 			this.originalQuantity = quantity;
 			this.originalStock = stock;
+			this.originalTransactionId = column_uniqueId.getText();
 		}
 
 		/**
@@ -658,9 +774,10 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 		 * @param quantity
 		 * @param stock
 		 */
-		private void setReplacementStock(long quantity, Stock stock) {
+		private void setReplacementStock(long quantity, Stock stock, String transactionId) {
 			this.newQuantity = quantity;
 			this.newStock = stock;
+			this.newTransactionId = transactionId;
 		}
 
 		/**
@@ -676,7 +793,41 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 			this.fractionalSharesAmount = total;
 		}
 
-		public void createTransaction(Session session, StockAccount account) {
+		public boolean processCurrentRow(Session session) throws ImportException {
+			String memo = column_description.getText();
+			String quantityString = column_quantityString.getText();
+			String security = column_symbol.getText();
+			Long total = column_amount.getAmount();
+
+			
+			if (memo.startsWith("MANDATORY - EXCHANGE ")) {
+				Stock stock = getStockBySymbol(session, security);
+
+				/*
+				 * These usually come in pairs, with the first being the old stock
+				 * and the second entry being the new stock.  There is no other way of
+				 * knowing which is which, except perhaps by looking to see what we currently
+				 * have in the account.
+				 */
+				Long quantity = stock.parse(quantityString);
+
+				if (!this.date.equals(column_date.getDate())) {
+					throw new ImportException("dates don't match");
+				}
+				setReplacementStock(quantity, stock, column_uniqueId.getText());
+
+				return true;
+			} else if (memo.startsWith("CASH IN LIEU OF FRACTIONAL SHARES ")) {
+				setCashForFractionalShares(date, total);
+				done = true;
+
+				return true;
+			}
+
+			return false;
+		}
+
+		public void createTransaction(Session session) {
 			Transaction trans = session.createTransaction();
 			trans.setDate(date);
 
@@ -685,12 +836,14 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 			originalSharesEntry.setAmount(-originalQuantity);
 			originalSharesEntry.setCommodity(originalStock);
 			originalSharesEntry.setMemo("mandatory exchange");
+			ReconciliationEntryInfo.getUniqueIdAccessor().setValue(originalSharesEntry.getBaseObject(), originalTransactionId);
 
 			StockEntry newSharesEntry = trans.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
 			newSharesEntry.setAccount(account);
 			newSharesEntry.setAmount(newQuantity);
 			newSharesEntry.setCommodity(newStock);
 			newSharesEntry.setMemo("mandatory exchange");
+			ReconciliationEntryInfo.getUniqueIdAccessor().setValue(newSharesEntry.getBaseObject(), newTransactionId);
 
 			if (fractionalSharesAmount != 0) {
 				StockEntry fractionalEntry = trans.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
@@ -704,40 +857,205 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 				// We must have a currency entry in the account in order to see an entry.
 				StockEntry fractionalEntry = trans.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
 				fractionalEntry.setAccount(account);
+				fractionalEntry.setCommodity(account.getCurrency());
 				fractionalEntry.setAmount(fractionalSharesAmount);
 				fractionalEntry.setMemo("exchange of stock");
 			}
+//			ReconciliationEntryInfo.getUniqueIdAccessor().setValue(fractionalEntry.getBaseObject(), uniqueId);
 		}
 
-		public boolean process(Date date2, String memo, String security, String quantityString, long total,
-				Session session, StockAccount account) {
+		public boolean isDone() {
+			return done;
+		}
+	}
 
-			if (memo.startsWith("MANDATORY - EXCHANGE ")) {
-				Stock stock = getStockBySymbol(session, security);
+	public class IntraAccountTransfer implements MultiRowTransaction {
 
+		private Date date;
+		private long priorAmount;
+
+		private boolean done = false;
+
+		/**
+		 * Initial constructor called when first "INTRA-ACCOUNT TRANSFER" row found.
+		 * 
+		 * @param date
+		 * @param amount
+		 */
+		public IntraAccountTransfer(Date date, long amount) {
+			this.date = date;
+			this.priorAmount = amount;
+		}
+
+		public boolean processCurrentRow(Session session) throws ImportException {
+			String memo = column_description.getText();
+			Long total = column_amount.getAmount();
+
+			if (!this.date.equals(column_date.getDate())) {
 				/*
-				 * These usually come in pairs, with the first being the old stock
-				 * and the second entry being the new stock.  There is no other way of
-				 * knowing which is which, except perhaps by looking to see what we currently
-				 * have in the account.
+				 * We appear to have moved to the next date without finding the
+				 * second part of the transfer.
 				 */
-				Long quantity = stock.parse(quantityString);
-
-				if (!this.date.equals(date)) {
-					throw new RuntimeException("dates don't match");
+				throw new ImportException("Second part of transfer not found with same date.");
+			}
+			
+			if (memo.equals("INTRA-ACCOUNT TRANSFER")) {
+				if (priorAmount + total != 0) {
+					throw new ImportException("Entry found with unbalanced account transfer: '" + memo + "'.");
 				}
-				setReplacementStock(quantity, stock);
 
-				return true;
-			} else if (memo.startsWith("CASH IN LIEU OF FRACTIONAL SHARES ")) {
-				setCashForFractionalShares(date, total);
-				createTransaction(session, account);
 				done = true;
-
 				return true;
 			}
 
 			return false;
+		}
+
+		public void createTransaction(Session session) {
+			// The two entries just cancel so we don't do anything.
+		}
+
+		public boolean isDone() {
+			return done;
+		}
+	}
+
+	public class MoneyMarketPurchase implements MultiRowTransaction {
+
+		private Date date;
+
+		private boolean done = false;
+
+		private boolean isSecurityPartFirst;
+
+		/**
+		 * Initial constructor called when first "MONEY MARKET PURCHASE" row found.
+		 * 
+		 * @param date
+		 * @param isSecurityPart true if the part with the money market security came first,
+		 * 			false if this is the part without the security
+		 */
+		public MoneyMarketPurchase(Date date, boolean isSecurityPart) {
+			this.date = date;
+			this.isSecurityPartFirst = isSecurityPart;
+		}
+
+		public boolean processCurrentRow(Session session) throws ImportException {
+			String memo = column_description.getText();
+			Long total = column_amount.getAmount();
+
+			if (!this.date.equals(column_date.getDate())) {
+				/*
+				 * We appear to have moved to the next date without finding the
+				 * second part of the transfer.
+				 */
+				throw new ImportException("Second part of transfer not found with same date.");
+			}
+			
+			if (memo.equals("MONEY MARKET PURCHASE (MMDA10)")) {
+				if (isSecurityPartFirst) {
+					throw new ImportException("Two security parts in Money Market Redemption?");
+				}
+				
+				if (total != 0) {
+					throw new ImportException("Entry found with unexpected non-zero amount.");
+				}
+				
+				if (!"MMDA10".equals(column_symbol.getText())) {
+					throw new ImportException("Security must be 'MMDA10' for Money Market transfers.");
+				};
+
+				done = true;
+				return true;
+			} else if (memo.equals("MONEY MARKET PURCHASE")) {
+				if (!isSecurityPartFirst) {
+					throw new ImportException("Two cash parts in Money Market Redemption?");
+				}
+
+				if (total == 0) {
+					throw new ImportException("Entry found with unexpected zero amount.");
+				}
+
+				done = true;
+				return true;
+			}
+			return false;
+		}
+
+		public void createTransaction(Session session) {
+			// The two entries just cancel so we don't do anything.
+		}
+
+		public boolean isDone() {
+			return done;
+		}
+	}
+
+	public class MoneyMarketRedemption implements MultiRowTransaction {
+
+		private Date date;
+
+		private boolean done = false;
+
+		private boolean isSecurityPartFirst;
+
+		/**
+		 * Initial constructor called when first "MONEY MARKET PURCHASE" row found.
+		 * 
+		 * @param date
+		 * @param isSecurityPart true if the part with the money market security came first,
+		 * 			false if this is the part without the security
+		 */
+		public MoneyMarketRedemption(Date date, boolean isSecurityPart) {
+			this.date = date;
+			this.isSecurityPartFirst = isSecurityPart;
+		}
+
+		public boolean processCurrentRow(Session session) throws ImportException {
+			String memo = column_description.getText();
+			Long total = column_amount.getAmount();
+
+			if (!this.date.equals(column_date.getDate())) {
+				/*
+				 * We appear to have moved to the next date without finding the
+				 * second part of the transfer.
+				 */
+				throw new ImportException("Second part of transfer not found with same date.");
+			}
+			
+			if (memo.equals("MONEY MARKET REDEMPTION (MMDA10)")) {
+				if (isSecurityPartFirst) {
+					throw new ImportException("Two security parts in Money Market Redemption?");
+				}
+				
+				if (total != 0) {
+					throw new ImportException("Entry found with unexpected non-zero amount.");
+				}
+				
+				if (!"MMDA10".equals(column_symbol.getText())) {
+					throw new ImportException("Security must be 'MMDA10' for Money Market transfers.");
+				};
+
+				done = true;
+				return true;
+			} else if (memo.equals("MONEY MARKET REDEMPTION")) {
+				if (!isSecurityPartFirst) {
+					throw new ImportException("Two cash parts in Money Market Redemption?");
+				}
+
+				if (total == 0) {
+					throw new ImportException("Entry found with unexpected zero amount.");
+				}
+
+				done = true;
+				return true;
+			}
+
+			return false;
+		}
+
+		public void createTransaction(Session session) {
+			// The two entries just cancel so we don't do anything.
 		}
 
 		public boolean isDone() {
@@ -750,8 +1068,12 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 		private Date date;
 		private long originalQuantity;
 		private Stock originalStock;
+		private String originalTransactionId;
+
 		private long newQuantity;
 		private Stock newStock;
+		private String newTransactionId;
+
 		private Date fractionalSharesDate;
 		private long fractionalSharesAmount;
 
@@ -778,7 +1100,9 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 			 * have in the account.
 			 */
 			originalQuantity = originalStock.parse(quantityString);
-
+			
+			originalTransactionId = column_uniqueId.getText();
+			
 			try {
 				patternMandatoryReverseSplit = Pattern.compile("MANDATORY REVERSE SPLIT \\(([0-9,A-Z]*)\\)");
 			} catch (PatternSyntaxException e) {
@@ -791,10 +1115,12 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 		 * 
 		 * @param quantity
 		 * @param stock
+		 * @param string 
 		 */
-		private void setReplacementStock(long quantity, Stock stock) {
+		private void setReplacementStock(long quantity, Stock stock, String transactionId) {
 			this.newQuantity = quantity;
 			this.newStock = stock;
+			this.newTransactionId = transactionId;
 		}
 
 		/**
@@ -810,42 +1136,11 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 			this.fractionalSharesAmount = total;
 		}
 
-		public void createTransaction(Session sessionInTransaction, StockAccount account) {
-			Transaction trans = sessionInTransaction.createTransaction();
-			trans.setDate(date);
-
-			StockEntry originalSharesEntry = trans.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
-			originalSharesEntry.setAccount(account);
-			originalSharesEntry.setAmount(-originalQuantity);
-			originalSharesEntry.setCommodity(originalStock);
-			originalSharesEntry.setMemo("mandatory reverse split");
-
-			StockEntry newSharesEntry = trans.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
-			newSharesEntry.setAccount(account);
-			newSharesEntry.setAmount(newQuantity);
-			newSharesEntry.setCommodity(newStock);
-			newSharesEntry.setMemo("mandatory reverse split");
-
-			if (fractionalSharesAmount != 0) {
-				StockEntry fractionalEntry = trans.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
-				fractionalEntry.setAccount(account);
-				fractionalEntry.setAmount(fractionalSharesAmount);
-				fractionalEntry.setValuta(fractionalSharesDate);
-				fractionalEntry.setCommodity(account.getCurrency());
-				fractionalEntry.setSecurity(newStock);
-				fractionalEntry.setMemo("cash in lieu of fractional shares");
-			} else {
-				// We must have a currency entry in the account in order to see an entry.
-				StockEntry fractionalEntry = trans.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
-				fractionalEntry.setAccount(account);
-				fractionalEntry.setAmount(fractionalSharesAmount);
-				fractionalEntry.setMemo("exchange of stock");
-			}
-		}
-
-		public boolean process(Date date, String memo, String securityIgnored, String quantityString, long total,
-				Session sessionInTransaction, StockAccount account) {
-
+		public boolean processCurrentRow(Session sessionInTransaction) throws ImportException {
+			String memo = column_description.getText();
+			String quantityString = column_quantityString.getText();
+			long total = column_amount.getNonNullAmount();
+			
 			Matcher matcher = patternMandatoryReverseSplit.matcher(memo);
 			if (matcher.matches()) {
 				String security = matcher.group(1);
@@ -862,12 +1157,11 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 				if (!this.date.equals(date)) {
 					throw new RuntimeException("dates don't match");
 				}
-				setReplacementStock(quantity, stock);
+				setReplacementStock(quantity, stock, column_uniqueId.getText());
 
 				return true;
 			} else if (memo.startsWith("CASH IN LIEU OF FRACTIONAL SHARES ")) {
 				setCashForFractionalShares(date, total);
-				createTransaction(sessionInTransaction, account);
 				done = true;
 
 				return true;
@@ -875,6 +1169,41 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 
 			done = true;
 			return false;
+		}
+
+		public void createTransaction(Session sessionInTransaction) {
+			Transaction trans = sessionInTransaction.createTransaction();
+			trans.setDate(date);
+
+			StockEntry originalSharesEntry = trans.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
+			originalSharesEntry.setAccount(account);
+			originalSharesEntry.setAmount(-originalQuantity);
+			originalSharesEntry.setCommodity(originalStock);
+			originalSharesEntry.setMemo("mandatory reverse split");
+			ReconciliationEntryInfo.getUniqueIdAccessor().setValue(originalSharesEntry.getBaseObject(), originalTransactionId);
+
+			StockEntry newSharesEntry = trans.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
+			newSharesEntry.setAccount(account);
+			newSharesEntry.setAmount(newQuantity);
+			newSharesEntry.setCommodity(newStock);
+			newSharesEntry.setMemo("mandatory reverse split");
+			ReconciliationEntryInfo.getUniqueIdAccessor().setValue(newSharesEntry.getBaseObject(), newTransactionId);
+
+			StockEntry fractionalEntry = trans.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
+			fractionalEntry.setAccount(account);
+			if (fractionalSharesAmount != 0) {
+				fractionalEntry.setAmount(fractionalSharesAmount);
+				fractionalEntry.setValuta(fractionalSharesDate);
+				fractionalEntry.setCommodity(account.getCurrency());
+				fractionalEntry.setSecurity(newStock);
+				fractionalEntry.setMemo("cash in lieu of fractional shares");
+			} else {
+				// We must have a currency entry in the account in order to see an entry.
+				fractionalEntry.setAmount(fractionalSharesAmount);
+				fractionalEntry.setCommodity(account.getCurrency());
+				fractionalEntry.setMemo("exchange of stock");
+			}
+//			ReconciliationEntryInfo.getUniqueIdAccessor().setValue(fractionalEntry.getBaseObject(), uniqueId);
 		}
 
 		private Stock getStockBySymbolOrCusip(Session sessionInTransaction,	String security) {
@@ -912,18 +1241,18 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 				column_date,
 				column_uniqueId,
 				column_description,
-				column_quantity,
+				column_quantityString,
 				column_symbol,
 				column_price,
 				column_commission,
 				column_amount,
-				column_salesFee,
+				column_balance,
+				column_regFee,
 				column_shortTermRedemptionFee,
 				column_fundRedemptionFee,
 				column_deferredSalesCharge
 		};
 	}
-
 
 	@Override
 	protected String getSourceLabel() {
@@ -935,9 +1264,9 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 		return new AssociationMetadata[] {
 				new AssociationMetadata("net.sf.jmoney.ameritrade.interest", "Interest Account"),
 				new AssociationMetadata("net.sf.jmoney.ameritrade.expenses", "Expenses Account"),
+				new AssociationMetadata("net.sf.jmoney.ameritrade.foreigntaxes", "Foreign Tax Account"),
 		};
 	}
-
 
 	@Override
 	public String getDescription() {
@@ -946,26 +1275,4 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard {
 				"The file must have been downloaded from Ameritrade for this import to work.  To download from Ameritrade, go to Statements, History. " +
 				"If entries have already been imported, this import will not create duplicates.";
 	}
-
-//	private Stock obtainSecurity(String securityName, String securitySymbol) {
-//		Stock stock = null;
-//	
-//		if (securityName.length() != 0) {
-//			for (Commodity commodity : session.getCommodityCollection()) {
-//				if (commodity instanceof Stock) {
-//					Stock eachStock = (Stock)commodity;
-//					if (securitySymbol.equals(eachStock.getSymbol())) {
-//						stock = eachStock;
-//						break;
-//					}
-//				}
-//			}
-//			if (stock == null) {
-//				stock = session.createCommodity(StockInfo.getPropertySet());
-//				stock.setName(securityName);
-//				stock.setSymbol(securitySymbol);
-//			}
-//		}
-//		return stock;
-//	}
 }
