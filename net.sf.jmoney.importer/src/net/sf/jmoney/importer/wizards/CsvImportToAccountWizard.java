@@ -141,6 +141,9 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 
 		PatternMatcherAccount matcherAccount = accountInsideTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
 
+		// Ameritrade has no default account or pattern matching at all,
+		// so we need this test.
+		if (matcherAccount.isReconcilable()) {
 		/**
 		 * We can't import if there is no default category into which
 		 * entries can be put.
@@ -186,6 +189,7 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 			} else {
 				return false;
 			}
+		}
 		}
 		
 		return true;
