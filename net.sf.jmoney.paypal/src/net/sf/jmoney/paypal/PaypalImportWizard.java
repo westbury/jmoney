@@ -174,7 +174,7 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 	}
 
 	@Override
-	public void importLine(String[] linex) throws ImportException {
+	public void importLine(String[] line) throws ImportException {
 		String rowType = column_type.getText();
 
 		/*
@@ -1372,7 +1372,6 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 				new AssociationMetadata("net.sf.jmoney.paypal.purchases.GBP", "Purchases (GBP)"),
 		};
 	}
-
 
 	@Override
 	protected String getDescription() {

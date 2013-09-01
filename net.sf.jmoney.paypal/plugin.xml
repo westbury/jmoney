@@ -3,11 +3,11 @@
 <plugin>
 	<extension point="org.eclipse.ui.importWizards">
 		<wizard id="net.sf.jmoney.paypal.ImportWizard"
-			name="%csvImport.name"
+			name="%importWizard.name"
 			icon="icons/PayPal_mark_37x23.gif"
 			class="net.sf.jmoney.paypal.PaypalImportWizard">
 			<description>
-				%csvImport.description 
+				%importWizard.description 
 			</description>
 		</wizard>
 	</extension>
