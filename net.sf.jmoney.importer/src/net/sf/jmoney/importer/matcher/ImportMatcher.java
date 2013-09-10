@@ -71,19 +71,6 @@ public class ImportMatcher {
    					args[i] = convertToMixedCase(m.group(i));
    				}
 
-
-   				String format = MemoPatternInfo.getCheckAccessor().getValue(pattern);
-
-   				// TODO: Remove this.  The check number should not be set using
-   				// the import pattern matching.
-   				if (entry1 != null && pattern.getCheck() != null) {
-   					entry1.setCheck(
-   							new java.text.MessageFormat(
-   									pattern.getCheck(),
-   									java.util.Locale.US)
-   							.format(args));
-   				}
-
    				if (entry1 != null && pattern.getMemo() != null) {
    					entry1.setMemo(
    							new java.text.MessageFormat(

@@ -42,8 +42,6 @@ public final class MemoPattern extends ExtendableObject {
 	
 	protected String pattern = null;
 	
-	protected String check = null;
-	
 	protected String description = null;
 	
 	/**
@@ -84,7 +82,6 @@ public final class MemoPattern extends ExtendableObject {
 			ListKey<? super MemoPattern,?> parentKey,
 			int        orderingIndex,
 			String     pattern,
-    		String     check,
     		String     description,
     		IObjectKey accountKey,
     		String     memo,
@@ -94,7 +91,6 @@ public final class MemoPattern extends ExtendableObject {
 
 		this.orderingIndex = orderingIndex;
 		this.pattern = pattern;
-		this.check = check;
 		this.description = description;
 		this.accountKey = accountKey;
 		this.memo = memo;
@@ -127,7 +123,6 @@ public final class MemoPattern extends ExtendableObject {
 
 		this.orderingIndex = 0;
 		this.pattern = null;
-		this.check = null;
 		this.description = null;
 		this.accountKey = null;
 		this.memo = null;
@@ -152,13 +147,6 @@ public final class MemoPattern extends ExtendableObject {
 	 */
 	public String getPattern() {
 		return pattern;
-	}
-	
-	/**
-	 * Returns the check.
-	 */
-	public String getCheck() {
-		return check;
 	}
 	
 	/**
@@ -232,18 +220,6 @@ public final class MemoPattern extends ExtendableObject {
 		// Notify the change manager.
 		processPropertyChange(MemoPatternInfo.getPatternAccessor(), oldPattern, pattern);
 	}
-	
-	/**
-	 * Sets the check.
-	 */
-	public void setCheck(String aCheck) {
-		String oldCheck = this.check;
-		check = (aCheck != null && aCheck.length() == 0) ? null : aCheck;
-		
-		// Notify the change manager.
-		processPropertyChange(MemoPatternInfo.getCheckAccessor(), oldCheck, check);
-	}
-	
 	
 	/**
 	 * Sets the description.

@@ -71,7 +71,6 @@ public class MemoPatternInfo implements IPropertySetInfo {
 					parentKey, 
 					values.getScalarValue(MemoPatternInfo.getOrderingIndexAccessor()),
 					values.getScalarValue(MemoPatternInfo.getPatternAccessor()),
-					values.getScalarValue(MemoPatternInfo.getCheckAccessor()),
 					values.getScalarValue(MemoPatternInfo.getDescriptionAccessor()),
 					values.getReferencedObjectKey(MemoPatternInfo.getAccountAccessor()),
 					values.getScalarValue(MemoPatternInfo.getMemoAccessor()),
