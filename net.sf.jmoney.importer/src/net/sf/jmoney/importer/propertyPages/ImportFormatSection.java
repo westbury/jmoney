@@ -2,20 +2,18 @@ package net.sf.jmoney.importer.propertyPages;
 
 import net.sf.jmoney.importer.model.ImportAccountInfo;
 import net.sf.jmoney.model2.CapitalAccount;
-import net.sf.jmoney.model2.IPropertyControl;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CLabel;
-import org.eclipse.swt.events.ModifyEvent;
-import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
-import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.IWorkbenchPart;
-import org.eclipse.ui.views.properties.IPropertySource;
 import org.eclipse.ui.views.properties.tabbed.AbstractPropertySection;
 import org.eclipse.ui.views.properties.tabbed.ITabbedPropertyConstants;
 import org.eclipse.ui.views.properties.tabbed.TabbedPropertySheetPage;
@@ -34,19 +32,7 @@ import org.eclipse.ui.views.properties.tabbed.TabbedPropertySheetPage;
 
 public class ImportFormatSection extends AbstractPropertySection {
 
-	private CapitalAccount account;
-
-	private ModifyListener listener = new ModifyListener() {
-
-		public void modifyText(ModifyEvent arg0) {
-			IPropertySource properties = (IPropertySource) account
-			.getAdapter(IPropertySource.class);
-			//            properties.setPropertyValue(IPropertySource.PROPERTY_TEXT,
-			//                labelText.getText());
-		}
-	};
-
-	private IPropertyControl<CapitalAccount> propertyControl;
+	private IObservableValue<CapitalAccount> account = new WritableValue<CapitalAccount>();
 
 	public void createControls(Composite parent, TabbedPropertySheetPage aTabbedPropertySheetPage) {
 		super.createControls(parent, aTabbedPropertySheetPage);
@@ -54,35 +40,31 @@ public class ImportFormatSection extends AbstractPropertySection {
 		.createFlatFormComposite(parent);
 		FormData data;
 
-		propertyControl = ImportAccountInfo.getImportDataExtensionIdAccessor().createPropertyControl(composite);
+		Control propertyControl = ImportAccountInfo.getImportDataExtensionIdAccessor().createPropertyControl2(composite, account);
 		data = new FormData();
 		data.left = new FormAttachment(0, STANDARD_LABEL_WIDTH);
 		data.right = new FormAttachment(100, 0);
 		data.top = new FormAttachment(0, ITabbedPropertyConstants.VSPACE);
-		propertyControl.getControl().setLayoutData(data);
-		((Combo)propertyControl.getControl()).addModifyListener(listener);
+		propertyControl.setLayoutData(data);
 
 		CLabel label = getWidgetFactory()
 		.createCLabel(composite, "Label:"); //$NON-NLS-1$
 		data = new FormData();
 		data.left = new FormAttachment(0, 0);
-		data.right = new FormAttachment(propertyControl.getControl(),
+		data.right = new FormAttachment(propertyControl,
 				-ITabbedPropertyConstants.HSPACE);
-		data.top = new FormAttachment(propertyControl.getControl(), 0, SWT.CENTER);
+		data.top = new FormAttachment(propertyControl, 0, SWT.CENTER);
 		label.setLayoutData(data);
 	}
 
 	public void setInput(IWorkbenchPart part, ISelection selection) {
 		super.setInput(part, selection);
 		Object input = ((IStructuredSelection) selection).getFirstElement();
-		this.account = (CapitalAccount) input;
+		this.account.setValue((CapitalAccount) input);
 	}
 
 	public void refresh() {
-		Combo control = (Combo)propertyControl.getControl();
-		control.removeModifyListener(listener);
-		propertyControl.load(account);
-        control.addModifyListener(listener);
+		// What do we do here?
 	}
 }
 

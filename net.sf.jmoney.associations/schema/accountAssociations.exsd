@@ -1,0 +1,119 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Schema file written by PDE -->
+<schema targetNamespace="null" xmlns="http://www.w3.org/2001/XMLSchema">
+<annotation>
+      <appinfo>
+         <meta.schema plugin="null" id="propagators" name="Property Propagators"/>
+      </appinfo>
+      <documentation>
+         Many JMoney plug-ins, especially plug-ins that import transactions intoa bank or investment account, require a number of category accounts to be
+specified so that entries can be properly categorized.  For example,
+a bank account import may require a category for interest payments. 
+An investment account may need a category for commissions.  These category accounts are specified separately for each import account so that, for example, a different category account can be used for dividends in two
+different investment accounts.
+
+These accounts could all be added by creating extensions to the account object and putting references in the extension.  However this requires more work to code all the infrastructure.  It also results in lots of sparse columns in the database to contain these references.
+
+This extension supports associations between accounts more efficiently.
+Each AccountAssociation object in the model contains the primary account
+(typically a bank or stock account), an id representing the association, and
+the associated account.  Think triple store databases.
+      </documentation>
+   </annotation>
+
+   <element name="extension">
+      <annotation>
+         <appinfo>
+            <meta.element />
+         </appinfo>
+      </annotation>
+      <complexType>
+         <sequence>
+            <element ref="associations" minOccurs="1" maxOccurs="unbounded"/>
+         </sequence>
+         <attribute name="point" type="string" use="required">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="id" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+         <attribute name="name" type="string">
+            <annotation>
+               <documentation>
+                  
+               </documentation>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <element name="associations">
+      <complexType>
+         <attribute name="class">
+            <annotation>
+               <documentation>
+                  The name of a class that provides a set of associations valid
+                  for a given account.
+               </documentation>
+               <appInfo>
+                  <meta.attribute kind="java" basedOn="net.sf.jmoney.associations.IAssociatedAccountInfoProvider"/>
+               </appInfo>
+              </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="since"/>
+      </appinfo>
+      <documentation>
+         [Enter the first release in which this extension point appears.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="examples"/>
+      </appinfo>
+      <documentation>
+         [Enter extension point usage example here.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="implementation"/>
+      </appinfo>
+      <documentation>
+         [Enter information about supplied implementation of this extension point.]
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="copyright"/>
+      </appinfo>
+      <documentation>
+         Copyright (c) 2004 Nigel Westbury (westbury@users.sourceforge.net)
+      </documentation>
+   </annotation>
+
+   <annotation>
+      <appinfo>
+         <meta.section type="apiInfo"/>
+      </appinfo>
+      <documentation>
+         [Enter API information here.]
+      </documentation>
+   </annotation>
+
+</schema>

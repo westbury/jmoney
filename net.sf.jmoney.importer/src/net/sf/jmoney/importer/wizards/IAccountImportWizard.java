@@ -22,6 +22,7 @@
 
 package net.sf.jmoney.importer.wizards;
 
+import net.sf.jmoney.associations.AssociationMetadata;
 import net.sf.jmoney.model2.Account;
 
 import org.eclipse.jface.wizard.IWizard;

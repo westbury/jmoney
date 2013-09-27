@@ -27,6 +27,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.sf.jmoney.associations.model.AccountAssociation;
+import net.sf.jmoney.associations.model.AccountAssociationInfo;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ObjectCollection;
 import net.sf.jmoney.model2.CapitalAccount;

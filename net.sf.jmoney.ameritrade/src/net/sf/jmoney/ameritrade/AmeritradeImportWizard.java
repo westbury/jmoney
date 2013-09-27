@@ -31,8 +31,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import net.sf.jmoney.associations.AssociationMetadata;
 import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
-import net.sf.jmoney.importer.wizards.AssociationMetadata;
 import net.sf.jmoney.importer.wizards.CsvImportToAccountWizard;
 import net.sf.jmoney.importer.wizards.ImportException;
 import net.sf.jmoney.importer.wizards.MultiRowTransaction;

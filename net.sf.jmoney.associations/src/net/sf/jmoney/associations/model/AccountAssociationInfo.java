@@ -20,11 +20,11 @@
 *
 */
 
-package net.sf.jmoney.importer.model;
+package net.sf.jmoney.associations.model;
 
+import net.sf.jmoney.associations.resources.Messages;
 import net.sf.jmoney.fields.AccountControlFactory;
 import net.sf.jmoney.fields.TextControlFactory;
-import net.sf.jmoney.importer.resources.Messages;
 import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ListKey;

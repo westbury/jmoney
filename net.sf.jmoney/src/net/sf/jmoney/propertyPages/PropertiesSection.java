@@ -37,17 +37,6 @@ extends AbstractPropertySection {
 
 	private ExtendableObject extendableObject;
 
-	private ModifyListener listener = new ModifyListener() {
-
-		@Override
-		public void modifyText(ModifyEvent arg0) {
-			IPropertySource properties = (IPropertySource) extendableObject
-			.getAdapter(IPropertySource.class);
-			//            properties.setPropertyValue(IPropertySource.PROPERTY_TEXT,
-			//                labelText.getText());
-		}
-	};
-
 	private Composite composite;
 
 	@Override
@@ -62,32 +51,30 @@ extends AbstractPropertySection {
 	public void setInput(IWorkbenchPart part, ISelection selection) {
 		super.setInput(part, selection);
 		Object input = ((IStructuredSelection) selection).getFirstElement();
-		this.extendableObject = (ExtendableObject) input;
+		if (input instanceof ExtendableObject) {
+			this.extendableObject = (ExtendableObject) input;
 
-		labelTexts = new HashMap<ScalarPropertyAccessor, IPropertyControl>();
+			labelTexts = new HashMap<ScalarPropertyAccessor, IPropertyControl>();
 
-		for (ScalarPropertyAccessor propertyAccessor : PropertySet.getPropertySet(extendableObject.getClass()).getScalarProperties3()) {
-			IPropertyControl labelText = propertyAccessor.createPropertyControl(composite);
-			labelTexts.put(propertyAccessor, labelText);
+			for (ScalarPropertyAccessor propertyAccessor : PropertySet.getPropertySet(extendableObject.getClass()).getScalarProperties3()) {
 
-//			labelText.getControl().addModifyListener(listener);
+				getWidgetFactory().createCLabel(composite, propertyAccessor.getDisplayName() + ":"); //$NON-NLS-1$
 
-			CLabel labelLabel = getWidgetFactory()
-			.createCLabel(composite, propertyAccessor.getDisplayName() + ":"); //$NON-NLS-1$
+				IPropertyControl labelText = propertyAccessor.createPropertyControl(composite);
+				labelTexts.put(propertyAccessor, labelText);
+			}
 		}
 	}
 
 	@Override
 	public void refresh() {
-		for (ScalarPropertyAccessor association : labelTexts.keySet()) {
-			IPropertyControl labelText = labelTexts.get(association);
-
-//			labelText.removeModifyListener(listener);
-			IPropertySource properties = (IPropertySource) extendableObject
-			.getAdapter(IPropertySource.class);
-			labelText.load(extendableObject);
-//			labelText.addModifyListener(listener);
-		}
+//		for (ScalarPropertyAccessor association : labelTexts.keySet()) {
+//			IPropertyControl labelText = labelTexts.get(association);
+//
+//			IPropertySource properties = (IPropertySource) extendableObject
+//			.getAdapter(IPropertySource.class);
+//			labelText.load(extendableObject);
+//		}
 	}
 }
 

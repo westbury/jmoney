@@ -14,6 +14,10 @@
 		</wizard>
 	</extension>
 
+	<extension point="net.sf.jmoney.associations.metadata">
+		<associations class="net.sf.jmoney.importer.wizards.CsvImportToAccountAssociations"/>
+	</extension>
+
    <extension
          point="net.sf.jmoney.fields">
       
@@ -38,10 +42,6 @@
       <extendable-property-set
       	id="memoPattern"
           info-class="net.sf.jmoney.importer.model.MemoPatternInfo">
-      </extendable-property-set>
-      <extendable-property-set
-      	id="accountAssociation"
-          info-class="net.sf.jmoney.importer.model.AccountAssociationInfo">
       </extendable-property-set>
    </extension>
 
@@ -79,10 +79,10 @@
    <extension point="org.eclipse.ui.views.properties.tabbed.propertyTabs">
       <propertyTabs contributorId="net.sf.jmoney.navigationView">
          <propertyTab
-            afterTab="org.eclipse.jmoney.core.generalProperties"
+            beforeTab="net.sf.jmoney.associations.associatedAccounts"
             category="sample"
-               id="net.sf.jmoney.importer.associations"
-            label="Associated Accounts"/>
+            id="net.sf.jmoney.importer.importData"
+            label="Import"/>
       </propertyTabs>
    </extension>
 
@@ -91,16 +91,22 @@
          <propertySection
                class="net.sf.jmoney.importer.propertyPages.ImportFormatSection"
                id="net.sf.jmoney.importer.formattype"
-               tab="net.sf.jmoney.importer.associations">
-            <input type="net.sf.jmoney.model2.CapitalAccount"/>
-         </propertySection>
-         <propertySection
-               afterSection="net.sf.jmoney.importer.formattype"
-               class="net.sf.jmoney.importer.propertyPages.AssociationsForImportSection"
-               id="net.sf.jmoney.importer.associations"
-               tab="net.sf.jmoney.importer.associations">
+               tab="net.sf.jmoney.importer.importData">
             <input type="net.sf.jmoney.model2.CapitalAccount"/>
          </propertySection>
       </propertySections>
    </extension>
+
+   <extension point="org.eclipse.ui.views.properties.tabbed.propertySections">
+      <propertySections contributorId="net.sf.jmoney.navigationView">
+         <propertySection
+               afterSection="net.sf.jmoney.importer.formattype"
+               class="net.sf.jmoney.importer.propertyPages.AssociationsForImportSection"
+               id="net.sf.jmoney.importer.importeraccounts"
+               tab="net.sf.jmoney.importer.importData">
+            <input type="net.sf.jmoney.model2.CapitalAccount"/>
+         </propertySection>
+      </propertySections>
+   </extension>
+
 </plugin>

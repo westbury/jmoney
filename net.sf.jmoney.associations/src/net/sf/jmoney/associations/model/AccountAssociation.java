@@ -20,7 +20,7 @@
 *
 */
 
-package net.sf.jmoney.importer.model;
+package net.sf.jmoney.associations.model;
 
 import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.IValues;

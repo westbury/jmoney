@@ -22,6 +22,7 @@
 
 package net.sf.jmoney.importer.model;
 
+import net.sf.jmoney.associations.model.AccountAssociation;
 import net.sf.jmoney.importer.wizards.IAccountImportWizard;
 import net.sf.jmoney.isolation.IListManager;
 import net.sf.jmoney.isolation.ObjectCollection;

@@ -1,4 +1,4 @@
-package net.sf.jmoney.importer.wizards;
+package net.sf.jmoney.associations;
 
 public class AssociationMetadata {
 
