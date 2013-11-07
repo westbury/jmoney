@@ -5,8 +5,8 @@ import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.PropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
-import org.eclipse.core.databinding.bind.Bind;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;

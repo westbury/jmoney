@@ -1,8 +1,8 @@
 package net.sf.jmoney.model2;
 
 
-import org.eclipse.core.databinding.bind.Bind;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 

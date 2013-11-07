@@ -36,10 +36,10 @@ import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ListKey;
 import net.sf.jmoney.resources.Messages;
 
-import org.eclipse.core.databinding.bind.Bind;
 import org.eclipse.core.databinding.conversion.Converter;
 import org.eclipse.core.databinding.conversion.IConverter;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;

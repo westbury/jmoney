@@ -73,11 +73,11 @@ import net.sf.jmoney.stocks.model.StockEntryInfo;
 import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
 
 import org.eclipse.core.commands.IHandler;
-import org.eclipse.core.databinding.bind.Bind;
-import org.eclipse.core.databinding.bind.IBidiConverter;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
 import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
+import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;

@@ -31,11 +31,11 @@ import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.stocks.wizards.NewStockWizard;
 
-import org.eclipse.core.databinding.bind.Bind;
 import org.eclipse.core.databinding.conversion.Converter;
 import org.eclipse.core.databinding.conversion.IConverter;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.jface.window.Window;
 import org.eclipse.jface.wizard.WizardDialog;

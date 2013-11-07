@@ -44,9 +44,9 @@ import net.sf.jmoney.model2.PropertyControlFactory;
 import net.sf.jmoney.model2.PropertySet;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
-import org.eclipse.core.databinding.bind.Bind;
-import org.eclipse.core.databinding.bind.IBidiConverter;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
+import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
