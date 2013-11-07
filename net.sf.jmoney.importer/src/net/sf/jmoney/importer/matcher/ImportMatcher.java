@@ -9,7 +9,6 @@ import java.util.regex.Matcher;
 
 import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.model.MemoPattern;
-import net.sf.jmoney.importer.model.MemoPatternInfo;
 import net.sf.jmoney.importer.model.PatternMatcherAccount;
 import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
 import net.sf.jmoney.model2.Commodity;
