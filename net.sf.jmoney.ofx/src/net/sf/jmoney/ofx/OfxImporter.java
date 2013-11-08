@@ -358,11 +358,26 @@ public class OfxImporter {
 						memo = stmtTrnElement.getString("MEMO");
 					}
 				} else if (account.getBank() != null && account.getBank().equals("Nationwide")) {
-					String name = stmtTrnElement.getString("NAME");
-//					if (name.startsWith("DIRECTDEBIT: ")) {
-//						memo =
-//					}
-					memo = name;
+					memo = stmtTrnElement.getString("NAME");
+					Pattern compiledPattern;
+					try {
+						compiledPattern = Pattern.compile("(.*) Withdrawal (\\d\\d\\s\\w*\\s\\d\\d\\d\\d)");
+						DateFormat df = new SimpleDateFormat("dd MMMM yyyy");
+			   			Matcher m = compiledPattern.matcher(memo);
+			   			System.out.println(compiledPattern + ", " + memo);
+			   			if (m.matches()) {
+			   				String transDateString = m.group(2);
+			   				transactionDate = df.parse(transDateString);
+
+			   				// If all succeeds, replace memo with part inside first brackets
+			   				// (i.e. remove the transaction date from the memo)
+			   				memo = m.group(1);
+			   			}
+					} catch (PatternSyntaxException e) {
+						throw new RuntimeException(e);
+					} catch (ParseException e) {
+						// Bad date so just ignore it.
+					}
 				} else {
 					memo = stmtTrnElement.getString("NAME");
 				}
