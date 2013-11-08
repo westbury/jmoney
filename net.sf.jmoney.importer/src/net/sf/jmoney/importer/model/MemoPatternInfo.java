@@ -82,7 +82,6 @@ public class MemoPatternInfo implements IPropertySetInfo {
 	
 	private static ScalarPropertyAccessor<Integer,MemoPattern> orderingIndexAccessor = null;
 	private static ScalarPropertyAccessor<String,MemoPattern> patternAccessor = null;
-	private static ScalarPropertyAccessor<String,MemoPattern> checkAccessor = null;
 	private static ScalarPropertyAccessor<String,MemoPattern> descriptionAccessor = null;
 	private static ReferencePropertyAccessor<Account,MemoPattern> accountAccessor = null;
 	private static ScalarPropertyAccessor<String,MemoPattern> memoAccessor = null;
@@ -110,7 +109,6 @@ public class MemoPatternInfo implements IPropertySetInfo {
 
 		orderingIndexAccessor = propertySet.addProperty("orderingIndex", "Ordering Index",                                    Integer.class,1, 20,  integerControlFactory, null);
 		patternAccessor       = propertySet.addProperty("pattern",       "Pattern",                                           String.class, 2, 50,  textControlFactory,    null);
-		checkAccessor         = propertySet.addProperty("check",         NLS.bind(Messages.MemoPatternInfo_EntryCheck, null),       String.class, 2, 50,  textControlFactory,    null);
 		descriptionAccessor   = propertySet.addProperty("description",   NLS.bind(Messages.MemoPatternInfo_EntryDescription, null), String.class, 5, 100, textControlFactory,    null);
 		accountAccessor       = propertySet.addProperty("account",       NLS.bind(Messages.MemoPatternInfo_EntryCategory, null),    Account.class,2, 70,  accountControlFactory, null);
 		memoAccessor          = propertySet.addProperty("memo",          NLS.bind(Messages.MemoPatternInfo_EntryMemo, null),        String.class, 5, 100, textControlFactory,    null);
@@ -138,13 +136,6 @@ public class MemoPatternInfo implements IPropertySetInfo {
 	 */
 	public static ScalarPropertyAccessor<String,MemoPattern> getPatternAccessor() {
 		return patternAccessor;
-	}	
-
-	/**
-	 * @return
-	 */
-	public static ScalarPropertyAccessor<String,MemoPattern> getCheckAccessor() {
-		return checkAccessor;
 	}	
 
 	/**

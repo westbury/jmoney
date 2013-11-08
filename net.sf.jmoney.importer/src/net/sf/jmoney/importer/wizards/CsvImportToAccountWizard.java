@@ -30,11 +30,11 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import net.sf.jmoney.associations.model.AccountAssociation;
 import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.importer.matcher.EntryData;
 import net.sf.jmoney.importer.matcher.ImportMatcher;
 import net.sf.jmoney.importer.matcher.PatternMatchingDialog;
-import net.sf.jmoney.importer.model.AccountAssociation;
 import net.sf.jmoney.importer.model.ImportAccount;
 import net.sf.jmoney.importer.model.ImportAccountInfo;
 import net.sf.jmoney.importer.model.PatternMatcherAccount;

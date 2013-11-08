@@ -32,9 +32,9 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
+import net.sf.jmoney.associations.AssociationMetadata;
 import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.matcher.EntryData;
-import net.sf.jmoney.importer.wizards.AssociationMetadata;
 import net.sf.jmoney.importer.wizards.CsvImportToAccountWizard;
 import net.sf.jmoney.importer.wizards.ImportException;
 import net.sf.jmoney.importer.wizards.MultiRowTransaction;
