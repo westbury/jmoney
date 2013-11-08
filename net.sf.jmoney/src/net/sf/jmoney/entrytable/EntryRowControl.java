@@ -28,11 +28,11 @@ import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.pages.entries.ForeignCurrencyDialog;
 
-import org.eclipse.core.databinding.bind.Bind;
 import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
 import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.swt.widgets.Composite;
 
 public class EntryRowControl extends BaseEntryRowControl<EntryData, EntryRowControl> {
