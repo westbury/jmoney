@@ -125,8 +125,9 @@ public class ImportMatcher {
 	}
 
 	/**
-	 * Most banks put everything This code tidies up the imported text. Most
-	 * banks put everything in upper case, so those are converted to mixed case.
+	 * This method tidies up the imported text.
+	 * <P>
+	 * Most banks put everything in upper case, so those are converted to mixed case.
 	 * Furthermore we replace multiple spaces with a comma followed by a single
 	 * space.
 	 *
@@ -138,7 +139,10 @@ public class ImportMatcher {
 
 		boolean lastWasLetter = false;
 		int numberOfSpaces = 0;
-		for (char y : uppperCaseText.toCharArray()) {
+		char [] array = uppperCaseText.toCharArray();
+		for (int i = 0; i < array.length; i++) {
+			char y = array[i];
+			
 			if (y == ' ') {
 				numberOfSpaces++;
 				lastWasLetter = false;
@@ -155,7 +159,26 @@ public class ImportMatcher {
 					if (lastWasLetter) {
 						x.append(Character.toLowerCase(y));
 					} else {
+						/*
+						 * Start of a new word.  We check for some special short
+						 * words that we don't want to capitalize.
+						 */
+						boolean isSpecial = false;
+						String [] specialWords = new String[] { "at", "on", "for", "and" };
+						for (String specialWord : specialWords) {
+							
+							int endIndex = i + specialWord.length();
+							if (uppperCaseText.substring(i).toLowerCase().startsWith(specialWord)
+								&& endIndex < array.length && !Character.isLetter(array[endIndex])) {
+								isSpecial = true;
+								break;
+							}
+						}
+						if (isSpecial) {
+							x.append(Character.toLowerCase(y));
+						} else {
 						x.append(y);
+						}
 					}
 					lastWasLetter = true;
 				} else {
