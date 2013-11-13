@@ -67,18 +67,18 @@ public class CellContainer<T,R> extends Composite {
 			final IPropertyControl<? super T> cellControl = cellBlock.createCellControl(this, input, rowControl, coordinator);
 			controls.put(cellBlock, cellControl);
 
-			if (input.getValue() != null) {
-				cellControl.load(input.getValue());
-			}
+//			if (input.getValue() != null) {
+//				cellControl.load(input.getValue());
+//			}
 		}
 	}
 
 	public void setInput(T input) {
 		this.input.setValue(input);
 
-		for (final IPropertyControl<? super T> control: controls.values()) {
-			control.load(this.input.getValue());
-		}
+//		for (final IPropertyControl<? super T> control: controls.values()) {
+//			control.load(this.input.getValue());
+//		}
 	}
 
 	public T getInput() {

@@ -26,8 +26,11 @@ import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.runtime.Assert;
+import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.widgets.Composite;
@@ -38,10 +41,24 @@ public class BalanceColumn extends IndividualBlock<EntryData, BaseEntryRowContro
 
 	private class BalanceCellControl implements IPropertyControl<EntryData>, IBalanceChangeListener {
 		private final Label balanceLabel;
-		private EntryData entryData = null;
+//		private EntryData entryData = null;
 
-		private BalanceCellControl(Label balanceLabel) {
+		private BalanceCellControl(Label balanceLabel, final IObservableValue<? extends EntryData> entryData) {
 			this.balanceLabel = balanceLabel;
+			
+			IObservableValue<String> balanceText = new ComputedValue<String>() {
+				@Override
+				protected String calculate() {
+					/*
+					 * If no input the control will not be visible, but this will still be calculated
+					 * and we can't throw a null pointer exception.
+					 */
+				return entryData.getValue() == null 
+						? "" : commodityForFormatting.format(entryData.getValue().getBalance() + entryData.getValue().getEntry().getAmount());
+				}
+			};
+			
+			Bind.oneWay(balanceText).to(SWTObservables.observeText(balanceLabel));
 		}
 
 		@Override
@@ -51,7 +68,7 @@ public class BalanceColumn extends IndividualBlock<EntryData, BaseEntryRowContro
 
 		@Override
 		public void load(EntryData entryData) {
-			this.entryData = entryData;
+//			this.entryData = entryData;
 			balanceLabel.setText(commodityForFormatting.format(entryData.getBalance() + entryData.getEntry().getAmount()));
 		}
 
@@ -71,7 +88,8 @@ public class BalanceColumn extends IndividualBlock<EntryData, BaseEntryRowContro
 			 * the amount in a previous entry changes, or a previous entry is
 			 * inserted or removed.
 			 */
-			balanceLabel.setText(commodityForFormatting.format(entryData.getBalance() + entryData.getEntry().getAmount()));
+			// This should be done now because all are tracked observables
+//			balanceLabel.setText(commodityForFormatting.format(entryData.getBalance() + entryData.getEntry().getAmount()));
 		}
 	}
 
@@ -93,7 +111,7 @@ public class BalanceColumn extends IndividualBlock<EntryData, BaseEntryRowContro
 	public IPropertyControl<EntryData> createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, BaseEntryRowControl coordinator) {
 		final Label balanceLabel = new Label(parent, SWT.TRAIL);
 
-		BalanceCellControl cellControl = new BalanceCellControl(balanceLabel);
+		BalanceCellControl cellControl = new BalanceCellControl(balanceLabel, master);
 
 		coordinator.addBalanceChangeListener(cellControl);
 

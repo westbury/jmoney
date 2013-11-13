@@ -22,28 +22,25 @@
 
 package net.sf.jmoney.entrytable;
 
-import net.sf.jmoney.isolation.IModelObject;
-import net.sf.jmoney.isolation.IScalarPropertyAccessor;
-import net.sf.jmoney.isolation.SessionChangeAdapter;
-import net.sf.jmoney.isolation.SessionChangeListener;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
+import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.DisposeEvent;
-import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.events.TraverseEvent;
 import org.eclipse.swt.events.TraverseListener;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
-import org.eclipse.ui.statushandlers.StatusManager;
 
 /**
  * Represents a table column that is either the debit or the credit column. Use
@@ -55,23 +52,112 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 
 	private class DebitAndCreditCellControl implements ICellControl2<EntryData> {
 		private Text textControl;
-		private BaseEntryRowControl coordinator;
-		private Entry entry = null;
 
-		private SessionChangeListener amountChangeListener = new SessionChangeAdapter() {
-			@Override
-			public void objectChanged(IModelObject changedObject, IScalarPropertyAccessor changedProperty, Object oldValue, Object newValue) {
-				if (changedObject.equals(entry) && changedProperty == EntryInfo.getAmountAccessor()) {
-					setControlContent();
-				}
-			}
-		};
-
-		public DebitAndCreditCellControl(Composite parent, RowControl rowControl, BaseEntryRowControl coordinator) {
-			this.coordinator = coordinator;
-
+		public DebitAndCreditCellControl(Composite parent, RowControl rowControl, final IObservableValue<? extends EntryData> entryData) {
 			this.textControl = new Text(parent, SWT.TRAIL);
 
+			final IObservableValue<Entry> entryObservable = new ComputedValue<Entry>() {
+				@Override
+				protected Entry calculate() {
+					if (entryData.getValue() == null) {
+						// No data set, so doesn't really matter what we return,
+						// we just can't NPE.
+						return null;
+					} else {
+						return entryData.getValue().getEntry();
+					} 
+				}
+			};
+			
+			IObservableValue<Long> amountObservable = EntryInfo.getAmountAccessor().observeDetail(entryObservable);
+			
+			IBidiConverter<Long, String> creditAndDebitSplitConverter = new IBidiConverter<Long, String>() {
+				@Override
+				public String modelToTarget(Long amount) {
+					/*
+					 * We need a currency so that we can format the amount. Get the
+					 * currency from this entry if possible. However, the user may
+					 * not have yet entered enough information to determine the
+					 * currency for this entry, in which case use the default
+					 * currency for this entry table.
+					 */
+					if (entryData.getValue() == null) {
+						return "";
+					}
+					Entry entry = entryData.getValue().getEntry();
+					Commodity commodityForFormatting = entry.getCommodityInternal();
+					if (commodityForFormatting == null) {
+						commodityForFormatting = commodity;
+					}
+
+					if (isDebit) {
+						// Debit column
+						return amount < 0
+								? commodityForFormatting.format(-amount)
+										: ""; //$NON-NLS-1$
+					} else {
+						// Credit column
+						return amount > 0
+								? commodityForFormatting.format(amount)
+										: ""; //$NON-NLS-1$
+					}
+				}
+
+				@Override
+				public Long targetToModel(String fromObject)
+						throws CoreException {
+					/*
+					 * We need a currency so that we can parse the amount. Get the
+					 * currency from this entry if possible. However, the user may
+					 * not have yet entered enough information to determine the
+					 * currency for this entry, in which case use the default
+					 * currency for this entry table.
+					 */
+					Entry entry = entryData.getValue().getEntry();
+					Commodity commodityForFormatting = entry.getCommodityInternal();
+					if (commodityForFormatting == null) {
+						commodityForFormatting = commodity;
+					}
+
+					String amountString = textControl.getText();
+					long amount = commodityForFormatting.parse(amountString);
+
+					long previousEntryAmount = entry.getAmount();
+					long newEntryAmount;
+
+					if (isDebit) {
+						if (amount != 0) {
+							newEntryAmount = -amount;
+						} else {
+							if (previousEntryAmount < 0) {
+								newEntryAmount  = 0;
+							} else {
+								newEntryAmount = previousEntryAmount;
+							}
+						}
+					} else {
+						if (amount != 0) {
+							newEntryAmount = amount;
+						} else {
+							if (previousEntryAmount > 0) {
+								newEntryAmount  = 0;
+							} else {
+								newEntryAmount = previousEntryAmount;
+							}
+						}
+					}
+
+					return newEntryAmount;
+				}
+			};
+			
+			Bind.twoWay(amountObservable)
+			.convert(creditAndDebitSplitConverter)
+			.to(SWTObservables.observeText(textControl, SWT.Modify));
+			
+			Bind.bounceBack(creditAndDebitSplitConverter)
+			.to(SWTObservables.observeText(textControl, SWT.FocusOut));
+			
 			FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, this);
 			textControl.addFocusListener(controlFocusListener);
 //				textControl.addKeyListener(keyListener);
@@ -95,15 +181,6 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 					}
 				}
 			});
-
-			textControl.addDisposeListener(new DisposeListener() {
-				@Override
-				public void widgetDisposed(DisposeEvent e) {
-			    	if (entry != null) {
-			    		entry.getDataManager().removeChangeListener(amountChangeListener);
-			    	}
-				}
-			});
 		}
 
 		@Override
@@ -113,105 +190,12 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 
 		@Override
 		public void load(EntryData data) {
-	    	if (entry != null) {
-	    		entry.getDataManager().removeChangeListener(amountChangeListener);
-	    	}
-
-			entry = data.getEntry();
-
-        	/*
-        	 * We must listen to the model for changes in the value
-        	 * of this property.
-        	 */
-			entry.getDataManager().addChangeListener(amountChangeListener);
-
-			setControlContent();
-		}
-
-		private void setControlContent() {
-			long amount = entry.getAmount();
-
-			/*
-			 * We need a currency so that we can format the amount. Get the
-			 * currency from this entry if possible. However, the user may
-			 * not have yet entered enough information to determine the
-			 * currency for this entry, in which case use the default
-			 * currency for this entry table.
-			 */
-			Commodity commodityForFormatting = entry.getCommodityInternal();
-			if (commodityForFormatting == null) {
-				commodityForFormatting = commodity;
-			}
-
-			if (isDebit) {
-				// Debit column
-				textControl.setText(amount < 0
-						? commodityForFormatting.format(-amount)
-								: "" //$NON-NLS-1$
-				);
-			} else {
-				// Credit column
-				textControl.setText(amount > 0
-						? commodityForFormatting.format(amount)
-								: "" //$NON-NLS-1$
-				);
-			}
+			// No longer used
 		}
 
 		@Override
 		public void save() {
-			/*
-			 * We need a currency so that we can parse the amount. Get the
-			 * currency from this entry if possible. However, the user may
-			 * not have yet entered enough information to determine the
-			 * currency for this entry, in which case use the default
-			 * currency for this entry table.
-			 */
-			Commodity commodityForFormatting = entry.getCommodityInternal();
-			if (commodityForFormatting == null) {
-				commodityForFormatting = commodity;
-			}
-
-			String amountString = textControl.getText();
-			long amount;
-			try {
-				amount = commodityForFormatting.parse(amountString);
-			} catch (CoreException e) {
-				StatusManager.getManager().handle(e.getStatus());
-				return;
-			}
-
-			long previousEntryAmount = entry.getAmount();
-			long newEntryAmount;
-
-			if (isDebit) {
-				if (amount != 0) {
-					newEntryAmount = -amount;
-				} else {
-					if (previousEntryAmount < 0) {
-						newEntryAmount  = 0;
-					} else {
-						newEntryAmount = previousEntryAmount;
-					}
-				}
-			} else {
-				if (amount != 0) {
-					newEntryAmount = amount;
-				} else {
-					if (previousEntryAmount > 0) {
-						newEntryAmount  = 0;
-					} else {
-						newEntryAmount = previousEntryAmount;
-					}
-				}
-			}
-
-			entry.setAmount(newEntryAmount);
-		}
-
-		// TODO: Remove this
-		public void setFocusListener(FocusListener controlFocusListener) {
-			// Nothing to do
+			// No longer used
 		}
 
 		@Override
@@ -251,7 +235,7 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
     @Override
 	public IPropertyControl<EntryData> createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, BaseEntryRowControl coordinator) {
 
-		ICellControl2<EntryData> cellControl = new DebitAndCreditCellControl(parent, rowControl, coordinator);
+		ICellControl2<EntryData> cellControl = new DebitAndCreditCellControl(parent, rowControl, master);
 
 		return cellControl;
     }

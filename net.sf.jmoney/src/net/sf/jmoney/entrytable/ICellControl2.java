@@ -20,14 +20,14 @@ public interface ICellControl2<T> extends IPropertyControl<T> {
 	/**
 	 * Set this cell as the cell with the focus.
 	 * <P>
-	 * This usually just involves setting the color.
+	 * This usually just involves setting the background color.
 	 */
 	void setSelected();
 
 	/**
 	 * Set this cell back to an un-selected state.
 	 * <P>
-	 * This usually just involves setting the color.
+	 * This usually just involves setting the background color.
 	 */
 	void setUnselected();
 }

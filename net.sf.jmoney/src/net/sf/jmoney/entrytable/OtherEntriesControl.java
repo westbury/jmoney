@@ -1,6 +1,9 @@
 package net.sf.jmoney.entrytable;
 
 
+import java.util.HashSet;
+import java.util.Set;
+
 import net.sf.jmoney.JMoneyPlugin;
 import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.SessionChangeAdapter;
@@ -9,6 +12,11 @@ import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.observable.set.ComputedSet;
+import org.eclipse.core.databinding.observable.set.IObservableSet;
+import org.eclipse.core.databinding.observable.set.ISetChangeListener;
+import org.eclipse.core.databinding.observable.set.SetChangeEvent;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StackLayout;
@@ -46,7 +54,7 @@ public class OtherEntriesControl extends Composite {
 	 * The composite containing whatever is to the left of
 	 * the drop-down button.  This has a StackLayout.
 	 */
-	private Composite childComposite;
+	private Composite stackComposite;
 
 	private StackLayout stackLayout;
 	
@@ -70,52 +78,52 @@ public class OtherEntriesControl extends Composite {
 	 */
 	Button downArrowButton;
 
-	private EntryData entryData;
+//	private EntryData entryData;
 
-	private SessionChangeListener splitEntryListener = new SessionChangeAdapter() {
-
-		@Override
-		public void objectInserted(IModelObject newObject) {
-			if (newObject instanceof Entry
-					&& ((Entry)newObject).getTransaction() == entryData.getEntry().getTransaction()
-					&& entryData.getEntry().getTransaction().getEntryCollection().size() == 3) {
-				// Is now split but was not split before
-				stackLayout.topControl = splitLabel;
-				childComposite.layout(false);
-			}
-		}
-
-		@Override
-		public void objectRemoved(IModelObject deletedObject) {
-			if (deletedObject instanceof Entry
-					&& ((Entry)deletedObject).getTransaction() == entryData.getEntry().getTransaction()
-					&& deletedObject != entryData.getEntry()
-					&& entryData.getEntry().getTransaction().getEntryCollection().size() == 3) {
-				// Is now not split but was split before
-				
-				/*
-				 * This listener is called before the object is deleted, so there will
-				 * be three entries in the transaction.  We want to find the third (i.e.
-				 * not the main entry and not the one being deleted).
-				 */
-				Entry thirdEntry = null;
-				for (Entry entry : entryData.getEntry().getTransaction().getEntryCollection()) {
-					if (entry != entryData.getEntry()
-							&& entry != deletedObject) {
-						assert(thirdEntry == null);
-						thirdEntry = entry;
-					}
-				}
-				otherEntryControl.setInput(thirdEntry);
-				stackLayout.topControl = otherEntryControl;
-				childComposite.layout(false);
-			}
-		}
-	};
+//	private SessionChangeListener splitEntryListener = new SessionChangeAdapter() {
+//
+//		@Override
+//		public void objectInserted(IModelObject newObject) {
+//			if (newObject instanceof Entry
+//					&& ((Entry)newObject).getTransaction() == entryData.getEntry().getTransaction()
+//					&& entryData.getEntry().getTransaction().getEntryCollection().size() == 3) {
+//				// Is now split but was not split before
+//				stackLayout.topControl = splitLabel;
+//				childComposite.layout(false);
+//			}
+//		}
+//
+//		@Override
+//		public void objectRemoved(IModelObject deletedObject) {
+//			if (deletedObject instanceof Entry
+//					&& ((Entry)deletedObject).getTransaction() == entryData.getEntry().getTransaction()
+//					&& deletedObject != entryData.getEntry()
+//					&& entryData.getEntry().getTransaction().getEntryCollection().size() == 3) {
+//				// Is now not split but was split before
+//				
+//				/*
+//				 * This listener is called before the object is deleted, so there will
+//				 * be three entries in the transaction.  We want to find the third (i.e.
+//				 * not the main entry and not the one being deleted).
+//				 */
+//				Entry thirdEntry = null;
+//				for (Entry entry : entryData.getEntry().getTransaction().getEntryCollection()) {
+//					if (entry != entryData.getEntry()
+//							&& entry != deletedObject) {
+//						assert(thirdEntry == null);
+//						thirdEntry = entry;
+//					}
+//				}
+//				otherEntryControl.setInput(thirdEntry);
+//				stackLayout.topControl = otherEntryControl;
+//				childComposite.layout(false);
+//			}
+//		}
+//	};
 	
 	static private Image downArrowImage = null;
 
-	public OtherEntriesControl(Composite parent, RowControl rowControl, Block<Entry, ISplitEntryContainer> rootBlock, RowSelectionTracker<BaseEntryRowControl> selectionTracker, FocusCellTracker focusCellTracker) {
+	public OtherEntriesControl(Composite parent, final IObservableValue<? extends EntryData> entryData, RowControl rowControl, Block<Entry, ISplitEntryContainer> rootBlock, RowSelectionTracker<BaseEntryRowControl> selectionTracker, FocusCellTracker focusCellTracker) {
 		super(parent, SWT.NONE);
 		this.rowControl = rowControl;
 		this.rootBlock = rootBlock;
@@ -126,11 +134,43 @@ public class OtherEntriesControl extends Composite {
 		
 		setLayout(new DropdownButtonLayout());
 		
+		final IObservableSet<Entry> otherEntries = new ComputedSet<Entry>() {
+			@Override
+			protected Set<Entry> calculate() {
+				// TODO Make getSplitEntries return Set, not Collection,
+				// so we don't have to wrap here.
+				return entryData.getValue() == null
+						? null
+								: new HashSet<Entry>(entryData.getValue().getSplitEntries());
+			}
+		};
+		
 		createChildComposite();
-		createDownArrowButton();
+		createDownArrowButton(entryData);
+
+		otherEntries.addSetChangeListener(new ISetChangeListener<Entry>() {
+			@Override
+			public void handleSetChange(SetChangeEvent<Entry> event) {
+				setStackControl(otherEntries);
+			}
+		});
+		
+		setStackControl(otherEntries);
+		
 	}
 
-	private Control createDownArrowButton() {
+	private void setStackControl(Set<Entry> otherEntries) {
+		if (otherEntries.size() == 1) {
+			Entry theOnlyOtherEntry = otherEntries.iterator().next();
+			otherEntryControl.setInput(theOnlyOtherEntry);
+			stackLayout.topControl = otherEntryControl;
+		} else {
+			stackLayout.topControl = splitLabel;
+		}
+		stackComposite.layout(true);
+	}
+
+	private Control createDownArrowButton(final IObservableValue<? extends EntryData> entryData) {
 		downArrowButton = new Button(this, SWT.NO_TRIM);
 		if (downArrowImage == null) {
 			ImageDescriptor descriptor = JMoneyPlugin.createImageDescriptor("comboArrow.gif"); //$NON-NLS-1$
@@ -141,7 +181,7 @@ public class OtherEntriesControl extends Composite {
 		downArrowButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 		    public void widgetSelected(SelectionEvent event) {
-				final OtherEntriesShell shell = new OtherEntriesShell(getShell(), SWT.ON_TOP, entryData, rootBlock, true);
+				final OtherEntriesShell shell = new OtherEntriesShell(getShell(), SWT.ON_TOP, entryData.getValue(), rootBlock, true);
     	        Display display = getDisplay();
     	        Rectangle rect = display.map(OtherEntriesControl.this.getParent(), null, getBounds());
     	        shell.open(rect);
@@ -152,39 +192,39 @@ public class OtherEntriesControl extends Composite {
 	}
 
 	private Control createChildComposite() {
-		childComposite = new Composite(this, SWT.NONE);
+		stackComposite = new Composite(this, SWT.NONE);
 		
 		setBackgroundMode(SWT.INHERIT_FORCE);
 		
 		stackLayout = new StackLayout();
-		childComposite.setLayout(stackLayout);
+		stackComposite.setLayout(stackLayout);
 		
-		splitLabel = new Label(childComposite, SWT.NONE);
+		splitLabel = new Label(stackComposite, SWT.NONE);
 		splitLabel.setText(Messages.OtherEntriesControl_SplitEntry);
 
-		otherEntryControl = new OtherEntryControl(childComposite, rowControl, SWT.NONE, rootBlock, true, selectionTracker, focusCellTracker);
+		otherEntryControl = new OtherEntryControl(stackComposite, rowControl, SWT.NONE, rootBlock, true, selectionTracker, focusCellTracker);
 		
-		return childComposite;
+		return stackComposite;
 	}
 	
 	public void load(final EntryData entryData) {
-		// TODO: this should be done in a 'row release' method??
-		if (this.entryData != null) {
-			this.entryData.getEntry().getDataManager().removeChangeListener(splitEntryListener);
-		}
-		
-		this.entryData = entryData;
-		
-		if (entryData.getSplitEntries().size() == 1) {
-			otherEntryControl.setInput(entryData.getOtherEntry());
-			stackLayout.topControl = otherEntryControl;
-		} else {
-			stackLayout.topControl = splitLabel;
-		}
-		childComposite.layout(true);
-
-		// Listen for changes so this control is kept up to date.
-		entryData.getEntry().getDataManager().addChangeListener(splitEntryListener);
+//		// TODO: this should be done in a 'row release' method??
+//		if (this.entryData != null) {
+//			this.entryData.getEntry().getDataManager().removeChangeListener(splitEntryListener);
+//		}
+//		
+//		this.entryData = entryData;
+//		
+//		if (entryData.getSplitEntries().size() == 1) {
+//			otherEntryControl.setInput(entryData.getOtherEntry());
+//			stackLayout.topControl = otherEntryControl;
+//		} else {
+//			stackLayout.topControl = splitLabel;
+//		}
+//		childComposite.layout(true);
+//
+//		// Listen for changes so this control is kept up to date.
+//		entryData.getEntry().getDataManager().addChangeListener(splitEntryListener);
 	}
 
 	public void save() {
@@ -194,10 +234,10 @@ public class OtherEntriesControl extends Composite {
 		 * there is a separate focus cell tracker for the cells inside this
 		 * control and the cells outside.
 		 */
-		IPropertyControl cell = focusCellTracker.getFocusCell();
-		if (cell != null) {
-			cell.save();
-		}
+//		IPropertyControl cell = focusCellTracker.getFocusCell();
+//		if (cell != null) {
+//			cell.save();
+//		}
 	}
 
 	/**
@@ -209,7 +249,7 @@ public class OtherEntriesControl extends Composite {
 	    @Override	
 		public void layout(Composite composite, boolean force) {
 			Rectangle bounds = composite.getClientArea();
-			childComposite.setBounds(0, 0, bounds.width-OtherEntriesBlock.DROPDOWN_BUTTON_WIDTH, bounds.height);
+			stackComposite.setBounds(0, 0, bounds.width-OtherEntriesBlock.DROPDOWN_BUTTON_WIDTH, bounds.height);
 			downArrowButton.setBounds(bounds.width-OtherEntriesBlock.DROPDOWN_BUTTON_WIDTH, 0, OtherEntriesBlock.DROPDOWN_BUTTON_WIDTH, bounds.height);
 		}
 
@@ -220,7 +260,7 @@ public class OtherEntriesControl extends Composite {
 			 * after adjusting for the button width. 
 			 */
 			int contentsWidthHint = (wHint == SWT.DEFAULT) ? SWT.DEFAULT : wHint - OtherEntriesBlock.DROPDOWN_BUTTON_WIDTH; 
-			Point contentsSize = childComposite.computeSize(contentsWidthHint, hHint, force);
+			Point contentsSize = stackComposite.computeSize(contentsWidthHint, hHint, force);
 			return new Point(contentsSize.x + OtherEntriesBlock.DROPDOWN_BUTTON_WIDTH, contentsSize.y);
 		}
 	}

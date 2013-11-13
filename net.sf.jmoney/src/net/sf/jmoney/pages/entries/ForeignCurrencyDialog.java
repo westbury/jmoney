@@ -25,7 +25,6 @@ package net.sf.jmoney.pages.entries;
 import net.sf.jmoney.entrytable.EntryData;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.resources.Messages;
 
 import org.eclipse.osgi.util.NLS;
@@ -37,6 +36,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
@@ -114,9 +114,8 @@ public class ForeignCurrencyDialog {
 		Object[] messageArgs2 = new Object[] { entry2.getCommodityInternal().getName() };
 		label2.setText(NLS.bind(Messages.ForeignCurrencyDialog_Question, messageArgs2));
 
-		final IPropertyControl propertyControl = EntryInfo.getAmountAccessor()
-				.createPropertyControl(transactionArea);
-		propertyControl.load(item.getOtherEntry());
+		EntryInfo.getAmountAccessor()
+				.createPropertyControl(transactionArea, item.getOtherEntry());
 
 		// Create the button area
 		Composite buttonArea = new Composite(shell, 0);
@@ -132,7 +131,6 @@ public class ForeignCurrencyDialog {
 		addButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent event) {
-				propertyControl.save();
 				shell.close();
 			}
 		});
@@ -143,7 +141,6 @@ public class ForeignCurrencyDialog {
 		closeButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent event) {
-				propertyControl.save();
 				shell.close();
 			}
 		});

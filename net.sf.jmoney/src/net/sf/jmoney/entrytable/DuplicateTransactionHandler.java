@@ -50,8 +50,9 @@ public class DuplicateTransactionHandler extends AbstractHandler {
 				 * 'new entry' row.
 				 */
 
-				BaseEntryRowControl newEntryRowControl = entriesTable.getNewEntryRowControl();
-				newEntryRowControl.uncommittedEntryData.copyFrom(selectedRowControl.committedEntryData);
+				BaseEntryRowControl<EntryData, EntryRowControl> newEntryRowControl = entriesTable.getNewEntryRowControl();
+				EntryData uncommittedEntryData = newEntryRowControl.input.getValue();
+				uncommittedEntryData.copyFrom(selectedRowControl.committedEntryData);
 				
 				// The 'new entry' row control should be listening for changes to
 				// its uncommitted data, so we have nothing more to do. 

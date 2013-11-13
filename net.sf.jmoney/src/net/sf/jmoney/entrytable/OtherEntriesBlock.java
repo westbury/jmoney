@@ -83,7 +83,7 @@ public class OtherEntriesBlock extends CellBlock<EntryData, BaseEntryRowControl>
 	    // same for all controls constructed from this object.
 	    FocusCellTracker cellTracker = rowControl.focusCellTracker;
 
-		final OtherEntriesControl control = new OtherEntriesControl(parent, rowControl, otherEntriesRootBlock, rowTracker, cellTracker);
+		final OtherEntriesControl control = new OtherEntriesControl(parent, master, rowControl, otherEntriesRootBlock, rowTracker, cellTracker);
 
 		IPropertyControl<EntryData> cellControl = new IPropertyControl<EntryData>() {
 			@Override

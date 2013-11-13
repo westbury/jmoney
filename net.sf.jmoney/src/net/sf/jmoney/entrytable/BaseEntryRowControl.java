@@ -33,6 +33,8 @@ import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.osgi.util.NLS;
@@ -106,7 +108,8 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	 * object does not represent a currently visible row (duplicate of base
 	 * input field)
 	 */
-	protected T uncommittedEntryData = null;
+	// This is input - don't duplicate
+//	protected IObservableValue<T> uncommittedEntryData = new WritableValue<T>();
 
 	/**
 	 * true if this row is the current selection, false otherwise
@@ -245,7 +248,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 			entryInTransaction = transactionManager
 					.getCopyInTransaction(committedEntryData.getEntry());
 		}
-		uncommittedEntryData = createUncommittedEntryData(entryInTransaction,
+		T uncommittedEntryData = createUncommittedEntryData(entryInTransaction,
 				transactionManager);
 		uncommittedEntryData.setIndex(committedEntryData.getIndex());
 		uncommittedEntryData.setBalance(committedEntryData.getBalance());
@@ -274,7 +277,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 
 		if (isSelected) {
 			// This call may be needed only to update the header
-			rowTable.setCurrentRow(input.getValue(), uncommittedEntryData);
+			rowTable.setCurrentRow(input.getValue(), input.getValue());
 		}
 	}
 
@@ -330,7 +333,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 			// delete this.
 
 			try {
-				baseValidation(uncommittedEntryData.getEntry().getTransaction());
+				baseValidation(input.getValue().getEntry().getTransaction());
 
 				// Do any specific processing in derived classes.
 				specificValidation();
@@ -375,16 +378,16 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 					 * ensure they are fluid again. Without this calculated
 					 * values are not being calculated.
 					 */
-					uncommittedEntryData = createUncommittedEntryData(entryInTransaction, transactionManager);
+					T uncommittedEntryData = createUncommittedEntryData(entryInTransaction, transactionManager);
 					uncommittedEntryData
 							.setIndex(committedEntryData.getIndex());
 					uncommittedEntryData.setBalance(committedEntryData
 							.getBalance());
 
-					for (final IPropertyControl<? super T> control : controls
-							.values()) {
-						control.load(uncommittedEntryData);
-					}
+//					for (final IPropertyControl<? super T> control : controls
+//							.values()) {
+//						control.load(uncommittedEntryData);
+//					}
 
 					this.setInput(uncommittedEntryData);
 
@@ -422,16 +425,18 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 
 				// Update the controls.
 
-				uncommittedEntryData = createUncommittedEntryData(
+				T uncommittedEntryData = createUncommittedEntryData(
 						entryInTransaction, transactionManager);
 				uncommittedEntryData.setIndex(committedEntryData.getIndex());
 				uncommittedEntryData
 						.setBalance(committedEntryData.getBalance());
 
 				// Load all top level controls with this data.
-				for (final IPropertyControl<? super T> control : controls.values()) {
-					control.load(uncommittedEntryData);
-				}
+//				for (final IPropertyControl<? super T> control : controls.values()) {
+//					control.load(uncommittedEntryData);
+//				}
+				
+				setInput(uncommittedEntryData);
 			}
 		}
 
@@ -558,12 +563,12 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	 * design, only the focus row should ever have uncommitted data).
 	 */
 	public void initializeFromTemplate(EntryData sourceEntryData) {
-		Transaction targetTransaction = uncommittedEntryData.getEntry()
+		Transaction targetTransaction = input.getValue().getEntry()
 				.getTransaction();
 
-		copyData(sourceEntryData.getEntry(), uncommittedEntryData.getEntry());
+		copyData(sourceEntryData.getEntry(), input.getValue().getEntry());
 
-		Iterator<Entry> iter = uncommittedEntryData.getSplitEntries()
+		Iterator<Entry> iter = input.getValue().getSplitEntries()
 				.iterator();
 		for (Entry sourceEntry : sourceEntryData.getSplitEntries()) {
 			Entry targetEntry;
@@ -631,11 +636,11 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	}
 
 	public Entry getUncommittedTopEntry() {
-		return uncommittedEntryData.getEntry();
+		return input.getValue().getEntry();
 	}
 
 	public T getUncommittedEntryData() {
-		return uncommittedEntryData;
+		return input.getValue();
 	}
 
 	@Override
@@ -655,8 +660,8 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 		// funny.
 		// This must be done before balanceChanged is fired below, because that
 		// looks at the uncommitted entry data.
-		uncommittedEntryData.setIndex(committedEntryData.getIndex());
-		uncommittedEntryData.setBalance(committedEntryData.getBalance());
+		input.getValue().setIndex(committedEntryData.getIndex());
+		input.getValue().setBalance(committedEntryData.getBalance());
 
 		setAppropriateBackgroundColor();
 

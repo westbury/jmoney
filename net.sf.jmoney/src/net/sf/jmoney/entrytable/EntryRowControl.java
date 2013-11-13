@@ -162,6 +162,7 @@ public class EntryRowControl extends BaseEntryRowControl<EntryData, EntryRowCont
 
 	@Override
 	protected void specificValidation() throws InvalidUserEntryException {
+		EntryData uncommittedEntryData = input.getValue();
 		/*
 		 * Check for zero amounts. A zero amount is normally a user
 		 * error and will not be accepted. However, if this is not a

@@ -12,7 +12,6 @@ public class CellFocusListener<R extends RowControl> extends FocusAdapter {
 	private RowSelectionTracker<R> selectionTracker;
 	private FocusCellTracker focusCellTracker;
 
-	@SuppressWarnings("unchecked")
 	public CellFocusListener(R rowControl, ICellControl2<?> cellControl) {
 		this.rowControl = rowControl;
 		this.cellControl = cellControl;
@@ -24,7 +23,6 @@ public class CellFocusListener<R extends RowControl> extends FocusAdapter {
 	public void focusGained(FocusEvent e) {
 		final ICellControl2<?> previousFocus = focusCellTracker.getFocusCell();
 		if (cellControl == previousFocus) {
-			System.out.println("here"); //$NON-NLS-1$
 			/*
 			 * The focus has changed to a different control as far as SWT is
 			 * concerned, but the focus is still within the same cell
@@ -56,9 +54,10 @@ public class CellFocusListener<R extends RowControl> extends FocusAdapter {
 		/*
 		 * Make sure any changes in the control are written back to the model.
 		 */
-		if (previousFocus != null) {
-			previousFocus.save();
-		}
+		// Should all be bound now
+//		if (previousFocus != null) {
+//			previousFocus.save();
+//		}
 
 		/*
 		 * Opening dialog boxes (as may be done by the

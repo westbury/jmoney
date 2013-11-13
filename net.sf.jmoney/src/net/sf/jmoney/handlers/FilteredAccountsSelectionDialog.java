@@ -42,6 +42,7 @@ import org.eclipse.jface.viewers.StyledString;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IMemento;
 import org.eclipse.ui.dialogs.FilteredItemsSelectionDialog;
@@ -238,18 +239,27 @@ public class FilteredAccountsSelectionDialog extends FilteredItemsSelectionDialo
 	 *      org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	@Override
-	protected void fillContentProvider(AbstractContentProvider contentProvider,
-			ItemsFilter itemsFilter, IProgressMonitor progressMonitor)
+	protected void fillContentProvider(final AbstractContentProvider contentProvider,
+			final ItemsFilter itemsFilter, final IProgressMonitor progressMonitor)
 			throws CoreException {
+		/*
+		 * This is done in a job so will not be on the UI thread.  Access to
+		 * the model must be on the UI thread.  Must be done synchronously, though,
+		 * because the job will use the contents present when this method returns.
+		 */
+		Display.getDefault().syncExec(new Runnable() {
 
-		for (Account account : sessionManager.getSession().getAccountCollection()) {
-			contentProvider.add(account, itemsFilter);
-			addSubAccounts(contentProvider, itemsFilter, account);
-		}
+			@Override
+			public void run() {
+				for (Account account : sessionManager.getSession().getAccountCollection()) {
+					contentProvider.add(account, itemsFilter);
+					addSubAccounts(contentProvider, itemsFilter, account);
+				}
 
-		if (progressMonitor != null)
-			progressMonitor.done();
-
+				if (progressMonitor != null)
+					progressMonitor.done();
+			}
+		});
 	}
 
 	private void addSubAccounts(AbstractContentProvider contentProvider,

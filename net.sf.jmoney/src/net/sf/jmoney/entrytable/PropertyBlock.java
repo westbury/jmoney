@@ -30,8 +30,12 @@ import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Transaction;
 
+import org.eclipse.core.databinding.beans.BeanProperties;
+import org.eclipse.core.databinding.beans.IBeanValueProperty;
+import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.events.FocusListener;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 
@@ -104,36 +108,57 @@ abstract public class PropertyBlock<T extends EntryData, R extends RowControl, S
 	}
 
     @Override
-	public IPropertyControl<T> createCellControl(Composite parent, IObservableValue<? extends T> master, final RowControl rowControl, final R coordinator) {
-		final IPropertyControl<? super S> propertyControl = accessor.createPropertyControl(parent);
+	public IPropertyControl<T> createCellControl(Composite parent, final IObservableValue<? extends T> master, final RowControl rowControl, final R coordinator) {
+    	// method to name type of accessor
+    	return myCreateCellControl(parent, master, rowControl, coordinator, accessor);
+    }
+
+//	private static final IBeanValueProperty<Control, Color> backgroundProperty = BeanProperties.value(Control.class, "background", Color.class);
+
+    
+	public <S2 extends ExtendableObject> IPropertyControl<T> myCreateCellControl(Composite parent, final IObservableValue<? extends T> master, final RowControl rowControl, final R coordinator, ScalarPropertyAccessor<?, S2> accessor2) {
+		
+IObservableValue<S> objectContainingProperty = new ComputedValue<S>() {
+			@Override
+			protected S calculate() {
+				
+				return master.getValue() == null ? null : getObjectContainingProperty(master.getValue());
+			}
+		};
+    	
+		final Control control = accessor.createPropertyControl2(parent, objectContainingProperty);
 
 		ICellControl2<T> cellControl = new ICellControl2<T>() {
 
 		    	@Override
 			public Control getControl() {
-				return propertyControl.getControl();
+				return control;
 			}
 
 			@Override
 			public void load(T data) {
-				S entryContainingProperty = getObjectContainingProperty(data);
-				propertyControl.load(entryContainingProperty);
+//				S entryContainingProperty = getObjectContainingProperty(data);
+//				control.load(entryContainingProperty);
+				throw new UnsupportedOperationException();
 			}
 
 			@Override
 			public void save() {
-				propertyControl.save();
-				fireUserChange(coordinator);
+//				control.save();
+//				fireUserChange(coordinator);
+				throw new UnsupportedOperationException();
 			}
 
 			@Override
 			public void setSelected() {
-				propertyControl.getControl().setBackground(RowControl.selectedCellColor);
+				control.setBackground(RowControl.selectedCellColor);
+//				backgroundProperty.setValue(control, RowControl.selectedCellColor);
 			}
 
 			@Override
 			public void setUnselected() {
-				propertyControl.getControl().setBackground(null);
+				control.setBackground(null);
+//				backgroundProperty.setValue(control, null);
 			}
 		};
 
@@ -141,7 +166,7 @@ abstract public class PropertyBlock<T extends EntryData, R extends RowControl, S
 
 		// This is a little bit of a kludge.  Might be a little safer to implement a method
 		// in IPropertyControl to add the focus listener?
-		addFocusListenerRecursively(propertyControl.getControl(), controlFocusListener);
+		addFocusListenerRecursively(control, controlFocusListener);
 
 //			textControl.addKeyListener(keyListener);
 //			textControl.addTraverseListener(traverseListener);
