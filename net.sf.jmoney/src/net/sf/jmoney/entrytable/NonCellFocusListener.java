@@ -94,7 +94,17 @@ class NonCellFocusListener<R extends RowControl> extends FocusAdapter {
 					
 					// TODO: Should we be restoring selection to the cell that needs correcting?
 					focusCellTracker.setFocusCell(previousFocus);
-					previousFocus.getControl().setFocus();
+					
+					/*
+					 * previousFocus could potentially be null here because a
+					 * row can be selected and changed to an error state without
+					 * ever selecting a cell. This can be done by pressing the
+					 * drop-down button to get the split entries and editing in
+					 * the split entries.
+					 */
+					if (previousFocus != null) {
+						previousFocus.getControl().setFocus();
+					}
 				}
 			}
 		});
