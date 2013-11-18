@@ -87,8 +87,9 @@ public class OtherEntriesShell {
 		     * Use a single row tracker and cell focus tracker for this table.
 		     */
 			for (Entry entry: entryData.getSplitEntries()) {
-				SplitEntryRowControl row = new SplitEntryRowControl(composite, SWT.NONE, rootBlock, isLinked, rowTracker, cellTracker);
-				row.setInput(entry);
+				SplitEntryRowControl row = new SplitEntryRowControl(composite, SWT.NONE, rootBlock, isLinked, rowTracker, cellTracker, entry);
+				// Split entry rows take a final entry in the constructor
+//				row.setInput(entry);
 				rowControls.put(entry, row);
 			}
 			
@@ -99,8 +100,9 @@ public class OtherEntriesShell {
 						Entry newEntry = (Entry) newObject;
 						if (newEntry.getTransaction() == entryData.getEntry().getTransaction()) {
 							entryData.getSplitEntries().add(newEntry);
-							SplitEntryRowControl row = new SplitEntryRowControl(composite, SWT.NONE, rootBlock, isLinked, rowTracker, cellTracker);
-							row.setInput(newEntry);
+							SplitEntryRowControl row = new SplitEntryRowControl(composite, SWT.NONE, rootBlock, isLinked, rowTracker, cellTracker, newEntry);
+							// Split entry rows take a final entry in the constructor
+//							row.setInput(newEntry);
 							rowControls.put(newEntry, row);
 			    	        shell.pack();
 						}

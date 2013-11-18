@@ -57,7 +57,7 @@ public class SplitEntryRowControl extends RowControl<Entry, SplitEntryRowControl
 		}
 	};
 
-	public SplitEntryRowControl(final Composite parent, int style, Block<Entry, ? super SplitEntryRowControl> rootBlock, boolean isLinked, final RowSelectionTracker<SplitEntryRowControl> selectionTracker, final FocusCellTracker focusCellTracker) {
+	public SplitEntryRowControl(final Composite parent, int style, Block<Entry, ? super SplitEntryRowControl> rootBlock, boolean isLinked, final RowSelectionTracker<SplitEntryRowControl> selectionTracker, final FocusCellTracker focusCellTracker, Entry entry) {
 		super(parent, style, selectionTracker, focusCellTracker);
 
 		/*
@@ -71,6 +71,10 @@ public class SplitEntryRowControl extends RowControl<Entry, SplitEntryRowControl
 		layout.verticalSpacing = 1;
 		setLayout(layout);
 
+		// Must setInput before carrying on.  This is because this class does not
+		// take a master observable.  The Entry must be known and set when constructed.
+		setInput(entry);
+		
 		init(this, this, rootBlock);
 
 		addPaintListener(paintListener);

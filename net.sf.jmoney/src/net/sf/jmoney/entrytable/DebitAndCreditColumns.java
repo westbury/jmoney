@@ -32,7 +32,6 @@ import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusListener;
@@ -70,86 +69,8 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 			};
 			
 			IObservableValue<Long> amountObservable = EntryInfo.getAmountAccessor().observeDetail(entryObservable);
-			
-			IBidiConverter<Long, String> creditAndDebitSplitConverter = new IBidiConverter<Long, String>() {
-				@Override
-				public String modelToTarget(Long amount) {
-					/*
-					 * We need a currency so that we can format the amount. Get the
-					 * currency from this entry if possible. However, the user may
-					 * not have yet entered enough information to determine the
-					 * currency for this entry, in which case use the default
-					 * currency for this entry table.
-					 */
-					if (entryData.getValue() == null) {
-						return "";
-					}
-					Entry entry = entryData.getValue().getEntry();
-					Commodity commodityForFormatting = entry.getCommodityInternal();
-					if (commodityForFormatting == null) {
-						commodityForFormatting = commodity;
-					}
 
-					if (isDebit) {
-						// Debit column
-						return amount < 0
-								? commodityForFormatting.format(-amount)
-										: ""; //$NON-NLS-1$
-					} else {
-						// Credit column
-						return amount > 0
-								? commodityForFormatting.format(amount)
-										: ""; //$NON-NLS-1$
-					}
-				}
-
-				@Override
-				public Long targetToModel(String fromObject)
-						throws CoreException {
-					/*
-					 * We need a currency so that we can parse the amount. Get the
-					 * currency from this entry if possible. However, the user may
-					 * not have yet entered enough information to determine the
-					 * currency for this entry, in which case use the default
-					 * currency for this entry table.
-					 */
-					Entry entry = entryData.getValue().getEntry();
-					Commodity commodityForFormatting = entry.getCommodityInternal();
-					if (commodityForFormatting == null) {
-						commodityForFormatting = commodity;
-					}
-
-					String amountString = textControl.getText();
-					long amount = commodityForFormatting.parse(amountString);
-
-					long previousEntryAmount = entry.getAmount();
-					long newEntryAmount;
-
-					if (isDebit) {
-						if (amount != 0) {
-							newEntryAmount = -amount;
-						} else {
-							if (previousEntryAmount < 0) {
-								newEntryAmount  = 0;
-							} else {
-								newEntryAmount = previousEntryAmount;
-							}
-						}
-					} else {
-						if (amount != 0) {
-							newEntryAmount = amount;
-						} else {
-							if (previousEntryAmount > 0) {
-								newEntryAmount  = 0;
-							} else {
-								newEntryAmount = previousEntryAmount;
-							}
-						}
-					}
-
-					return newEntryAmount;
-				}
-			};
+			IBidiConverter<Long, String> creditAndDebitSplitConverter = new CreditAndDebitSplitConverter(commodity, isDebit, amountObservable);
 			
 			Bind.twoWay(amountObservable)
 			.convert(creditAndDebitSplitConverter)
@@ -210,7 +131,12 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 	}
 
 	private String id;
+	
+	/**
+	 * The commodity of the amounts in the credit and debit columns.
+	 */
 	private Commodity commodity;
+	
 	private boolean isDebit;
 
 	public static DebitAndCreditColumns createCreditColumn(Commodity commodityForFormatting) {

@@ -23,15 +23,12 @@
 package net.sf.jmoney.transactionDialog;
 
 import net.sf.jmoney.entrytable.CellFocusListener;
+import net.sf.jmoney.entrytable.CreditAndDebitSplitConverter;
 import net.sf.jmoney.entrytable.EntryData;
 import net.sf.jmoney.entrytable.ICellControl2;
 import net.sf.jmoney.entrytable.IndividualBlock;
 import net.sf.jmoney.entrytable.RowControl;
 import net.sf.jmoney.entrytable.SplitEntryRowControl;
-import net.sf.jmoney.isolation.IModelObject;
-import net.sf.jmoney.isolation.IScalarPropertyAccessor;
-import net.sf.jmoney.isolation.SessionChangeAdapter;
-import net.sf.jmoney.isolation.SessionChangeListener;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
@@ -39,7 +36,9 @@ import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.resources.Messages;
 
 import org.eclipse.core.databinding.observable.value.IObservableValue;
-import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
+import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
+import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
@@ -49,7 +48,6 @@ import org.eclipse.swt.events.TraverseListener;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
-import org.eclipse.ui.statushandlers.StatusManager;
 
 /**
  * Represents a table column that is either the debit or the credit column. Use
@@ -61,26 +59,26 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry, SplitEntryR
 
 	private class DebitAndCreditCellControl implements ICellControl2<Entry> {
 		private Text textControl;
-		private Entry entry = null;
 
-		private SessionChangeListener amountChangeListener = new SessionChangeAdapter() {
-			@Override
-			public void objectChanged(IModelObject changedObject, IScalarPropertyAccessor changedProperty, Object oldValue, Object newValue) {
-				if (changedObject.equals(entry) && changedProperty == EntryInfo.getAmountAccessor()) {
-					setControlContent();
-				}
-			}
-		};
-
-		public DebitAndCreditCellControl(Text textControl) {
+		public DebitAndCreditCellControl(Text textControl, IObservableValue<? extends Entry> master) {
 			this.textControl = textControl;
 
+			IObservableValue<Long> amountObservable = EntryInfo.getAmountAccessor().observeDetail(master);
+
+			IBidiConverter<Long, String> creditAndDebitSplitConverter = new CreditAndDebitSplitConverter(commodity, isDebit, amountObservable);
+			
+			Bind.twoWay(amountObservable)
+			.convert(creditAndDebitSplitConverter)
+			.to(SWTObservables.observeText(textControl, SWT.Modify));
+			
+			Bind.bounceBack(creditAndDebitSplitConverter)
+			.to(SWTObservables.observeText(textControl, SWT.FocusOut));
+			
+			// TODO check that disposing the Text disposed the binding
 			textControl.addDisposeListener(new DisposeListener() {
 				@Override
 				public void widgetDisposed(DisposeEvent e) {
-			    	if (entry != null) {
-			    		entry.getDataManager().removeChangeListener(amountChangeListener);
-			    	}
+					System.out.println("here");
 				}
 			});
 		}
@@ -92,104 +90,12 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry, SplitEntryR
 
 		@Override
 		public void load(Entry data) {
-	    	if (entry != null) {
-	    		entry.getDataManager().removeChangeListener(amountChangeListener);
-	    	}
-
-			entry = data;
-
-        	/*
-        	 * We must listen to the model for changes in the value
-        	 * of this property.
-        	 */
-			entry.getDataManager().addChangeListener(amountChangeListener);
-
-			setControlContent();
-		}
-
-		private void setControlContent() {
-			long amount = entry.getAmount();
-
-			/*
-			 * We need a currency so that we can format the amount. Get the
-			 * currency from this entry if possible. However, the user may
-			 * not have yet entered enough information to determine the
-			 * currency for this entry, in which case use the default
-			 * currency for this entry table.
-			 */
-			Commodity commodityForFormatting = entry.getCommodityInternal();
-			if (commodityForFormatting == null) {
-				commodityForFormatting = commodity;
-			}
-
-			if (isDebit) {
-				// Debit column
-				textControl.setText(amount < 0
-						? commodityForFormatting.format(-amount)
-								: "" //$NON-NLS-1$
-				);
-			} else {
-				// Credit column
-				textControl.setText(amount > 0
-						? commodityForFormatting.format(amount)
-								: "" //$NON-NLS-1$
-				);
-			}
+			// No longer used
 		}
 
 		@Override
 		public void save() {
-			/*
-			 * We need a currency so that we can parse the amount. Get the
-			 * currency from this entry if possible. However, the user may
-			 * not have yet entered enough information to determine the
-			 * currency for this entry, in which case use the default
-			 * currency for this entry table.
-			 */
-			Commodity commodityForFormatting = entry.getCommodityInternal();
-			if (commodityForFormatting == null) {
-				commodityForFormatting = commodity;
-			}
-
-			String amountString = textControl.getText();
-			long amount;
-			try {
-				amount = commodityForFormatting.parse(amountString);
-			} catch (CoreException e) {
-				StatusManager.getManager().handle(e.getStatus());
-				return;
-			}
-
-			long previousEntryAmount = entry.getAmount();
-			long newEntryAmount;
-
-			if (isDebit) {
-				if (amount != 0) {
-					newEntryAmount = -amount;
-				} else {
-					if (previousEntryAmount < 0) {
-						newEntryAmount  = 0;
-					} else {
-						newEntryAmount = previousEntryAmount;
-					}
-				}
-			} else {
-				if (amount != 0) {
-					newEntryAmount = amount;
-				} else {
-					if (previousEntryAmount > 0) {
-						newEntryAmount  = 0;
-					} else {
-						newEntryAmount = previousEntryAmount;
-					}
-				}
-			}
-
-			entry.setAmount(newEntryAmount);
-		}
-
-		public void setFocusListener(FocusListener controlFocusListener) {
-			// Nothing to do
+			// No longer used
 		}
 
 		@Override
@@ -231,7 +137,7 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry, SplitEntryR
 
 		final Text textControl = new Text(parent, SWT.TRAIL);
 
-		ICellControl2<Entry> cellControl = new DebitAndCreditCellControl(textControl);
+		ICellControl2<Entry> cellControl = new DebitAndCreditCellControl(textControl, master);
 
 		FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, cellControl);
 		textControl.addFocusListener(controlFocusListener);
