@@ -25,7 +25,6 @@ package net.sf.jmoney.fields;
 import java.util.Comparator;
 
 import net.sf.jmoney.model2.ExtendableObject;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.resources.Messages;
@@ -47,15 +46,19 @@ import org.eclipse.swt.widgets.Text;
 public class TextControlFactory<S extends ExtendableObject> implements IPropertyControlFactory<S,String> {
 
     @Override
-	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<String,S> propertyAccessor) {
-        return new TextEditor<S>(parent, SWT.NONE, propertyAccessor);
+	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<String,S> propertyAccessor, S modelObject) {
+    	return createPropertyControlInternal(parent, propertyAccessor.observe(modelObject));
     }
 
     @Override
 	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<String,S> propertyAccessor, IObservableValue<? extends S> modelObservable) {
+    	return createPropertyControlInternal(parent, propertyAccessor.observeDetail(modelObservable));
+    }
+
+    private Control createPropertyControlInternal(Composite parent, IObservableValue<String> modelStringObservable) {
     	Text propertyControl = new Text(parent, SWT.NONE);
 
-		Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
+		Bind.twoWay(modelStringObservable)
 		.to(SWTObservables.observeText(propertyControl, SWT.Modify));
 
 		return propertyControl;

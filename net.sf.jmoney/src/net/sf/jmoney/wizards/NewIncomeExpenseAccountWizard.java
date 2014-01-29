@@ -56,12 +56,12 @@ public class NewIncomeExpenseAccountWizard extends Wizard implements INewWizard 
 
 	private TransactionManagerForAccounts transactionManager;
 	
-	private Account newUncommittedAccount;
+	private IncomeExpenseAccount newUncommittedAccount;
 	
 	/**
 	 * This is set when 'finish' is pressed and the new account is committed.
 	 */
-	private Account newCommittedAccount;
+	private IncomeExpenseAccount newCommittedAccount;
 
 	/**
 	 * Default version used from plugin.xml.
@@ -117,8 +117,8 @@ public class NewIncomeExpenseAccountWizard extends Wizard implements INewWizard 
 	public void addPages()
 	{
 		// Show the page that prompts for all the property values.
-		Set<ScalarPropertyAccessor<?,?>> excludedProperties = new HashSet<ScalarPropertyAccessor<?,?>>(); 
-		WizardPage propertyPage = new WizardPropertyPage("propertyPage", Messages.NewAccountWizard_PropertyPageTitle, Messages.NewAccountWizard_PropertyPageMessage, newUncommittedAccount, IncomeExpenseAccountInfo.getPropertySet(), AccountInfo.getNameAccessor(), excludedProperties); //$NON-NLS-1$
+		Set<ScalarPropertyAccessor<?,? extends IncomeExpenseAccount>> excludedProperties = new HashSet<ScalarPropertyAccessor<?,? extends IncomeExpenseAccount>>(); 
+		WizardPage propertyPage = new WizardPropertyPage<IncomeExpenseAccount>("propertyPage", Messages.NewAccountWizard_PropertyPageTitle, Messages.NewAccountWizard_PropertyPageMessage, newUncommittedAccount, IncomeExpenseAccountInfo.getPropertySet(), AccountInfo.getNameAccessor(), excludedProperties); //$NON-NLS-1$
 		addPage(propertyPage);
 
 		WizardPage summaryPage = new SummaryPage("summaryPage"); //$NON-NLS-1$
@@ -131,7 +131,7 @@ public class NewIncomeExpenseAccountWizard extends Wizard implements INewWizard 
 		
 		transactionManager.commit("Add New Account");
 		
-		newCommittedAccount = (Account)((UncommittedObjectKey)newUncommittedAccount.getObjectKey()).getCommittedObjectKey().getObject();
+		newCommittedAccount = (IncomeExpenseAccount)((UncommittedObjectKey)newUncommittedAccount.getObjectKey()).getCommittedObjectKey().getObject();
 		
 		return true;
 	}

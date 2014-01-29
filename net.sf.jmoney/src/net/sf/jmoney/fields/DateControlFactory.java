@@ -33,9 +33,19 @@ import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.internal.databinding.Activator;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.preferences.ConfigurationScope;
+import org.eclipse.core.runtime.preferences.DefaultScope;
+import org.eclipse.core.runtime.preferences.IScopeContext;
+import org.eclipse.core.runtime.preferences.InstanceScope;
+import org.eclipse.jface.databinding.preference.PreferenceObservables;
 import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
@@ -48,25 +58,25 @@ import org.eclipse.swt.widgets.Control;
  */
 public class DateControlFactory<S extends ExtendableObject> implements IPropertyControlFactory<S,Date> {
 
-    protected VerySimpleDateFormat fDateFormat = new VerySimpleDateFormat(
-            JMoneyPlugin.getDefault().getDateFormat());
+    private static IObservableValue<VerySimpleDateFormat> dateFormat = null;
 
-    // Listen to date format changes so we keep up to date
-    // Johann, 2005-07-02: Shouldn't this be done in the control?
-    /*
-    static {
-        JMoneyPlugin.getDefault().getPreferenceStore()
-                .addPropertyChangeListener(new IPropertyChangeListener() {
-                    public void propertyChange(PropertyChangeEvent event) {
-                        if (event.getProperty().equals("dateFormat")) {
-                            fDateFormat = new VerySimpleDateFormat(JMoneyPlugin
-                                    .getDefault().getDateFormat());
-                        }
-                    }
-                });
+    private static IObservableValue<VerySimpleDateFormat> observeDateFormat() {
+    	if (dateFormat == null) {
+    		final IObservableValue<String> dateFormatString = PreferenceObservables.observe(
+    				new IScopeContext [] { InstanceScope.INSTANCE, ConfigurationScope.INSTANCE, DefaultScope.INSTANCE }, 
+    				JMoneyPlugin.PLUGIN_ID).observe("dateFormat", "MMM/yy.d");
+
+    	    dateFormat = new ComputedValue<VerySimpleDateFormat>() {
+    			@Override
+    			protected VerySimpleDateFormat calculate() {
+    		    	return new VerySimpleDateFormat(dateFormatString.getValue());
+    			}
+    	    };
+    	    
+    	}
+    	return dateFormat;
     }
-    */
-
+    
     protected boolean readOnly;
 
     public DateControlFactory() {
@@ -78,12 +88,16 @@ public class DateControlFactory<S extends ExtendableObject> implements IProperty
     }
 
     @Override
-	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<Date,S> propertyAccessor) {
-        return new DateEditor<S>(parent, propertyAccessor);
+	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<Date,S> propertyAccessor, S modelObject) {
+    	return createPropertyControlInternal(parent, propertyAccessor.observe(modelObject));
     }
 
     @Override
 	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<Date,S> propertyAccessor, IObservableValue<? extends S> modelObservable) {
+    	return createPropertyControlInternal(parent, propertyAccessor.observeDetail(modelObservable));
+    }
+    
+	private Control createPropertyControlInternal(Composite parent, IObservableValue<Date> modelDateObservable) {
         DateControl propertyControl = new DateControl(parent);
 
     	IBidiConverter<Date,String> dateToText = new IBidiConverter<Date,String>() {
@@ -92,22 +106,22 @@ public class DateControlFactory<S extends ExtendableObject> implements IProperty
 		    	if (date == null) {
 		    		return ""; //$NON-NLS-1$
 		    	} else {
-		    		return fDateFormat.format(date);
+		    		return observeDateFormat().getValue().format(date);
 		    	}
 			}
 
 			@Override
-			public Date targetToModel(String text) {
+			public Date targetToModel(String text) throws CoreException {
 		        try {
-		        	return fDateFormat.parse(text);
+		        	return observeDateFormat().getValue().parse(text);
 		        } catch (IllegalArgumentException e) {
-		        	// TODO show validation errors
-		        	return null;
+					IStatus status = new Status(Status.ERROR, JMoneyPlugin.PLUGIN_ID, "'" + text + "' is not a valid date.");
+					throw new CoreException(status);
 		        }
 			}
 		};
 
-		Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
+		Bind.twoWay(modelDateObservable)
 		.convertWithTracking(dateToText)
 		.to(SWTObservables.observeText(propertyControl.textControl, SWT.Modify));
 
@@ -124,7 +138,7 @@ public class DateControlFactory<S extends ExtendableObject> implements IProperty
         if (value == null) {
             return Messages.DateControlFactory_None;
         } else {
-            return "'" + fDateFormat.format(value) + "'"; //$NON-NLS-1$ //$NON-NLS-2$
+            return "'" + observeDateFormat().getValue().format(value) + "'"; //$NON-NLS-1$ //$NON-NLS-2$
         }
     }
 
@@ -132,7 +146,7 @@ public class DateControlFactory<S extends ExtendableObject> implements IProperty
 	public String formatValueForTable(S extendableObject,
             ScalarPropertyAccessor<? extends Date,S> propertyAccessor) {
         Date value = propertyAccessor.getValue(extendableObject);
-        return fDateFormat.format(value);
+        return observeDateFormat().getValue().format(value);
     }
 
 	@Override

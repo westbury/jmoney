@@ -29,6 +29,7 @@ import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.resources.Messages;
 
 import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.internal.databinding.observable.ConstantObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
 import org.eclipse.core.runtime.CoreException;
@@ -46,9 +47,17 @@ import org.eclipse.swt.widgets.Text;
  */
 public abstract class AmountControlFactory<S extends ExtendableObject> extends PropertyControlFactory<S,Long> {
 
-	@Override
-	public Control createPropertyControl(Composite parent,
-			ScalarPropertyAccessor<Long,S> propertyAccessor, final IObservableValue<? extends S> modelObservable) {
+    @Override
+	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<Long,S> propertyAccessor, S modelObject) {
+    	return createPropertyControlInternal(parent, propertyAccessor.observe(modelObject), new ConstantObservableValue<S>(modelObject, null));
+    }
+
+    @Override
+	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<Long,S> propertyAccessor, IObservableValue<? extends S> modelObservable) {
+    	return createPropertyControlInternal(parent, propertyAccessor.observeDetail(modelObservable), modelObservable);
+    }
+
+    private Control createPropertyControlInternal(Composite parent, IObservableValue<Long> modelAmountObservable, final IObservableValue<? extends S> parentObservable) {
     	Text propertyControl = new Text(parent, SWT.TRAIL);
 
     	IBidiConverter<Long,String> amountToText = new IBidiConverter<Long,String>() {
@@ -57,14 +66,14 @@ public abstract class AmountControlFactory<S extends ExtendableObject> extends P
 				if (fromObject == null) {
 					return null;
 				} else {
-					Commodity commodity = getCommodity(modelObservable.getValue());
+					Commodity commodity = getCommodity(parentObservable.getValue());
 					return commodity.format(fromObject.longValue());
 				}
 			}
 
 			@Override
 			public Long targetToModel(String amountString) throws CoreException {
-				Commodity commodity = getCommodity(modelObservable.getValue());
+				Commodity commodity = getCommodity(parentObservable.getValue());
 		        if (amountString.trim().length() == 0) {
 					/*
 					 * The text box is empty so this maps to null. The property
@@ -80,7 +89,7 @@ public abstract class AmountControlFactory<S extends ExtendableObject> extends P
 			}
 		};
 
-		Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
+		Bind.twoWay(modelAmountObservable)
 		.convertWithTracking(amountToText)
 		.to(SWTObservables.observeText(propertyControl, SWT.Modify));
 

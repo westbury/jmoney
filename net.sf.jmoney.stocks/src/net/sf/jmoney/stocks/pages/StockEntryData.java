@@ -22,6 +22,7 @@ import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.model.StockEntryInfo;
 import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
 
+import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
 import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
@@ -95,6 +96,14 @@ public class StockEntryData extends EntryData {
 	 * but never zero and this observable should never be set to zero
 	 */
 	private final IObservableValue<Long> tax2 = new WritableValue<Long>();
+
+	/**
+	 * The security.  This goes in a different place in the transaction depending
+	 * on the transaction type.  If a purchase or sale, it is the amount of the entry
+	 * representing the change in the account stock balances.  If it is a dividend then
+	 * it goes in the security property which is really just a secondary information property.
+	 */
+	private final IObservableValue<Security> security = new WritableValue<Security>();
 
 	/*
 	 * This listener updates all our writable values.
@@ -258,6 +267,37 @@ public class StockEntryData extends EntryData {
 
 			analyzeTransaction();
 
+			/*
+			 * The above set the initial transaction type.
+			 * 
+			 * If the transaction type is changed then we must transform
+			 * the transaction to match.
+			 */
+			transactionType.addValueChangeListener(new IValueChangeListener<TransactionType>() {
+
+				@Override
+				public void handleValueChange(
+						ValueChangeEvent<TransactionType> event) {
+					switch (event.diff.getNewValue()) {
+					case Buy:
+						forceTransactionToBuy();
+						break;
+					case Sell:
+						forceTransactionToSell();
+						break;
+					case Dividend:
+						forceTransactionToDividend();
+						break;
+					case Transfer:
+						forceTransactionToTransfer();
+						break;
+					case Other:
+						forceTransactionToCustom();
+						break;
+					}
+				}
+			});
+			
 			dataManager.addChangeListenerWeakly(modelListener);
 
 			quantity.addValueChangeListener(new IValueChangeListener<Long>() {
@@ -392,6 +432,14 @@ public class StockEntryData extends EntryData {
 					}
 				}
 			});
+
+			security.addValueChangeListener(new IValueChangeListener<Security>() {
+				@Override
+				public void handleValueChange(ValueChangeEvent<Security> event) {
+					// TODO inline this?
+					setSecurity(event.diff.getNewValue());
+				}
+			});
 		}
 	}
 
@@ -469,6 +517,8 @@ public class StockEntryData extends EntryData {
 				} else {
 					unknownTransactionType = true;
 				}
+				
+				security.setValue(getSecurityFromTransaction());
 			}
 
 			if (unknownTransactionType) {
@@ -506,7 +556,7 @@ public class StockEntryData extends EntryData {
 	public void forceTransactionToDividend() {
 		// Get the security from the old transaction, which must be done
 		// before we start messing with this transaction.
-		Security security = getSecurityFromTransaction();
+		Security securityValue = security.getValue();
 
 		transactionType.setValue(TransactionType.Dividend);
 
@@ -529,7 +579,7 @@ public class StockEntryData extends EntryData {
 		if (dividendEntry == null) {
 			dividendEntry = entries.createEntry();
 			dividendEntry.setAccount(account.getDividendAccount());
-			StockEntryInfo.getSecurityAccessor().setValue(dividendEntry, security);
+			StockEntryInfo.getSecurityAccessor().setValue(dividendEntry, securityValue);
 		}
 
 		long grossDividend = -getEntry().getAmount();
@@ -568,8 +618,6 @@ public class StockEntryData extends EntryData {
 	}
 
 	private void forceTransactionToBuyOrSell(TransactionType transactionType) {
-		Security security = getSecurityFromTransaction();
-
 		this.transactionType.setValue(transactionType);
 
 		EntryCollection entries = getEntry().getTransaction().getEntryCollection();
@@ -591,7 +639,7 @@ public class StockEntryData extends EntryData {
 		if (purchaseOrSaleEntry == null) {
 			purchaseOrSaleEntry = entries.createEntry();
 			purchaseOrSaleEntry.setAccount(account);
-			purchaseOrSaleEntry.setCommodity(security);
+			purchaseOrSaleEntry.setCommodity(security.getValue());
 		}
 
 		// Commission, tax 1, and tax 2 entries may be null in this transaction type.
@@ -678,6 +726,15 @@ public class StockEntryData extends EntryData {
 	public boolean isPurchaseOrSale() {
 		return transactionType.getValue() == TransactionType.Buy
 				|| transactionType.getValue() == TransactionType.Sell;
+	}
+
+	public IObservableValue<Boolean> observeWhenPurchaseOrSale() {
+		return new ComputedValue<Boolean>() {
+			@Override
+			protected Boolean calculate() {
+				return isPurchaseOrSale();
+			}
+		};
 	}
 
 	public boolean isDividend() {
@@ -897,7 +954,7 @@ public class StockEntryData extends EntryData {
 	 *
 	 * @param security
 	 */
-	public void setSecurity(Security security) {
+	private void setSecurity(Security security) {
 		if (isPurchaseOrSale()) {
 			purchaseOrSaleEntry.setCommodity(security);
 			if (commissionEntry != null) {
@@ -921,6 +978,10 @@ public class StockEntryData extends EntryData {
 		return commission;
 	}
 
+	public IObservableValue<Long> quantity() {
+		return quantity;
+	}
+
 	public IObservableValue<BigDecimal> sharePrice() {
 		return sharePrice;
 	}
@@ -939,6 +1000,10 @@ public class StockEntryData extends EntryData {
 
 	public IObservableValue<Long> withholdingTax() {
 		return withholdingTax;
+	}
+
+	public IObservableValue<Security> security() {
+		return security;
 	}
 
 	/**

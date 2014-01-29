@@ -80,7 +80,7 @@ public class NewPropertyWizard extends Wizard {
 	{
 		// Show the page that prompts for all the property values.
 		Set<ScalarPropertyAccessor<?,?>> excludedProperties = new HashSet<ScalarPropertyAccessor<?,?>>(); 
-		WizardPage propertyPage = new WizardPropertyPage("propertyPage", "Stock Properties", "Enter values for the stock properties", newUncommittedAccount, realAssetPropertySet, CommodityInfo.getNameAccessor(), excludedProperties);
+		WizardPage propertyPage = new WizardPropertyPage<RealProperty>("propertyPage", "Stock Properties", "Enter values for the stock properties", newUncommittedAccount, realAssetPropertySet, CommodityInfo.getNameAccessor(), excludedProperties);
 		addPage(propertyPage);
 
 		WizardPage summaryPage = new SummaryPage("summaryPage");

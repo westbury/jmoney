@@ -81,44 +81,44 @@ public class ReconciliationEntryInfo implements IPropertySetInfo {
 	public PropertySet registerProperties() {
 
 		IPropertyControlFactory<Entry,BankStatement> statementControlFactory = new PropertyControlFactory<Entry,BankStatement>() {
-			@Override
-			public IPropertyControl<Entry> createPropertyControl(Composite parent, final ScalarPropertyAccessor<BankStatement,Entry> propertyAccessor) {
-		        final Text control = new Text(parent, SWT.NONE);
-		        return new IPropertyControl<Entry>() {
-
-		        	private Entry object;
-
-					@Override
-					public Control getControl() {
-						return control;
-					}
-
-					@Override
-					public void load(Entry object) {
-						this.object = object;
-						BankStatement statement = propertyAccessor.getValue(object);
-						if (statement == null) {
-							control.setText("");
-						} else {
-							control.setText(statement.toString());
-						}
-					}
-
-					@Override
-					public void save() {
-						// TODO: make this more robust.
-						// And the control is better if a CCombo.
-						String text = control.getText();
-						BankStatement value;
-						if (text.trim().isEmpty()) {
-							value = null;
-						} else {
-							value = new BankStatement(text);
-						}
-						propertyAccessor.setValue(object, value);
-					}
-		        };
-			}
+//			@Override
+//			public IPropertyControl<Entry> createPropertyControl(Composite parent, final ScalarPropertyAccessor<BankStatement,Entry> propertyAccessor) {
+//		        final Text control = new Text(parent, SWT.NONE);
+//		        return new IPropertyControl<Entry>() {
+//
+//		        	private Entry object;
+//
+//					@Override
+//					public Control getControl() {
+//						return control;
+//					}
+//
+//					@Override
+//					public void load(Entry object) {
+//						this.object = object;
+//						BankStatement statement = propertyAccessor.getValue(object);
+//						if (statement == null) {
+//							control.setText("");
+//						} else {
+//							control.setText(statement.toString());
+//						}
+//					}
+//
+//					@Override
+//					public void save() {
+//						// TODO: make this more robust.
+//						// And the control is better if a CCombo.
+//						String text = control.getText();
+//						BankStatement value;
+//						if (text.trim().isEmpty()) {
+//							value = null;
+//						} else {
+//							value = new BankStatement(text);
+//						}
+//						propertyAccessor.setValue(object, value);
+//					}
+//		        };
+//			}
 
 			@Override
 			public Control createPropertyControl(

@@ -83,12 +83,12 @@ public class CurrencyInfo implements IPropertySetInfo {
 		IPropertyControlFactory<Currency,String> textControlFactory = new TextControlFactory<Currency>();
 
 		IPropertyControlFactory<Currency,Integer> numberControlFactory = new PropertyControlFactory<Currency,Integer>() {
-			@Override
-			public IPropertyControl<Currency> createPropertyControl(Composite parent, ScalarPropertyAccessor<Integer,Currency> propertyAccessor) {
-				// Property is not editable
-				return null;
-			}
-
+//			@Override
+//			public IPropertyControl<Currency> createPropertyControl(Composite parent, ScalarPropertyAccessor<Integer,Currency> propertyAccessor) {
+//				// Property is not editable
+//				return null;
+//			}
+			
 			@Override
 			public Control createPropertyControl(Composite parent,
 					ScalarPropertyAccessor<Integer, Currency> propertyAccessor,

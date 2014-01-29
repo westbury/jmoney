@@ -28,6 +28,14 @@ import java.util.Date;
 import net.sf.jmoney.JMoneyPlugin;
 import net.sf.jmoney.VerySimpleDateFormat;
 
+import org.eclipse.core.databinding.observable.value.ComputedValue;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.internal.databinding.Activator;
+import org.eclipse.core.runtime.preferences.ConfigurationScope;
+import org.eclipse.core.runtime.preferences.DefaultScope;
+import org.eclipse.core.runtime.preferences.IScopeContext;
+import org.eclipse.core.runtime.preferences.InstanceScope;
+import org.eclipse.jface.databinding.preference.PreferenceObservables;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.KeyAdapter;
@@ -61,8 +69,17 @@ import org.eclipse.swt.widgets.Text;
  */
 public class DateControl extends DateComposite {
 
-    // TODO Listen to date format changes.
-    private VerySimpleDateFormat fDateFormat = new VerySimpleDateFormat(JMoneyPlugin.getDefault().getDateFormat());
+	private static IObservableValue<String> dateFormatString = PreferenceObservables.observe(
+			new IScopeContext [] { InstanceScope.INSTANCE, ConfigurationScope.INSTANCE, DefaultScope.INSTANCE }, 
+			JMoneyPlugin.PLUGIN_ID).observe("dateFormat", "MMMM-dd/yy");
+
+    private static IObservableValue<VerySimpleDateFormat> dateFormat = new ComputedValue<VerySimpleDateFormat>() {
+		@Override
+		protected VerySimpleDateFormat calculate() {
+	    	return new VerySimpleDateFormat(dateFormatString.getValue());
+		}
+    };
+    
 
 	/**
 	 * The text box containing the date
@@ -103,7 +120,7 @@ public class DateControl extends DateComposite {
 
 		            Calendar calendar = Calendar.getInstance();
 		            calendar.setTime(
-		            		fDateFormat.parse(
+		            		dateFormat.getValue().parse(
 		            				textControl.getText()
 		            		)
 		            );
@@ -115,7 +132,7 @@ public class DateControl extends DateComposite {
 					}
 
 					textControl.setText(
-							fDateFormat.format(
+							dateFormat.getValue().format(
 									calendar.getTime()
 							)
 					);
@@ -145,7 +162,7 @@ public class DateControl extends DateComposite {
                 // date picker).
     	        try {
         	        String t = textControl.getText();
-    	        	Date date = fDateFormat.parse(t);
+    	        	Date date = dateFormat.getValue().parse(t);
            	        Calendar calendar = Calendar.getInstance();
         	        calendar.setTime(date);
            	        swtcal.setYear(calendar.get(Calendar.YEAR));
@@ -178,7 +195,7 @@ public class DateControl extends DateComposite {
 
     	        				cal.set(swtcal.getYear(), swtcal.getMonth(), swtcal.getDay());
     	        				Date date = cal.getTime();
-    	        				textControl.setText(fDateFormat.format(date));
+    	        				textControl.setText(dateFormat.getValue().format(date));
     	        			}
     	        		}
     	        );
@@ -250,7 +267,7 @@ public class DateControl extends DateComposite {
     	if (date == null) {
     		textControl.setText(""); //$NON-NLS-1$
     	} else {
-    		this.textControl.setText(fDateFormat.format(date));
+    		this.textControl.setText(dateFormat.getValue().format(date));
     	}
     }
 
@@ -262,7 +279,7 @@ public class DateControl extends DateComposite {
 	public Date getDate() {
         String text = textControl.getText();
         try {
-        	return fDateFormat.parse(text);
+        	return dateFormat.getValue().parse(text);
         } catch (IllegalArgumentException e) {
         	return null;
         }

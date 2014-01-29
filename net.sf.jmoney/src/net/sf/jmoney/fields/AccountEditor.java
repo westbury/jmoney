@@ -22,6 +22,7 @@
 
 package net.sf.jmoney.fields;
 
+import net.sf.jmoney.JMoneyPlugin;
 import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IScalarPropertyAccessor;
 import net.sf.jmoney.isolation.SessionChangeAdapter;
@@ -30,6 +31,7 @@ import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
+import net.sf.jmoney.model2.Session;
 
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
 import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
@@ -84,9 +86,11 @@ public class AccountEditor<S extends ExtendableObject, A extends Account> implem
      * 			the user for selection will be restricted to accounts
      * 			of the appropriate type.
      * @param session the session whose accounts are listed in the combo box
+     * @deprecated not used with data binding
      */
     public AccountEditor(Composite parent, ScalarPropertyAccessor<A,S> propertyAccessor) {
-        propertyControl = new AccountControl<A>(parent, null, propertyAccessor.getClassOfValueObject());
+		Session session = JMoneyPlugin.getDefault().getSessionManager().getSession();
+        propertyControl = new AccountControl<A>(parent, session, propertyAccessor.getClassOfValueObject());
         this.accountPropertyAccessor = propertyAccessor;
 
         /*

@@ -22,8 +22,6 @@
 
 package net.sf.jmoney.entrytable;
 
-import java.util.Vector;
-
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
@@ -94,7 +92,6 @@ public class OtherEntriesPropertyBlock extends IndividualBlock<EntryData, EntryR
 
 		return new IPropertyControl<EntryData>() {
 
-			private Vector<IPropertyControl> propertyControls = new Vector<IPropertyControl>();
 			private FocusListener controlFocusListener;
 
 			@Override
@@ -103,29 +100,23 @@ public class OtherEntriesPropertyBlock extends IndividualBlock<EntryData, EntryR
 			}
 
 			@Override
-			@SuppressWarnings("unchecked")
 			public void load(EntryData data) {
 				for (Control child: composite.getChildren()) {
 					child.dispose();
 				}
-				propertyControls.clear();
 
 				for (Entry entry: data.getSplitEntries()) {
-					IPropertyControl propertyControl = accessor.createPropertyControl(composite);
-					propertyControl.load(entry);
-					propertyControls.add(propertyControl);
+					Control propertyControl = accessor.createPropertyControl(composite, entry);
 
-					propertyControl.getControl().setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+					propertyControl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
-					addFocusListenerRecursively(propertyControl.getControl(), controlFocusListener);
+					addFocusListenerRecursively(propertyControl, controlFocusListener);
 				}
 			}
 
 			@Override
 			public void save() {
-				for (IPropertyControl propertyControl: propertyControls) {
-					propertyControl.save();
-				}
+				// Databinding, so nothing to do here.
 			}
 
 			private void addFocusListenerRecursively(Control control, FocusListener listener) {

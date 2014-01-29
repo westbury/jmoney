@@ -12,6 +12,15 @@
 		</wizard>
 	</extension>
  
+    <extension
+         point="net.sf.jmoney.reconciliation.bankstatements">
+        <statement-source
+           id="ofximport" 
+           description="A Financial Exchange File (*.OFX or *.QFX)" 
+           class="net.sf.jmoney.ofx.reconciliation.OfxImport">
+        </statement-source> 
+   </extension>
+   
    <extension point="net.sf.jmoney.fields">
       <extension-property-set
       	id="entryProperties"

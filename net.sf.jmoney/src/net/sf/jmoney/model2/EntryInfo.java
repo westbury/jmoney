@@ -170,26 +170,26 @@ public class EntryInfo implements IPropertySetInfo {
 		        return dateFormat.format(date);
 			}
 
-			@Override
-			public IPropertyControl<Entry> createPropertyControl(Composite parent, final ScalarPropertyAccessor<Long,Entry> propertyAccessor) {
-				// This property is not editable
-				final Label control = new Label(parent, SWT.NONE);
-
-		    	return new IPropertyControl<Entry>() {
-					@Override
-					public Control getControl() {
-						return control;
-					}
-					@Override
-					public void load(Entry object) {
-						control.setText(formatValueForTable(object, propertyAccessor));
-					}
-					@Override
-					public void save() {
-						// Not editable so nothing to do
-					}
-				};
-			}
+//			@Override
+//			public IPropertyControl<Entry> createPropertyControl(Composite parent, final ScalarPropertyAccessor<Long,Entry> propertyAccessor) {
+//				// This property is not editable
+//				final Label control = new Label(parent, SWT.NONE);
+//
+//		    	return new IPropertyControl<Entry>() {
+//					@Override
+//					public Control getControl() {
+//						return control;
+//					}
+//					@Override
+//					public void load(Entry object) {
+//						control.setText(formatValueForTable(object, propertyAccessor));
+//					}
+//					@Override
+//					public void save() {
+//						// Not editable so nothing to do
+//					}
+//				};
+//			}
 
 			@Override
 			public Long getDefaultValue() {

@@ -7,6 +7,8 @@ import java.util.Map;
 
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.jface.viewers.CellEditor;
 import org.eclipse.jface.viewers.ILabelProvider;
 import org.eclipse.swt.widgets.Composite;
@@ -62,95 +64,99 @@ public class ExtendableObjectPropertySource<S extends ExtendableObject> implemen
 		for (final ScalarPropertyAccessor<?,? super S> accessor : propertySet.getScalarProperties3()) {
 			accessorMap.put(accessor.getName(), accessor);
 			
-			descriptors.add(new IPropertyDescriptor() {
+			addToDescriptors(extendableObject, accessor);
+		}
+    }
 
-				@Override
-				public CellEditor createPropertyEditor(Composite parent) {
+	private <S1 extends ExtendableObject, S2 extends S1> void addToDescriptors(final S2 extendableObject,
+			final ScalarPropertyAccessor<?, S1> accessor) {
+		descriptors.add(new IPropertyDescriptor() {
+
+			@Override
+			public CellEditor createPropertyEditor(Composite parent) {
+				
+				CellEditor editor = new CellEditor() {
+
+					IObservableValue<S1> observableValue = new WritableValue<S1>();
 					
-					CellEditor editor = new CellEditor() {
+					@Override
+					protected Control createControl(Composite parent) {
+						return accessor.createPropertyControl2(parent, observableValue);
+					}
 
-						private IPropertyControl<? super S> control = null;
-						
-						@Override
-						protected Control createControl(Composite parent) {
-							control = accessor.createPropertyControl(parent);
-							return control.getControl();
-						}
+					@Override
+					protected Object doGetValue() {
+						return observableValue.getValue();
+					}
 
-						@Override
-						protected Object doGetValue() {
-							control.save();
-							return null;
-						}
+					@Override
+					protected void doSetFocus() {
+						// TODO need a proper way of setting focus
+//							control.getControl().setFocus();
+					}
 
-						@Override
-						protected void doSetFocus() {
-							control.getControl().setFocus();
-						}
-
-						@Override
-						protected void doSetValue(Object value) {
-							control.load(extendableObject);
-						}
+					@Override
+					protected void doSetValue(Object value) {
+						observableValue.setValue(extendableObject);
+					}
 
 //						private <V> void setValue(ScalarPropertyAccessor<V> accessor, Object value) {
 //							extendableObject.setPropertyValue(accessor, (V)accessor.getClass().cast(value));
 //						}
-					};
-					
-					editor.create(parent);
-					
-					return editor;
-				}
+				};
+				
+				editor.create(parent);
+				
+				return editor;
+			}
 
-				@Override
-				public String getCategory() {
-					// TODO Auto-generated method stub
-					return null;
-				}
+			@Override
+			public String getCategory() {
+				// TODO Auto-generated method stub
+				return null;
+			}
 
-				@Override
-				public String getDescription() {
-					return Messages.ExtendableObjectPropertySource_0 + accessor.displayName;
-				}
+			@Override
+			public String getDescription() {
+				return Messages.ExtendableObjectPropertySource_0 + accessor.displayName;
+			}
 
-				@Override
-				public String getDisplayName() {
-					return accessor.getDisplayName();
-				}
+			@Override
+			public String getDisplayName() {
+				return accessor.getDisplayName();
+			}
 
-				@Override
-				public String[] getFilterFlags() {
-					// TODO Auto-generated method stub
-					return null;
-				}
+			@Override
+			public String[] getFilterFlags() {
+				// TODO Auto-generated method stub
+				return null;
+			}
 
-				@Override
-				public Object getHelpContextIds() {
-					// TODO Auto-generated method stub
-					return null;
-				}
+			@Override
+			public Object getHelpContextIds() {
+				// TODO Auto-generated method stub
+				return null;
+			}
 
-				@Override
-				public Object getId() {
-					return accessor.getName();
-				}
+			@Override
+			public Object getId() {
+				return accessor.getName();
+			}
 
-				@Override
-				public ILabelProvider getLabelProvider() {
-					// TODO Auto-generated method stub
-					return null;
-				}
+			@Override
+			public ILabelProvider getLabelProvider() {
+				// TODO Auto-generated method stub
+				return null;
+			}
 
-				@Override
-				public boolean isCompatibleWith(
-						IPropertyDescriptor anotherProperty) {
-					// TODO Auto-generated method stub
-					return false;
-				}
-			});
-		}
-    }
+			@Override
+			public boolean isCompatibleWith(
+					IPropertyDescriptor anotherProperty) {
+				// TODO Auto-generated method stub
+				return false;
+			}
+		});
+	}
     	
 
 	@Override

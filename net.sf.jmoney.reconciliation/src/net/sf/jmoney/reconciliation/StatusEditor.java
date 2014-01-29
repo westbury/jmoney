@@ -54,6 +54,7 @@ public class StatusEditor implements IPropertyControl<Entry> {
      * @param propertyAccessor the accessor for the property to be edited
      * 			by this control.  This property accessor will always be the
      * 			'status' property in the ReconciliationEntry propery set.
+     * @deprecated not used with data binding
      */
     public StatusEditor(Composite parent, ScalarPropertyAccessor propertyAccessor, String [] items) {
         propertyControl = new CCombo(parent, 0);

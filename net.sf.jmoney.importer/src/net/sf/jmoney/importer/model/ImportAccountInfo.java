@@ -88,52 +88,52 @@ public class ImportAccountInfo implements IPropertySetInfo {
 	public PropertySet<ImportAccount,CapitalAccount> registerProperties() {
 
 		IPropertyControlFactory<CapitalAccount,String> importDataControlFactory = new PropertyControlFactory<CapitalAccount,String>() {
-			@Override
-			public IPropertyControl<CapitalAccount> createPropertyControl(Composite parent,
-					ScalarPropertyAccessor<String,CapitalAccount> propertyAccessor) {
-
-				final List<String> ids = new ArrayList<String>();
-				final Combo control = new Combo(parent, SWT.READ_ONLY);
-
-				ids.add(null);
-				control.add("none");
-
-				IExtensionRegistry registry = Platform.getExtensionRegistry();
-				for (IConfigurationElement element: registry.getConfigurationElementsFor("net.sf.jmoney.importer.importdata")) { //$NON-NLS-1$
-					if (element.getName().equals("import-format")) { //$NON-NLS-1$
-						String label = element.getAttribute("label"); //$NON-NLS-1$
-						String id = element.getAttribute("id"); //$NON-NLS-1$
-						ids.add(id);
-						control.add(label);
-					}
-				}
-
-				control.setVisibleItemCount(15);
-
-				return new IPropertyControl<CapitalAccount>() {
-
-					private CapitalAccount account;
-
-					@Override
-					public Control getControl() {
-						return control;
-					}
-
-					@Override
-					public void load(CapitalAccount account) {
-						this.account = account;
-
-						String importFormatId = getImportDataExtensionIdAccessor().getValue(account);
-						int index = ids.indexOf(importFormatId);
-						control.select(index);
-					}
-
-					@Override
-					public void save() {
-						String importFormatId = ids.get(control.getSelectionIndex());
-						getImportDataExtensionIdAccessor().setValue(account, importFormatId);
-					}};
-			}
+//			@Override
+//			public IPropertyControl<CapitalAccount> createPropertyControl(Composite parent,
+//					ScalarPropertyAccessor<String,CapitalAccount> propertyAccessor) {
+//
+//				final List<String> ids = new ArrayList<String>();
+//				final Combo control = new Combo(parent, SWT.READ_ONLY);
+//
+//				ids.add(null);
+//				control.add("none");
+//
+//				IExtensionRegistry registry = Platform.getExtensionRegistry();
+//				for (IConfigurationElement element: registry.getConfigurationElementsFor("net.sf.jmoney.importer.importdata")) { //$NON-NLS-1$
+//					if (element.getName().equals("import-format")) { //$NON-NLS-1$
+//						String label = element.getAttribute("label"); //$NON-NLS-1$
+//						String id = element.getAttribute("id"); //$NON-NLS-1$
+//						ids.add(id);
+//						control.add(label);
+//					}
+//				}
+//
+//				control.setVisibleItemCount(15);
+//
+//				return new IPropertyControl<CapitalAccount>() {
+//
+//					private CapitalAccount account;
+//
+//					@Override
+//					public Control getControl() {
+//						return control;
+//					}
+//
+//					@Override
+//					public void load(CapitalAccount account) {
+//						this.account = account;
+//
+//						String importFormatId = getImportDataExtensionIdAccessor().getValue(account);
+//						int index = ids.indexOf(importFormatId);
+//						control.select(index);
+//					}
+//
+//					@Override
+//					public void save() {
+//						String importFormatId = ids.get(control.getSelectionIndex());
+//						getImportDataExtensionIdAccessor().setValue(account, importFormatId);
+//					}};
+//			}
 
 			@Override
 			public Control createPropertyControl(

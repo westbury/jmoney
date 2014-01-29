@@ -48,12 +48,16 @@ import org.eclipse.swt.widgets.Control;
 public class ImageControlFactory<S extends ExtendableObject> implements IPropertyControlFactory<S,IBlob> {
 
     @Override
-	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<IBlob,S> propertyAccessor) {
-        return new ImageEditor<S>(parent, propertyAccessor);
+	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<IBlob,S> propertyAccessor, S modelObject) {
+    	return createPropertyControlInternal(parent, propertyAccessor.observe(modelObject));
     }
 
     @Override
 	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<IBlob,S> propertyAccessor, IObservableValue<? extends S> modelObservable) {
+    	return createPropertyControlInternal(parent, propertyAccessor.observeDetail(modelObservable));
+    }
+
+    private Control createPropertyControlInternal(Composite parent, IObservableValue<IBlob> modelBlobObservable) {
     	ImageControl propertyControl = new ImageControl(parent);
 
 //    	IBidiConverter<IBlob,String> dateToText = new IBidiConverter<IBlob,String>() {
@@ -77,8 +81,8 @@ public class ImageControlFactory<S extends ExtendableObject> implements IPropert
 //			}
 //		};
 
-		Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
-		.to(BeansObservables.observeDetailValue(modelObservable, "blob", IBlob.class));
+		Bind.twoWay(modelBlobObservable)
+		.to(BeansObservables.observeValue(propertyControl, "blob", IBlob.class));
 
 		return propertyControl;
     }

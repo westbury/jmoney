@@ -26,7 +26,6 @@ import net.sf.jmoney.JMoneyPlugin;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.ExtendableObject;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IReferenceControlFactory;
 import net.sf.jmoney.model2.PropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
@@ -50,12 +49,16 @@ import org.eclipse.swt.widgets.Control;
 public abstract class CurrencyControlFactory<P, S extends ExtendableObject> extends PropertyControlFactory<S,Currency> implements IReferenceControlFactory<P,S,Currency> {
 
     @Override
-	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<Currency,S> propertyAccessor) {
-        return new CurrencyEditor<S>(parent, propertyAccessor);
+	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<Currency,S> propertyAccessor, S modelObject) {
+    	return createPropertyControlInternal(parent, propertyAccessor.observe(modelObject));
     }
 
     @Override
 	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<Currency,S> propertyAccessor, IObservableValue<? extends S> modelObservable) {
+    	return createPropertyControlInternal(parent, propertyAccessor.observeDetail(modelObservable));
+    }
+
+    private Control createPropertyControlInternal(Composite parent, IObservableValue<Currency> modelCurrencyObservable) {
         CCombo propertyControl = new CCombo(parent, 0);
 
         Session session = JMoneyPlugin.getDefault().getSession();
@@ -72,7 +75,7 @@ public abstract class CurrencyControlFactory<P, S extends ExtendableObject> exte
         IBidiConverter<Currency,String> currencyToName = new IBidiConverter<Currency,String>() {
 			@Override
 			public String modelToTarget(Currency fromObject) {
-				return fromObject.getName();
+				return fromObject == null ? null : fromObject.getName();
 			}
 
 			@Override
@@ -89,7 +92,7 @@ public abstract class CurrencyControlFactory<P, S extends ExtendableObject> exte
 			}
 		};
 
-		Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
+		Bind.twoWay(modelCurrencyObservable)
 		.convert(currencyToName)
 		.to(SWTObservables.observeSelection(propertyControl));
 

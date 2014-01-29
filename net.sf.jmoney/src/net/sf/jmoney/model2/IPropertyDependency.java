@@ -32,18 +32,26 @@ package net.sf.jmoney.model2;
  * When the applicability of a property depends on the value of other
  * properties, the property must provide an implementation of this
  * IPropertyDependency interface.
+ * <P>
  * 
  * @author Nigel Westbury
  *
  * @param <E> the class of the object that contains this property, which
- * 				must be either ExtendableObject or ExtensionObject 
+ * 				must be either ExtendableObject or ExtensionObject
  */
 public interface IPropertyDependency<E extends Object> {
-    /**
+	/**
+	 * This is a tracked getter, which means if the applicability of the
+	 * property depends on other properties in the object then those other
+	 * properties should be obtained from an observable. That way the UI will be
+	 * notified if the applicability of the property should change for any
+	 * reason.
+	 * 
 	 * @param object
 	 *            the object containing the property
 	 * @return true if, given the current state of the given object, the
 	 *         property is applicable, false if the property is not applicable
+	 * @trackedGetter
 	 */
 	boolean isApplicable(E extendableObject);
 }

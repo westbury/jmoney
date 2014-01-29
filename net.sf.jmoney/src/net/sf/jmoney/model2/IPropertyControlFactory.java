@@ -49,7 +49,7 @@ public interface IPropertyControlFactory<S extends ExtendableObject, V> {
 	 * @return An interface to the class that wraps the
 	 * 			control.
 	 */
-	IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<V,S> propertyAccessor);
+//	IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<V,S> propertyAccessor);
 
 	/**
 	 * Create a control that edits the property.
@@ -62,6 +62,10 @@ public interface IPropertyControlFactory<S extends ExtendableObject, V> {
 	 * 			control.
 	 */
 //	Control createPropertyControl(Composite parent, IObservableValue<V> modelObservable);
+
+	Control createPropertyControl(Composite parent,
+			ScalarPropertyAccessor<V, S> propertyAccessor,
+			S modelObject);
 
 	Control createPropertyControl(Composite parent,
 			ScalarPropertyAccessor<V, S> propertyAccessor,

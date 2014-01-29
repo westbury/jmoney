@@ -146,7 +146,9 @@ IObservableValue<S> objectContainingProperty = new ComputedValue<S>() {
 			public void save() {
 //				control.save();
 //				fireUserChange(coordinator);
-				throw new UnsupportedOperationException();
+				
+				// This is still called...
+//				throw new UnsupportedOperationException();
 			}
 
 			@Override

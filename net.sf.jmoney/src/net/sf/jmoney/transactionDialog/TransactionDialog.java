@@ -561,8 +561,9 @@ public class TransactionDialog extends Dialog {
 	}
 
 	private void createEntryRow(Entry entry) {
-		SplitEntryRowControl rowControl = new SplitEntryRowControl(tableComposite, SWT.NONE, rootBlock, false, rowTracker, cellTracker);
-		rowControl.setInput(entry);
+		// SplitEntryRowControl really should not have input because it is always created for a single Entry
+		SplitEntryRowControl rowControl = new SplitEntryRowControl(tableComposite, SWT.NONE, rootBlock, false, rowTracker, cellTracker, entry);
+//		rowControl.setInput(entry);
 		rowControl.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
 
 		rowControlMap.put(entry, rowControl);

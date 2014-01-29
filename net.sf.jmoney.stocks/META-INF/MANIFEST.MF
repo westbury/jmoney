@@ -20,4 +20,5 @@ Bundle-Vendor: JMoney.sf.net
 Export-Package: net.sf.jmoney.stocks.gains,
  net.sf.jmoney.stocks.model
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
-Import-Package: org.eclipse.core.databinding
+Import-Package: org.eclipse.core.databinding,
+ org.eclipse.core.databinding.beans

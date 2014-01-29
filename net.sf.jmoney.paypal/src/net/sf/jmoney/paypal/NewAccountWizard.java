@@ -97,14 +97,14 @@ public class NewAccountWizard extends Wizard implements IWorkbenchWizard {
 	@Override
 	public void addPages()
 	{
-		Set<ScalarPropertyAccessor<?,?>> excludedProperties = new HashSet<ScalarPropertyAccessor<?,?>>(); 
+		Set<ScalarPropertyAccessor<?,? extends PaypalAccount>> excludedProperties = new HashSet<ScalarPropertyAccessor<?,? extends PaypalAccount>>(); 
 
 		excludedProperties.add(PaypalAccountInfo.getTransferBankAccountAccessor());
 		excludedProperties.add(PaypalAccountInfo.getTransferCreditCardAccountAccessor());
 		excludedProperties.add(PaypalAccountInfo.getPaypalFeesAccountAccessor());
 
 		// Show the page that prompts for all the property values.
-		WizardPage propertyPage = new WizardPropertyPage("propertyPage", Messages.NewAccountWizard_PropertyPageTitle, Messages.NewAccountWizard_PropertyPageMessage, newUncommittedAccount, PaypalAccountInfo.getPropertySet(), AccountInfo.getNameAccessor(), excludedProperties); //$NON-NLS-1$
+		WizardPage propertyPage = new WizardPropertyPage<PaypalAccount>("propertyPage", Messages.NewAccountWizard_PropertyPageTitle, Messages.NewAccountWizard_PropertyPageMessage, newUncommittedAccount, PaypalAccountInfo.getPropertySet(), AccountInfo.getNameAccessor(), excludedProperties); //$NON-NLS-1$
 		addPage(propertyPage);
 
 		// Show the page that prompts for the paypal transfer accounts

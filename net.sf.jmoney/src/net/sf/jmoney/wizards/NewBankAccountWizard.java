@@ -29,13 +29,18 @@ import java.util.Set;
 import net.sf.jmoney.isolation.UncommittedObjectKey;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.AccountInfo;
+import net.sf.jmoney.model2.BankAccount;
+import net.sf.jmoney.model2.BankAccountInfo;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.ExtendablePropertySet;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.wizard.Wizard;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
@@ -44,15 +49,21 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.ui.INewWizard;
+import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.IWorkbenchWindow;
 
-public class NewAccountWizard<S extends CapitalAccount> extends Wizard {
-	public static final String ID = "net.sf.jmoney.wizards.new.capitalaccount"; //$NON-NLS-1$
+/**
+ * This class is a 'new' wizard, initiated from the 'New' menu.  It creates a BankAccount.
+ * 
+ * @author Nigel Westbury
+ */
+public class NewBankAccountWizard extends Wizard implements INewWizard {
+	public static final String ID = "net.sf.jmoney.wizards.new.bankaccount"; //$NON-NLS-1$
 	
-	private ExtendablePropertySet<S> accountPropertySet;
-
 	private TransactionManagerForAccounts transactionManager;
 	
-	private S newUncommittedAccount;
+	private BankAccount newUncommittedAccount;
 	
 	/**
 	 * This is set when 'finish' is pressed and the new account is committed.
@@ -60,41 +71,55 @@ public class NewAccountWizard<S extends CapitalAccount> extends Wizard {
 	private Account newCommittedAccount;
 
 	/**
+	 * Default version used from plugin.xml.
+	 * TODO: Need to have a separate class for each type of account.
 	 * 
-	 * @param finalPropertySet the property set object of the class
-	 * 		of account to create 
-	 * @param parentAccount the parent account or null if this is to be
-	 * 		a top level account 
 	 */
-	public NewAccountWizard(Session session, CapitalAccount parentAccount, ExtendablePropertySet<S> accountPropertySet) {
+	public NewBankAccountWizard() {
 		this.setWindowTitle(Messages.NewAccountWizard_WindowTitleCategory);
 		this.setHelpAvailable(true);
 //		PlatformUI.getWorkbench().getHelpSystem().setHelp(this.getContainer(), "net.sf.jmoney.help.newAccountDialogId");
-		
-		this.accountPropertySet = accountPropertySet;
-		
-		createAccount(session, parentAccount, accountPropertySet);
 	}
 
 	private void createAccount(Session session, CapitalAccount parentAccount,
-			ExtendablePropertySet<S> accountPropertySet) {
+			ExtendablePropertySet<? extends CapitalAccount> accountPropertySet) {
 		transactionManager = new TransactionManagerForAccounts(session.getDataManager());
 		
 		CapitalAccount parentAccount2 = transactionManager.getCopyInTransaction(parentAccount);
 		if (parentAccount2 == null) {
 			Session session2 = transactionManager.getSession();
-			newUncommittedAccount = session2.createAccount(accountPropertySet);
+			newUncommittedAccount = session2.createAccount(BankAccountInfo.getPropertySet());
 		} else {
-			newUncommittedAccount = parentAccount2.createSubAccount(accountPropertySet);
+			newUncommittedAccount = parentAccount2.createSubAccount(BankAccountInfo.getPropertySet());
 		}
 	}
 	
 
 	@Override
-	public void addPages() {
+	public void init(IWorkbench workbench, IStructuredSelection selection) {
+		IWorkbenchWindow window = workbench.getActiveWorkbenchWindow();
+		IDataManagerForAccounts datastoreManager = (IDataManagerForAccounts)window.getActivePage().getInput();
+		if (datastoreManager == null) {
+			MessageDialog.openError(window.getShell(), "Unavailable", "You must open an accounting session before you can create an account.");
+			return;
+		}
+		
+		Session session = datastoreManager.getSession();
+		
+		/*
+		 * We could get the parent account from the selection.  However it seems to cause less confusion
+		 * if the account is created as a top level account whenever this wizard is invoked from the 'new...'
+		 * drop-down.
+		 */
+		createAccount(session, null, BankAccountInfo.getPropertySet());
+	}
+	
+	@Override
+	public void addPages()
+	{
 		// Show the page that prompts for all the property values.
-		Set<ScalarPropertyAccessor<?,? extends S>> excludedProperties = new HashSet<ScalarPropertyAccessor<?,? extends S>>(); 
-		WizardPage propertyPage = new WizardPropertyPage<S>("propertyPage", Messages.NewAccountWizard_PropertyPageTitle, Messages.NewAccountWizard_PropertyPageMessage, newUncommittedAccount, accountPropertySet , AccountInfo.getNameAccessor(), excludedProperties); //$NON-NLS-1$
+		Set<ScalarPropertyAccessor<?,? extends BankAccount>> excludedProperties = new HashSet<ScalarPropertyAccessor<?,? extends BankAccount>>(); 
+		WizardPage propertyPage = new WizardPropertyPage<BankAccount>("propertyPage", Messages.NewAccountWizard_PropertyPageTitle, Messages.NewAccountWizard_PropertyPageMessage, newUncommittedAccount, BankAccountInfo.getPropertySet(), AccountInfo.getNameAccessor(), excludedProperties); //$NON-NLS-1$
 		addPage(propertyPage);
 
 		WizardPage summaryPage = new SummaryPage("summaryPage"); //$NON-NLS-1$

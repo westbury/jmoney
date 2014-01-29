@@ -25,7 +25,6 @@ package net.sf.jmoney.fields;
 import java.util.Comparator;
 
 import net.sf.jmoney.model2.ExtendableObject;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
@@ -44,18 +43,19 @@ import org.eclipse.swt.widgets.Control;
  */
 public class CheckBoxControlFactory<S extends ExtendableObject> implements IPropertyControlFactory<S,Boolean> {
 
-    public CheckBoxControlFactory() {
-    }
-
     @Override
-	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<Boolean,S> propertyAccessor) {
-  		return new CheckMarkEditor<S>(parent, propertyAccessor);
+	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<Boolean,S> propertyAccessor, S modelObject) {
+    	return createPropertyControlInternal(parent, propertyAccessor.observe(modelObject));
     }
 
     @Override
 	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<Boolean,S> propertyAccessor, IObservableValue<? extends S> modelObservable) {
+    	return createPropertyControlInternal(parent, propertyAccessor.observeDetail(modelObservable));
+    }
+    
+    private Control createPropertyControlInternal(Composite parent, IObservableValue<Boolean> modelBooleanObservable) {
     	Button button = new Button(parent, SWT.CHECK);
-  		Bind.twoWay(propertyAccessor.observeDetail(modelObservable)).to(SWTObservables.observeSelection(button));
+  		Bind.twoWay(modelBooleanObservable).to(SWTObservables.observeSelection(button));
   		return button;
     }
 

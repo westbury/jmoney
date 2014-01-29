@@ -1,7 +1,6 @@
 package net.sf.jmoney.fields;
 
 import net.sf.jmoney.model2.ExtendableObject;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.PropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
@@ -15,47 +14,25 @@ import org.eclipse.swt.widgets.Label;
 
 public class NonEditableTextControlFactory<S extends ExtendableObject> extends PropertyControlFactory<S,String> {
 
-	@Override
-	public IPropertyControl<S> createPropertyControl(Composite parent, final ScalarPropertyAccessor<String,S> propertyAccessor) {
-
-		// Property is not editable
-        final Label control = new Label(parent, SWT.NONE);
-        return new IPropertyControl<S>() {
-
-			@Override
-			public Control getControl() {
-				return control;
-			}
-
-			@Override
-			public void load(S object) {
-				String text = propertyAccessor.getValue(object);
-				if (text == null) {
-					control.setText("");
-				} else {
-					control.setText(text);
-				}
-			}
-
-			@Override
-			public void save() {
-				/*
-				 * The property is not editable so there is nothing
-				 * to do here.
-				 */
-			}
-        };
-	}
+    @Override
+	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<String,S> propertyAccessor, S modelObject) {
+    	return createPropertyControlInternal(parent, propertyAccessor.observe(modelObject));
+    }
 
     @Override
 	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<String,S> propertyAccessor, IObservableValue<? extends S> modelObservable) {
+    	return createPropertyControlInternal(parent, propertyAccessor.observeDetail(modelObservable));
+    }
+
+    private Control createPropertyControlInternal(Composite parent, IObservableValue<String> modelStringObservable) {
+		// Property is not editable
         final Label control = new Label(parent, SWT.NONE);
 
-		Bind.oneWay(propertyAccessor.observeDetail(modelObservable))
+		Bind.oneWay(modelStringObservable)
 		.to(SWTObservables.observeText(control));
 
 		return control;
-    }
+	}
 
 	@Override
 	public String formatValueForMessage(S extendableObject, ScalarPropertyAccessor<? extends String,S> propertyAccessor) {

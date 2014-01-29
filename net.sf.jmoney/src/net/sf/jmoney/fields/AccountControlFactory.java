@@ -24,16 +24,17 @@ package net.sf.jmoney.fields;
 
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.ExtendableObject;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IReferenceControlFactory;
 import net.sf.jmoney.model2.PropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
 import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -46,32 +47,75 @@ import org.eclipse.swt.widgets.Control;
  */
 public abstract class AccountControlFactory<P, S extends ExtendableObject, A extends Account> extends PropertyControlFactory<S,A> implements IReferenceControlFactory<P,S,A> {
 
-    @Override
-	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<A,S> propertyAccessor) {
-        return new AccountEditor<S,A>(parent, propertyAccessor);
-    }
+//    @Override
+//	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<A,S> propertyAccessor) {
+//        return new AccountEditor<S,A>(parent, propertyAccessor);
+//    }
+
+	   @Override
+	public Control createPropertyControl(Composite parent,
+			ScalarPropertyAccessor<A, S> propertyAccessor,
+			S modelObject) {
+ 	WritableValue<S> observable = new WritableValue<S>();
+ 	observable.setValue(modelObject);
+		return createPropertyControl(parent, propertyAccessor, observable);
+	}
+
 
 	@Override
 	public Control createPropertyControl(Composite parent,
 			final ScalarPropertyAccessor<A, S> propertyAccessor,
-			IObservableValue<? extends S> modelObservable) {
-	    final AccountControl<A> control = new AccountControl<A>(parent, null, propertyAccessor.getClassOfValueObject());
+			final IObservableValue<? extends S> modelObservable) {
+		
+		/*
+		 * We have a problem in that the account control needs to know the session so it can
+		 * get the list of accounts.  It could use the default session for the active workbench window, but we want to avoid
+		 * use of the default session because that is poor design.  It also means we need to convert to instances of the selected
+		 * account that is in the correct data manager.  Furthermore, the list of accounts inside a transaction could be different
+		 * from the list of committed accounts.
+		 * 
+		 * We can get the data manager from an object.  However, modelObservable may be null when this method is called.  Therefore
+		 * we create a computed value that gets the data manager from modelObservable and pass that on.
+		 */
+		final IObservableValue<Session> sessionObservable = new ComputedValue<Session>() {
+			@Override
+			protected Session calculate() {
+				return modelObservable.getValue() == null
+					? null
+							: modelObservable.getValue().getSession();
+			}
+		};
 
+		final AccountControl<A> control = new AccountControl<A>(parent, sessionObservable.getValue(), propertyAccessor.getClassOfValueObject());
+
+		// Bit of a hack
+		// TODO instead of this, get the session when the user drops-down the account list
+		sessionObservable.addValueChangeListener(new IValueChangeListener<Session>(){
+			@Override
+			public void handleValueChange(ValueChangeEvent<Session> event) {
+				if (event.diff.getNewValue() != null) {
+					control.setSession(event.diff.getNewValue(), propertyAccessor.getClassOfValueObject());
+					// This should be a once-off
+					sessionObservable.removeValueChangeListener(this);
+				}
+			}
+		});
+		
 	    Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
 		.to(control.account);
 
 	    // HACK
-	    modelObservable.addValueChangeListener(new IValueChangeListener<S>() {
-			@Override
-			public void handleValueChange(ValueChangeEvent<S> event) {
-				if (event.diff.getNewValue() == null) {
-					control.setSession(null, propertyAccessor.getClassOfValueObject());
-				} else {
-					Session session = event.diff.getNewValue().getSession();
-					control.setSession(session, propertyAccessor.getClassOfValueObject());
-				}
-			}
-		});
+//	    modelObservable.addValueChangeListener(new IValueChangeListener<S>() {
+//			@Override
+//			public void handleValueChange(ValueChangeEvent<S> event) {
+//				if (event.diff.getNewValue() == null) {
+//					control.setSession(null, propertyAccessor.getClassOfValueObject());
+//				} else {
+//					Session session = event.diff.getNewValue().getSession();
+//					control.setSession(session, propertyAccessor.getClassOfValueObject());
+//				}
+//			}
+//		});
 
 		return control;
 	}

@@ -28,13 +28,9 @@ final class AssociatedAccountObservable extends
 	private final SessionChangeListener listener;
 
 	AssociatedAccountObservable(final String associationId, final CapitalAccount source) {
+		Assert.isNotNull(associationId);
 		this.associationId = associationId;
 		this.source = source;
-
-		Assert.isNotNull(associationId);
-		if (associationId == null) {
-			throw new RuntimeException();
-		}
 		
 		listener = new SessionChangeAdapter() {
 

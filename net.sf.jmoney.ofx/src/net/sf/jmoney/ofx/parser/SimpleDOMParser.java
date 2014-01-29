@@ -290,7 +290,7 @@ public class SimpleDOMParser {
 
 		int[] next = new int[cdata_start.length];
 		peek(next);
-		if (compareIntArrays(next, cdata_start) == true) {
+		if (compareIntArrays(next, cdata_start)) {
 			// CDATA
 			reader.skip(next.length);
 

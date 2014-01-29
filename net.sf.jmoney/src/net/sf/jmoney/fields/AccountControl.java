@@ -92,6 +92,9 @@ public class AccountControl<A extends Account> extends AccountComposite<A> {
 		this.session = session;
 		this.accountClass = accountClass;
 
+		if (session == null) {
+			System.out.println("check this is set later by the caller");
+		}
 		setBackgroundMode(SWT.INHERIT_FORCE);
 
 		setLayout(new FillLayout(SWT.VERTICAL));
@@ -106,7 +109,7 @@ public class AccountControl<A extends Account> extends AccountComposite<A> {
 		};
 		Bind.oneWay(account)
 			.convert(accountToTextConverter)
-			.to(SWTObservables.observeText(textControl, SWT.Modify));
+			.to(SWTObservables.observeText(textControl, SWT.None));
 
 		textControl.addFocusListener(new FocusListener() {
 

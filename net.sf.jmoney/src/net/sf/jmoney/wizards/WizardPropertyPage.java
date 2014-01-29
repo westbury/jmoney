@@ -4,19 +4,16 @@
 package net.sf.jmoney.wizards;
 
 import java.text.MessageFormat;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
-import net.sf.jmoney.isolation.IModelObject;
-import net.sf.jmoney.isolation.IScalarPropertyAccessor;
-import net.sf.jmoney.isolation.SessionChangeAdapter;
 import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.ExtendablePropertySet;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.beans.PojoProperties;
+import org.eclipse.core.databinding.observable.value.ComputedValue;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusAdapter;
@@ -26,6 +23,7 @@ import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.PlatformUI;
@@ -36,9 +34,9 @@ import org.eclipse.ui.PlatformUI;
  * 
  * @author Nigel Westbury
  */
-public class WizardPropertyPage extends WizardPage {
-	private ExtendableObject extendableObject;
-	private ExtendablePropertySet<?> propertySet;
+public class WizardPropertyPage<S extends ExtendableObject> extends WizardPage {
+	private S extendableObject;
+	private ExtendablePropertySet<S> propertySet;
 	private ScalarPropertyAccessor<String,?> namePropertyAccessor;
 	private String defaultName;
 	
@@ -46,13 +44,20 @@ public class WizardPropertyPage extends WizardPage {
 	 * List of the IPropertyControl objects for the
 	 * properties that can be edited in this panel.
 	 */
-	private Map<ScalarPropertyAccessor, IPropertyControl> propertyControlList = new HashMap<ScalarPropertyAccessor, IPropertyControl>();
+//	private Map<ScalarPropertyAccessor, IPropertyControl> propertyControlList = new HashMap<ScalarPropertyAccessor, IPropertyControl>();
 
 	Text nameTextbox;
 	
-	private Set<ScalarPropertyAccessor<?,?>> excludedProperties;
+	private Set<ScalarPropertyAccessor<?,? extends S>> excludedProperties;
 	
-	public WizardPropertyPage(String pageName, String title, String message, ExtendableObject extendableObject, ExtendablePropertySet<?> propertySet, ScalarPropertyAccessor<String,?> namePropertyAccessor, Set<ScalarPropertyAccessor<?,?>> excludedProperties) {
+	public WizardPropertyPage(
+			String pageName, 
+			String title, 
+			String message, 
+			S extendableObject, 
+			ExtendablePropertySet<S> propertySet,
+			ScalarPropertyAccessor<String,? super S> namePropertyAccessor, 
+			Set<ScalarPropertyAccessor<?,? extends S>> excludedProperties) {
 		super(pageName);
 		this.extendableObject = extendableObject;
 		this.propertySet = propertySet;
@@ -75,16 +80,16 @@ public class WizardPropertyPage extends WizardPage {
 		// Create the controls to edit the properties.
 		
 		// Add the properties for the Account objects.
-		for (final ScalarPropertyAccessor<?,?> propertyAccessor: propertySet.getScalarProperties3()) {
+		for (final ScalarPropertyAccessor<?,? super S> propertyAccessor: propertySet.getScalarProperties3()) {
 			if (!excludedProperties.contains(propertyAccessor)) {
 				Label propertyLabel = new Label(container, SWT.NONE);
 				propertyLabel.setText(propertyAccessor.getDisplayName() + ':');
-				final IPropertyControl propertyControl = propertyAccessor.createPropertyControl(container);
+				Control propertyControl = propertyAccessor.createPropertyControl(container, extendableObject);
 
 				// Bit of a kludge.  We have special processing for the account
 				// name, so save this one.
 				if (propertyAccessor == namePropertyAccessor) {
-					nameTextbox = (Text)propertyControl.getControl();
+					nameTextbox = (Text)propertyControl;
 				}
 
 				/*
@@ -98,14 +103,14 @@ public class WizardPropertyPage extends WizardPage {
 				 * the right sides of the smaller controls line up, which
 				 * looks a little more tidy.
 				 */  
-				if (propertyControl.getControl().getLayoutData() == null) {
+				if (propertyControl.getLayoutData() == null) {
 					GridData gridData = new GridData();
 					gridData.minimumWidth = propertyAccessor.getMinimumWidth();
 					gridData.widthHint = Math.max(propertyAccessor.getMinimumWidth() + 10 * propertyAccessor.getWeight(), 100);
-					propertyControl.getControl().setLayoutData(gridData);
+					propertyControl.setLayoutData(gridData);
 				}
 
-				propertyControl.getControl().addFocusListener(
+				propertyControl.addFocusListener(
 						new FocusAdapter() {
 							@Override	
 							public void focusLost(FocusEvent e) {
@@ -114,30 +119,42 @@ public class WizardPropertyPage extends WizardPage {
 //									return;
 //								}
 
-								propertyControl.save();
+//								propertyControl.save();
 							}
 						});
 
 				// Add to our list of controls.
-				propertyControlList.put(propertyAccessor, propertyControl);
+//				propertyControlList.put(propertyAccessor, propertyControl);
+
+				Bind.oneWay(new ComputedValue<Boolean>() {
+					@Override
+					protected Boolean calculate() {
+						return propertyAccessor.isPropertyApplicable(extendableObject);
+					}
+				}).to(PojoProperties.value("enabled", Boolean.class), propertyControl);
 			}
+		
 		}
 		// Set the values from the object into the control fields.
-		for (IPropertyControl propertyControl: propertyControlList.values()) {
-			propertyControl.load(extendableObject);
-		}
+//		for (IPropertyControl propertyControl: propertyControlList.values()) {
+//			propertyControl.load(extendableObject);
+//		}
 		//After the load i update the defaultName
 		defaultName = nameTextbox.getText();
-		setApplicability();
+//		setApplicability();
+//		
+//		// This listener code assumes that the applicability of account properties depends only
+//		// on property changes???????
+//		extendableObject.getDataManager().addChangeListener(new SessionChangeAdapter() {
+//			@Override
+//			public void objectChanged(IModelObject changedObject, IScalarPropertyAccessor changedProperty, Object oldValue, Object newValue) {
+//				setApplicability();
+//			}
+//		}, parent);
+
+
+
 		
-		// This listener code assumes that the applicability of account properties depends only
-		// on property changes???????
-		extendableObject.getDataManager().addChangeListener(new SessionChangeAdapter() {
-			@Override
-			public void objectChanged(IModelObject changedObject, IScalarPropertyAccessor changedProperty, Object oldValue, Object newValue) {
-				setApplicability();
-			}
-		}, parent);
 		
 		setPageComplete(false);
 		nameTextbox.addModifyListener(new ModifyListener() {
@@ -153,12 +170,12 @@ public class WizardPropertyPage extends WizardPage {
 		
 	}
 	
-	private void setApplicability() {
-		for (ScalarPropertyAccessor propertyAccessor: propertyControlList.keySet()) {
-			IPropertyControl propertyControl = propertyControlList.get(propertyAccessor);
-			propertyControl.getControl().setEnabled(propertyAccessor.isPropertyApplicable(extendableObject));
-		}
-	}
+//	private void setApplicability() {
+//		for (ScalarPropertyAccessor propertyAccessor: propertyControlList.keySet()) {
+//			IPropertyControl propertyControl = propertyControlList.get(propertyAccessor);
+//			propertyControl.getControl().setEnabled(propertyAccessor.isPropertyApplicable(extendableObject));
+//		}
+//	}
 
 	@Override
 	public boolean canFlipToNextPage() {

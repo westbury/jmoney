@@ -73,20 +73,25 @@ import net.sf.jmoney.stocks.model.StockEntryInfo;
 import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
 
 import org.eclipse.core.commands.IHandler;
+import org.eclipse.core.databinding.beans.BeansObservables;
+import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
 import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.core.databinding.property.value.IValueProperty;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.jface.databinding.viewers.ViewersObservables;
+import org.eclipse.jface.viewers.ArrayContentProvider;
+import org.eclipse.jface.viewers.ComboViewer;
+import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.events.FocusListener;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
@@ -98,7 +103,7 @@ import org.eclipse.ui.handlers.IHandlerService;
 import org.eclipse.ui.statushandlers.StatusManager;
 
 /**
- * TODO
+* TODO: This code is duplicated in StockDetailsEditor.  Remove the duplication
  *
  * @author Johann Gyger
  */
@@ -125,38 +130,60 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 			@Override
 			public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final CCombo control = new CCombo(parent, SWT.NONE);
-				control.add("buy");
-				control.add("sell");
-				control.add("dividend");
-				control.add("transfer");
-				control.add("custom");
-
-				control.addSelectionListener(new SelectionAdapter(){
+				ComboViewer viewer = new ComboViewer(control);
+				viewer.setContentProvider(ArrayContentProvider.getInstance());
+				viewer.setLabelProvider(new LabelProvider() {
 					@Override
-					public void widgetSelected(SelectionEvent e) {
-						int index = control.getSelectionIndex();
-						switch (index) {
-						case 0:
-							coordinator.getUncommittedEntryData().forceTransactionToBuy();
-							break;
-						case 1:
-							coordinator.getUncommittedEntryData().forceTransactionToSell();
-							break;
-						case 2:
-							coordinator.getUncommittedEntryData().forceTransactionToDividend();
-							break;
-						case 3:
-							coordinator.getUncommittedEntryData().forceTransactionToTransfer();
-							break;
-						case 4:
-							coordinator.getUncommittedEntryData().forceTransactionToCustom();
-							break;
-						}
-
-						coordinator.fireTransactionTypeChange();
+					public String getText(Object element) {
+						return ((TransactionType)element).toString();
 					}
 				});
+				viewer.setInput(TransactionType.values());
 
+//				control.add("buy");
+//				control.add("sell");
+//				control.add("dividend");
+//				control.add("transfer");
+//				control.add("custom");
+//
+//				control.addSelectionListener(new SelectionAdapter(){
+//					@Override
+//					public void widgetSelected(SelectionEvent e) {
+//						int index = control.getSelectionIndex();
+//						switch (index) {
+//						case 0:
+//							coordinator.getUncommittedEntryData().forceTransactionToBuy();
+//							break;
+//						case 1:
+//							coordinator.getUncommittedEntryData().forceTransactionToSell();
+//							break;
+//						case 2:
+//							coordinator.getUncommittedEntryData().forceTransactionToDividend();
+//							break;
+//						case 3:
+//							coordinator.getUncommittedEntryData().forceTransactionToTransfer();
+//							break;
+//						case 4:
+//							coordinator.getUncommittedEntryData().forceTransactionToCustom();
+//							break;
+//						}
+//
+//						coordinator.fireTransactionTypeChange();
+//					}
+//				});
+
+				IValueProperty<StockEntryData, TransactionType> transactionProperty = new PropertyOnObservable<TransactionType>(TransactionType.class) {
+					@Override
+					protected IObservableValue<TransactionType> getObservable(
+							StockEntryData source) {
+						return source.transactionType();
+					}
+				};
+				
+				Bind.twoWay(master, transactionProperty)
+				.to((IObservableValue<TransactionType>)ViewersObservables.<TransactionType>observeSingleSelection(viewer));
+				
+				
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
 
 					@Override
@@ -226,9 +253,35 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		IndividualBlock<StockEntryData, StockEntryRowControl> shareNameColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Stock", 50, 1) {
 
 			@Override
-			public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
+			public IPropertyControl<StockEntryData> createCellControl(Composite parent, final IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final SecurityControl<Security> control = new SecurityControl<Security>(parent, null, Security.class);
 
+				IValueProperty<StockEntryData, Security> securityProperty = new PropertyOnObservable<Security>(Security.class) {
+					@Override
+					protected IObservableValue<Security> getObservable(
+							StockEntryData source) {
+						return source.security();
+					}
+				};
+				
+				Bind.twoWay(master, securityProperty)
+				.to(control.commodity());
+				
+
+				// Enable control only when applicable
+				IObservableValue<Boolean> isSecurityApplicable = new ComputedValue<Boolean>() {
+					@Override
+					protected Boolean calculate() {
+						return master.getValue() == null
+								? false
+										: master.getValue().isPurchaseOrSale()
+								|| master.getValue().isDividend();
+					}
+				};
+				Bind.oneWay(isSecurityApplicable)
+				.to(BeansObservables.observeValue(control, "enabled", Boolean.class));
+				
+				
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
 					private StockEntryData data;
 
@@ -239,43 +292,45 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 
 					@Override
 					public void load(StockEntryData data) {
-						this.data = data;
-
-						/*
-						 * We have to find the appropriate entry in the transaction that contains
-						 * the stock.
-						 *
-						 * - If this is a purchase or sale, then the stock will be set as the commodity
-						 * for one of the entries.  We find this entry.
-						 * - If this is a dividend payment then the stock will be set as an additional
-						 * field in the dividend category.
-						 *
-						 * Note that controls are re-used, so we must be sure to explicitly enable the controls
-						 * because we may be re-using a control that has been disabled.
-						 */
-						Security security;
-						if (data.isPurchaseOrSale()) {
-							Entry entry = data.getPurchaseOrSaleEntry();
-							security = (Security)entry.getCommodityInternal();
-							control.setEnabled(true);
-						} else if (data.isDividend()) {
-							Entry entry = data.getDividendEntry();
-							security = StockEntryInfo.getSecurityAccessor().getValue(entry);
-							control.setEnabled(true);
-						} else {
-							security = null;
-							control.setEnabled(false);
-						}
-
-						control.setSession(data.getEntry().getSession(), Security.class);
-
-						control.setSecurity(security);
+						// This is all handled in StockEntryData when we force
+						// the transaction.
+//						this.data = data;
+//
+//						/*
+//						 * We have to find the appropriate entry in the transaction that contains
+//						 * the stock.
+//						 *
+//						 * - If this is a purchase or sale, then the stock will be set as the commodity
+//						 * for one of the entries.  We find this entry.
+//						 * - If this is a dividend payment then the stock will be set as an additional
+//						 * field in the dividend category.
+//						 *
+//						 * Note that controls are re-used, so we must be sure to explicitly enable the controls
+//						 * because we may be re-using a control that has been disabled.
+//						 */
+//						Security security;
+//						if (data.isPurchaseOrSale()) {
+//							Entry entry = data.getPurchaseOrSaleEntry();
+//							security = (Security)entry.getCommodityInternal();
+//							control.setEnabled(true);
+//						} else if (data.isDividend()) {
+//							Entry entry = data.getDividendEntry();
+//							security = StockEntryInfo.getSecurityAccessor().getValue(entry);
+//							control.setEnabled(true);
+//						} else {
+//							security = null;
+//							control.setEnabled(false);
+//						}
+//
+//						control.setSession(data.getEntry().getSession(), Security.class);
+//
+//						control.setSecurity(security);
 					}
 
 					@Override
 					public void save() {
-						Security security = control.getSecurity();
-						data.setSecurity(security);
+//						Security security = control.getSecurity();
+//						data.setSecurity(security);
 					}
 
 					@Override
@@ -299,37 +354,40 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 				 */
 				addFocusListenerRecursively(cellControl.getControl(), controlFocusListener);
 
-
-				coordinator.addTransactionTypeChangeListener(new ITransactionTypeChangeListener() {
-
-					@Override
-					public void transactionTypeChanged() {
-						/*
-						 * If the user changes the transaction type, the stock control remains
-						 * the same as it was in the previous transaction type.
-						 *
-						 * For example, suppose an entry is a purchase of stock in Foo company.
-						 * The user changes the entry to a dividend.  The entry will then
-						 * be a dividend from stock in Foo company.  The user changes the stock
-						 * to Bar company.  Then the user changes the transaction type back
-						 * to a purchase.  The entry will now show a purchase of stock in Bar
-						 * company.
-						 */
-						Security security = control.getSecurity();
-						if (coordinator.getUncommittedEntryData().isPurchaseOrSale()) {
-							Entry entry = coordinator.getUncommittedEntryData().getPurchaseOrSaleEntry();
-							StockEntryInfo.getSecurityAccessor().setValue(entry, security);
-							control.setEnabled(true);
-						} else if (coordinator.getUncommittedEntryData().isDividend()) {
-							Entry entry = coordinator.getUncommittedEntryData().getDividendEntry();
-							StockEntryInfo.getSecurityAccessor().setValue(entry, security);
-							control.setEnabled(true);
-						} else {
-							security = null;
-							control.setEnabled(false);
-						}
-					}
-				});
+				// TODO move this logic into StockEntryData and put it in the same place
+				// where the transaction is forced to a different type???  Perhaps here we
+				// bind to a virtual 'security' property.
+//				This is wrong anyway because StockEntryData is master-Detail.
+//				coordinator.getUncommittedEntryData().transactionType().addValueChangeListener(new IValueChangeListener<TransactionType>() {
+//
+//					@Override
+//					public void handleValueChange(ValueChangeEvent<TransactionType> event) {
+//						/*
+//						 * If the user changes the transaction type, the stock control remains
+//						 * the same as it was in the previous transaction type.
+//						 *
+//						 * For example, suppose an entry is a purchase of stock in Foo company.
+//						 * The user changes the entry to a dividend.  The entry will then
+//						 * be a dividend from stock in Foo company.  The user changes the stock
+//						 * to Bar company.  Then the user changes the transaction type back
+//						 * to a purchase.  The entry will now show a purchase of stock in Bar
+//						 * company.
+//						 */
+//						Security security = control.getSecurity();
+//						if (coordinator.getUncommittedEntryData().isPurchaseOrSale()) {
+//							Entry entry = coordinator.getUncommittedEntryData().getPurchaseOrSaleEntry();
+//							StockEntryInfo.getSecurityAccessor().setValue(entry, security);
+//							control.setEnabled(true);
+//						} else if (coordinator.getUncommittedEntryData().isDividend()) {
+//							Entry entry = coordinator.getUncommittedEntryData().getDividendEntry();
+//							StockEntryInfo.getSecurityAccessor().setValue(entry, security);
+//							control.setEnabled(true);
+//						} else {
+//							security = null;
+//							control.setEnabled(false);
+//						}
+//					}
+//				});
 
 				return cellControl;
 			}
@@ -1006,10 +1064,18 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 					public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, final RowControl rowControl, final StockEntryRowControl coordinator) {
 						final StackControl<StockEntryData, StockEntryRowControl> control = new StackControl<StockEntryData, StockEntryRowControl>(parent, rowControl, coordinator, this);
 
-						coordinator.addTransactionTypeChangeListener(new ITransactionTypeChangeListener() {
+						IValueProperty<StockEntryData, TransactionType> transactionProperty = new PropertyOnObservable<TransactionType>(TransactionType.class) {
+							@Override
+							protected IObservableValue<TransactionType> getObservable(
+									StockEntryData source) {
+								return source.transactionType();
+							}
+						};
+						
+						transactionProperty.observeDetail(master).addValueChangeListener(new IValueChangeListener<TransactionType>() {
 
 							@Override
-							public void transactionTypeChanged() {
+							public void handleValueChange(ValueChangeEvent<TransactionType> event) {
 								Block<? super StockEntryData, ? super StockEntryRowControl> topBlock = getTopBlock(coordinator.getUncommittedEntryData());
 
 								// Set this block in the control

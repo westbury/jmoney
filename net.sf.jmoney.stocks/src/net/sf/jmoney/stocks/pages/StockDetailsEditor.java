@@ -83,8 +83,16 @@ import org.eclipse.core.commands.IHandler;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
 import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.core.databinding.property.value.IValueProperty;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
+import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.jface.databinding.viewers.ViewersObservables;
+import org.eclipse.jface.viewers.ArrayContentProvider;
+import org.eclipse.jface.viewers.ComboViewer;
+import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.DisposeEvent;
@@ -109,6 +117,8 @@ import org.eclipse.ui.part.EditorPart;
 import org.eclipse.ui.statushandlers.StatusManager;
 
 public class StockDetailsEditor extends EditorPart {
+
+	
 
 	//	static public final String ID = "net.sf.jmoney.stocks.stockDetailsEditor";
 
@@ -206,38 +216,61 @@ public class StockDetailsEditor extends EditorPart {
 			@Override
 			public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final CCombo control = new CCombo(parent, SWT.NONE);
-				control.add("buy");
-				control.add("sell");
-				control.add("dividend");
-				control.add("transfer");
-				control.add("custom");
-
-				control.addSelectionListener(new SelectionAdapter(){
+				ComboViewer viewer = new ComboViewer(control);
+				viewer.setContentProvider(ArrayContentProvider.getInstance());
+				viewer.setLabelProvider(new LabelProvider() {
 					@Override
-					public void widgetSelected(SelectionEvent e) {
-						int index = control.getSelectionIndex();
-						switch (index) {
-						case 0:
-							coordinator.getUncommittedEntryData().forceTransactionToBuy();
-							break;
-						case 1:
-							coordinator.getUncommittedEntryData().forceTransactionToSell();
-							break;
-						case 2:
-							coordinator.getUncommittedEntryData().forceTransactionToDividend();
-							break;
-						case 3:
-							coordinator.getUncommittedEntryData().forceTransactionToTransfer();
-							break;
-						case 4:
-							coordinator.getUncommittedEntryData().forceTransactionToCustom();
-							break;
-						}
-
-						coordinator.fireTransactionTypeChange();
+					public String getText(Object element) {
+						return ((TransactionType)element).toString();
 					}
 				});
+				viewer.setInput(TransactionType.values());
 
+//				control.add("buy");
+//				control.add("sell");
+//				control.add("dividend");
+//				control.add("transfer");
+//				control.add("custom");
+
+//				control.addSelectionListener(new SelectionAdapter(){
+//					@Override
+//					public void widgetSelected(SelectionEvent e) {
+//						int index = control.getSelectionIndex();
+//						switch (index) {
+//						case 0:
+//							coordinator.getUncommittedEntryData().forceTransactionToBuy();
+//							break;
+//						case 1:
+//							coordinator.getUncommittedEntryData().forceTransactionToSell();
+//							break;
+//						case 2:
+//							coordinator.getUncommittedEntryData().forceTransactionToDividend();
+//							break;
+//						case 3:
+//							coordinator.getUncommittedEntryData().forceTransactionToTransfer();
+//							break;
+//						case 4:
+//							coordinator.getUncommittedEntryData().forceTransactionToCustom();
+//							break;
+//						}
+//
+//						coordinator.fireTransactionTypeChange();
+//					}
+//				});
+
+				
+				IValueProperty<StockEntryData, TransactionType> transactionProperty = new PropertyOnObservable<TransactionType>(TransactionType.class) {
+					@Override
+					protected IObservableValue<TransactionType> getObservable(
+							StockEntryData source) {
+						return source.transactionType();
+					}
+				};
+				
+				Bind.twoWay(master, transactionProperty)
+				.to((IObservableValue<TransactionType>)ViewersObservables.<TransactionType>observeSingleSelection(viewer));
+				
+				
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
 
 					@Override
@@ -247,30 +280,30 @@ public class StockDetailsEditor extends EditorPart {
 
 					@Override
 					public void load(StockEntryData data) {
-						if (data.getTransactionType() == null) {
-							control.deselectAll();
-							control.setText("");
-						} else {
-							switch (data.getTransactionType()) {
-							case Buy:
-								control.select(0);
-								break;
-							case Sell:
-								control.select(1);
-								break;
-							case Dividend:
-								control.select(2);
-								break;
-							case Transfer:
-								control.select(3);
-								break;
-							case Other:
-								control.select(4);
-								break;
-							default:
-								throw new RuntimeException("bad case");
-							}
-						}
+//						if (data.getTransactionType() == null) {
+//							control.deselectAll();
+//							control.setText("");
+//						} else {
+//							switch (data.getTransactionType()) {
+//							case Buy:
+//								control.select(0);
+//								break;
+//							case Sell:
+//								control.select(1);
+//								break;
+//							case Dividend:
+//								control.select(2);
+//								break;
+//							case Transfer:
+//								control.select(3);
+//								break;
+//							case Other:
+//								control.select(4);
+//								break;
+//							default:
+//								throw new RuntimeException("bad case");
+//							}
+//						}
 					}
 
 					@Override
@@ -383,11 +416,11 @@ public class StockDetailsEditor extends EditorPart {
 				 */
 				addFocusListenerRecursively(cellControl.getControl(), controlFocusListener);
 
-
-				coordinator.addTransactionTypeChangeListener(new ITransactionTypeChangeListener() {
+				// TODO: This code is duplicated in EntriesSection.  Remove the duplication
+				coordinator.getUncommittedEntryData().transactionType().addValueChangeListener(new IValueChangeListener<TransactionType>() {
 
 					@Override
-					public void transactionTypeChanged() {
+					public void handleValueChange(ValueChangeEvent<TransactionType> event) {
 						/*
 						 * If the user changes the transaction type, the stock control remains
 						 * the same as it was in the previous transaction type.
@@ -434,6 +467,37 @@ public class StockDetailsEditor extends EditorPart {
 			public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final Text control = new Text(parent, SWT.RIGHT);
 
+				IBidiConverter<BigDecimal, String> priceConverter = new IBidiConverter<BigDecimal, String>() {
+					@Override
+					public String modelToTarget(BigDecimal fromObject) {
+						if (fromObject != null) {
+							long lPrice = fromObject.movePointRight(4).longValue();
+							return account.getPriceFormatter().format(lPrice);
+						} else {
+							return "";
+						}
+					}
+
+					@Override
+					public BigDecimal targetToModel(String fromObject)
+							throws CoreException {
+						long amount = account.getPriceFormatter().parse(fromObject);
+						return new BigDecimal(amount).movePointLeft(4);
+					}
+				};
+				
+				IValueProperty<StockEntryData, BigDecimal> sharePriceProperty = new PropertyOnObservable<BigDecimal>(BigDecimal.class) {
+					@Override
+					protected IObservableValue<BigDecimal> getObservable(
+							StockEntryData source) {
+						return source.sharePrice();
+					}
+				};
+				
+				Bind.twoWay(master, sharePriceProperty)
+				.convert(priceConverter)
+				.to(SWTObservables.observeText(control, new int [] { SWT.Modify }));
+				
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
 
 					@Override
@@ -443,49 +507,49 @@ public class StockDetailsEditor extends EditorPart {
 
 					@Override
 					public void load(StockEntryData data) {
-						assert(data.isPurchaseOrSale());
-						// TODO:This is a bit funny.  We are passed the data object but
-						// the co-ordinator is keeping track of the share price?
-						setControlValue(coordinator.getSharePrice());
-
-						// Listen for changes in the stock price
-						coordinator.addStockPriceChangeListener(new IPropertyChangeListener<BigDecimal>() {
-							@Override
-							public void propertyChanged(BigDecimal newValue) {
-								setControlValue(newValue);
-							}
-						});
+//						assert(data.isPurchaseOrSale());
+//						// TODO:This is a bit funny.  We are passed the data object but
+//						// the co-ordinator is keeping track of the share price?
+//						setControlValue(data.sharePrice().getValue());
+//
+//						// Listen for changes in the stock price
+//						coordinator.addStockPriceChangeListener(new IPropertyChangeListener<BigDecimal>() {
+//							@Override
+//							public void propertyChanged(BigDecimal newValue) {
+//								setControlValue(newValue);
+//							}
+//						});
 					}
 
-					private void setControlValue(BigDecimal sharePrice) {
-						if (sharePrice != null) {
-							long lPrice = sharePrice.movePointRight(4).longValue();
-							control.setText(account.getPriceFormatter().format(lPrice));
-						} else {
-							control.setText("");
-						}
-					}
+//					private void setControlValue(BigDecimal sharePrice) {
+//						if (sharePrice != null) {
+//							long lPrice = sharePrice.movePointRight(4).longValue();
+//							control.setText(account.getPriceFormatter().format(lPrice));
+//						} else {
+//							control.setText("");
+//						}
+//					}
 
 					@Override
 					public void save() {
-						long amount;
-						try {
-							amount = account.getPriceFormatter().parse(control.getText());
-						} catch (CoreException e) {
-							StatusManager.getManager().handle(e.getStatus());
-							return;
-						}
-
-						coordinator.setSharePrice(new BigDecimal(amount).movePointLeft(4));
-						/*
-						 * The share price is a calculated amount so is not
-						 * stored in any property. However, we do tell the row
-						 * control because it needs to save the value so it can
-						 * be checked for consistency when the transaction is
-						 * saved and also because other values may need to be
-						 * adjusted as a result of the new share price.
-						 */
-						//						coordinator.sharePriceChanged();
+//						long amount;
+//						try {
+//							amount = account.getPriceFormatter().parse(control.getText());
+//						} catch (CoreException e) {
+//							StatusManager.getManager().handle(e.getStatus());
+//							return;
+//						}
+//
+//						coordinator.setSharePrice(new BigDecimal(amount).movePointLeft(4));
+//						/*
+//						 * The share price is a calculated amount so is not
+//						 * stored in any property. However, we do tell the row
+//						 * control because it needs to save the value so it can
+//						 * be checked for consistency when the transaction is
+//						 * saved and also because other values may need to be
+//						 * adjusted as a result of the new share price.
+//						 */
+//						//						coordinator.sharePriceChanged();
 					}
 
 					@Override
@@ -994,10 +1058,10 @@ public class StockDetailsEditor extends EditorPart {
 					public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, final RowControl rowControl, final StockEntryRowControl coordinator) {
 						final StackControl<StockEntryData, StockEntryRowControl> control = new StackControl<StockEntryData, StockEntryRowControl>(parent, rowControl, coordinator, this);
 
-						coordinator.addTransactionTypeChangeListener(new ITransactionTypeChangeListener() {
+						coordinator.getUncommittedEntryData().transactionType().addValueChangeListener(new IValueChangeListener<TransactionType>() {
 
 							@Override
-							public void transactionTypeChanged() {
+							public void handleValueChange(ValueChangeEvent<TransactionType> event) {
 								Block<? super StockEntryData, ? super StockEntryRowControl> topBlock = getTopBlock(coordinator.getUncommittedEntryData());
 
 								// Set this block in the control

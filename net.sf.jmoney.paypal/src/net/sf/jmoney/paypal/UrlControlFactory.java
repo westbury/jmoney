@@ -32,6 +32,7 @@ import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
 import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
 import org.eclipse.jface.databinding.swt.SWTObservables;
@@ -45,10 +46,20 @@ import org.eclipse.swt.widgets.Text;
  */
 public class UrlControlFactory<S extends ExtendableObject> implements IPropertyControlFactory<S,URL> {
 
-    @Override
-	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<URL,S> propertyAccessor) {
-        return new UrlEditor<S>(parent, propertyAccessor);
-    }
+//    @Override
+//	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<URL,S> propertyAccessor) {
+//        return new UrlEditor<S>(parent, propertyAccessor);
+//    }
+
+	   @Override
+	public Control createPropertyControl(Composite parent,
+			ScalarPropertyAccessor<URL, S> propertyAccessor,
+			S modelObject) {
+ 	WritableValue<S> observable = new WritableValue<S>();
+ 	observable.setValue(modelObject);
+		return createPropertyControl(parent, propertyAccessor, observable);
+	}
+
 
 	@Override
 	public Control createPropertyControl(Composite parent,

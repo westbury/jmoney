@@ -10,11 +10,7 @@
  *******************************************************************************/
 package net.sf.jmoney.propertyPages;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import net.sf.jmoney.model2.ExtendableObject;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.PropertySet;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
@@ -22,14 +18,13 @@ import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.views.properties.tabbed.AbstractPropertySection;
 import org.eclipse.ui.views.properties.tabbed.TabbedPropertySheetPage;
 
 public class PropertiesSection
 extends AbstractPropertySection {
-
-	private Map<ScalarPropertyAccessor, IPropertyControl> labelTexts;
 
 	private ExtendableObject extendableObject;
 
@@ -50,14 +45,11 @@ extends AbstractPropertySection {
 		if (input instanceof ExtendableObject) {
 			this.extendableObject = (ExtendableObject) input;
 
-			labelTexts = new HashMap<ScalarPropertyAccessor, IPropertyControl>();
-
 			for (ScalarPropertyAccessor propertyAccessor : PropertySet.getPropertySet(extendableObject.getClass()).getScalarProperties3()) {
 
 				getWidgetFactory().createCLabel(composite, propertyAccessor.getDisplayName() + ":"); //$NON-NLS-1$
 
-				IPropertyControl labelText = propertyAccessor.createPropertyControl(composite);
-				labelTexts.put(propertyAccessor, labelText);
+				Control labelText = propertyAccessor.createPropertyControl(composite, extendableObject);
 			}
 		}
 	}

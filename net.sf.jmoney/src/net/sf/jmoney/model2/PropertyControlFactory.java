@@ -2,6 +2,7 @@ package net.sf.jmoney.model2;
 
 import java.util.Comparator;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -24,29 +25,39 @@ import org.eclipse.swt.widgets.Control;
 public abstract class PropertyControlFactory<S extends ExtendableObject, V extends Comparable<? super V>> implements IPropertyControlFactory<S,V> {
 
 	   @Override
-		public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<V,S> propertyAccessor) {
-	    	final WritableValue<S> observable = new WritableValue<S>();
+	public Control createPropertyControl(Composite parent,
+			ScalarPropertyAccessor<V, S> propertyAccessor,
+			S modelObject) {
+    	WritableValue<S> observable = new WritableValue<S>();
+    	observable.setValue(modelObject);
+		return createPropertyControl(parent, propertyAccessor, observable);
+	}
 
-	    	final Control control = createPropertyControl(parent, propertyAccessor, observable);
-
-	        return new IPropertyControl<S>() {
-				@Override
-				public Control getControl() {
-					return control;
-				}
-
-				@Override
-				public void load(S object) {
-					observable.setValue(object);
-				}
-
-				@Override
-				public void save() {
-					// Nothing to do because should always be saved
-					// by data binding.
-				}
-			};
-	    }
+//	   @Override
+//	public Control createPropertyControl(Composite parent,
+//			ScalarPropertyAccessor<V, S> propertyAccessor,
+//			IObservableValue<? extends S> modelObservable) { 
+//
+//	    	final Control control = createPropertyControl(parent, propertyAccessor, observable);
+//
+//	        return new IPropertyControl<S>() {
+//				@Override
+//				public Control getControl() {
+//					return control;
+//				}
+//
+//				@Override
+//				public void load(S object) {
+//					observable.setValue(object);
+//				}
+//
+//				@Override
+//				public void save() {
+//					// Nothing to do because should always be saved
+//					// by data binding.
+//				}
+//			};
+//	    }
 
 	@Override
 	public String formatValueForTable(S extendableObject, ScalarPropertyAccessor<? extends V,S> propertyAccessor) {

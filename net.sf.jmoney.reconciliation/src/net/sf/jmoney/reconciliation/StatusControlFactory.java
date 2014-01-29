@@ -25,8 +25,7 @@ package net.sf.jmoney.reconciliation;
 import java.util.Comparator;
 
 import net.sf.jmoney.model2.Entry;
-import net.sf.jmoney.model2.IPropertyControl;
-import net.sf.jmoney.model2.IPropertyControlFactory;
+import net.sf.jmoney.model2.PropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
 import org.eclipse.core.databinding.observable.value.AbstractObservableValue;
@@ -40,9 +39,12 @@ import org.eclipse.swt.widgets.Control;
  * A control factory to select the uncleared/pending/reconciled status
  * of an entry.
  *
+ * TODO remove this property altogether.  It's a hang-over from Quicken, put
+ * in because the property is there in the QIF file.
+ * 
  * @author Nigel Westbury
  */
-public class StatusControlFactory implements IPropertyControlFactory<Entry,Integer> {
+public class StatusControlFactory extends PropertyControlFactory<Entry,Integer> {
 
 	/**
 	 * Localized descriptions of the reconciled/cleared status
@@ -62,10 +64,10 @@ public class StatusControlFactory implements IPropertyControlFactory<Entry,Integ
 			ReconciliationPlugin.getResourceString("Entry.clearedShort"),
 	};
 
-    @Override
-	public IPropertyControl createPropertyControl(Composite parent, ScalarPropertyAccessor<Integer,Entry> propertyAccessor) {
-        return new StatusEditor(parent, propertyAccessor, statusText);
-    }
+//    @Override
+//	public IPropertyControl createPropertyControl(Composite parent, ScalarPropertyAccessor<Integer,Entry> propertyAccessor) {
+//        return new StatusEditor(parent, propertyAccessor, statusText);
+//    }
 
 	@Override
 	public Control createPropertyControl(Composite parent,

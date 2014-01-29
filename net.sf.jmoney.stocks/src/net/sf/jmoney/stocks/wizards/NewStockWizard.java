@@ -32,6 +32,7 @@ import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
+import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.Stock;
 import net.sf.jmoney.stocks.model.StockInfo;
 import net.sf.jmoney.wizards.WizardPropertyPage;
@@ -80,7 +81,7 @@ public class NewStockWizard extends Wizard {
 	{
 		// Show the page that prompts for all the property values.
 		Set<ScalarPropertyAccessor<?,?>> excludedProperties = new HashSet<ScalarPropertyAccessor<?,?>>();
-		WizardPage propertyPage = new WizardPropertyPage("propertyPage", "Stock Properties", "Enter values for the stock properties", newUncommittedAccount, stockPropertySet, CommodityInfo.getNameAccessor(), excludedProperties);
+		WizardPage propertyPage = new WizardPropertyPage<Security>("propertyPage", "Stock Properties", "Enter values for the stock properties", newUncommittedAccount, stockPropertySet, CommodityInfo.getNameAccessor(), excludedProperties);
 		addPage(propertyPage);
 
 		WizardPage summaryPage = new SummaryPage("summaryPage");

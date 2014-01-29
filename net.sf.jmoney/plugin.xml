@@ -255,7 +255,7 @@ items to an existing menu or toolbar.
 		</wizard>
 		<wizard
         category="net.sf.jmoney.wizards.newAccounts"
-        class="net.sf.jmoney.wizards.NewAccountWizard"
+        class="net.sf.jmoney.wizards.NewBankAccountWizard"
         id="net.sf.jmoney.wizards.new.bankaccount"
         name="Bank Account">
 			<description>

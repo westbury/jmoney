@@ -39,15 +39,6 @@
    </extension>
 
    <extension
-         point="net.sf.jmoney.reconciliation.bankstatements">
-        <statement-source
-           id="ofximport" 
-           description="A Financial Exchange File (*.OFX or *.QFX)" 
-           class="net.sf.jmoney.reconciliation.OfxImport">
-        </statement-source> 
-   </extension>
-   
-   <extension
          point="org.eclipse.ui.menus">
       <menuContribution
             locationURI="popup:org.eclipse.ui.popup.any">
