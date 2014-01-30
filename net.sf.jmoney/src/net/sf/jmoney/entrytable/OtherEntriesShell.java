@@ -55,6 +55,9 @@ public class OtherEntriesShell {
 			shell = new Shell(parent, style | SWT.MODELESS);
 		
 			this.parentShell = parent;
+			if (entryData == null) {
+				throw new RuntimeException("can't be null");
+			}
 			this.entryData = entryData;
 			this.rootBlock = rootBlock;
 			
@@ -82,16 +85,17 @@ public class OtherEntriesShell {
 			layout.horizontalSpacing = 0;
 			layout.verticalSpacing = 0;
 			composite.setLayout(layout);
-		
+
 		    /*
 		     * Use a single row tracker and cell focus tracker for this table.
 		     */
 			for (Entry entry: entryData.getSplitEntries()) {
-				SplitEntryRowControl row = new SplitEntryRowControl(composite, SWT.NONE, rootBlock, isLinked, rowTracker, cellTracker, entry);
-				// Split entry rows take a final entry in the constructor
-//				row.setInput(entry);
+				SplitEntryRowControl row = new SplitEntryRowControl(composite, rootBlock, isLinked, rowTracker, cellTracker, entry);
 				rowControls.put(entry, row);
 			}
+
+			
+			// Remove all this and use the updating composite...
 			
 			entryData.getEntry().getDataManager().addChangeListener(new SessionChangeAdapter() {
 				@Override
@@ -100,7 +104,7 @@ public class OtherEntriesShell {
 						Entry newEntry = (Entry) newObject;
 						if (newEntry.getTransaction() == entryData.getEntry().getTransaction()) {
 							entryData.getSplitEntries().add(newEntry);
-							SplitEntryRowControl row = new SplitEntryRowControl(composite, SWT.NONE, rootBlock, isLinked, rowTracker, cellTracker, newEntry);
+							SplitEntryRowControl row = new SplitEntryRowControl(composite, rootBlock, isLinked, rowTracker, cellTracker, newEntry);
 							// Split entry rows take a final entry in the constructor
 //							row.setInput(newEntry);
 							rowControls.put(newEntry, row);

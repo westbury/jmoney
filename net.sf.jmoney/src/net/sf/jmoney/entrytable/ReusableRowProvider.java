@@ -24,7 +24,6 @@ package net.sf.jmoney.entrytable;
 
 import java.util.LinkedList;
 
-import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 
 public class ReusableRowProvider implements IRowProvider<EntryData> {
@@ -64,7 +63,7 @@ public class ReusableRowProvider implements IRowProvider<EntryData> {
 			rowControl = spareRows.removeFirst();
 			rowControl.setVisible(true);
 		} else {
-			rowControl = new EntryRowControl(parent, SWT.NONE, rowTable, rootBlock, rowSelectionTracker, focusCellTracker);
+			rowControl = new EntryRowControl(parent, rowTable, rootBlock, rowSelectionTracker, focusCellTracker);
 		}
 		
 		rowControl.setContent(entryData);

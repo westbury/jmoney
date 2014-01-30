@@ -1,12 +1,8 @@
 package net.sf.jmoney.stocks;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import net.sf.jmoney.isolation.ObjectCollection;
 import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.ExtendablePropertySet;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ListPropertyAccessor;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.stocks.model.Security;
@@ -25,11 +21,9 @@ public class MergeDuplicatedSecurityDialog<S extends Security> extends Dialog {
 
 	private ExtendablePropertySet<S> propertySet;
 
-	private S security1;
+	private final S security1;
 
-	private S security2;
-
-	private List<IPropertyControl<? super S>> properties;
+	private final S security2;
 
 	protected MergeDuplicatedSecurityDialog(Shell parentShell, ExtendablePropertySet<S> propertySet, S security1, S security2) {
 		super(parentShell);
@@ -41,10 +35,6 @@ public class MergeDuplicatedSecurityDialog<S extends Security> extends Dialog {
 	@Override
 	protected void buttonPressed(int buttonId) {
 		if (buttonId == IDialogConstants.OK_ID) {
-			for (IPropertyControl propertyControl : properties) {
-				propertyControl.save();
-			}
-
 			/*
 			 * Merge list properties.  This is a very simple implementation because securities don't
 			 * currently have lists except in an experimental plug-in that keeps price history.
@@ -104,10 +94,6 @@ public class MergeDuplicatedSecurityDialog<S extends Security> extends Dialog {
 			setDefaultValue(accessor);
 		}
 
-		for (IPropertyControl<? super S> propertyControl : properties) {
-			propertyControl.load(security1);
-		}
-
 		applyDialogFont(composite);
 		return composite;
 	}
@@ -134,22 +120,18 @@ public class MergeDuplicatedSecurityDialog<S extends Security> extends Dialog {
 		Composite composite = new Composite(parent, SWT.NONE);
 		composite.setLayout(new GridLayout(4, false));
 
-		properties = new ArrayList<IPropertyControl<? super S>>();
-
 		for (ScalarPropertyAccessor<?, ? super S> accessor : propertySet.getScalarProperties3()) {
 			Label label = new Label(composite, SWT.LEFT);
 			label.setText(accessor.getDisplayName() + ":"); //$NON-NLS-1$
 
-			final IPropertyControl<? super S> propertyControl = accessor.createPropertyControl(composite);
-			propertyControl.getControl().setLayoutData(new GridData(accessor.getMinimumWidth() + accessor.getWeight() * 50, SWT.DEFAULT));
+			Control propertyControl = accessor.createPropertyControl(composite, security1);
+			propertyControl.setLayoutData(new GridData(accessor.getMinimumWidth() + accessor.getWeight() * 50, SWT.DEFAULT));
 
 			Label value1Label = new Label(composite, SWT.LEFT);
 			value1Label.setText(accessor.formatValueForTable(security1));
 
 			Label value2Label = new Label(composite, SWT.LEFT);
 			value2Label.setText(accessor.formatValueForTable(security2));
-
-			properties.add(propertyControl);
 		}
 
 		return composite;

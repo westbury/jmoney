@@ -2,8 +2,6 @@ package net.sf.jmoney.model2;
 
 import net.sf.jmoney.fields.AccountControl;
 
-import org.eclipse.core.databinding.observable.value.IValueChangeListener;
-import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.jface.viewers.CellEditor;
 import org.eclipse.swt.SWT;
@@ -21,16 +19,16 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 
 
-public class AccountCellEditor<A extends Account> extends CellEditor {
+public abstract class AccountCellEditor<A extends Account> extends CellEditor {
 
 	Session session;
-	Class<A> classOfAccount;
+//	Class<A> classOfAccount;
 
-	public AccountCellEditor(Composite table, Session session, Class<A> classOfAccount) {
+	public AccountCellEditor(Composite table, Session session/*, Class<A> classOfAccount*/) {
 		super(table, SWT.SINGLE);
 
 		this.session = session;
-		this.classOfAccount = classOfAccount;
+//		this.classOfAccount = classOfAccount;
 
 		/*
 		 * The super constructor makes a call to our createControl method.  This
@@ -39,7 +37,7 @@ public class AccountCellEditor<A extends Account> extends CellEditor {
 		 * We must set the properties before anything happens such as the control
 		 * getting focus.
 		 */
-		accountControl.setSession(session, classOfAccount);
+//		accountControl.setSession(session, classOfAccount);
 	}
 
 	// Fields if text
@@ -75,19 +73,12 @@ public class AccountCellEditor<A extends Account> extends CellEditor {
      */
 	@Override
     protected Control createControl(Composite parent) {
-		accountControl = new AccountControl<A>(parent, session, classOfAccount);
-//		comboBox.setFont(parent.getFont());
-
-        accountControl.account.addValueChangeListener(new IValueChangeListener<A>() {
-
+		accountControl = new AccountControl<A>(parent, getClassOfAccount()) {
 			@Override
-			public void handleValueChange(ValueChangeEvent<A> event) {
-//                handleDefaultSelection();
-
-                // Needed?
-//				applyEditorValueAndDeactivate();
-            }
-        });
+			protected Session getSession() {
+				return session;
+			}
+		};
 
         accountControl.addKeyListener(new KeyAdapter() {
             // hook key pressed - see PR 14201
@@ -142,7 +133,20 @@ public class AccountCellEditor<A extends Account> extends CellEditor {
         return accountControl;
     }
 
-    /**
+	/**
+	 * One would expect that the account class could more simply be passed as a
+	 * parameter to the AccountControl constructor. After all it never changes.
+	 * However the CellEditor API uses an anti-pattern whereby the call to the
+	 * abstract method CreateControl is made from the constructor. This means
+	 * the CellEditor has not been constructed when CreateControl is called, and
+	 * so CreateControl does not have available the fields that would have been
+	 * used to store accountClass. This is a hack to get around the problem.
+	 * 
+	 * @return
+	 */
+    protected abstract Class<A> getClassOfAccount();
+
+	/**
      * The <code>TextCellEditor</code> implementation of
      * this <code>CellEditor</code> framework method returns
      * the text string.
@@ -176,11 +180,11 @@ public class AccountCellEditor<A extends Account> extends CellEditor {
 	@Override
     protected void doSetValue(Object value) {
         Assert.isTrue(accountControl != null);
-        Assert.isTrue(value == null || classOfAccount.isAssignableFrom(value.getClass()));
+        Assert.isTrue(value == null || getClassOfAccount().isAssignableFrom(value.getClass()));
 
         // Listener was removed for text but not combo?
 //      accountControl.removeModifyListener(getModifyListener());
-        accountControl.setAccount(classOfAccount.cast(value));
+        accountControl.setAccount(getClassOfAccount().cast(value));
 //      accountControl.addModifyListener(getModifyListener());
     }
 
@@ -307,59 +311,6 @@ public class AccountCellEditor<A extends Account> extends CellEditor {
     }
 
     /**
-     * Processes a key release event that occurred in this cell editor.
-     *
-     * @param keyEvent the key event
-     */
-    @Override
-    protected void keyReleaseOccured(KeyEvent keyEvent) {
-/* No idea if any of this is needed.....
-    	switch (mode) {
-    	/*
-    	 * The <code>TextCellEditor</code> implementation of this framework method
-    	 * ignores when the RETURN key is pressed since this is handled in
-    	 * <code>handleDefaultSelection</code>.
-    	 * An exception is made for Ctrl+Enter for multi-line texts, since
-    	 * a default selection event is not sent in this case.
-    	 * /
-    	case textmode:
-
-        if (keyEvent.character == '\r') { // Return key
-            // Enter is handled in handleDefaultSelection.
-            // Do not apply the editor value in response to an Enter key event
-            // since this can be received from the IME when the intent is -not-
-            // to apply the value.
-            // See bug 39074 [CellEditors] [DBCS] canna input mode fires bogus event from Text Control
-            //
-            // An exception is made for Ctrl+Enter for multi-line texts, since
-            // a default selection event is not sent in this case.
-            if (text != null && !text.isDisposed()
-                    && (text.getStyle() & SWT.MULTI) != 0) {
-                if ((keyEvent.stateMask & SWT.CTRL) != 0) {
-                    super.keyReleaseOccured(keyEvent);
-                }
-            }
-            return;
-        }
-        super.keyReleaseOccured(keyEvent);
-        break;
-
-    	case combo:
-    	        if (keyEvent.character == '\u001b') { // Escape character
-    	            fireCancelEditor();
-    	        } else if (keyEvent.character == '\t') { // tab key
-    	            applyEditorValueAndDeactivate();
-    	        }
-    		break;
-
-    		default:
-    			super.keyReleaseOccured(keyEvent);
-    	}
-*/
-		super.keyReleaseOccured(keyEvent);
-    }
-
-    /**
      * The <code>TextCellEditor</code> implementation of this
      * <code>CellEditor</code> method copies the full account
      * name to the clipboard.
@@ -424,29 +375,6 @@ public class AccountCellEditor<A extends Account> extends CellEditor {
      * Applies the currently selected value and deactiavates the cell editor
      */
     void applyEditorValueAndDeactivate() {
-        //	must set the selection before getting value
-/* TODO: Figure out this code - it came from the combo
-        selection = comboBox.getSelectionIndex();
-        Object newValue = doGetValue();
-        markDirty();
-        boolean isValid = isCorrect(newValue);
-        setValueValid(isValid);
-
-        if (!isValid) {
-        	// Only format if the 'index' is valid
-        	if (items.length > 0 && selection >= 0 && selection < items.length) {
-	            // try to insert the current value into the error message.
-	            setErrorMessage(MessageFormat.format(getErrorMessage(),
-	                    new Object[] { items[selection] }));
-        	}
-        	else {
-	            // Since we don't have a valid index, assume we're using an 'edit'
-        		// combo so format using its text value
-	            setErrorMessage(MessageFormat.format(getErrorMessage(),
-	                    new Object[] { comboBox.getText() }));
-        	}
-        }
-*/
         fireApplyEditorValue();
         deactivate();
     }

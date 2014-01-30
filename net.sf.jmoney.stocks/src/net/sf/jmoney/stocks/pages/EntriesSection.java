@@ -63,13 +63,14 @@ import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.IPropertyControl;
+import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionInfo;
 import net.sf.jmoney.resources.Messages;
 import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.SecurityControl;
+import net.sf.jmoney.stocks.model.SecurityInfo;
 import net.sf.jmoney.stocks.model.StockAccount;
-import net.sf.jmoney.stocks.model.StockEntryInfo;
 import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
 
 import org.eclipse.core.commands.IHandler;
@@ -128,7 +129,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		IndividualBlock<StockEntryData, StockEntryRowControl> actionColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Action", 50, 1) {
 
 			@Override
-			public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
+			public Control createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final CCombo control = new CCombo(parent, SWT.NONE);
 				ComboViewer viewer = new ComboViewer(control);
 				viewer.setContentProvider(ArrayContentProvider.getInstance());
@@ -180,9 +181,8 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 					}
 				};
 				
-				Bind.twoWay(master, transactionProperty)
-				.to((IObservableValue<TransactionType>)ViewersObservables.<TransactionType>observeSingleSelection(viewer));
-				
+				Bind.twoWay(transactionProperty, master)
+				.to(ViewersObservables.<TransactionType>observeSingleSelection(viewer));
 				
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
 
@@ -246,15 +246,20 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 				 */
 				control.addFocusListener(controlFocusListener);
 
-				return cellControl;
+				return cellControl.getControl();
 			}
 		};
 
 		IndividualBlock<StockEntryData, StockEntryRowControl> shareNameColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Stock", 50, 1) {
 
 			@Override
-			public IPropertyControl<StockEntryData> createCellControl(Composite parent, final IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
-				final SecurityControl<Security> control = new SecurityControl<Security>(parent, null, Security.class);
+			public Control createCellControl(Composite parent, final IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
+				final SecurityControl<Security> control = new SecurityControl<Security>(parent, SecurityInfo.getPropertySet()) {
+					@Override
+					protected Session getSession() {
+						return master.getValue().getEntry().getSession();
+					}
+				};
 
 				IValueProperty<StockEntryData, Security> securityProperty = new PropertyOnObservable<Security>(Security.class) {
 					@Override
@@ -264,7 +269,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 					}
 				};
 				
-				Bind.twoWay(master, securityProperty)
+				Bind.twoWay(securityProperty, master)
 				.to(control.commodity());
 				
 
@@ -389,7 +394,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 //					}
 //				});
 
-				return cellControl;
+				return cellControl.getControl();
 			}
 
 			private void addFocusListenerRecursively(Control control, FocusListener listener) {
@@ -405,7 +410,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		IndividualBlock<StockEntryData, StockEntryRowControl> priceColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Price", 60, 1) {
 
 			@Override
-			public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
+			public Control createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final Text control = new Text(parent, SWT.RIGHT);
 
 		    	IBidiConverter<BigDecimal,String> amountToText = new IBidiConverter<BigDecimal,String>() {
@@ -524,7 +529,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 				FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, cellControl);
 				control.addFocusListener(controlFocusListener);
 
-				return cellControl;
+				return cellControl.getControl();
 
 			}
 		};
@@ -532,7 +537,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		IndividualBlock<StockEntryData, StockEntryRowControl> shareNumberColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Quantity", EntryInfo.getAmountAccessor().getMinimumWidth(), EntryInfo.getAmountAccessor().getWeight()) {
 
 			@Override
-			public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
+			public Control createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final Text control = new Text(parent, SWT.RIGHT);
 
 				ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
@@ -608,7 +613,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 				FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, cellControl);
 				control.addFocusListener(controlFocusListener);
 
-				return cellControl;
+				return cellControl.getControl();
 			}
 		};
 
@@ -626,30 +631,14 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 						new CellBlock<StockEntryData, StockEntryRowControl>(0, 0) {
 
 			@Override
-			public IPropertyControl<StockEntryData> createCellControl(
+			public Control createCellControl(
 					Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl,
 					StockEntryRowControl coordinator) {
 
 				final Control control = new Label(parent, SWT.NONE);
 
-				return new IPropertyControl<StockEntryData>() {
-
-					@Override
-					public Control getControl() {
-						return control;
-					}
-
-					@Override
-					public void load(StockEntryData object) {
-						// Nothing to do
-					}
-
-					@Override
-					public void save() {
-						// Nothing to do
-					}
-				};
-			}
+				return control;
+				}
 
 			@Override
 			public void createHeaderControls(Composite parent, StockEntryData entryData) {
@@ -664,7 +653,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 			new IndividualBlock<StockEntryData, StockEntryRowControl>("Withholding Tax", EntryInfo.getAmountAccessor().getMinimumWidth(), EntryInfo.getAmountAccessor().getWeight()) {
 
 			@Override
-			public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
+			public Control createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 				final Text control = new Text(parent, SWT.RIGHT);
 
 				final ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
@@ -736,7 +725,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 				FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, cellControl);
 				control.addFocusListener(controlFocusListener);
 
-				return cellControl;
+				return cellControl.getControl();
 
 			}
 		};
@@ -747,7 +736,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 			IndividualBlock<StockEntryData, StockEntryRowControl> commissionColumn = new IndividualBlock<StockEntryData, StockEntryRowControl>("Commission", EntryInfo.getAmountAccessor().getMinimumWidth(), EntryInfo.getAmountAccessor().getWeight()) {
 
 				@Override
-				public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
+				public Control createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 					final Text control = new Text(parent, SWT.RIGHT);
 
 					final ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
@@ -819,7 +808,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 					FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, cellControl);
 					control.addFocusListener(controlFocusListener);
 
-					return cellControl;
+					return cellControl.getControl();
 
 				}
 			};
@@ -830,7 +819,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 			IndividualBlock<StockEntryData, StockEntryRowControl> tax1Column = new IndividualBlock<StockEntryData, StockEntryRowControl>(account.getTax1Name(), 60, 1) {
 
 				@Override
-				public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
+				public Control createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 					final Text control = new Text(parent, SWT.RIGHT);
 
 					final ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
@@ -901,7 +890,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 					FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, cellControl);
 					control.addFocusListener(controlFocusListener);
 
-					return cellControl;
+					return cellControl.getControl();
 
 				}
 			};
@@ -912,7 +901,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 			IndividualBlock<StockEntryData, StockEntryRowControl> tax2Column = new IndividualBlock<StockEntryData, StockEntryRowControl>(account.getTax2Name(), 60, 1) {
 
 				@Override
-				public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
+				public Control createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, RowControl rowControl, final StockEntryRowControl coordinator) {
 					final Text control = new Text(parent, SWT.RIGHT);
 
 					final ICellControl2<StockEntryData> cellControl = new ICellControl2<StockEntryData>() {
@@ -984,7 +973,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 					FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, cellControl);
 					control.addFocusListener(controlFocusListener);
 
-					return cellControl;
+					return cellControl.getControl();
 
 				}
 			};
@@ -1061,8 +1050,8 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 					}
 
 					@Override
-					public IPropertyControl<StockEntryData> createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, final RowControl rowControl, final StockEntryRowControl coordinator) {
-						final StackControl<StockEntryData, StockEntryRowControl> control = new StackControl<StockEntryData, StockEntryRowControl>(parent, rowControl, coordinator, this);
+					public Control createCellControl(Composite parent, IObservableValue<? extends StockEntryData> master, final RowControl rowControl, final StockEntryRowControl coordinator) {
+						final StackControl<StockEntryData, StockEntryRowControl> control = new StackControl<StockEntryData, StockEntryRowControl>(parent, rowControl, coordinator, this, master);
 
 						IValueProperty<StockEntryData, TransactionType> transactionProperty = new PropertyOnObservable<TransactionType>(TransactionType.class) {
 							@Override
@@ -1076,6 +1065,9 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 
 							@Override
 							public void handleValueChange(ValueChangeEvent<TransactionType> event) {
+//								todo: queue this code and run asynchronously.  So it runs once only
+//								when lots of changes are made by the same code???
+								
 								Block<? super StockEntryData, ? super StockEntryRowControl> topBlock = getTopBlock(coordinator.getUncommittedEntryData());
 
 								// Set this block in the control
@@ -1104,60 +1096,6 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 						});
 
 						return control;
-					}
-
-					@Override
-					public SessionChangeListener createListener(
-							final StockEntryData entryData,
-							final StackControl<StockEntryData, StockEntryRowControl> stackControl) {
-						return 	new SessionChangeAdapter() {
-							@Override
-							public void objectChanged(IModelObject changedObject,
-									IScalarPropertyAccessor changedProperty, Object oldValue,
-									Object newValue) {
-								// TODO Auto-generated method stub
-
-							}
-
-							@Override
-							public void objectCreated(IModelObject newObject) {
-								// TODO Auto-generated method stub
-
-							}
-
-							@Override
-							public void objectDestroyed(IModelObject deletedObject) {
-								// TODO Auto-generated method stub
-
-							}
-
-							@Override
-							public void objectInserted(IModelObject newObject) {
-								// TODO Auto-generated method stub
-
-							}
-
-							@Override
-							public void objectMoved(IModelObject movedObject,
-									IModelObject originalParent, IModelObject newParent,
-									IListPropertyAccessor originalParentListProperty,
-									IListPropertyAccessor newParentListProperty) {
-								// TODO Auto-generated method stub
-
-							}
-
-							@Override
-							public void objectRemoved(IModelObject deletedObject) {
-								// TODO Auto-generated method stub
-
-							}
-
-							@Override
-							public void performRefresh() {
-								// TODO Auto-generated method stub
-
-							}
-						};
 					}
 
 					@Override

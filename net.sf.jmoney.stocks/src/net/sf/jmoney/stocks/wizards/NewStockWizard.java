@@ -33,8 +33,6 @@ import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.stocks.model.Security;
-import net.sf.jmoney.stocks.model.Stock;
-import net.sf.jmoney.stocks.model.StockInfo;
 import net.sf.jmoney.wizards.WizardPropertyPage;
 
 import org.eclipse.jface.wizard.Wizard;
@@ -46,26 +44,26 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.MessageBox;
 
-public class NewStockWizard extends Wizard {
+public class NewStockWizard<S extends Security> extends Wizard {
 
-	private final ExtendablePropertySet<? extends Stock> stockPropertySet;
+	private final ExtendablePropertySet<S> stockPropertySet;
 
 	private final TransactionManagerForAccounts transactionManager;
 
-	private final Stock newUncommittedAccount;
+	private final S newUncommittedAccount;
 
 	/**
 	 * This is set when 'finish' is pressed and the new stock is committed.
 	 */
-	private Stock newCommittedStock;
+	private S newCommittedStock;
 
 	/**
 	 * 
 	 * @param finalPropertySet the property set object of the class
 	 * 		of stock to create
 	 */
-	public NewStockWizard(Session session) {
-		this.stockPropertySet = StockInfo.getPropertySet();
+	public NewStockWizard(Session session, ExtendablePropertySet<S> securityPropertySet) {
+		this.stockPropertySet = securityPropertySet;
 
 		this.setWindowTitle("Create a New Stock");
 		this.setHelpAvailable(true);
@@ -80,8 +78,8 @@ public class NewStockWizard extends Wizard {
 	public void addPages()
 	{
 		// Show the page that prompts for all the property values.
-		Set<ScalarPropertyAccessor<?,?>> excludedProperties = new HashSet<ScalarPropertyAccessor<?,?>>();
-		WizardPage propertyPage = new WizardPropertyPage<Security>("propertyPage", "Stock Properties", "Enter values for the stock properties", newUncommittedAccount, stockPropertySet, CommodityInfo.getNameAccessor(), excludedProperties);
+		Set<ScalarPropertyAccessor<?, ? extends S>> excludedProperties = new HashSet<ScalarPropertyAccessor<?,? extends S>>();
+		WizardPage propertyPage = new WizardPropertyPage<S>("propertyPage", "Stock Properties", "Enter values for the stock properties", newUncommittedAccount, stockPropertySet, CommodityInfo.getNameAccessor(), excludedProperties);
 		addPage(propertyPage);
 
 		WizardPage summaryPage = new SummaryPage("summaryPage");
@@ -94,7 +92,7 @@ public class NewStockWizard extends Wizard {
 
 		transactionManager.commit("Add New Stock");
 
-		newCommittedStock = (Stock)((UncommittedObjectKey)newUncommittedAccount.getObjectKey()).getCommittedObjectKey().getObject();
+		newCommittedStock = stockPropertySet.getImplementationClass().cast(((UncommittedObjectKey)newUncommittedAccount.getObjectKey()).getCommittedObjectKey().getObject());
 
 		return true;
 	}
@@ -136,7 +134,7 @@ public class NewStockWizard extends Wizard {
 		}
 	}
 
-	public Stock getNewStock() {
+	public S getNewStock() {
 		return newCommittedStock;
 	}
 }

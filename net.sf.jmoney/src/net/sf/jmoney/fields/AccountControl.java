@@ -66,11 +66,10 @@ import org.eclipse.swt.widgets.Text;
  *
  * @author Nigel Westbury
  */
-public class AccountControl<A extends Account> extends AccountComposite<A> {
+public abstract class AccountControl<A extends Account> extends AccountComposite<A> {
 
 	Text textControl;
 
-	private Session session;
 	private Class<A> accountClass;
 
     /**
@@ -87,14 +86,10 @@ public class AccountControl<A extends Account> extends AccountComposite<A> {
 	 * @param parent
 	 * @param style
 	 */
-	public AccountControl(final Composite parent, Session session, Class<A> accountClass) {
+	public AccountControl(final Composite parent /*, Session session*/, Class<A> accountClass) {
 		super(parent, SWT.NONE);
-		this.session = session;
 		this.accountClass = accountClass;
 
-		if (session == null) {
-			System.out.println("check this is set later by the caller");
-		}
 		setBackgroundMode(SWT.INHERIT_FORCE);
 
 		setLayout(new FillLayout(SWT.VERTICAL));
@@ -132,7 +127,7 @@ public class AccountControl<A extends Account> extends AccountComposite<A> {
 		        // (the parameters may be null, but fields should always have been set by
 		        // the time control gets focus).
 		        allAccounts = new Vector<A>();
-		        addAccounts("", AccountControl.this.session.getAccountCollection(), listControl, AccountControl.this.accountClass); //$NON-NLS-1$
+		        addAccounts("", AccountControl.this.getSession().getAccountCollection(), listControl, AccountControl.this.accountClass); //$NON-NLS-1$
 
 //		        shell.setSize(listControl.computeSize(SWT.DEFAULT, listControl.getItemHeight()*10));
 
@@ -295,14 +290,15 @@ public class AccountControl<A extends Account> extends AccountComposite<A> {
 	}
 
 	/**
-	 * Normally the session is set through the constructor. However in some
-	 * circumstances (i.e. in the custom cell editors) the session is not
-	 * available at construction time and null will be set. This method must
-	 * then be called to set the session before the control is used (i.e. before
-	 * the control gets focus).
+	 * One would expect that the account class could more simply be passed as a
+	 * parameter to the AccountControl constructor. After all it never changes.
+	 * However the CellEditor API uses an anti-pattern whereby the call to the
+	 * abstract method CreateControl is made from the constructor. This means
+	 * the CellEditor has not been constructed when CreateControl is called, and
+	 * so CreateControl does not have available the fields that would have been
+	 * used to store accountClass. This is a hack to get around the problem.
+	 * 
+	 * @return
 	 */
-	public void setSession(Session session, Class<A> accountClass) {
-		this.session = session;
-		this.accountClass = accountClass;
-	}
+	protected abstract Session getSession(); 
 }

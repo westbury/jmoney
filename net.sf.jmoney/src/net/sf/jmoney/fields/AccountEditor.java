@@ -51,6 +51,7 @@ import org.eclipse.swt.widgets.Control;
  *
  * @author Nigel Westbury
  * @author Johann Gyger
+ * @deprecated
  */
 public class AccountEditor<S extends ExtendableObject, A extends Account> implements IPropertyControl<S> {
 
@@ -89,8 +90,13 @@ public class AccountEditor<S extends ExtendableObject, A extends Account> implem
      * @deprecated not used with data binding
      */
     public AccountEditor(Composite parent, ScalarPropertyAccessor<A,S> propertyAccessor) {
-		Session session = JMoneyPlugin.getDefault().getSessionManager().getSession();
-        propertyControl = new AccountControl<A>(parent, session, propertyAccessor.getClassOfValueObject());
+		final Session session = JMoneyPlugin.getDefault().getSessionManager().getSession();
+        propertyControl = new AccountControl<A>(parent, propertyAccessor.getClassOfValueObject()) {
+			@Override
+			protected Session getSession() {
+				return session;
+			}
+		};
         this.accountPropertyAccessor = propertyAccessor;
 
         /*
@@ -138,7 +144,7 @@ public class AccountEditor<S extends ExtendableObject, A extends Account> implem
     		 */
     		object.getDataManager().addChangeListener(amountChangeListener);
 
-    		propertyControl.setSession(object.getSession(), accountPropertyAccessor.getClassOfValueObject());
+//    		propertyControl.setSession(object.getSession(), accountPropertyAccessor.getClassOfValueObject());
 
     		A account = accountPropertyAccessor.getValue(object);
     		propertyControl.setAccount(account);

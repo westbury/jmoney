@@ -67,7 +67,7 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 	//	private DefaultValueBinding<BigDecimal> sharePriceBinding;
 
 	public StockEntryRowControl(final Composite parent, int style, VirtualRowTable rowTable, Block<StockEntryData, ? super StockEntryRowControl> rootBlock, final RowSelectionTracker selectionTracker, final FocusCellTracker focusCellTracker) {
-		super(parent, style, rowTable, rootBlock, selectionTracker, focusCellTracker);
+		super(parent, rowTable, rootBlock, selectionTracker, focusCellTracker);
 		init(this, this, rootBlock);
 	}
 

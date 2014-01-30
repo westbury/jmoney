@@ -123,7 +123,7 @@ public class OtherEntriesControl extends Composite {
 	
 	static private Image downArrowImage = null;
 
-	public OtherEntriesControl(Composite parent, final IObservableValue<? extends EntryData> entryData, RowControl rowControl, Block<Entry, ISplitEntryContainer> rootBlock, RowSelectionTracker<BaseEntryRowControl> selectionTracker, FocusCellTracker focusCellTracker) {
+	public OtherEntriesControl(Composite parent, final IObservableValue<? extends EntryData> masterEntryData, RowControl rowControl, Block<Entry, ISplitEntryContainer> rootBlock, RowSelectionTracker<BaseEntryRowControl> selectionTracker, FocusCellTracker focusCellTracker) {
 		super(parent, SWT.NONE);
 		this.rowControl = rowControl;
 		this.rootBlock = rootBlock;
@@ -139,14 +139,19 @@ public class OtherEntriesControl extends Composite {
 			protected Set<Entry> calculate() {
 				// TODO Make getSplitEntries return Set, not Collection,
 				// so we don't have to wrap here.
-				return entryData.getValue() == null
+				if (masterEntryData.getValue() != null) {
+					System.out.println(masterEntryData.getValue().getSplitEntries().size());
+				} else {
+					System.out.println("null");
+				}
+				return masterEntryData.getValue() == null
 						? null
-								: new HashSet<Entry>(entryData.getValue().getSplitEntries());
+								: new HashSet<Entry>(masterEntryData.getValue().getSplitEntries());
 			}
 		};
 		
 		createChildComposite();
-		createDownArrowButton(entryData);
+		createDownArrowButton(masterEntryData);
 
 		otherEntries.addSetChangeListener(new ISetChangeListener<Entry>() {
 			@Override
@@ -202,7 +207,7 @@ public class OtherEntriesControl extends Composite {
 		splitLabel = new Label(stackComposite, SWT.NONE);
 		splitLabel.setText(Messages.OtherEntriesControl_SplitEntry);
 
-		otherEntryControl = new OtherEntryControl(stackComposite, rowControl, SWT.NONE, rootBlock, true, selectionTracker, focusCellTracker);
+		otherEntryControl = new OtherEntryControl(stackComposite, rowControl, rootBlock, true, selectionTracker, focusCellTracker);
 		
 		return stackComposite;
 	}

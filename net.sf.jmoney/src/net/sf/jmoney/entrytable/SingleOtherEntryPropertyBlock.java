@@ -68,7 +68,7 @@ public class SingleOtherEntryPropertyBlock extends IndividualBlock<Entry, ISplit
 	}
 
     @Override
-	public IPropertyControl<Entry> createCellControl(Composite parent, IObservableValue<? extends Entry> master, RowControl rowControl, ISplitEntryContainer coordinator) {
+	public Control createCellControl(Composite parent, IObservableValue<? extends Entry> master, RowControl rowControl, ISplitEntryContainer coordinator) {
     	final Control propertyControl = accessor.createPropertyControl2(parent, master);
 
 
@@ -116,7 +116,7 @@ public class SingleOtherEntryPropertyBlock extends IndividualBlock<Entry, ISplit
 //			textControl.addKeyListener(keyListener);
 //			textControl.addTraverseListener(traverseListener);
 
-		return cellControl;
+		return cellControl.getControl();
 	}
 
     /**

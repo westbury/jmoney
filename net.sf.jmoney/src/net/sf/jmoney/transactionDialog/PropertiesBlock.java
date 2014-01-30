@@ -81,13 +81,9 @@ class PropertiesBlock extends CellBlock<Entry, SplitEntryRowControl> {
 	}
 
 	@Override
-	public IPropertyControl<Entry> createCellControl(Composite parent, IObservableValue<? extends Entry> master,
+	public Control createCellControl(Composite parent, IObservableValue<? extends Entry> master,
 			RowControl rowControl, SplitEntryRowControl coordinator) {
-
-		// HACK: Bit of a hack this, but master never changes so we can do this.
-//		Entry entry = master.getValue();
-		
-    	return new PropertiesCellControl(parent, rowControl, master);
+    	return new PropertiesCellControl(parent, rowControl, master).getControl();
 	}
 
 	private class PropertiesCellControl implements IPropertyControl<Entry> {

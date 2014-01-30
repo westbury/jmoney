@@ -143,13 +143,18 @@ extends AbstractPropertySection {
 		composite.setText(provider.getGroupName(account.getValue()));
 		composite.setLayout(new GridLayout(2, false));
 		
-		Session session = account.getValue().getSession();
+		final Session session = account.getValue().getSession();
 
 		AssociationMetadata[] associationMetadata = provider.getAssociationMetadata(account.getValue());
 		for (AssociationMetadata association : associationMetadata) {
 		getWidgetFactory().createCLabel(composite, association.getLabel() + ":"); //$NON-NLS-1$
 
-		final AccountControl<Account> accountControl = new AccountControl<Account>(composite, session, Account.class);
+		final AccountControl<Account> accountControl = new AccountControl<Account>(composite, Account.class) {
+			@Override
+			protected Session getSession() {
+				return session;
+			}
+		};
 
 		Bind.twoWay(new AssociatedAccountProperty(association.getId()).observeDetail(account))
 			.to(accountControl.account);

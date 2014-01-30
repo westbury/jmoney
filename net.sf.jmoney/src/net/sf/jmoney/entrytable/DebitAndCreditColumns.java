@@ -159,11 +159,11 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 	}
 
     @Override
-	public IPropertyControl<EntryData> createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, BaseEntryRowControl coordinator) {
+	public Control createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, BaseEntryRowControl coordinator) {
 
 		ICellControl2<EntryData> cellControl = new DebitAndCreditCellControl(parent, rowControl, master);
 
-		return cellControl;
+		return cellControl.getControl();
     }
 
 	public int compare(EntryData entryData1, EntryData entryData2) {

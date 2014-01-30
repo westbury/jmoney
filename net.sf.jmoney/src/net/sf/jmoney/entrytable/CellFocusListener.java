@@ -76,8 +76,14 @@ public class CellFocusListener<R extends RowControl> extends FocusAdapter {
 					/*
 					 * The row selection will have been set by the setSelection method
 					 * but we must also update the cell selection.
+					 * 
+					 * There are odd situations where the control that previously had the focus
+					 * has been disposed.  For example if a transaction has multiple entries, the user
+					 * dropped down the shell and removed all entries except one.  Then close the shell.
+					 * Selection moves to ..... not quite sure why there is a problem, but there is.
 					 */ 
-					if (previousFocus != null) {
+					if (previousFocus != null
+							&& !previousFocus.getControl().isDisposed()) {
 						previousFocus.setUnselected();
 					}
 

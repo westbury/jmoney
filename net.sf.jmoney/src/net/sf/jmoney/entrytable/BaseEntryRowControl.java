@@ -125,10 +125,10 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 
 	private ArrayList<IBalanceChangeListener> balanceChangeListeners = new ArrayList<IBalanceChangeListener>();
 
-	public BaseEntryRowControl(final Composite parent, int style,
-			ICompositeTable<T> rowTable, Block<T, ?> rootBlock,
-			RowSelectionTracker<R> selectionTracker, FocusCellTracker focusCellTracker) {
-		super(parent, style, selectionTracker, focusCellTracker);
+	public BaseEntryRowControl(final Composite parent, ICompositeTable<T> rowTable,
+			Block<T, ?> rootBlock, RowSelectionTracker<R> selectionTracker,
+			FocusCellTracker focusCellTracker) {
+		super(parent, selectionTracker, focusCellTracker);
 		this.rowTable = rowTable;
 
 		/*

@@ -54,7 +54,6 @@ import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionInfo;
@@ -81,6 +80,7 @@ import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.MessageBox;
@@ -263,7 +263,7 @@ public class StatementSection extends SectionPart {
 		CellBlock<EntryData, EntryRowControl> unreconcileButton = new CellBlock<EntryData, EntryRowControl>(20, 0) {
 
 			@Override
-			public IPropertyControl<EntryData> createCellControl(Composite parent, IObservableValue<? extends EntryData> master, final RowControl rowControl, final EntryRowControl coordinator) {
+			public Control createCellControl(Composite parent, IObservableValue<? extends EntryData> master, final RowControl rowControl, final EntryRowControl coordinator) {
 				ButtonCellControl cellControl = new ButtonCellControl(parent, coordinator, unreconcileImage, "Remove Entry from this Statement") {
 					@Override
 					protected void run(EntryRowControl rowControl) {
@@ -361,7 +361,7 @@ public class StatementSection extends SectionPart {
 				});
 
 
-				return cellControl;
+				return cellControl.getControl();
 			}
 
 			@Override

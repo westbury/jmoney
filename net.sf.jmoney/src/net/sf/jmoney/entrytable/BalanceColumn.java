@@ -108,14 +108,14 @@ public class BalanceColumn extends IndividualBlock<EntryData, BaseEntryRowContro
 	}
 
     @Override
-	public IPropertyControl<EntryData> createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, BaseEntryRowControl coordinator) {
+	public Control createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, BaseEntryRowControl coordinator) {
 		final Label balanceLabel = new Label(parent, SWT.TRAIL);
 
 		BalanceCellControl cellControl = new BalanceCellControl(balanceLabel, master);
 
 		coordinator.addBalanceChangeListener(cellControl);
 
-		return cellControl;
+		return cellControl.getControl();
 	}
 
 	public String getId() {

@@ -22,14 +22,11 @@
 
 package net.sf.jmoney.entrytable;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import net.sf.jmoney.model2.IPropertyControl;
-
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 
 public class CellContainer<T,R> extends Composite {
 
@@ -43,10 +40,10 @@ public class CellContainer<T,R> extends Composite {
 	// (and it may as well be a list of the values only), a map
 	// allows us to do stuff like move the focus to the control
 	// in error during transaction validation.
-	protected Map<CellBlock, IPropertyControl<? super T>> controls = new HashMap<CellBlock, IPropertyControl<? super T>>();
+//	protected Map<CellBlock, IPropertyControl<? super T>> controls = new HashMap<CellBlock, IPropertyControl<? super T>>();
 
-	public CellContainer(Composite parent, int style) {
-		super(parent, style);
+	public CellContainer(Composite parent) {
+		super(parent, SWT.NONE);
 	}
 
 	/**
@@ -64,8 +61,8 @@ public class CellContainer<T,R> extends Composite {
 	protected void init(RowControl rowControl, R coordinator, Block<? super T, ? super R> rootBlock) {
 		for (CellBlock<? super T, ? super R> cellBlock: rootBlock.buildCellList()) {
 			// Create the control with no content set.
-			final IPropertyControl<? super T> cellControl = cellBlock.createCellControl(this, input, rowControl, coordinator);
-			controls.put(cellBlock, cellControl);
+			final Control cellControl = cellBlock.createCellControl(this, input, rowControl, coordinator);
+//			controls.put(cellBlock, cellControl);
 
 //			if (input.getValue() != null) {
 //				cellControl.load(input.getValue());
@@ -75,10 +72,6 @@ public class CellContainer<T,R> extends Composite {
 
 	public void setInput(T input) {
 		this.input.setValue(input);
-
-//		for (final IPropertyControl<? super T> control: controls.values()) {
-//			control.load(this.input.getValue());
-//		}
 	}
 
 	public T getInput() {

@@ -33,6 +33,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 
@@ -60,13 +61,13 @@ public class OtherEntriesButton extends CellBlock<EntryData, EntryRowControl> {
 	}
 
     @Override
-	public IPropertyControl<EntryData> createCellControl(Composite parent, IObservableValue<? extends EntryData> master, final RowControl rowControl, final EntryRowControl coordinator) {
+	public Control createCellControl(Composite parent, IObservableValue<? extends EntryData> master, final RowControl rowControl, final EntryRowControl coordinator) {
 		if (downArrowImage == null) {
 			ImageDescriptor descriptor = JMoneyPlugin.createImageDescriptor("comboArrow.gif"); //$NON-NLS-1$
 			downArrowImage = descriptor.createImage();
 		}
 
-		return new ButtonCellControl(rowControl, coordinator, downArrowImage, Messages.OtherEntriesButton_ToolTipText) {
+		IPropertyControl control = new ButtonCellControl(rowControl, coordinator, downArrowImage, Messages.OtherEntriesButton_ToolTipText) {
 			@Override
 			protected void run(EntryRowControl rowControl) {
 				final OtherEntriesShell shell = new OtherEntriesShell(rowControl.getShell(), SWT.ON_TOP, coordinator.getUncommittedEntryData(), otherEntriesRootBlock, false);
@@ -75,6 +76,8 @@ public class OtherEntriesButton extends CellBlock<EntryData, EntryRowControl> {
     	        shell.open(rect);
 			}
 		};
+		
+		return control.getControl();
 	}
 
 	@Override

@@ -57,8 +57,8 @@ public class SplitEntryRowControl extends RowControl<Entry, SplitEntryRowControl
 		}
 	};
 
-	public SplitEntryRowControl(final Composite parent, int style, Block<Entry, ? super SplitEntryRowControl> rootBlock, boolean isLinked, final RowSelectionTracker<SplitEntryRowControl> selectionTracker, final FocusCellTracker focusCellTracker, Entry entry) {
-		super(parent, style, selectionTracker, focusCellTracker);
+	public SplitEntryRowControl(final Composite parent, Block<Entry, ? super SplitEntryRowControl> rootBlock, boolean isLinked, final RowSelectionTracker<SplitEntryRowControl> selectionTracker, final FocusCellTracker focusCellTracker, Entry entry) {
+		super(parent, selectionTracker, focusCellTracker);
 
 		/*
 		 * We set the top and bottom margins to zero here because that ensures

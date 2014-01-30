@@ -51,10 +51,16 @@ import org.eclipse.core.runtime.Assert;
  * Note that it is entries and not transactions that are listed. For example, if
  * a transaction has two entries in the account then that transaction will
  * appear twice in the list.
+ * <P>
+ * Note that this object knows about an entry in the context of a single data manager.
+ * If the user is editing an existing row then there will be two instances of EntryData
+ * involved, while if the user is editing a new row then ????? not sure if an EntryData
+ * need exist with a null entry or not?????
  */
 public class EntryData {
 	/**
-	 * The entry represented by this row.  This entry will be null if the row
+	 * The entry represented by this row.  This entry will never be null.
+	 *  be null if the row
 	 * represents a new entry that has never been committed to the datastore.
 	 * Row controls will generally create a datastore transaction in which to
 	 * edit this entry.  However, this entry will be the committed version of
@@ -190,6 +196,10 @@ public class EntryData {
 		this.balance = balance;
 	}
 
+	/**
+	 * 
+	 * @return the entry represented by this row, which will never be null????
+	 */
 	public Entry getEntry() {
 		return entry;
 	}

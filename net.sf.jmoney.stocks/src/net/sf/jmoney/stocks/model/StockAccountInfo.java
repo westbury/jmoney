@@ -36,7 +36,6 @@ import net.sf.jmoney.model2.CapitalAccountInfo;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.IExtendableObjectConstructors;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.IPropertySetInfo;
 import net.sf.jmoney.model2.IReferenceControlFactory;
@@ -47,6 +46,7 @@ import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.stocks.resources.Messages;
 
 import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.internal.databinding.observable.ConstantObservableValue;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -133,9 +133,17 @@ public class StockAccountInfo implements IPropertySetInfo {
 
 		IPropertyControlFactory<StockAccount,RatesTable> ratesControlFactory =
 				new IPropertyControlFactory<StockAccount,RatesTable>() {
+//			@Override
+//			public IPropertyControl<StockAccount> createPropertyControl(Composite parent, ScalarPropertyAccessor<RatesTable,StockAccount> propertyAccessor) {
+//				return new RatesEditor(parent, propertyAccessor);
+//			}
+
 			@Override
-			public IPropertyControl<StockAccount> createPropertyControl(Composite parent, ScalarPropertyAccessor<RatesTable,StockAccount> propertyAccessor) {
-				return new RatesEditor(parent, propertyAccessor);
+			public Control createPropertyControl(
+					Composite parent,
+					ScalarPropertyAccessor<RatesTable, StockAccount> propertyAccessor,
+					StockAccount modelObject) {
+				return createPropertyControl(parent, propertyAccessor, new ConstantObservableValue<StockAccount>(modelObject, StockAccount.class));
 			}
 
 			@Override

@@ -30,7 +30,6 @@ import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.resources.Messages;
 
-import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
 import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
@@ -47,11 +46,6 @@ import org.eclipse.swt.widgets.Control;
  */
 public abstract class AccountControlFactory<P, S extends ExtendableObject, A extends Account> extends PropertyControlFactory<S,A> implements IReferenceControlFactory<P,S,A> {
 
-//    @Override
-//	public IPropertyControl<S> createPropertyControl(Composite parent, ScalarPropertyAccessor<A,S> propertyAccessor) {
-//        return new AccountEditor<S,A>(parent, propertyAccessor);
-//    }
-
 	   @Override
 	public Control createPropertyControl(Composite parent,
 			ScalarPropertyAccessor<A, S> propertyAccessor,
@@ -60,7 +54,6 @@ public abstract class AccountControlFactory<P, S extends ExtendableObject, A ext
  	observable.setValue(modelObject);
 		return createPropertyControl(parent, propertyAccessor, observable);
 	}
-
 
 	@Override
 	public Control createPropertyControl(Composite parent,
@@ -75,47 +68,21 @@ public abstract class AccountControlFactory<P, S extends ExtendableObject, A ext
 		 * from the list of committed accounts.
 		 * 
 		 * We can get the data manager from an object.  However, modelObservable may be null when this method is called.  Therefore
-		 * we create a computed value that gets the data manager from modelObservable and pass that on.
+		 * AccountControl provides a method to get the session when the list is dropped down.  By the time the user drops down the list,
+		 * a session must be available.
 		 */
-		final IObservableValue<Session> sessionObservable = new ComputedValue<Session>() {
+
+		final AccountControl<A> control = new AccountControl<A>(parent, propertyAccessor.getClassOfValueObject()) {
 			@Override
-			protected Session calculate() {
+			protected Session getSession() {
 				return modelObservable.getValue() == null
-					? null
-							: modelObservable.getValue().getSession();
+						? null
+								: modelObservable.getValue().getSession();
 			}
 		};
 
-		final AccountControl<A> control = new AccountControl<A>(parent, sessionObservable.getValue(), propertyAccessor.getClassOfValueObject());
-
-		// Bit of a hack
-		// TODO instead of this, get the session when the user drops-down the account list
-		sessionObservable.addValueChangeListener(new IValueChangeListener<Session>(){
-			@Override
-			public void handleValueChange(ValueChangeEvent<Session> event) {
-				if (event.diff.getNewValue() != null) {
-					control.setSession(event.diff.getNewValue(), propertyAccessor.getClassOfValueObject());
-					// This should be a once-off
-					sessionObservable.removeValueChangeListener(this);
-				}
-			}
-		});
-		
 	    Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
 		.to(control.account);
-
-	    // HACK
-//	    modelObservable.addValueChangeListener(new IValueChangeListener<S>() {
-//			@Override
-//			public void handleValueChange(ValueChangeEvent<S> event) {
-//				if (event.diff.getNewValue() == null) {
-//					control.setSession(null, propertyAccessor.getClassOfValueObject());
-//				} else {
-//					Session session = event.diff.getNewValue().getSession();
-//					control.setSession(session, propertyAccessor.getClassOfValueObject());
-//				}
-//			}
-//		});
 
 		return control;
 	}

@@ -38,8 +38,8 @@ import org.eclipse.swt.widgets.Composite;
 public class EntryRowControl extends BaseEntryRowControl<EntryData, EntryRowControl> {
 
 	@SuppressWarnings("unchecked")
-	public EntryRowControl(final Composite parent, int style, ICompositeTable<EntryData> rowTable, Block<EntryData, ? super EntryRowControl> rootBlock, final RowSelectionTracker selectionTracker, final FocusCellTracker focusCellTracker) {
-		super(parent, style, rowTable, rootBlock, selectionTracker, focusCellTracker);
+	public EntryRowControl(final Composite parent, ICompositeTable<EntryData> rowTable, Block<EntryData, ? super EntryRowControl> rootBlock, final RowSelectionTracker selectionTracker, final FocusCellTracker focusCellTracker) {
+		super(parent, rowTable, rootBlock, selectionTracker, focusCellTracker);
 		init(this, this, rootBlock);
 	}
 
@@ -122,22 +122,6 @@ public class EntryRowControl extends BaseEntryRowControl<EntryData, EntryRowCont
 					}
 				});
 			}
-
-//			inputEntryData.netAmount.addValueChangeListener(new IValueChangeListener<Long>() {
-//				@Override
-//				public void handleValueChange(ValueChangeEvent event) {
-//					if (!inputEntryData.hasSplitEntries()) {
-//						Entry entry = inputEntryData.getEntry();
-//						Entry otherEntry = inputEntryData.getOtherEntry();
-//						Commodity commodity1 = entry.getCommodityInternal();
-//						Commodity commodity2 = otherEntry.getCommodityInternal();
-//						if (commodity1 == null || commodity2 == null || commodity1.equals(commodity2)) {
-//							otherEntry.setAmount(-entry.getAmount());
-//						}
-//					}
-//				}
-//			});
-
 		}
 
 		/*

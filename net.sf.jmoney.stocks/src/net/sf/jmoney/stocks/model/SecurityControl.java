@@ -28,6 +28,7 @@ import java.util.Comparator;
 import java.util.Vector;
 
 import net.sf.jmoney.model2.Commodity;
+import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.stocks.wizards.NewStockWizard;
 
@@ -68,12 +69,12 @@ import org.eclipse.swt.widgets.Text;
  *
  * @author Nigel Westbury
  */
-public class SecurityControl<A extends Security> extends Composite {
+public abstract class SecurityControl<A extends Security> extends Composite {
 
 	Text textControl;
 
-	private Session session;
-	private Class<A> securityClass;
+//	private Session session;
+	private ExtendablePropertySet<A> securityPropertySet;
 
     /**
      * List of securities put into security list.
@@ -89,10 +90,9 @@ public class SecurityControl<A extends Security> extends Composite {
 	 * @param parent
 	 * @param style
 	 */
-	public SecurityControl(final Composite parent, Session session, final Class<A> securityClass) {
+	public SecurityControl(final Composite parent, final ExtendablePropertySet<A> securityClass) {
 		super(parent, SWT.NONE);
-		this.session = session;
-		this.securityClass = securityClass;
+		this.securityPropertySet = securityClass;
 
 		setBackgroundMode(SWT.INHERIT_FORCE);
 
@@ -139,7 +139,7 @@ public class SecurityControl<A extends Security> extends Composite {
 	}
 
 	private void openSecuritiesShell(final Composite parent,
-			final Class<A> securityClass) {
+			final ExtendablePropertySet<A> securityClass) {
 		final Shell parentShell = parent.getShell();
 
 		final Shell shell = new Shell(parent.getShell(), SWT.ON_TOP);
@@ -154,7 +154,7 @@ public class SecurityControl<A extends Security> extends Composite {
         addSecurityButton.addSelectionListener(new SelectionAdapter() {
         	@Override
 			public void widgetSelected(SelectionEvent e) {
-				NewStockWizard wizard = new NewStockWizard(SecurityControl.this.session);
+				NewStockWizard<A> wizard = new NewStockWizard<A>(getSession(), securityClass);
 				System.out.println(shell.isDisposed() + ", " + shell.getDisplay());
 				WizardDialog dialog = new WizardDialog(shell, wizard);
 				dialog.setPageSize(600, 300);
@@ -164,7 +164,7 @@ public class SecurityControl<A extends Security> extends Composite {
 					 * Having created the new stock, set it as the
 					 * selected stock in this control.
 					 */
-	    	        setSecurity(securityClass.cast(wizard.getNewStock()));
+	    	        setSecurity(wizard.getNewStock());
 				}
 			}
         });
@@ -173,7 +173,7 @@ public class SecurityControl<A extends Security> extends Composite {
         // (the parameters may be null, but fields should always have been set by
         // the time control gets focus).
         allSecurities = new Vector<A>();
-        addSecurities("", SecurityControl.this.session.getCommodityCollection(), listControl, SecurityControl.this.securityClass);
+        addSecurities("", getSession().getCommodityCollection(), listControl, SecurityControl.this.securityPropertySet.getImplementationClass());
 
 //        shell.setSize(listControl.computeSize(SWT.DEFAULT, listControl.getItemHeight()*10));
 
@@ -338,8 +338,21 @@ public class SecurityControl<A extends Security> extends Composite {
 	 * then be called to set the session before the control is used (i.e. before
 	 * the control gets focus).
 	 */
-	public void setSession(Session session, Class<A> securityClass) {
-		this.session = session;
-		this.securityClass = securityClass;
-	}
+//	public void setSession(Session session, ExtendablePropertySet<A> securityPropertySet) {
+//		this.session = session;
+//		this.securityPropertySet = securityPropertySet;
+//	}
+
+	/**
+	 * One would expect that the security class could more simply be passed as a
+	 * parameter to the SecurityControl constructor. After all it never changes.
+	 * However the CellEditor API uses an anti-pattern whereby the call to the
+	 * abstract method CreateControl is made from the constructor. This means
+	 * the CellEditor has not been constructed when CreateControl is called, and
+	 * so CreateControl does not have available the fields that would have been
+	 * used to store accountClass. This is a hack to get around the problem.
+	 * 
+	 * @return
+	 */
+	protected abstract Session getSession(); 
 }

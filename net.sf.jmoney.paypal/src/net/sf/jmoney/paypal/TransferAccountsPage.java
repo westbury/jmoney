@@ -1,7 +1,6 @@
 package net.sf.jmoney.paypal;
 
 import net.sf.jmoney.model2.BankAccount;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ReferencePropertyAccessor;
 import net.sf.jmoney.paypal.resources.Messages;
 
@@ -49,8 +48,7 @@ public class TransferAccountsPage extends WizardPage {
 		Label propertyLabel = new Label(container, SWT.NONE);
 		ReferencePropertyAccessor<BankAccount,PaypalAccount> bankAccessor = PaypalAccountInfo.getTransferBankAccountAccessor();
 		propertyLabel.setText(bankAccessor.getDisplayName() + ':');
-		IPropertyControl<PaypalAccount> propertyControl = bankAccessor.createPropertyControl(container);
-		propertyControl.load(paypalAccount);
+		bankAccessor.createPropertyControl(container, paypalAccount);
 		
 		Label label2 = new Label(container, SWT.WRAP);
 		label2.setText("When importing data from Paypal, entries may be found that indicate that funds have been credited to the account through a charge to a credit card. "
@@ -64,8 +62,7 @@ public class TransferAccountsPage extends WizardPage {
 		Label propertyLabel2 = new Label(container, SWT.NONE);
 		ReferencePropertyAccessor<BankAccount,PaypalAccount> creditCardAccessor = PaypalAccountInfo.getTransferCreditCardAccountAccessor();
 		propertyLabel2.setText(creditCardAccessor.getDisplayName() + ':');
-		IPropertyControl<PaypalAccount> propertyControl2 = creditCardAccessor.createPropertyControl(container);
-		propertyControl2.load(paypalAccount);
+		creditCardAccessor.createPropertyControl(container, paypalAccount);
 		
 		setPageComplete(false);
 		

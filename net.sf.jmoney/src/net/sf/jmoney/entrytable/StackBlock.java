@@ -175,19 +175,6 @@ public abstract class StackBlock<T, R> extends CellBlock<T,R> {
 		
 	}
 
-	/**
-	 * Given a row input element, this method returns a listener that, when
-	 * session change events are fired on it, will determine if those changes
-	 * cause a change in the top block for a row with the given input.
-	 * If a change does occur, the top control in the given stack control
-	 * is updated.
-	 * 
-	 * @param entryData
-	 * @param stackControl
-	 * @return
-	 */
-	protected abstract SessionChangeListener createListener(T entryData, StackControl<T,R> stackControl);
-	
 	// TODO: Do we really need this?
 	protected abstract IDataManager getDataManager(T data);
 

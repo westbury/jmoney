@@ -133,7 +133,7 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry, SplitEntryR
 	}
 
     @Override
-	public IPropertyControl<Entry> createCellControl(Composite parent, IObservableValue<? extends Entry> master, RowControl rowControl, SplitEntryRowControl coordinator) {
+	public Control createCellControl(Composite parent, IObservableValue<? extends Entry> master, RowControl rowControl, SplitEntryRowControl coordinator) {
 
 		final Text textControl = new Text(parent, SWT.TRAIL);
 
@@ -161,7 +161,7 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry, SplitEntryR
 			}
 		});
 
-    	return cellControl;
+    	return cellControl.getControl();
 	}
 
 	public int compare(EntryData entryData1, EntryData entryData2) {

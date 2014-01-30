@@ -41,6 +41,7 @@ import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
+import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.reconciliation.ReconciliationPlugin;
 
@@ -289,7 +290,12 @@ public class ImportOptionsDialog extends Dialog {
 		// The default category, if no rule matches
 
 		new Label(composite, SWT.NONE).setText("Default category:");
-		defaultAccountControl = new AccountControl<IncomeExpenseAccount>(composite, account.getSession(), IncomeExpenseAccount.class);
+		defaultAccountControl = new AccountControl<IncomeExpenseAccount>(composite, IncomeExpenseAccount.class) {
+			@Override
+			protected Session getSession() {
+				return ImportOptionsDialog.this.account.getSession();
+			}
+		};
 		GridData accountData = new GridData();
 		accountData.widthHint = 200;
 		defaultAccountControl.setLayoutData(accountData);
@@ -448,7 +454,12 @@ public class ImportOptionsDialog extends Dialog {
 			@Override
 			protected CellEditor getCellEditor(Object element) {
 				if (propertyAccessor == MemoPatternInfo.getAccountAccessor()) {
-					return new AccountCellEditor<Account>(viewer.getTable(), account.getSession(), Account.class);
+					return new AccountCellEditor<Account>(viewer.getTable(), account.getSession()) {
+						@Override
+						protected Class<Account> getClassOfAccount() {
+							return Account.class;
+						}
+					};
 				} else {
 					return new TextCellEditor(viewer.getTable());
 				}

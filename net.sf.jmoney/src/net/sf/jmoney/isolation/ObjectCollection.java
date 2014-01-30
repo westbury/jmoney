@@ -304,10 +304,26 @@ public class ObjectCollection<E extends IModelObject> extends ObservableSet<E> {
 		final E objectToRemove = listKey.getListPropertyAccessor().getElementPropertySet().getImplementationClass().cast(element);
 
 		/*
-		 * Deletion events are fired before the object is removed from the
-		 * datastore. This is necessary because listeners processing the
-		 * object deletion may need to fetch information about the object
-		 * from the datastore.
+		 * This must be done before the object is actually deleted.  The reason is that the change
+		 * manager is responsible for the undo/redo support and so must fetch from the object
+		 * all the information it needs to restore it.  It cannot do this with a disposed object.
+		 */
+		myProcessObjectDeletion(listKey, objectToRemove);
+
+		/*
+		 * This causes the object to be removed from the model and marked as 'disposed'.
+		 */
+		listManager.deleteElement(objectToRemove);
+
+		/*
+		 * Deletion events must be fired after the object has been removed from the list.
+		 * That does mean listeners see a model object that is not in the model and therefore not in a valid state.
+		 * (Remember model objects only exist inside the model).  However we can't fire events before the change is visible
+		 * in the model because then listener code is hard to make work correctly.  (Consider, for example, ComputedValue implementations; they are just
+		 * not going to work at all if the change is not visible in the model when the event is fired).
+		 * 
+		 * One cannot do much with an object that has been disposed, but that is okay.  They are marked as being disposed and their API
+		 * enforces the limited capabilities of a disposed object.
 		 */
 		listKey.getParentKey().getDataManager().fireEvent(
 				new ISessionChangeFirer() {
@@ -315,12 +331,8 @@ public class ObjectCollection<E extends IModelObject> extends ObservableSet<E> {
 					public void fire(SessionChangeListener listener) {
 						listener.objectRemoved(objectToRemove);
 					}
-				});
-
-		// Notify the change manager.
-		myProcessObjectDeletion(listKey, objectToRemove);
-
-		listManager.deleteElement(objectToRemove);
+				}
+		);
 	}
 
 	private <S extends IModelObject> void myProcessObjectDeletion(ListKey<E,S> listKey2, E objectToRemove) {

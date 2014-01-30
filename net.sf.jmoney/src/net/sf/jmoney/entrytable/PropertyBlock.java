@@ -108,7 +108,7 @@ abstract public class PropertyBlock<T extends EntryData, R extends RowControl, S
 	}
 
     @Override
-	public IPropertyControl<T> createCellControl(Composite parent, final IObservableValue<? extends T> master, final RowControl rowControl, final R coordinator) {
+	public Control createCellControl(Composite parent, final IObservableValue<? extends T> master, final RowControl rowControl, final R coordinator) {
     	// method to name type of accessor
     	return myCreateCellControl(parent, master, rowControl, coordinator, accessor);
     }
@@ -116,12 +116,12 @@ abstract public class PropertyBlock<T extends EntryData, R extends RowControl, S
 //	private static final IBeanValueProperty<Control, Color> backgroundProperty = BeanProperties.value(Control.class, "background", Color.class);
 
     
-	public <S2 extends ExtendableObject> IPropertyControl<T> myCreateCellControl(Composite parent, final IObservableValue<? extends T> master, final RowControl rowControl, final R coordinator, ScalarPropertyAccessor<?, S2> accessor2) {
+	public <S2 extends ExtendableObject> Control myCreateCellControl(Composite parent, final IObservableValue<? extends T> master, final RowControl rowControl, final R coordinator, ScalarPropertyAccessor<?, S2> accessor2) {
 		
 IObservableValue<S> objectContainingProperty = new ComputedValue<S>() {
 			@Override
 			protected S calculate() {
-				
+				System.out.println(master.getValue());
 				return master.getValue() == null ? null : getObjectContainingProperty(master.getValue());
 			}
 		};
@@ -173,7 +173,7 @@ IObservableValue<S> objectContainingProperty = new ComputedValue<S>() {
 //			textControl.addKeyListener(keyListener);
 //			textControl.addTraverseListener(traverseListener);
 
-		return cellControl;
+		return control;
 	}
 
 	/**

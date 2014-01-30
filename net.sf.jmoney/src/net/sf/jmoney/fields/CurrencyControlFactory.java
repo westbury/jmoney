@@ -22,20 +22,25 @@
 
 package net.sf.jmoney.fields;
 
-import net.sf.jmoney.JMoneyPlugin;
+import java.util.ArrayList;
+import java.util.List;
+
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.IReferenceControlFactory;
 import net.sf.jmoney.model2.PropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
-import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.observable.list.ComputedList;
+import org.eclipse.core.databinding.observable.list.IObservableList;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
-import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
-import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.jface.databinding.viewers.ObservableListContentProvider;
+import org.eclipse.jface.databinding.viewers.ViewersObservables;
+import org.eclipse.jface.viewers.ComboViewer;
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -49,52 +54,51 @@ import org.eclipse.swt.widgets.Control;
 public abstract class CurrencyControlFactory<P, S extends ExtendableObject> extends PropertyControlFactory<S,Currency> implements IReferenceControlFactory<P,S,Currency> {
 
     @Override
-	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<Currency,S> propertyAccessor, S modelObject) {
-    	return createPropertyControlInternal(parent, propertyAccessor.observe(modelObject));
+	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<Currency,S> propertyAccessor, final S modelObject) {
+    	IObservableList<Currency> currencyListObservable = new ComputedList<Currency>() {
+			@Override
+			protected List<Currency> calculate() {
+				List<Currency> result = new ArrayList<Currency>();
+		        for (Commodity commodity: modelObject.getSession().getCommodityCollection()) {
+		            if (commodity instanceof Currency) {
+		                result.add((Currency)commodity);
+		            }
+		        }
+				return result;
+			}
+    	};
+
+    	return createPropertyControlInternal(parent, propertyAccessor.observe(modelObject), currencyListObservable);
     }
 
     @Override
-	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<Currency,S> propertyAccessor, IObservableValue<? extends S> modelObservable) {
-    	return createPropertyControlInternal(parent, propertyAccessor.observeDetail(modelObservable));
-    }
-
-    private Control createPropertyControlInternal(Composite parent, IObservableValue<Currency> modelCurrencyObservable) {
-        CCombo propertyControl = new CCombo(parent, 0);
-
-        Session session = JMoneyPlugin.getDefault().getSession();
-
-        // TODO should we keep the combo list synchronized with the
-        // currency list?
-
-        for (Commodity commodity: session.getCommodityCollection()) {
-            if (commodity instanceof Currency) {
-                propertyControl.add(commodity.getName());
-            }
-        }
-
-        IBidiConverter<Currency,String> currencyToName = new IBidiConverter<Currency,String>() {
+	public Control createPropertyControl(Composite parent, ScalarPropertyAccessor<Currency,S> propertyAccessor, final IObservableValue<? extends S> modelObservable) {
+    	IObservableList<Currency> currencyListObservable = new ComputedList<Currency>() {
 			@Override
-			public String modelToTarget(Currency fromObject) {
-				return fromObject == null ? null : fromObject.getName();
-			}
-
-			@Override
-			public Currency targetToModel(String amountString) {
-		        Session session = JMoneyPlugin.getDefault().getSession();
-		        for (Commodity commodity: session.getCommodityCollection()) {
+			protected List<Currency> calculate() {
+				List<Currency> result = new ArrayList<Currency>();
+		        for (Commodity commodity: modelObservable.getValue().getSession().getCommodityCollection()) {
 		            if (commodity instanceof Currency) {
-		                if (commodity.getName().equals(amountString)) {
-		                	return (Currency)commodity;
-		                }
+		                result.add((Currency)commodity);
 		            }
 		        }
-		        throw new RuntimeException("error - text from target is not a valid selection");
+				return result;
 			}
-		};
+    	};
 
-		Bind.twoWay(modelCurrencyObservable)
-		.convert(currencyToName)
-		.to(SWTObservables.observeSelection(propertyControl));
+    	return createPropertyControlInternal(parent, propertyAccessor.observeDetail(modelObservable), currencyListObservable);
+    }
+
+    
+    private Control createPropertyControlInternal(Composite parent, IObservableValue<Currency> modelCurrencyObservable, IObservableList<Currency> currencyList) {
+        CCombo propertyControl = new CCombo(parent, SWT.NONE);
+        ComboViewer viewer = new ComboViewer(propertyControl);
+
+        viewer.setContentProvider(new ObservableListContentProvider<Currency>(Currency.class));
+        viewer.setInput(currencyList);
+
+        Bind.twoWay(modelCurrencyObservable)
+        .to(ViewersObservables.observeSingleSelection(viewer, Currency.class));
 
 		return propertyControl;
     }

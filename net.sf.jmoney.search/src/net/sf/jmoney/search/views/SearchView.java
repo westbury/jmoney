@@ -210,7 +210,7 @@ public class SearchView extends ViewPart {
 
 		for (Entry entry: entries) {
 			EntryData entryData = new EntryData(entry, entry.getDataManager());
-			EntryRowControl row = new EntryRowControl(tableComposite, SWT.NONE, tableWrapper, rootBlock, rowTracker, cellTracker);
+			EntryRowControl row = new EntryRowControl(tableComposite, tableWrapper, rootBlock, rowTracker, cellTracker);
 			row.setContent(entryData);
 			row.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
 		}

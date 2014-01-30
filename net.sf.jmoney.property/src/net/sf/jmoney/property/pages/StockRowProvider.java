@@ -31,7 +31,6 @@ import net.sf.jmoney.entrytable.IRowProvider;
 import net.sf.jmoney.entrytable.RowSelectionTracker;
 import net.sf.jmoney.entrytable.VirtualRowTable;
 
-import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 
 public class StockRowProvider implements IRowProvider<StockEntryData> {
@@ -68,7 +67,7 @@ public class StockRowProvider implements IRowProvider<StockEntryData> {
 			rowControl = spareRows.removeFirst();
 			rowControl.setVisible(true);
 		} else {
-			rowControl = new StockEntryRowControl(parent, SWT.NONE, rowTable, rootBlock, rowSelectionTracker, focusCellTracker);
+			rowControl = new StockEntryRowControl(parent, rowTable, rootBlock, rowSelectionTracker, focusCellTracker);
 		}
 		
 		rowControl.setContent(entryData);

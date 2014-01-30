@@ -44,7 +44,7 @@ public class AccountControlWithMruList<A extends Account> extends AccountComposi
 
     protected LinkedList<A> recentlyUsedList = new LinkedList<A>();
 
-	public AccountControlWithMruList(Composite parent, Session session, Class<A> accountClass) {
+	public AccountControlWithMruList(Composite parent, final Session session, Class<A> accountClass) {
 		super(parent, SWT.NONE);
 		this.session = session;
 		this.accountClass = accountClass;
@@ -52,7 +52,12 @@ public class AccountControlWithMruList<A extends Account> extends AccountComposi
 		setLayout(new GridLayout(1, false));
 
         accountList = new List(this, SWT.NONE);
-        accountControl = new AccountControl<A>(this, session, accountClass);
+        accountControl = new AccountControl<A>(this, accountClass) {
+			@Override
+			protected Session getSession() {
+				return session;
+			}
+		};
 
         accountList.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         accountControl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));

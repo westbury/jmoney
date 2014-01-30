@@ -58,7 +58,10 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 	 * the set of row objects for all the rows that are either currently visible or
 	 * is the selected row (control for the selected row is maintained even when scrolled
 	 * out of view because it may contain unsaved data or may have data that cannot be saved
-	 * because it is not valid) 
+	 * because it is not valid)
+	 * <P>
+	 * The 'committed' entry data is mapped (the 'uncommitted' entry data being internal to
+	 * the row control)
 	 */
 	Map<EntryData, BaseEntryRowControl> rows = new HashMap<EntryData, BaseEntryRowControl>();
 
@@ -1053,9 +1056,29 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 	 * bottom (which would result in the top of the changed row being moved
 	 * down).
 	 * 
+	 * We queue up size refreshes and update the list asynchronously.  This has
+	 * the following advantages:
+	 * <UL>
+	 * <LI> if multiple updates are made to the model by the same run on the UI thread
+	 * then the table is updated only once</LI>
+	 * <LI>if something causes a change to be fired while input is being set in a row,
+	 * recursion could occur.  This happens because this method may result in a new row
+	 * being created because the creation of this row has not completed and is not in
+	 * the list...
+	 *  
 	 * @param rowControl
 	 */
 	public void refreshSize(BaseEntryRowControl<T, ?> rowControl) {
+		/*
+		 * If the row is not in our currently active list, ignore it.  This is actually
+		 * quite important because this method can be called while input is being set
+		 * into a row control that is not yet active, and this can cause problems, including problems with
+		 * recursion, if we try to process it.
+		 */
+		if (!rows.containsKey(rowControl.committedEntryData)) {
+			return;
+		}
+		
 		int rowTop = rowControl.getLocation().y;
 		
 		// NOTE: This code does not do what the javadoc says it should do when

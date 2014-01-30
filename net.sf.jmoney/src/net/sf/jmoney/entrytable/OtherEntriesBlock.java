@@ -34,15 +34,11 @@ import org.eclipse.swt.widgets.Control;
 /**
  * This class represents a block that is used to display the fields from the
  * other entries in the transaction.
- *
- * If this is a simple transaction (one other entry and that entry is an
- * income/expense account) then the properties are displayed in place.
- *
+ * <P>
+ * If this is a simple transaction (one other entry) then the properties are displayed in place.
+ * <P>
  * If this is a split transaction then the words '--split--' is displayed with
  * a drop-down button.
- *
- * If this is a transfer then this appears the same as a simple transaction
- * except that the account is in square brackets.
  *
  * @author Nigel Westbury
  */
@@ -65,7 +61,7 @@ public class OtherEntriesBlock extends CellBlock<EntryData, BaseEntryRowControl>
 
     @SuppressWarnings("unchecked")
     @Override
-	public IPropertyControl<EntryData> createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, BaseEntryRowControl coordinator) {
+	public Control createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, BaseEntryRowControl coordinator) {
 
 	    /*
 	     * Use a single row tracker for this
@@ -85,21 +81,6 @@ public class OtherEntriesBlock extends CellBlock<EntryData, BaseEntryRowControl>
 
 		final OtherEntriesControl control = new OtherEntriesControl(parent, master, rowControl, otherEntriesRootBlock, rowTracker, cellTracker);
 
-		IPropertyControl<EntryData> cellControl = new IPropertyControl<EntryData>() {
-			@Override
-			public Control getControl() {
-				return control;
-			}
-			@Override
-			public void load(EntryData data) {
-				control.load(data);
-			}
-			@Override
-			public void save() {
-				control.save();
-			}
-		};
-
 		FocusListener controlFocusListener = new NonCellFocusListener<RowControl>(rowControl);
 
 		// This is a little bit of a kludge.  Might be a little safer to implement a method
@@ -110,7 +91,7 @@ public class OtherEntriesBlock extends CellBlock<EntryData, BaseEntryRowControl>
 //			textControl.addKeyListener(keyListener);
 //			textControl.addTraverseListener(traverseListener);
 
-		return cellControl;
+		return control;
 	}
 
 	@SuppressWarnings("unchecked")

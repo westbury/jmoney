@@ -7,6 +7,17 @@ import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
 import org.eclipse.core.databinding.property.value.ValueProperty;
 
+/**
+ * This class is here because we have some model objects that have methods that
+ * return observables.  That's really great if you want to bind to that property
+ * of the model object.  The problem is when you want to do a master-detail on
+ * to the property.  This class can be used to create a Property object that can
+ * then be used in master-detail.
+ * 
+ * @author Nigel
+ *
+ * @param <V>
+ */
 abstract class PropertyOnObservable<V> extends
 		ValueProperty<StockEntryData, V> {
 	
@@ -47,12 +58,12 @@ abstract class PropertyOnObservable<V> extends
 			}
 
 			@Override
-			public void addValueChangeListener(IValueChangeListener<? super V> listener) {
+			public void addValueChangeListener(IValueChangeListener<V> listener) {
 				getObservable(source).addValueChangeListener(listener);
 			}
 
 			@Override
-			public void removeValueChangeListener(IValueChangeListener<? super V> listener) {
+			public void removeValueChangeListener(IValueChangeListener<V> listener) {
 				getObservable(source).removeValueChangeListener(listener);
 			}
 

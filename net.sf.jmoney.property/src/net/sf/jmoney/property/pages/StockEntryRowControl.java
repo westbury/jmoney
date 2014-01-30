@@ -41,8 +41,8 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 
 	private List<IPropertyChangeListener<BigDecimal>> agreedPriceListeners = new ArrayList<IPropertyChangeListener<BigDecimal>>();
 
-	public StockEntryRowControl(final Composite parent, int style, VirtualRowTable rowTable, Block<StockEntryData, ? super StockEntryRowControl> rootBlock, final RowSelectionTracker selectionTracker, final FocusCellTracker focusCellTracker) {
-		super(parent, style, rowTable, rootBlock, selectionTracker, focusCellTracker);
+	public StockEntryRowControl(final Composite parent, VirtualRowTable rowTable, Block<StockEntryData, ? super StockEntryRowControl> rootBlock, final RowSelectionTracker selectionTracker, final FocusCellTracker focusCellTracker) {
+		super(parent, SWT.NONE, rowTable, rootBlock, selectionTracker, focusCellTracker);
 		init(this, this, rootBlock);
 	}
 

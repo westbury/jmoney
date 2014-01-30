@@ -49,8 +49,8 @@ public class OtherEntryControl extends CellContainer<Entry, ISplitEntryContainer
 		}
 	};
 
-	public OtherEntryControl(final Composite parent,RowControl rowControl, int style, Block<Entry, ISplitEntryContainer> rootBlock, boolean isLinked, final RowSelectionTracker<BaseEntryRowControl> selectionTracker, final FocusCellTracker focusCellTracker) {
-		super(parent, style);
+	public OtherEntryControl(final Composite parent,RowControl rowControl, Block<Entry, ISplitEntryContainer> rootBlock, boolean isLinked, final RowSelectionTracker<BaseEntryRowControl> selectionTracker, final FocusCellTracker focusCellTracker/*, IObservableValue<? extends Entry> masterEntry*/) {
+		super(parent);
 
 		/*
 		 * We set the top and bottom margins to zero here because that ensures
@@ -63,11 +63,24 @@ public class OtherEntryControl extends CellContainer<Entry, ISplitEntryContainer
 		layout.verticalSpacing = 1;
 		setLayout(layout);
 
-		 ISplitEntryContainer coordinator = new ISplitEntryContainer() {};
+		ISplitEntryContainer coordinator = new ISplitEntryContainer() {};
 		 
 		init(rowControl, coordinator, rootBlock);
 
 		addPaintListener(paintListener);
+		
+//		/*
+//		 * There is a mismatch here because we are passed in a master entry
+//		 * observable (because this is a control inside a container), but the super
+//		 * class is a container so gets its input through setInput.
+//		 */
+//		setInput(masterEntry.getValue());
+//		masterEntry.addValueChangeListener(new IValueChangeListener<Entry>() {
+//			@Override
+//			public void handleValueChange(ValueChangeEvent<Entry> event) {
+//				setInput(event.diff.getNewValue());
+//			}
+//		});
 	}
 
 	/**

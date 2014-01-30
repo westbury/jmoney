@@ -26,24 +26,20 @@ package net.sf.jmoney.entrytable;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.sf.jmoney.isolation.IDataManager;
-import net.sf.jmoney.isolation.SessionChangeListener;
-import net.sf.jmoney.model2.IPropertyControl;
-
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.events.PaintEvent;
 import org.eclipse.swt.events.PaintListener;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 
 /**
  * This is used in rows only, not for headers.
  * (anything to be gained by using it in headers too????)
  */
-public class StackControl<T, R> extends Composite implements IPropertyControl<T> {
+public class StackControl<T, R> extends Composite /*implements IPropertyControl<T>*/ {
 
 	private RowControl rowControl;
 	
@@ -59,65 +55,19 @@ public class StackControl<T, R> extends Composite implements IPropertyControl<T>
 
 	private CompressedStackLayout stackLayout;
 	
-	// TODO decide if the stack control can take null, causing it to be
-	// blank.
-//	private Composite blankControl = null;
+	private IObservableValue<? extends T> master;
 	
-	private T entryData;
-
-	/* Listen for changes that might affect the top block.
-	 * Changes may originate from within this row control, or the
-	 * changes may come from other parts that have committed changes
-	 * and those changes are then seen in this transaction.
-	 */
-	private SessionChangeListener transactionChangeListener = null;
-
-	public StackControl(Composite parent, RowControl rowControl, R coordinator, StackBlock<T, R> stackBlock) {
+	public StackControl(Composite parent, RowControl rowControl, R coordinator, StackBlock<T, R> stackBlock, IObservableValue<? extends T> master) {
 		super(parent, SWT.NONE);
 		this.rowControl = rowControl;
 		this.coordinator = coordinator;
 		this.stackBlock = stackBlock;
+	// Need to save master because of lazy creation of child blocks????
+		this.master = master; 
+	
 		
 		stackLayout = new CompressedStackLayout();
 		setLayout(stackLayout);
-	}
-
-	/**
-	 * This method determines the top control in the stack and loads the
-	 * input only for that top control.  If another control should be bought
-	 * to the top for whatever reason then that control is loaded at that
-	 * time.
-	 * <P>
-	 * This is important not only for performance reasons but also because
-	 * controls inside a stack control can assume that they will only be loaded
-	 * if visible, thus saving those controls from needing to check that they
-	 * are applicable.
-	 *  
-	 * Derived classes should override this method and add code to
-	 * maintain change listeners.  The change listeners should??? 
-	 */
-	@Override
-	public void load(final T entryData) {
-		// TODO: this should be done in a 'row release' method??
-		if (this.entryData != null) {
-			IDataManager dataManager = stackBlock.getDataManager(this.entryData);
-			dataManager.removeChangeListener(transactionChangeListener);
-		}
-		
-		this.entryData = entryData;
-
-		// Note that setting the top block will also load it.
-		Block<? super T, ? super R> topBlock = stackBlock.getTopBlock(entryData);
-		setTopBlock(topBlock);
-
-		IDataManager dataManager = stackBlock.getDataManager(entryData);
-		transactionChangeListener = stackBlock.createListener(entryData, this);
-		dataManager.addChangeListener(transactionChangeListener);
-	}
-
-	@Override
-	public void save() {
-		// TODO Do we need to pass this on to the child controls?
 	}
 
 	/**
@@ -135,19 +85,15 @@ public class StackControl<T, R> extends Composite implements IPropertyControl<T>
 		// First set the top control in this row
 		CellContainer<T,R> topControl;
 		if (topBlock == null) {
-//			if (blankControl == null) {
-//				blankControl = new Composite(this, SWT.NULL);
-//			}
-//			topControl = blankControl;
 			topControl = null;  // Causes nothing to show in stacked composite
 		} else {
 			topControl = childControls.get(topBlock); 
 			if (topControl == null) {
-				topControl = new CellContainer<T,R>(this, SWT.NULL);
+				topControl = new CellContainer<T,R>(this);
 				final BlockLayout<T> childLayout = new BlockLayout<T>(topBlock, false);
 				topControl.setLayout(childLayout);
 				
-				topControl.init(rowControl, coordinator, topBlock);
+				topControl.init(rowControl, coordinator, topBlock); 
 				
 				final Composite finalTopControl = topControl;
 				topControl.addPaintListener(new PaintListener() {
@@ -169,7 +115,8 @@ public class StackControl<T, R> extends Composite implements IPropertyControl<T>
 
 				childControls.put(topBlock, topControl);
 			}
-			topControl.setInput(entryData);
+
+			topControl.setInput(master.getValue());
 		}
 		stackLayout.topControl = topControl;
 		
@@ -183,13 +130,8 @@ public class StackControl<T, R> extends Composite implements IPropertyControl<T>
 		// Fire event that tells header to change
 		if (rowControl instanceof BaseEntryRowControl
 				&& ((BaseEntryRowControl)rowControl).isSelected()) {
-			stackBlock.setTopHeaderBlock(topBlock, entryData);
+			stackBlock.setTopHeaderBlock(topBlock, master.getValue());
 		}
-	}
-
-	@Override
-	public Control getControl() {
-		return this;
 	}
 
 	public void setFocusListener(FocusListener controlFocusListener) {

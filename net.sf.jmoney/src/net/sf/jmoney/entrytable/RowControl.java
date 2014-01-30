@@ -1,5 +1,9 @@
 package net.sf.jmoney.entrytable;
 
+import net.sf.jmoney.model2.Entry;
+
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.internal.databinding.observable.ConstantObservableValue;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.widgets.Composite;
@@ -16,8 +20,8 @@ public abstract class RowControl<T, R extends RowControl<T,R>> extends CellConta
 	
 	protected abstract void setSelected(boolean isSelected);
 	
-	public RowControl(Composite parent, int style, RowSelectionTracker<R> selectionTracker, FocusCellTracker focusCellTracker) {
-		super(parent, style);
+	public RowControl(Composite parent, RowSelectionTracker<R> selectionTracker, FocusCellTracker focusCellTracker) {
+		super(parent);
 
 		this.selectionTracker = selectionTracker;
 		this.focusCellTracker = focusCellTracker;

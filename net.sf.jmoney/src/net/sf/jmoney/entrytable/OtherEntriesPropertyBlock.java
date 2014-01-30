@@ -79,7 +79,7 @@ public class OtherEntriesPropertyBlock extends IndividualBlock<EntryData, EntryR
 	}
 
     @Override
-	public IPropertyControl<EntryData> createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, EntryRowControl coordinator) {
+	public Control createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, EntryRowControl coordinator) {
 		// Because this may be multi-valued, setup the container only.
 		final Composite composite = new Composite(parent, SWT.NONE);
 
@@ -90,7 +90,7 @@ public class OtherEntriesPropertyBlock extends IndividualBlock<EntryData, EntryR
 		layout.verticalSpacing = 1;
 		composite.setLayout(layout);
 
-		return new IPropertyControl<EntryData>() {
+		IPropertyControl<EntryData> propertyControl = new IPropertyControl<EntryData>() {
 
 			private FocusListener controlFocusListener;
 
@@ -128,6 +128,8 @@ public class OtherEntriesPropertyBlock extends IndividualBlock<EntryData, EntryR
 				}
 			}
 		};
+		
+		return propertyControl.getControl();
 	}
 
 	public int compare(EntryData entryData1, EntryData entryData2) {

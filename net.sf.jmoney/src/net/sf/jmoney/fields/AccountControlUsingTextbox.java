@@ -33,10 +33,15 @@ import org.eclipse.swt.widgets.Composite;
 public class AccountControlUsingTextbox<A extends Account> extends AccountComposite<A> {
 	protected AccountControl<A> accountControl;
 	
-	public AccountControlUsingTextbox(Composite parent, Session session, Class<A> classOfAccount) {
+	public AccountControlUsingTextbox(Composite parent, final Session session, Class<A> classOfAccount) {
 		super(parent, SWT.NONE);
 		setLayout(new FillLayout());
-		accountControl = new AccountControl<A>(this, session, classOfAccount);
+		accountControl = new AccountControl<A>(this, classOfAccount) {
+			@Override
+			protected Session getSession() {
+				return session;
+			}
+		};
 	}
 
     @Override	

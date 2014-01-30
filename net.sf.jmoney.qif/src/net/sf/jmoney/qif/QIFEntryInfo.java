@@ -28,7 +28,6 @@ import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.ExtensionPropertySet;
 import net.sf.jmoney.model2.IExtensionObjectConstructors;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.IPropertySetInfo;
 import net.sf.jmoney.model2.PropertyControlFactory;
@@ -97,27 +96,6 @@ public class QIFEntryInfo implements IPropertySetInfo {
 	public PropertySet registerProperties() {
 		IPropertyControlFactory<Entry,String> textControlFactory = new TextControlFactory<Entry>();
 		IPropertyControlFactory<Entry,Character> stateControlFactory = new PropertyControlFactory<Entry,Character>() {
-
-			@Override
-			public IPropertyControl<Entry> createPropertyControl(Composite parent, final ScalarPropertyAccessor<Character,Entry> propertyAccessor) {
-				// This property is not editable???
-				final Label control = new Label(parent, SWT.NONE);
-
-		    	return new IPropertyControl<Entry>() {
-					@Override
-					public Control getControl() {
-						return control;
-					}
-					@Override
-					public void load(Entry object) {
-						control.setText(formatValueForTable(object, propertyAccessor));
-					}
-					@Override
-					public void save() {
-						// Not editable so nothing to do
-					}
-				};
-			}
 
 			@Override
 			public Control createPropertyControl(Composite parent,

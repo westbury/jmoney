@@ -25,8 +25,6 @@ package net.sf.jmoney.entrytable;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import net.sf.jmoney.model2.IPropertyControl;
-
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.GC;
@@ -60,7 +58,7 @@ public abstract class CellBlock<T,R> extends Block<T,R> {
 	 * 		being given a class of that type
 	 * @return an IPropertyControl wrapper around an SWT control
 	 */
-	public abstract IPropertyControl<T> createCellControl(Composite parent, IObservableValue<? extends T> input, RowControl rowControl, R coordinator);
+	public abstract Control createCellControl(Composite parent, IObservableValue<? extends T> input, RowControl rowControl, R coordinator);
 
 	public CellBlock(int minimumWidth, int weight) {
 		this.minimumWidth = minimumWidth;
