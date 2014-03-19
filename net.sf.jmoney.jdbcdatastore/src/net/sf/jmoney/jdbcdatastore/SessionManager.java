@@ -1032,7 +1032,7 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 					stmt.close();
 				}
 			} catch (SQLException e) {
-				if (e.getSQLState().equals("23000")) {
+				if (e.getSQLState().equals("23000") || e.getSQLState().equals("23503")) {
 					/*
 					 * An attempt has been made to delete an object that has
 					 * references to it. This particular error, unlike all other
