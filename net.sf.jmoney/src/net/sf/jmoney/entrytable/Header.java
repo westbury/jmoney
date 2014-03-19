@@ -26,15 +26,15 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 
-public class Header<T> extends Composite {
+public class Header<B> extends Composite {
 
-	private Block<? super T,?> rootBlock;
+	private Block<B> rootBlock;
 	
-	public Header(Composite parent, int style, Block<? super T,?> rootBlock) {
+	public Header(Composite parent, int style, Block<B> rootBlock) {
 		super(parent, style);
 		this.rootBlock = rootBlock;
 		
-		BlockLayout layout = new BlockLayout<T>(rootBlock, false);
+		BlockLayout layout = new BlockLayout<B>(rootBlock, false, null);
 		setLayout(layout);
 
 		setBackground(Display.getCurrent().getSystemColor(SWT.COLOR_DARK_GRAY));
@@ -43,7 +43,12 @@ public class Header<T> extends Composite {
 		// those are not done by this method.
 //		rootBlock.buildCellList();
 		
-		rootBlock.createHeaderControls(this, null);
+		/*
+		 * Create all the header controls.  We don't know the current row input but we don't
+		 * need to.  The header is always at the maximum height with all header controls initially
+		 * in a created state.
+		 */
+		rootBlock.createHeaderControls(this);
 	}
 
 	/**
@@ -52,11 +57,11 @@ public class Header<T> extends Composite {
 	 * 
 	 * @param input
 	 */
-	public void setInput(T input) {
+	public void setInput(B input) {
 		rootBlock.setInput(input);
 	}
 	
-	protected boolean sortOnColumn(IndividualBlock<EntryData, EntryRowControl> sortProperty, int sortDirection) {
+	protected boolean sortOnColumn(IndividualBlock<EntryRowControl> sortProperty, int sortDirection) {
 		// TODO: Get this working.  This method is not even called
 		// currently.
 		

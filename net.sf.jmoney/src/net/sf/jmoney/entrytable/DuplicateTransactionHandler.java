@@ -32,10 +32,10 @@ public class DuplicateTransactionHandler extends AbstractHandler {
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		Shell shell = HandlerUtil.getActiveShellChecked(event);
 		
-		BaseEntryRowControl selectedRowControl = rowTracker.getSelectedRow();
+		BaseEntryRowControl<?,?> selectedRowControl = rowTracker.getSelectedRow();
 		
 		if (selectedRowControl != null) {
-			Entry selectedEntry = selectedRowControl.committedEntryData.getEntry();
+			Entry selectedEntry = selectedRowControl.rowInput.getValue().getEntry();
 
 			if (selectedEntry == null) {
 				// This is the empty row control.
@@ -50,9 +50,9 @@ public class DuplicateTransactionHandler extends AbstractHandler {
 				 * 'new entry' row.
 				 */
 
-				BaseEntryRowControl<EntryData, EntryRowControl> newEntryRowControl = entriesTable.getNewEntryRowControl();
-				EntryData uncommittedEntryData = newEntryRowControl.input.getValue();
-				uncommittedEntryData.copyFrom(selectedRowControl.committedEntryData);
+//				EntryData uncommittedEntryData = entriesTable.getNewEntryRowData();
+				EntryRowControl newEntryRow = (EntryRowControl) entriesTable.selectNewEntryRow();
+				newEntryRow.copyFrom(selectedRowControl.rowInput.getValue());
 				
 				// The 'new entry' row control should be listening for changes to
 				// its uncommitted data, so we have nothing more to do. 

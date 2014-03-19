@@ -25,11 +25,15 @@ package net.sf.jmoney.model2;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Set;
 
 import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ListKey;
 import net.sf.jmoney.resources.Messages;
+
+import org.eclipse.core.databinding.observable.set.IObservableSet;
+import org.eclipse.core.databinding.observable.set.WritableSet;
 
 /**
  * The data model for an entry.
@@ -200,19 +204,6 @@ public final class Entry extends ExtendableObject {
 			return null;
 		} else {
 			return (Currency)incomeExpenseCurrencyKey.getObject();
-		}
-	}
-
-	/**
-	 * returns the other account of the transaction associated with this
-	 * entry. If the transaction is a splitted one, there are several "other
-	 * accounts", and the returned value is "null".
-	 */
-	public Account getOtherAccount () {
-		if (getTransaction().hasTwoEntries()) {
-			return getTransaction().getOther(this).getAccount();
-		} else {
-			return null;
 		}
 	}
 
@@ -404,4 +395,79 @@ public final class Entry extends ExtendableObject {
 		// Notify the change manager.
 		processPropertyChange(EntryInfo.getIncomeExpenseCurrencyAccessor(), oldIncomeExpenseCurrency, incomeExpenseCurrency);
 	}
+	
+	// Helper methods
+	
+	/**
+	 * A transaction with split entries is a transaction that
+	 * has entries in three or more accounts (where each account
+	 * may be either a capital account or an income and
+	 * expense category).
+	 */
+	public boolean hasSplitEntries() {
+		return getTransaction().getEntryCollection().size() >= 3;
+	}
+
+	/**
+	 * based on uncommitted data
+	 * 
+	 * @return
+	 */
+//	public Entry getOtherEntry() {
+//		Assert./isTrue(!hasSplitEntries());
+//		return buildOtherEntriesList().get(0);
+//	}
+
+	/**
+	 * returns the other account of the transaction associated with this
+	 * entry. If the transaction is a split one, there are several "other
+	 * accounts", and the returned value is "null".
+	 */
+	public Entry getOtherEntry() {
+		return getTransaction().getOther(this);
+	}
+
+	/**
+	 * returns the other account of the transaction associated with this
+	 * entry. If the transaction is a splitted one, there are several "other
+	 * accounts", and the returned value is "null".
+	 */
+	public Account getOtherAccount () {
+		if (getTransaction().hasTwoEntries()) {
+			return getTransaction().getOther(this).getAccount();
+		} else {
+			return null;
+		}
+	}
+
+	/**
+	 * based on uncommitted data
+	 * 
+	 * @return
+	 */
+	public Set<Entry> getOtherEntries() {
+		return buildOtherEntriesList();
+	}
+
+	/**
+	 * Database reads may be necessary when getting the other entries.
+	 * Furthermore, these are not needed unless an entry becomes visible. These
+	 * are therefore fetched only when needed (not in the constructor of this
+	 * object).
+	 *
+	 * We must be careful with this cached list because it is not kept up to date.
+	 */
+	// FIXME is this observable or not????
+	private IObservableSet<Entry> buildOtherEntriesList() {
+		WritableSet<Entry> otherEntries = new WritableSet<Entry>();
+			for (Entry entry2 : getTransaction().getEntryCollection()) {
+				if (!entry2.equals(this)) {
+					otherEntries.add(entry2);
+				}
+			}
+
+
+			return otherEntries;
+	}
+
 }

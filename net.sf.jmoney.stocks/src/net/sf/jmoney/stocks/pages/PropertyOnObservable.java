@@ -19,7 +19,7 @@ import org.eclipse.core.databinding.property.value.ValueProperty;
  * @param <V>
  */
 abstract class PropertyOnObservable<V> extends
-		ValueProperty<StockEntryData, V> {
+		ValueProperty<StockEntryFacade, V> {
 	
 	private Class<V> valueClass;
 	
@@ -34,7 +34,7 @@ abstract class PropertyOnObservable<V> extends
 
 	@Override
 	public IObservableValue<V> observe(Realm realm,
-			final StockEntryData source) {
+			final StockEntryFacade source) {
 		/*
 		 * This is a bit hacky.  It would be nice if we could simply return
 		 * source.sharePrice().  Unfortunately the caller owns the returned observable
@@ -79,6 +79,6 @@ abstract class PropertyOnObservable<V> extends
 		};
 	}
 
-	protected abstract IObservableValue<V> getObservable(StockEntryData source);
+	protected abstract IObservableValue<V> getObservable(StockEntryFacade source);
 
 }

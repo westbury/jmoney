@@ -15,6 +15,7 @@ import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.property.model.RealPropertyAccount;
 
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 
 public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, StockEntryRowControl> {
@@ -41,8 +42,8 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 
 	private List<IPropertyChangeListener<BigDecimal>> agreedPriceListeners = new ArrayList<IPropertyChangeListener<BigDecimal>>();
 
-	public StockEntryRowControl(final Composite parent, VirtualRowTable rowTable, Block<StockEntryData, ? super StockEntryRowControl> rootBlock, final RowSelectionTracker selectionTracker, final FocusCellTracker focusCellTracker) {
-		super(parent, SWT.NONE, rowTable, rootBlock, selectionTracker, focusCellTracker);
+	public StockEntryRowControl(final Composite parent, VirtualRowTable<StockEntryData, StockEntryRowControl> rowTable, Block<StockEntryData, ? super StockEntryRowControl> rootBlock, final RowSelectionTracker<StockEntryRowControl> selectionTracker, final FocusCellTracker focusCellTracker) {
+		super(parent, rowTable, rootBlock, selectionTracker, focusCellTracker);
 		init(this, this, rootBlock);
 	}
 
@@ -154,7 +155,7 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 	@Override
 	protected void specificValidation() throws InvalidUserEntryException {
 		// TODO: We should remove this method and call the EntryData method directly.
-		uncommittedEntryData.specificValidation();
+		input.getValue().specificValidation();
 	}
 
 	public BigDecimal getAgreedPrice() {

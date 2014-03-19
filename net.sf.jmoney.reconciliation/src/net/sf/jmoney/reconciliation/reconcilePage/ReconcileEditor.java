@@ -174,10 +174,10 @@ public class ReconcileEditor extends EditorPart {
 
         // Add properties from the transaction.
    		for (final ScalarPropertyAccessor<?,? super Transaction> propertyAccessor: TransactionInfo.getPropertySet().getScalarProperties3()) {
-        	allEntryDataObjects.add(new PropertyBlock<EntryData, RowControl, Transaction>(propertyAccessor, "transaction") {
+        	allEntryDataObjects.add(new PropertyBlock<EntryRowControl, Transaction>(propertyAccessor, "transaction") {
     			@Override
-        		public Transaction getObjectContainingProperty(EntryData data) {
-        			return data.getEntry().getTransaction();
+        		public Transaction getObjectContainingProperty(EntryRowControl data) {
+        			return data.getUncommittedMainEntry().getTransaction();
         		}
         	});
         }
@@ -189,10 +189,10 @@ public class ReconcileEditor extends EditorPart {
    		for (ScalarPropertyAccessor<?,? super Entry> propertyAccessor: EntryInfo.getPropertySet().getScalarProperties3()) {
             if (propertyAccessor != EntryInfo.getAccountAccessor()
            		&& propertyAccessor != EntryInfo.getAmountAccessor()) {
-            	allEntryDataObjects.add(new PropertyBlock<EntryData, RowControl, Entry>(propertyAccessor, "this") {
+            	allEntryDataObjects.add(new PropertyBlock<EntryRowControl, Entry>(propertyAccessor, "this") {
         			@Override
-            		public Entry getObjectContainingProperty(EntryData data) {
-            			return data.getEntry();
+            		public Entry getObjectContainingProperty(EntryRowControl data) {
+            			return data.getUncommittedMainEntry();
             		}
             	});
             }

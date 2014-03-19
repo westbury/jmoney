@@ -28,11 +28,9 @@ import net.sf.jmoney.entrytable.EntryData;
 import net.sf.jmoney.entrytable.ICellControl2;
 import net.sf.jmoney.entrytable.IndividualBlock;
 import net.sf.jmoney.entrytable.RowControl;
-import net.sf.jmoney.entrytable.SplitEntryRowControl;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.resources.Messages;
 
 import org.eclipse.core.databinding.observable.value.IObservableValue;
@@ -55,15 +53,15 @@ import org.eclipse.swt.widgets.Text;
  * <code>PropertyBlock</code> class if you want the amount to be displayed in
  * separate debit and credit columns.
  */
-class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry, SplitEntryRowControl> {
+class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry> {
 
 	private class DebitAndCreditCellControl implements ICellControl2<Entry> {
 		private Text textControl;
 
-		public DebitAndCreditCellControl(Text textControl, IObservableValue<? extends Entry> master) {
+		public DebitAndCreditCellControl(Text textControl, Entry entry) {
 			this.textControl = textControl;
 
-			IObservableValue<Long> amountObservable = EntryInfo.getAmountAccessor().observeDetail(master);
+			IObservableValue<Long> amountObservable = EntryInfo.getAmountAccessor().observe(entry);
 
 			IBidiConverter<Long, String> creditAndDebitSplitConverter = new CreditAndDebitSplitConverter(commodity, isDebit, amountObservable);
 			
@@ -133,11 +131,11 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry, SplitEntryR
 	}
 
     @Override
-	public Control createCellControl(Composite parent, IObservableValue<? extends Entry> master, RowControl rowControl, SplitEntryRowControl coordinator) {
+	public Control createCellControl(Composite parent, Entry entry, RowControl rowControl) {
 
 		final Text textControl = new Text(parent, SWT.TRAIL);
 
-		ICellControl2<Entry> cellControl = new DebitAndCreditCellControl(textControl, master);
+		ICellControl2<Entry> cellControl = new DebitAndCreditCellControl(textControl, entry);
 
 		FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, cellControl);
 		textControl.addFocusListener(controlFocusListener);

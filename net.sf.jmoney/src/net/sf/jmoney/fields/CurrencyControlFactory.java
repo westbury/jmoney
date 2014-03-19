@@ -76,12 +76,18 @@ public abstract class CurrencyControlFactory<P, S extends ExtendableObject> exte
     	IObservableList<Currency> currencyListObservable = new ComputedList<Currency>() {
 			@Override
 			protected List<Currency> calculate() {
+				/*
+				 * The model object may be null if the control is created before input
+				 * is set.
+				 */
 				List<Currency> result = new ArrayList<Currency>();
-		        for (Commodity commodity: modelObservable.getValue().getSession().getCommodityCollection()) {
-		            if (commodity instanceof Currency) {
-		                result.add((Currency)commodity);
-		            }
-		        }
+				if (modelObservable.getValue() != null) {
+					for (Commodity commodity: modelObservable.getValue().getSession().getCommodityCollection()) {
+						if (commodity instanceof Currency) {
+							result.add((Currency)commodity);
+						}
+					}
+				}
 				return result;
 			}
     	};

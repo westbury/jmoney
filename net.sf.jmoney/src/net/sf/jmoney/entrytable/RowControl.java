@@ -1,28 +1,27 @@
 package net.sf.jmoney.entrytable;
 
-import net.sf.jmoney.model2.Entry;
-
-import org.eclipse.core.databinding.observable.value.IObservableValue;
-import org.eclipse.core.internal.databinding.observable.ConstantObservableValue;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 
-public abstract class RowControl<T, R extends RowControl<T,R>> extends CellContainer<T,R> {
+public abstract class RowControl<T, B, R extends RowControl<T,B,R>> extends CellContainer<B> {
 
 	public static final Color selectedCellColor = new Color(Display
 			.getCurrent(), 255, 255, 255);
 
+	protected final T rowInput;
+	
 	public RowSelectionTracker<R> selectionTracker;
 	
 	protected FocusCellTracker focusCellTracker;
 	
 	protected abstract void setSelected(boolean isSelected);
 	
-	public RowControl(Composite parent, RowSelectionTracker<R> selectionTracker, FocusCellTracker focusCellTracker) {
-		super(parent);
+	public RowControl(Composite parent, T rowInput, B blockInput, RowSelectionTracker<R> selectionTracker, FocusCellTracker focusCellTracker) {
+		super(parent, blockInput);
 
+		this.rowInput = rowInput;
 		this.selectionTracker = selectionTracker;
 		this.focusCellTracker = focusCellTracker;
 		
@@ -33,6 +32,10 @@ public abstract class RowControl<T, R extends RowControl<T,R>> extends CellConta
 		setBackgroundMode(SWT.INHERIT_FORCE);
 	}
 
+	public T getRowInput() {
+		return rowInput;
+	}
+	
 	protected abstract R getThis();
 
 	/**

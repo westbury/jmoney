@@ -14,6 +14,8 @@ import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.internal.databinding.observable.ConstantObservableValue;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -39,26 +41,26 @@ public class OtherEntriesShell {
 
 		private Shell parentShell;
 		
-		private EntryData entryData;
+		private Entry mainEntry;
 
-		private Block<Entry, ISplitEntryContainer> rootBlock;
+		private Block<IObservableValue<Entry>> rootBlock;
 		
 		private Shell shell;
 		
-		private RowSelectionTracker<SplitEntryRowControl> rowTracker = new RowSelectionTracker<SplitEntryRowControl>();
+		private RowSelectionTracker<SplitEntryRowControl<IObservableValue<Entry>>> rowTracker = new RowSelectionTracker<SplitEntryRowControl<IObservableValue<Entry>>>();
 
 		private FocusCellTracker cellTracker = new FocusCellTracker();
 
 	    private Map<Entry, SplitEntryRowControl> rowControls = new HashMap<Entry, SplitEntryRowControl>();
 
-		public OtherEntriesShell(Shell parent, int style, EntryData entryData, Block<Entry, ISplitEntryContainer> rootBlock, boolean isLinked) {
+		public OtherEntriesShell(Shell parent, int style, Entry entry, Block<IObservableValue<Entry>> rootBlock, boolean isLinked) {
 			shell = new Shell(parent, style | SWT.MODELESS);
 		
 			this.parentShell = parent;
-			if (entryData == null) {
+			if (entry == null) {
 				throw new RuntimeException("can't be null");
 			}
-			this.entryData = entryData;
+			this.mainEntry = entry;
 			this.rootBlock = rootBlock;
 			
 			GridLayout layout = new GridLayout(1, false);
@@ -89,22 +91,24 @@ public class OtherEntriesShell {
 		    /*
 		     * Use a single row tracker and cell focus tracker for this table.
 		     */
-			for (Entry entry: entryData.getSplitEntries()) {
-				SplitEntryRowControl row = new SplitEntryRowControl(composite, rootBlock, isLinked, rowTracker, cellTracker, entry);
+			for (Entry entry: mainEntry.getOtherEntries()) {
+				IObservableValue<Entry> observableEntry = new ConstantObservableValue<Entry>(entry, Entry.class);
+				SplitEntryRowControl row = new SplitEntryRowControl<IObservableValue<Entry>>(composite, rootBlock, isLinked, rowTracker, cellTracker, observableEntry);
 				rowControls.put(entry, row);
 			}
 
 			
 			// Remove all this and use the updating composite...
 			
-			entryData.getEntry().getDataManager().addChangeListener(new SessionChangeAdapter() {
+			mainEntry.getDataManager().addChangeListener(new SessionChangeAdapter() {
 				@Override
 				public void objectInserted(IModelObject newObject) {
 					if (newObject instanceof Entry) {
 						Entry newEntry = (Entry) newObject;
-						if (newEntry.getTransaction() == entryData.getEntry().getTransaction()) {
-							entryData.getSplitEntries().add(newEntry);
-							SplitEntryRowControl row = new SplitEntryRowControl(composite, rootBlock, isLinked, rowTracker, cellTracker, newEntry);
+						if (newEntry.getTransaction() == mainEntry.getTransaction()) {
+							mainEntry.getOtherEntries().add(newEntry);
+							IObservableValue<Entry> observableEntry = new ConstantObservableValue<Entry>(newEntry, Entry.class);
+							SplitEntryRowControl row = new SplitEntryRowControl<IObservableValue<Entry>>(composite, rootBlock, isLinked, rowTracker, cellTracker, observableEntry);
 							// Split entry rows take a final entry in the constructor
 //							row.setInput(newEntry);
 							rowControls.put(newEntry, row);
@@ -117,8 +121,8 @@ public class OtherEntriesShell {
 				public void objectRemoved(IModelObject deletedObject) {
 					if (deletedObject instanceof Entry) {
 						Entry deletedEntry = (Entry) deletedObject;
-						if (deletedEntry.getTransaction() == entryData.getEntry().getTransaction()) {
-							entryData.getSplitEntries().remove(deletedEntry);
+						if (deletedEntry.getTransaction() == mainEntry.getTransaction()) {
+							mainEntry.getOtherEntries().remove(deletedEntry);
 							rowControls.get(deletedEntry).dispose();
 							rowControls.remove(deletedEntry);
 			    	        shell.pack();
@@ -170,7 +174,7 @@ public class OtherEntriesShell {
 		}
 
 		private void addSplit() {
-			Transaction transaction = entryData.getEntry().getTransaction();
+			Transaction transaction = mainEntry.getTransaction();
 			Entry newEntry = transaction.createEntry();
 			
 			long total = 0;
@@ -211,8 +215,8 @@ public class OtherEntriesShell {
 			// are being listed, but may be possible if this entries list
 			// control is used for more general purposes.  In this case,
 			// the currency is not set and so the user must enter it.
-			if (entryData.getEntry().getCommodityInternal() instanceof Currency) {
-    			newEntry.setIncomeExpenseCurrency((Currency)entryData.getEntry().getCommodityInternal());
+			if (mainEntry.getCommodityInternal() instanceof Currency) {
+    			newEntry.setIncomeExpenseCurrency((Currency)mainEntry.getCommodityInternal());
 			}
 			
        		// Select the new entry in the entries list.
@@ -220,22 +224,22 @@ public class OtherEntriesShell {
 		}
 
 		private void deleteSplit() {
-			SplitEntryRowControl rowControl = rowTracker.getSelectedRow();
+			SplitEntryRowControl<IObservableValue<Entry>> rowControl = rowTracker.getSelectedRow();
 			// TODO: Is a row ever not selected?
 			if (rowControl != null) {
-				Entry entry = rowControl.getInput();
-				entryData.getEntry().getTransaction().deleteEntry(entry);
+				Entry entry = rowControl.getRowInput().getValue();
+				mainEntry.getTransaction().deleteEntry(entry);
 			}
 		}
 		
 		private void adjustAmount() {
-			SplitEntryRowControl rowControl = rowTracker.getSelectedRow();
+			SplitEntryRowControl<IObservableValue<Entry>> rowControl = rowTracker.getSelectedRow();
 			// TODO: Is a row ever not selected?
 			if (rowControl != null) {
-				Entry entry = rowControl.getInput();
+				Entry entry = rowControl.getRowInput().getValue();
 				
 				long totalAmount = 0;
-				for (Entry eachEntry: entryData.getEntry().getTransaction().getEntryCollection()) {
+				for (Entry eachEntry: mainEntry.getTransaction().getEntryCollection()) {
 					totalAmount += eachEntry.getAmount();
 				}
 				

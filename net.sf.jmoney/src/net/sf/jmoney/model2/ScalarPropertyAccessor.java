@@ -3,26 +3,19 @@ package net.sf.jmoney.model2;
 import java.lang.reflect.Method;
 import java.util.Comparator;
 
-import net.sf.jmoney.entrytable.FocusCellTracker;
-import net.sf.jmoney.entrytable.ICellControl2;
 import net.sf.jmoney.isolation.IScalarPropertyAccessor;
 
-import org.eclipse.core.databinding.beans.BeanProperties;
-import org.eclipse.core.databinding.beans.IBeanValueProperty;
 import org.eclipse.core.databinding.observable.Realm;
 import org.eclipse.core.databinding.observable.list.IObservableList;
 import org.eclipse.core.databinding.observable.map.IObservableMap;
 import org.eclipse.core.databinding.observable.masterdetail.IObservableFactory;
 import org.eclipse.core.databinding.observable.set.IObservableSet;
-import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.databinding.property.list.IListProperty;
 import org.eclipse.core.databinding.property.map.IMapProperty;
 import org.eclipse.core.databinding.property.set.ISetProperty;
 import org.eclipse.core.databinding.property.value.IValueProperty;
-import org.eclipse.core.internal.databinding.provisional.bind.Bind;
-import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 

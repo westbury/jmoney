@@ -22,12 +22,10 @@
 
 package net.sf.jmoney.entrytable;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
@@ -55,8 +53,8 @@ import org.eclipse.swt.widgets.Display;
 // thing.
 // Or should this wrap RowControl, as RowControl is also used for split
 // entries, and that does pass on the input as is.
-public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEntryRowControl<T, R>>
-		extends RowControl<T, R> {
+public abstract class BaseEntryRowControl<B, R extends BaseEntryRowControl<B, R>>
+		extends RowControl<IObservableValue<EntryData>, R, R> {
 	// The darker blue and green lines for the listed entry in each transaction
 	protected static final Color transactionColor = new Color(Display
 			.getCurrent(), 235, 235, 255);
@@ -82,7 +80,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 //		clip = Applet.newAudioClip(url);
 //	}
 
-	private ICompositeTable<T> rowTable;
+	private ICompositeTable<EntryData,R> rowTable;
 
 	/**
 	 * The transaction manager used for all changes made in this row. It is
@@ -94,22 +92,16 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	/**
 	 * The EntryData object on which this row is based. This will contain the
 	 * committed version of the entry, or a null Entry object if this row
-	 * represents the 'new entry' row.
+	 * represents the 'new entry' row.  It will also contain the uncommitted
+	 * 
 	 *
 	 * Note that this field should not be used as input to the cell controls.
 	 * This row implementation does its row editing inside a transaction and
 	 * will create an uncommitted version of the EntryData that is used as input
 	 * to the cell controls.
 	 */
-	protected T committedEntryData = null;
-
-	/**
-	 * The EntryData object currently set into this object, or null if this
-	 * object does not represent a currently visible row (duplicate of base
-	 * input field)
-	 */
-	// This is input - don't duplicate
-//	protected IObservableValue<T> uncommittedEntryData = new WritableValue<T>();
+	// This is now the input
+//	protected EntryData committedEntryData = null;
 
 	/**
 	 * true if this row is the current selection, false otherwise
@@ -123,14 +115,17 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 		}
 	};
 
-	private ArrayList<IBalanceChangeListener> balanceChangeListeners = new ArrayList<IBalanceChangeListener>();
+	protected IObservableValue<Entry> uncommittedEntry = new WritableValue<Entry>();
 
-	public BaseEntryRowControl(final Composite parent, ICompositeTable<T> rowTable,
-			Block<T, ?> rootBlock, RowSelectionTracker<R> selectionTracker,
+	public BaseEntryRowControl(final Composite parent, ICompositeTable<EntryData,R> rowTable,
+			Block<? super R> rootBlock, RowSelectionTracker<R> selectionTracker,
 			FocusCellTracker focusCellTracker) {
-		super(parent, selectionTracker, focusCellTracker);
+		// HACK, need to pass this to super constructor so it can set blockInput, but can't
+		super(parent, new WritableValue<EntryData>(), null, selectionTracker, focusCellTracker);
 		this.rowTable = rowTable;
 
+		blockInput = getThis();
+		
 		/*
 		 * We have a margin of 1 at the top and 2 at the bottom. The reason for
 		 * this is because we want a 2-pixel wide black line around the selected
@@ -139,7 +134,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 		 * line at the top of the selected row. The top and bottom margins are
 		 * there only so we can draw these lines.
 		 */
-		BlockLayout<T> layout = new BlockLayout<T>(rootBlock, false);
+		BlockLayout<R> layout = new BlockLayout<R>(rootBlock, false, getThis());
 		layout.marginTop = 1;
 		layout.marginBottom = 2;
 		layout.verticalSpacing = 1;
@@ -148,6 +143,46 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 		addPaintListener(paintListener);
 	}
 
+	/**
+	 * Sets the content of this row. This class does all row editing inside a
+	 * transaction, so the input to the contained controls is the uncommitted
+	 * version. However, the committed version should be passed to this method.
+	 * This method will create the transaction to be used for editing this row.
+	 *
+	 * @param committedEntryData
+	 *            the committed version of the EntryData that is to provide the
+	 *            contents of this row, or null if this is the new entry row.
+	 */
+	public void setRowInput(EntryData rowInput) {
+		this.rowInput.setValue(rowInput);
+
+		setAppropriateBackgroundColor();
+
+		/*
+		 * Every row gets its own transaction. This ensures that edits can be
+		 * made at any time but the edits are not validated and no one else sees
+		 * the changes until the selection is moved off this row.
+		 */
+		// TODO: Some cleanup. We don't need to create a new transaction each
+		// time.
+		// Perhaps we should have separate derived classes for the regular rows
+		// and
+		// the new entry row.
+		transactionManager = new TransactionManagerForAccounts(rowInput
+				.getBaseSessionManager());
+		Entry entryInTransaction;
+		if (rowInput.getEntry() == null) {
+			Transaction newTransaction = transactionManager.getSession()
+					.createTransaction();
+			entryInTransaction = createNewEntry(newTransaction);
+		} else {
+			entryInTransaction = transactionManager
+					.getCopyInTransaction(rowInput.getEntry());
+		}
+		
+		uncommittedEntry.setValue(entryInTransaction);
+	}
+	
 	/**
 	 * Draws a border around the row. A light gray single line is drawn at the
 	 * bottom if the row is not selected. A black double line is drawn at the
@@ -212,55 +247,6 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 		}
 	}
 
-	/**
-	 * Sets the content of this row. This class does all row editing inside a
-	 * transaction, so the input to the contained controls is the uncommitted
-	 * version. However, the committed version should be passed to this method.
-	 * This method will create the transaction to be used for editing this row.
-	 *
-	 * @param committedEntryData
-	 *            the committed version of the EntryData that is to provide the
-	 *            contents of this row, or null if this is the new entry row.
-	 */
-	public void setContent(T committedEntryData) {
-		this.committedEntryData = committedEntryData;
-
-		setAppropriateBackgroundColor();
-
-		/*
-		 * Every row gets its own transaction. This ensures that edits can be
-		 * made at any time but the edits are not validated and no one else sees
-		 * the changes until the selection is moved off this row.
-		 */
-		// TODO: Some cleanup. We don't need to create a new transaction each
-		// time.
-		// Perhaps we should have separate derived classes for the regular rows
-		// and
-		// the new entry row.
-		transactionManager = new TransactionManagerForAccounts(committedEntryData
-				.getBaseSessionManager());
-		Entry entryInTransaction;
-		if (committedEntryData.getEntry() == null) {
-			Transaction newTransaction = transactionManager.getSession()
-					.createTransaction();
-			entryInTransaction = createNewEntry(newTransaction);
-		} else {
-			entryInTransaction = transactionManager
-					.getCopyInTransaction(committedEntryData.getEntry());
-		}
-		T uncommittedEntryData = createUncommittedEntryData(entryInTransaction,
-				transactionManager);
-		uncommittedEntryData.setIndex(committedEntryData.getIndex());
-		uncommittedEntryData.setBalance(committedEntryData.getBalance());
-
-		// The uncommitted version of the EntryData object forms the input to
-		// the cell controls.
-		setInput(uncommittedEntryData);
-	}
-
-	protected abstract T createUncommittedEntryData(Entry entryInTransaction,
-			TransactionManagerForAccounts transactionManager);
-
 	@Override
 	protected void setSelected(boolean isSelected) {
 		this.isSelected = isSelected;
@@ -272,12 +258,12 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 		 * not selected.
 		 */
 		if (!isSelected) {
-			rowTable.rowDeselected(this);
+			rowTable.rowDeselected(getThis());
 		}
 
 		if (isSelected) {
 			// This call may be needed only to update the header
-			rowTable.setCurrentRow(input.getValue(), input.getValue());
+			rowTable.setCurrentRow(rowInput.getValue(), getThis());
 		}
 	}
 
@@ -299,7 +285,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	 */
 	@Override
 	public boolean canDepart() {
-		if (!commitChanges((committedEntryData.getEntry() == null) ? Messages.BaseEntryRowControl_NewTransaction : Messages.BaseEntryRowControl_TransactionChanges)) {
+		if (!commitChanges((rowInput.getValue().getEntry() == null) ? Messages.BaseEntryRowControl_NewTransaction : Messages.BaseEntryRowControl_TransactionChanges)) {
 			return false;
 		}
 
@@ -333,7 +319,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 			// delete this.
 
 			try {
-				baseValidation(input.getValue().getEntry().getTransaction());
+				baseValidation(uncommittedEntry.getValue().getTransaction());
 
 				// Do any specific processing in derived classes.
 				specificValidation();
@@ -354,15 +340,15 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 					// TODO: Some of this code is duplicated below.
 
 					transactionManager = new TransactionManagerForAccounts(
-							committedEntryData.getBaseSessionManager());
+							rowInput.getValue().getBaseSessionManager());
 					Entry entryInTransaction;
-					if (committedEntryData.getEntry() == null) {
+					if (rowInput.getValue().getEntry() == null) {
 						Transaction newTransaction = transactionManager
 								.getSession().createTransaction();
 						entryInTransaction = createNewEntry(newTransaction);
 					} else {
 						entryInTransaction = transactionManager
-								.getCopyInTransaction(committedEntryData
+								.getCopyInTransaction(rowInput.getValue()
 										.getEntry());
 					}
 
@@ -378,18 +364,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 					 * ensure they are fluid again. Without this calculated
 					 * values are not being calculated.
 					 */
-					T uncommittedEntryData = createUncommittedEntryData(entryInTransaction, transactionManager);
-					uncommittedEntryData
-							.setIndex(committedEntryData.getIndex());
-					uncommittedEntryData.setBalance(committedEntryData
-							.getBalance());
-
-//					for (final IPropertyControl<? super T> control : controls
-//							.values()) {
-//						control.load(uncommittedEntryData);
-//					}
-
-					this.setInput(uncommittedEntryData);
+					uncommittedEntry.setValue(entryInTransaction);
 
 					return true;
 				} else {
@@ -418,25 +393,14 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 			 * This listener should also have caused the balance for the new
 			 * entry row to be updated.
 			 */
-			if (committedEntryData.getEntry() == null) {
+			if (rowInput.getValue().getEntry() == null) {
 				Transaction newTransaction = transactionManager.getSession()
 						.createTransaction();
 				Entry entryInTransaction = createNewEntry(newTransaction);
 
 				// Update the controls.
 
-				T uncommittedEntryData = createUncommittedEntryData(
-						entryInTransaction, transactionManager);
-				uncommittedEntryData.setIndex(committedEntryData.getIndex());
-				uncommittedEntryData
-						.setBalance(committedEntryData.getBalance());
-
-				// Load all top level controls with this data.
-//				for (final IPropertyControl<? super T> control : controls.values()) {
-//					control.load(uncommittedEntryData);
-//				}
-				
-				setInput(uncommittedEntryData);
+				uncommittedEntry.setValue(entryInTransaction);
 			}
 		}
 
@@ -563,14 +527,15 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	 * design, only the focus row should ever have uncommitted data).
 	 */
 	public void initializeFromTemplate(EntryData sourceEntryData) {
-		Transaction targetTransaction = input.getValue().getEntry()
-				.getTransaction();
+		Transaction targetTransaction = uncommittedEntry.getValue().getTransaction();
 
-		copyData(sourceEntryData.getEntry(), input.getValue().getEntry());
+		copyData(sourceEntryData.getEntry(), uncommittedEntry.getValue());
 
-		Iterator<Entry> iter = input.getValue().getSplitEntries()
+		Iterator<Entry> iter = uncommittedEntry.getValue().getOtherEntries()
 				.iterator();
-		for (Entry sourceEntry : sourceEntryData.getSplitEntries()) {
+		
+		for (Entry sourceEntry : sourceEntryData.getEntry().getTransaction().getEntryCollection()) {
+			if (!sourceEntry.equals(sourceEntryData.getEntry())) {
 			Entry targetEntry;
 			if (iter.hasNext()) {
 				targetEntry = iter.next();
@@ -581,6 +546,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 			targetEntry.setAccount(transactionManager
 					.getCopyInTransaction(sourceEntry.getAccount()));
 			copyData(sourceEntry, targetEntry);
+			}
 		}
 	}
 
@@ -597,8 +563,12 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 		targetEntry.setAmount(sourceEntry.getAmount());
 	}
 
-	public void arrive(int currentColumn) {
+	@Override
+	public void arrive() {
 		setSelected(true);
+		
+		// Get the arrival information from the focus cell tracker.
+		int currentColumn = focusCellTracker.getCurrentColumn();
 		getChildren()[currentColumn].setFocus();
 	}
 
@@ -606,7 +576,7 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	 * Gets the column that has the focus.
 	 *
 	 * This method is used to preserve the column selection when cursoring up
-	 * and down between rows. If the column cannot be determined that simply
+	 * and down between rows. If the column cannot be determined then simply
 	 * return 0 so that the first column gets the focus in the new row.
 	 *
 	 * @return the 0-based index of the cell in this row that has the focus
@@ -635,17 +605,18 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 		return false;
 	}
 
-	public Entry getUncommittedTopEntry() {
-		return input.getValue().getEntry();
-	}
-
-	public T getUncommittedEntryData() {
-		return input.getValue();
+	/**
+	 * 
+	 * @return
+	 * @trackedGetter
+	 */
+	public Entry getUncommittedMainEntry() {
+		return uncommittedEntry.getValue();
 	}
 
 	@Override
 	protected void scrollToShowRow() {
-		rowTable.scrollToShowRow(this);
+		rowTable.scrollToShowRow(getThis());
 	}
 
 	/*
@@ -653,28 +624,14 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 	 * affected when other rows change.
 	 */
 	public void refreshBalance() {
-		// The new balance will have been updated in the committed entry data
-		// object,
-		// but not in the uncommitted entry data object.
-		// As the balances are based on the committed data, this is a little
-		// funny.
-		// This must be done before balanceChanged is fired below, because that
-		// looks at the uncommitted entry data.
-		input.getValue().setIndex(committedEntryData.getIndex());
-		input.getValue().setBalance(committedEntryData.getBalance());
-
 		setAppropriateBackgroundColor();
-
-		for (IBalanceChangeListener listener : balanceChangeListeners) {
-			listener.balanceChanged();
-		}
 	}
 
 	private void setAppropriateBackgroundColor() {
 		if (isSelected) {
 			setBackground(selectedRowColor);
 		} else {
-			if (committedEntryData.getIndex() % 2 == 0) {
+			if (rowInput.getValue().getIndex() % 2 == 0) {
 				setBackground(alternateTransactionColor);
 			} else {
 				setBackground(transactionColor);
@@ -682,15 +639,24 @@ public abstract class BaseEntryRowControl<T extends EntryData, R extends BaseEnt
 		}
 	}
 
-	public void addBalanceChangeListener(IBalanceChangeListener listener) {
-		balanceChangeListeners.add(listener);
+	/**
+	 * Caller must not dispose the observable.
+	 * When is it disposed????
+	 * 
+	 * @return
+	 */
+	public IObservableValue<EntryData> observeRowInput() {
+		return rowInput;
 	}
 
 	/**
-	 * @return the committed version of the EntryData object for this row, or
-	 *         null if this row represents the new entry row
+	 * 
+	 * @return an observable on the uncommitted main entry (the
+	 * 			entry containing the net amount credited or debited
+	 * 			to the account
 	 */
-	public T getContent() {
-		return committedEntryData;
+	public IObservableValue<Entry> observeMainEntry() {
+		return uncommittedEntry;
 	}
+
 }

@@ -26,16 +26,12 @@ import java.util.Comparator;
 
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.ExtendableObject;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Transaction;
 
-import org.eclipse.core.databinding.beans.BeanProperties;
-import org.eclipse.core.databinding.beans.IBeanValueProperty;
 import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.events.FocusListener;
-import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 
@@ -51,7 +47,7 @@ import org.eclipse.swt.widgets.Control;
  *
  * @author Nigel Westbury
  */
-abstract public class PropertyBlock<T extends EntryData, R extends RowControl, S extends ExtendableObject> extends IndividualBlock<T, R> {
+abstract public class PropertyBlock<R, S extends ExtendableObject> extends IndividualBlock<R> {
 	private ScalarPropertyAccessor<?,? super S> accessor;
 	private String id;
 
@@ -87,9 +83,9 @@ abstract public class PropertyBlock<T extends EntryData, R extends RowControl, S
 	 *
 	 * @param data
 	 * @return the object containing the property being show, or null if
-	 * 		this column is not applicable to the given input
+	 * 		no input is set or if this column is not applicable to the given input
 	 */
-	public abstract S getObjectContainingProperty(T data);
+	public abstract S getObjectContainingProperty(R data);
 
 	/**
 	 * This method is called whenever the user makes a change to this value.
@@ -108,27 +104,26 @@ abstract public class PropertyBlock<T extends EntryData, R extends RowControl, S
 	}
 
     @Override
-	public Control createCellControl(Composite parent, final IObservableValue<? extends T> master, final RowControl rowControl, final R coordinator) {
+	public Control createCellControl(Composite parent, R blockInput, RowControl rowControl) {
     	// method to name type of accessor
-    	return myCreateCellControl(parent, master, rowControl, coordinator, accessor);
+    	return myCreateCellControl(parent, blockInput, rowControl, accessor);
     }
 
 //	private static final IBeanValueProperty<Control, Color> backgroundProperty = BeanProperties.value(Control.class, "background", Color.class);
 
     
-	public <S2 extends ExtendableObject> Control myCreateCellControl(Composite parent, final IObservableValue<? extends T> master, final RowControl rowControl, final R coordinator, ScalarPropertyAccessor<?, S2> accessor2) {
-		
-IObservableValue<S> objectContainingProperty = new ComputedValue<S>() {
+	public <S2 extends ExtendableObject> Control myCreateCellControl(Composite parent, final R blockInput, final RowControl rowControl, ScalarPropertyAccessor<?, S2> accessor2) {
+
+		IObservableValue<S> objectContainingProperty = new ComputedValue<S>() {
 			@Override
 			protected S calculate() {
-				System.out.println(master.getValue());
-				return master.getValue() == null ? null : getObjectContainingProperty(master.getValue());
+				return blockInput == null ? null : getObjectContainingProperty(blockInput);
 			}
 		};
     	
 		final Control control = accessor.createPropertyControl2(parent, objectContainingProperty);
 
-		ICellControl2<T> cellControl = new ICellControl2<T>() {
+		ICellControl2<R> cellControl = new ICellControl2<R>() {
 
 		    	@Override
 			public Control getControl() {
@@ -136,7 +131,7 @@ IObservableValue<S> objectContainingProperty = new ComputedValue<S>() {
 			}
 
 			@Override
-			public void load(T data) {
+			public void load(R data) {
 //				S entryContainingProperty = getObjectContainingProperty(data);
 //				control.load(entryContainingProperty);
 				throw new UnsupportedOperationException();
@@ -193,14 +188,14 @@ IObservableValue<S> objectContainingProperty = new ComputedValue<S>() {
 	}
 
     @Override
-	public Comparator<T> getComparator() {
+	public Comparator<R> getComparator() {
 		final Comparator<?> subComparator = accessor.getComparator();
 		if (subComparator == null) {
 			return null;
 		} else {
-			return new Comparator<T>() {
+			return new Comparator<R>() {
 				@Override
-				public int compare(T entryData1, T entryData2) {
+				public int compare(R entryData1, R entryData2) {
 					S extendableObject1 = getObjectContainingProperty(entryData1);
 					S extendableObject2 = getObjectContainingProperty(entryData2);
 					if (extendableObject1 == null && extendableObject2 == null) return 0;
@@ -212,22 +207,24 @@ IObservableValue<S> objectContainingProperty = new ComputedValue<S>() {
 		}
 	}
 
-	public static PropertyBlock<EntryData, RowControl,Transaction> createTransactionColumn(
+	public static PropertyBlock<IObservableValue<? extends EntryFacade>,Transaction> createTransactionColumn(
 			final ScalarPropertyAccessor<?,Transaction> propertyAccessor) {
-		return new PropertyBlock<EntryData, RowControl, Transaction>(propertyAccessor, "transaction") { //$NON-NLS-1$
+		return new PropertyBlock<IObservableValue<? extends EntryFacade>, Transaction>(propertyAccessor, "transaction") { //$NON-NLS-1$
 			@Override
-			public Transaction getObjectContainingProperty(EntryData data) {
-				return data.getEntry().getTransaction();
+			public Transaction getObjectContainingProperty(IObservableValue<? extends EntryFacade> data) {
+				// Note that input may not be set in which case null is returned
+				return data.getValue() == null ? null : data.getValue().getMainEntry().getTransaction();
 			}
 		};
 	}
 
-	public static PropertyBlock<EntryData, RowControl, Entry> createEntryColumn(
+	public static PropertyBlock<IObservableValue<? extends EntryFacade>, Entry> createEntryColumn(
 			final ScalarPropertyAccessor<?,Entry> propertyAccessor) {
-		return new PropertyBlock<EntryData, RowControl, Entry>(propertyAccessor, "entry") { //$NON-NLS-1$
+		return new PropertyBlock<IObservableValue<? extends EntryFacade>, Entry>(propertyAccessor, "entry") { //$NON-NLS-1$
 			@Override
-			public Entry getObjectContainingProperty(EntryData data) {
-				return data.getEntry();
+			public Entry getObjectContainingProperty(IObservableValue<? extends EntryFacade> data) {
+				// Note that input may not be set in which case null is returned
+				return data.getValue() == null ? null : data.getValue().getMainEntry();
 			}
 		};
 	}
@@ -238,11 +235,12 @@ IObservableValue<S> objectContainingProperty = new ComputedValue<S>() {
 	 * @param displayName the text to use in the header
 	 * @return
 	 */
-	public static PropertyBlock<EntryData, RowControl, Entry> createEntryColumn(final ScalarPropertyAccessor<?,Entry> propertyAccessor, String displayName) {
-		return new PropertyBlock<EntryData, RowControl, Entry>(propertyAccessor, "entry", displayName) { //$NON-NLS-1$
+	public static PropertyBlock<IObservableValue<? extends EntryFacade>, Entry> createEntryColumn(final ScalarPropertyAccessor<?,Entry> propertyAccessor, String displayName) {
+		return new PropertyBlock<IObservableValue<? extends EntryFacade>, Entry>(propertyAccessor, "entry", displayName) { //$NON-NLS-1$
 			@Override
-			public Entry getObjectContainingProperty(EntryData data) {
-				return data.getEntry();
+			public Entry getObjectContainingProperty(IObservableValue<? extends EntryFacade> data) {
+				// Note that input may not be set in which case null is returned
+				return data.getValue() == null ? null : data.getValue().getMainEntry();
 			}
 		};
 	}

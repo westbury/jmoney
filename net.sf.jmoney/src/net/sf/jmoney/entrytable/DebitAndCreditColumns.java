@@ -22,13 +22,13 @@
 
 package net.sf.jmoney.entrytable;
 
+import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.model2.Commodity;
+import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.resources.Messages;
 
-import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
@@ -47,30 +47,17 @@ import org.eclipse.swt.widgets.Text;
  * <code>PropertyBlock</code> class if you want the amount to be displayed in
  * separate debit and credit columns.
  */
-public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryRowControl> {
+public class DebitAndCreditColumns extends IndividualBlock<IObservableValue<Entry>> {
 
-	private class DebitAndCreditCellControl implements ICellControl2<EntryData> {
+	private class DebitAndCreditCellControl implements ICellControl2<Entry> {
 		private Text textControl;
 
-		public DebitAndCreditCellControl(Composite parent, RowControl rowControl, final IObservableValue<? extends EntryData> entryData) {
+		public DebitAndCreditCellControl(Composite parent, RowControl rowControl, final IObservableValue<Entry> entryObservable) {
 			this.textControl = new Text(parent, SWT.TRAIL);
 
-			final IObservableValue<Entry> entryObservable = new ComputedValue<Entry>() {
-				@Override
-				protected Entry calculate() {
-					if (entryData.getValue() == null) {
-						// No data set, so doesn't really matter what we return,
-						// we just can't NPE.
-						return null;
-					} else {
-						return entryData.getValue().getEntry();
-					} 
-				}
-			};
-			
 			IObservableValue<Long> amountObservable = EntryInfo.getAmountAccessor().observeDetail(entryObservable);
 
-			IBidiConverter<Long, String> creditAndDebitSplitConverter = new CreditAndDebitSplitConverter(commodity, isDebit, amountObservable);
+			IBidiConverter<Long, String> creditAndDebitSplitConverter = new CreditAndDebitSplitConverter(formatter, isDebit, amountObservable);
 			
 			Bind.twoWay(amountObservable)
 			.convert(creditAndDebitSplitConverter)
@@ -110,7 +97,7 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 		}
 
 		@Override
-		public void load(EntryData data) {
+		public void load(Entry data) {
 			// No longer used
 		}
 
@@ -135,22 +122,22 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 	/**
 	 * The commodity of the amounts in the credit and debit columns.
 	 */
-	private Commodity commodity;
+	private IAmountFormatter formatter;
 	
 	private boolean isDebit;
 
-	public static DebitAndCreditColumns createCreditColumn(Commodity commodityForFormatting) {
-    	return new DebitAndCreditColumns("credit", Messages.DebitAndCreditColumns_CreditName, commodityForFormatting, false);  //$NON-NLS-1$
+	public static DebitAndCreditColumns createCreditColumn(IAmountFormatter formatter) {
+    	return new DebitAndCreditColumns("credit", Messages.DebitAndCreditColumns_CreditName, formatter, false);  //$NON-NLS-1$
 	}
 
-	public static DebitAndCreditColumns createDebitColumn(Commodity commodityForFormatting) {
-    	return new DebitAndCreditColumns("debit", Messages.DebitAndCreditColumns_DebitName, commodityForFormatting, true);      //$NON-NLS-1$
+	public static DebitAndCreditColumns createDebitColumn(IAmountFormatter formatter) {
+    	return new DebitAndCreditColumns("debit", Messages.DebitAndCreditColumns_DebitName, formatter, true);      //$NON-NLS-1$
 	}
 
-	private DebitAndCreditColumns(String id, String name, Commodity commodity, boolean isDebit) {
+	private DebitAndCreditColumns(String id, String name, IAmountFormatter formatter, boolean isDebit) {
 		super(name, 70, 2);
 		this.id = id;
-		this.commodity = commodity;
+		this.formatter = formatter;
 		this.isDebit = isDebit;
 	}
 
@@ -159,9 +146,8 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 	}
 
     @Override
-	public Control createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, BaseEntryRowControl coordinator) {
-
-		ICellControl2<EntryData> cellControl = new DebitAndCreditCellControl(parent, rowControl, master);
+	public Control createCellControl(Composite parent, final IObservableValue<Entry> blockInput, RowControl rowControl) {
+		ICellControl2<Entry> cellControl = new DebitAndCreditCellControl(parent, rowControl, blockInput);
 
 		return cellControl.getControl();
     }
@@ -187,5 +173,15 @@ public class DebitAndCreditColumns extends IndividualBlock<EntryData, BaseEntryR
 		}
 
 		return result;
+	}
+
+	public static Block<IObservableValue<Entry>> createDebitAndCreditColumns(IAmountFormatter formatter) {
+		CellBlock<IObservableValue<Entry>> debitColumnManager = DebitAndCreditColumns.createDebitColumn(formatter);
+		CellBlock<IObservableValue<Entry>> creditColumnManager = DebitAndCreditColumns.createCreditColumn(formatter);
+
+		return new HorizontalBlock<IObservableValue<Entry>>(
+    					debitColumnManager,
+    					creditColumnManager
+		);
 	}
 }

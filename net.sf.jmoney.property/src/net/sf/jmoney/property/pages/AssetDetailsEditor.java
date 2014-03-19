@@ -38,7 +38,6 @@ import net.sf.jmoney.entrytable.DeleteTransactionHandler;
 import net.sf.jmoney.entrytable.DuplicateTransactionHandler;
 import net.sf.jmoney.entrytable.EntriesTable;
 import net.sf.jmoney.entrytable.EntryData;
-import net.sf.jmoney.entrytable.EntryRowControl;
 import net.sf.jmoney.entrytable.HorizontalBlock;
 import net.sf.jmoney.entrytable.ICellControl2;
 import net.sf.jmoney.entrytable.IEntriesContent;
@@ -112,7 +111,7 @@ public class AssetDetailsEditor extends EditorPart {
 	 */
 	private RealProperty asset;
 
-    private EntriesTable<StockEntryData> fEntriesControl;
+    private EntriesTable<StockEntryData, StockEntryRowControl> fEntriesControl;
 
 	public AssetDetailsEditor(RealProperty stock) {
 		this.asset = stock;
@@ -541,7 +540,7 @@ public class AssetDetailsEditor extends EditorPart {
 		CellBlock<EntryData, BaseEntryRowControl> creditColumnManager = DebitAndCreditColumns.createCreditColumn(account.getCurrency());
     	CellBlock<EntryData, BaseEntryRowControl> balanceColumnManager = new BalanceColumn(account.getCurrency());
 
-		RowSelectionTracker<EntryRowControl> rowTracker = new RowSelectionTracker<EntryRowControl>();
+		RowSelectionTracker<StockEntryRowControl> rowTracker = new RowSelectionTracker<StockEntryRowControl>();
 
 		Block<StockEntryData, StockEntryRowControl> rootBlock = new HorizontalBlock<StockEntryData, StockEntryRowControl>(
 				transactionDateColumn,
@@ -681,8 +680,8 @@ public class AssetDetailsEditor extends EditorPart {
 		};
 
 		// Create the table control.
-	    IRowProvider<StockEntryData> rowProvider = new StockRowProvider(rootBlock);
-		fEntriesControl = new EntriesTable<StockEntryData>(composite, rootBlock, entriesProvider, rowProvider, account.getSession(), transactionDateColumn, rowTracker) {
+	    IRowProvider<StockEntryData, StockEntryRowControl> rowProvider = new StockRowProvider(rootBlock);
+		fEntriesControl = new EntriesTable<StockEntryData, StockEntryRowControl>(composite, rootBlock, entriesProvider, rowProvider, account.getSession(), transactionDateColumn, rowTracker) {
 			@Override
 			protected StockEntryData createEntryRowInput(Entry entry) {
 				return new StockEntryData(entry, session.getDataManager());

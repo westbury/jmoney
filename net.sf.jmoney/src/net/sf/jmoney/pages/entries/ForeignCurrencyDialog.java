@@ -22,7 +22,6 @@
 
 package net.sf.jmoney.pages.entries;
 
-import net.sf.jmoney.entrytable.EntryData;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.resources.Messages;
@@ -36,7 +35,6 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
@@ -71,7 +69,7 @@ public class ForeignCurrencyDialog {
 	private Display display;
 
 	@SuppressWarnings("unchecked")
-	public ForeignCurrencyDialog(Shell parent, EntryData item) {
+	public ForeignCurrencyDialog(Shell parent, Entry item) {
 
 		this.display = parent.getDisplay();
 
@@ -94,7 +92,7 @@ public class ForeignCurrencyDialog {
 		transactionArea.setLayout(transactionLayout);
 
 		Label label1 = new Label(transactionArea, SWT.NONE);
-		Entry entry1 = item.getEntry();
+		Entry entry1 = item;
 		Entry entry2 = item.getOtherEntry();
 		Object[] messageArgs = new Object[] {
 				entry1.getAmount() > 0 ? Messages.ForeignCurrencyDialog_Credit : Messages.ForeignCurrencyDialog_Debit,

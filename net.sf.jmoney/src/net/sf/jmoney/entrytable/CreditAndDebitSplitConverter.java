@@ -1,6 +1,6 @@
 package net.sf.jmoney.entrytable;
 
-import net.sf.jmoney.model2.Commodity;
+import net.sf.jmoney.fields.IAmountFormatter;
 
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
@@ -8,7 +8,7 @@ import org.eclipse.core.runtime.CoreException;
 
 public class CreditAndDebitSplitConverter implements IBidiConverter<Long, String> {
 
-private Commodity commodityForFormatting;
+private IAmountFormatter formatter;
 
 private boolean isDebit;
 
@@ -16,13 +16,14 @@ private IObservableValue<Long> modelObservable;
 
 /**
  * 
- * @param commodityForFormatting
+ * @param formatter
+ * 			formats and parses amounts in a way appropriate for the commodity
  * @param isDebit <code>true</code> if debit column, <code>false</code> if credit column 
  * @param modelObservable the model observable used in the binding, this being a hack because the
  * 			converter needs to know the previous model value when converting from target to model
  */
-public CreditAndDebitSplitConverter(Commodity commodityForFormatting, boolean isDebit, IObservableValue<Long> modelObservable) {
-	this.commodityForFormatting = commodityForFormatting;
+public CreditAndDebitSplitConverter(IAmountFormatter formatter, boolean isDebit, IObservableValue<Long> modelObservable) {
+	this.formatter = formatter;
 	this.isDebit = isDebit;
 	this.modelObservable = modelObservable;
 }
@@ -36,12 +37,12 @@ public String modelToTarget(Long amount) {
 	} else if (isDebit) {
 		// Debit column
 		return amount < 0
-				? commodityForFormatting.format(-amount)
+				? formatter.format(-amount)
 						: ""; //$NON-NLS-1$
 	} else {
 		// Credit column
 		return amount > 0
-				? commodityForFormatting.format(amount)
+				? formatter.format(amount)
 						: ""; //$NON-NLS-1$
 	}
 }
@@ -50,7 +51,7 @@ public String modelToTarget(Long amount) {
 public Long targetToModel(String fromObject)
 		throws CoreException {
 	String amountString = fromObject;
-	long amount = commodityForFormatting.parse(amountString);
+	long amount = formatter.parse(amountString);
 
 	long previousEntryAmount = modelObservable.getValue();
 	long newEntryAmount;

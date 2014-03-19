@@ -8,6 +8,7 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
  net.sf.jmoney,
  net.sf.jmoney.jdbcdatastore;resolution:=optional,
- org.eclipse.core.expressions
+ org.eclipse.core.expressions,
+ org.eclipse.core.databinding.observable;bundle-version="1.5.0"
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6

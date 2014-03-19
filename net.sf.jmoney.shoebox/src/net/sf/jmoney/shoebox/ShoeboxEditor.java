@@ -10,20 +10,20 @@ import net.sf.jmoney.entrytable.BaseEntryRowControl;
 import net.sf.jmoney.entrytable.Block;
 import net.sf.jmoney.entrytable.CellBlock;
 import net.sf.jmoney.entrytable.DebitAndCreditColumns;
+import net.sf.jmoney.entrytable.DelegateBlock;
 import net.sf.jmoney.entrytable.EntriesTable;
 import net.sf.jmoney.entrytable.EntryData;
+import net.sf.jmoney.entrytable.EntryFacade;
 import net.sf.jmoney.entrytable.EntryRowControl;
 import net.sf.jmoney.entrytable.HorizontalBlock;
 import net.sf.jmoney.entrytable.IEntriesContent;
 import net.sf.jmoney.entrytable.IRowProvider;
-import net.sf.jmoney.entrytable.ISplitEntryContainer;
 import net.sf.jmoney.entrytable.IndividualBlock;
 import net.sf.jmoney.entrytable.OtherEntriesBlock;
 import net.sf.jmoney.entrytable.PropertyBlock;
 import net.sf.jmoney.entrytable.ReusableRowProvider;
-import net.sf.jmoney.entrytable.RowControl;
 import net.sf.jmoney.entrytable.RowSelectionTracker;
-import net.sf.jmoney.entrytable.SingleOtherEntryPropertyBlock;
+import net.sf.jmoney.entrytable.SingleOtherEntryDetailPropertyBlock;
 import net.sf.jmoney.entrytable.VerticalBlock;
 import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.UncommittedObjectKey;
@@ -36,6 +36,7 @@ import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionInfo;
 import net.sf.jmoney.shoebox.resources.Messages;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
@@ -64,7 +65,7 @@ public class ShoeboxEditor extends EditorPart {
 	
 	private Session session;
 	
-    private EntriesTable<EntryData> recentlyAddedEntriesControl;
+    private EntriesTable<EntryRowControl> recentlyAddedEntriesControl;
     private IEntriesContent recentEntriesTableContents = null;
     
 	Collection<IObjectKey> ourEntryList = new Vector<IObjectKey>();
@@ -79,7 +80,7 @@ public class ShoeboxEditor extends EditorPart {
 	 */
 //	private TransactionManager transactionManager = null;
 
-    private Block<EntryData, EntryRowControl> rootBlock;
+    private Block<EntryRowControl> rootBlock;
     
 	@Override
 	public void init(IEditorSite site, IEditorInput input)
@@ -224,33 +225,51 @@ public class ShoeboxEditor extends EditorPart {
 		/*
 		 * Setup the layout structure of the header and rows.
 		 */
-		IndividualBlock<EntryData, RowControl> transactionDateColumn = PropertyBlock.createTransactionColumn(TransactionInfo.getDateAccessor());
-		CellBlock<EntryData, BaseEntryRowControl> debitColumnManager = DebitAndCreditColumns.createDebitColumn(session.getDefaultCurrency());
-		CellBlock<EntryData, BaseEntryRowControl> creditColumnManager = DebitAndCreditColumns.createCreditColumn(session.getDefaultCurrency());
-		
-		rootBlock = new HorizontalBlock<EntryData, EntryRowControl>(
+		IndividualBlock<IObservableValue<? extends EntryFacade>> transactionDateColumn = PropertyBlock.createTransactionColumn(TransactionInfo.getDateAccessor());
+
+		Block<IObservableValue<EntryFacade>> part1SubBlock = new HorizontalBlock<IObservableValue<EntryFacade>>(
 				transactionDateColumn,
-				new VerticalBlock<EntryData, EntryRowControl>(
-						new HorizontalBlock<EntryData, EntryRowControl>(
+				new VerticalBlock<IObservableValue<EntryFacade>>(
+						new HorizontalBlock<IObservableValue<EntryFacade>>(
 								PropertyBlock.createEntryColumn(EntryInfo.getAccountAccessor()),
 								PropertyBlock.createEntryColumn(EntryInfo.getCheckAccessor())
 						),
 						PropertyBlock.createEntryColumn(EntryInfo.getMemoAccessor())
 				),
-				new OtherEntriesBlock(
-						new HorizontalBlock<Entry, ISplitEntryContainer>(
-								new SingleOtherEntryPropertyBlock(EntryInfo.getAccountAccessor()),
-								new SingleOtherEntryPropertyBlock(EntryInfo.getMemoAccessor(), Messages.ShoeboxEditor_EntryDescription),
-								new SingleOtherEntryPropertyBlock(EntryInfo.getAmountAccessor())
+				new OtherEntriesBlock<EntryFacade>(
+						new HorizontalBlock<IObservableValue<Entry>>(
+								new SingleOtherEntryDetailPropertyBlock(EntryInfo.getAccountAccessor()),
+								new SingleOtherEntryDetailPropertyBlock(EntryInfo.getMemoAccessor(), net.sf.jmoney.resources.Messages.EntriesSection_EntryDescription),
+								new SingleOtherEntryDetailPropertyBlock(EntryInfo.getAmountAccessor())
 						)
-				),
-				debitColumnManager,
-				creditColumnManager
+				)
+			);
+
+		Block<EntryRowControl> part1Block = new DelegateBlock<EntryRowControl, IObservableValue<EntryFacade>>(part1SubBlock) {
+			@Override
+			protected IObservableValue<EntryFacade> convert(
+					EntryRowControl blockInput) {
+				return blockInput.observeEntryFacade();
+			}
+		};
+
+    	Block<EntryRowControl> debitAndCreditColumnsManager = new DelegateBlock<EntryRowControl, IObservableValue<Entry>>(
+    			DebitAndCreditColumns.createDebitAndCreditColumns(session.getDefaultCurrency())
+			) {
+			@Override
+			protected IObservableValue<Entry> convert(EntryRowControl blockInput) {
+				return blockInput.observeMainEntry();
+			}
+		};
+
+		rootBlock = new HorizontalBlock<EntryRowControl>(
+				part1Block,
+				debitAndCreditColumnsManager
 		);
-		
+
         // Create the table control.
-	    IRowProvider<EntryData> rowProvider = new ReusableRowProvider(rootBlock);
-        recentlyAddedEntriesControl = new EntriesTable<EntryData>(topLevelControl, rootBlock, recentEntriesTableContents, rowProvider, this.session, transactionDateColumn, new RowSelectionTracker()) {
+	    IRowProvider<EntryData, EntryRowControl> rowProvider = new ReusableRowProvider(rootBlock);
+        recentlyAddedEntriesControl = new EntriesTable<EntryRowControl>(topLevelControl, rootBlock, recentEntriesTableContents, rowProvider, this.session, transactionDateColumn, new RowSelectionTracker()) {
 			@Override
 			protected EntryData createEntryRowInput(Entry entry) {
 				return new EntryData(entry, session.getDataManager());

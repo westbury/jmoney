@@ -31,8 +31,6 @@ import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.resources.Messages;
 
 import org.eclipse.core.databinding.observable.value.IObservableValue;
-import org.eclipse.core.databinding.observable.value.IValueChangeListener;
-import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.swt.widgets.Composite;

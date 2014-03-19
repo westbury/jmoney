@@ -22,13 +22,11 @@
 
 package net.sf.jmoney.entrytable;
 
-import java.util.Collection;
-
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 
-public abstract class Block<T, R> {
+public abstract class Block<R> {
  	/**
 	 * marginLeft specifies the number of pixels of horizontal margin
 	 * that will be placed along the left edge of the layout.
@@ -59,15 +57,17 @@ public abstract class Block<T, R> {
 
 	protected int width;
 
-	public abstract void createHeaderControls(Composite parent, T entryData);
+	public abstract void createHeaderControls(Composite parent);
 
-	public abstract Collection<CellBlock<? super T,? super R>> buildCellList();
+	public abstract void createCellControls(Composite parent, R input, RowControl rowControl);
 		
-	abstract void layout(int width);
+	protected abstract void layout(int width);
 
-	abstract void positionControls(int x, int y, int verticalSpacing, Control [] controls, T entryData, boolean flushCache);
+	protected abstract void positionControls(int x, int y, int verticalSpacing, Control [] controls, R input, boolean flushCache);
 
-	abstract void setInput(T input);
+	// TODO rename this.  It should be something like 'setInputForHeader', because
+	// it is used only for adjusting the header.
+	protected abstract void setInput(R input);
 	
 	/**
 	 * Calculate the height of this block. Because variable height rows are
@@ -83,7 +83,7 @@ public abstract class Block<T, R> {
 	 *            a list of controls in a row
 	 * @return the height of this block
 	 */
-	abstract int getHeight(int verticalSpacing, Control[] controls);
+	protected abstract int getHeight(int verticalSpacing, Control[] controls);
 
 	/**
 	 * Paints the lines between the controls.
@@ -95,7 +95,7 @@ public abstract class Block<T, R> {
 	 * @param controls
 	 *            a list of controls in a row
 	 */
-	abstract void paintRowLines(GC gc, int x, int y, int verticalSpacing, Control[] controls, T entryData);
+	protected abstract void paintRowLines(GC gc, int x, int y, int verticalSpacing, Control[] controls, R input);
 
 	/**
 	 * Given a width, calculate the preferred height.
@@ -109,7 +109,7 @@ public abstract class Block<T, R> {
 	 *            and <code>false</code> otherwise
 	 * @return the preferred height
 	 */
-	abstract int getHeightForGivenWidth(int width, int verticalSpacing, Control[] controls, boolean changed);
+	protected abstract int getHeightForGivenWidth(int width, int verticalSpacing, Control[] controls, boolean changed);
 
 	/**
 	 * This method must be called after construction of the root block.
@@ -122,5 +122,5 @@ public abstract class Block<T, R> {
 	 * 		amount by which the caller must increment startIndex before passing
 	 * 		it on to the next child block
 	 */
-	abstract public int initIndexes(int startIndex);
+	public abstract int initIndexes(int startIndex);
 }

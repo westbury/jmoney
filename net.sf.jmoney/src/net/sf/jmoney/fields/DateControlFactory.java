@@ -28,14 +28,12 @@ import java.util.Date;
 import net.sf.jmoney.JMoneyPlugin;
 import net.sf.jmoney.VerySimpleDateFormat;
 import net.sf.jmoney.model2.ExtendableObject;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.resources.Messages;
 
 import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
-import org.eclipse.core.internal.databinding.Activator;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
 import org.eclipse.core.runtime.CoreException;

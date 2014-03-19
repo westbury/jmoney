@@ -22,19 +22,16 @@
 
 package net.sf.jmoney.entrytable;
 
-import org.eclipse.core.databinding.observable.value.IObservableValue;
-import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
 
-public class CellContainer<T,R> extends Composite {
+public class CellContainer<T> extends Composite {
 
 	/**
 	 * the current input, being always a non-null value if this row
 	 * is active and undefined if this row is inactive
 	 */
-	protected IObservableValue<T> input = new WritableValue<T>();
+	protected T blockInput;
 
 	// Although currently the keys of this map are never used
 	// (and it may as well be a list of the values only), a map
@@ -42,8 +39,9 @@ public class CellContainer<T,R> extends Composite {
 	// in error during transaction validation.
 //	protected Map<CellBlock, IPropertyControl<? super T>> controls = new HashMap<CellBlock, IPropertyControl<? super T>>();
 
-	public CellContainer(Composite parent) {
+	public CellContainer(Composite parent, T blockInput) {
 		super(parent, SWT.NONE);
+		this.blockInput = blockInput;
 	}
 
 	/**
@@ -58,23 +56,9 @@ public class CellContainer<T,R> extends Composite {
 	 * been done on the final derived type. However, at the time the base
 	 * constructor is called, neither will have been initialized.
 	 */
-	protected void init(RowControl rowControl, R coordinator, Block<? super T, ? super R> rootBlock) {
-		for (CellBlock<? super T, ? super R> cellBlock: rootBlock.buildCellList()) {
-			// Create the control with no content set.
-			final Control cellControl = cellBlock.createCellControl(this, input, rowControl, coordinator);
-//			controls.put(cellBlock, cellControl);
-
-//			if (input.getValue() != null) {
-//				cellControl.load(input.getValue());
-//			}
-		}
+	protected void init(RowControl rowControl, Block<? super T> rootBlock) {
+		// Create the controls in the correct order
+		rootBlock.createCellControls(this, blockInput, rowControl);
 	}
 
-	public void setInput(T input) {
-		this.input.setValue(input);
-	}
-
-	public T getInput() {
-		return input.getValue();
-	}
 }

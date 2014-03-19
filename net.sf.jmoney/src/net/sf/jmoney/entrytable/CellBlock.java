@@ -22,10 +22,6 @@
 
 package net.sf.jmoney.entrytable;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
-import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.widgets.Composite;
@@ -37,10 +33,10 @@ import org.eclipse.swt.widgets.Control;
  * single piece of data with header text(e.g. the IndividualBlock derived class) or
  * it may represent a composite column (e.g. the OtherEntriesBlock).
  */
-public abstract class CellBlock<T,R> extends Block<T,R> {
+public abstract class CellBlock<R> extends Block<R> {
 	/**
-	 * The index of this cell in the list returned by buildCellList.
-	 * This is not set until buildCellList is called.
+	 * The index of this cell in the child list.
+	 * This is not set until initIndexes is called.
 	 */
 	private int index;
 
@@ -52,13 +48,9 @@ public abstract class CellBlock<T,R> extends Block<T,R> {
 	 * @param rowControl the row control that contains this cell, this
 	 * 		parameter being used so that we know which row should become
 	 * 		the selected row when this cell gets focus
-	 * @param coordinator an object that can be used so that controls
-	 * 		can communicate which each other, each cell block being
-	 * 		parameterized with a coordinator class (R) and each cell
-	 * 		being given a class of that type
 	 * @return an IPropertyControl wrapper around an SWT control
 	 */
-	public abstract Control createCellControl(Composite parent, IObservableValue<? extends T> input, RowControl rowControl, R coordinator);
+	public abstract Control createCellControl(Composite parent, R blockInput, RowControl rowControl);
 
 	public CellBlock(int minimumWidth, int weight) {
 		this.minimumWidth = minimumWidth;
@@ -72,43 +64,42 @@ public abstract class CellBlock<T,R> extends Block<T,R> {
 	}
 
 	@Override
-	public Collection<CellBlock<? super T,? super R>> buildCellList() {
-		ArrayList<CellBlock<? super T,? super R>> cellList = new ArrayList<CellBlock<? super T,? super R>>();
-		cellList.add(this);
-		return cellList;
+	public void createCellControls(Composite parent, R blockInput, RowControl rowControl) {
+		// Just one cell to create, this, ourselves
+		this.createCellControl(parent, blockInput, rowControl);
 	}
 
 	@Override
-	void layout(int width) {
+	protected void layout(int width) {
 		this.width = width;
 	}
 
 	@Override
-	int getHeightForGivenWidth(int width, int verticalSpacing, Control[] controls, boolean changed) {
+	protected int getHeightForGivenWidth(int width, int verticalSpacing, Control[] controls, boolean changed) {
 		Control control = controls[index];
 		return control.computeSize(width, SWT.DEFAULT, changed).y;
 	}
 
 	@Override
-	void positionControls(int x, int y, int verticalSpacing, Control[] controls, T entryData, boolean changed) {
+	protected void positionControls(int x, int y, int verticalSpacing, Control[] controls, R input, boolean changed) {
 		Control control = controls[index];
 		int height = control.computeSize(width, SWT.DEFAULT, changed).y;
 		control.setBounds(x, y, width, height);
 	}
 
 	@Override
-	int getHeight(int verticalSpacing, Control[] controls) {
+	protected int getHeight(int verticalSpacing, Control[] controls) {
 		Control control = controls[index];
 		return control.getSize().y;
 	}
 
 	@Override
-	void paintRowLines(GC gc, int x, int y, int verticalSpacing, Control[] controls, T entryData) {
+	protected void paintRowLines(GC gc, int x, int y, int verticalSpacing, Control[] controls, R input) {
 		// Nothing to do.
 	}
 
 	@Override
-	void setInput(T input) {
+	protected void setInput(R input) {
 		// By default, do nothing.
 		// If, in a derived class, the header is affected by the input then this
 		// method should be overridden.

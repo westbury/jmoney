@@ -6,16 +6,19 @@ import java.util.List;
 
 import net.sf.jmoney.entrytable.BaseEntryRowControl;
 import net.sf.jmoney.entrytable.Block;
+import net.sf.jmoney.entrytable.EntryData;
 import net.sf.jmoney.entrytable.FocusCellTracker;
 import net.sf.jmoney.entrytable.InvalidUserEntryException;
 import net.sf.jmoney.entrytable.RowSelectionTracker;
 import net.sf.jmoney.entrytable.VirtualRowTable;
 import net.sf.jmoney.model2.Entry;
-import net.sf.jmoney.model2.TransactionManagerForAccounts;
+import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.stocks.model.RatesTable;
 import net.sf.jmoney.stocks.model.StockAccount;
 
 import org.eclipse.core.databinding.observable.value.ComputedValue;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.swt.widgets.Composite;
 
@@ -28,7 +31,7 @@ import org.eclipse.swt.widgets.Composite;
  * @author Nigel
  *
  */
-public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, StockEntryRowControl> {
+public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEntryRowControl> {
 
 	public enum TransactionType {
 		Buy,
@@ -51,6 +54,7 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 	//	private final IObservableValue<BigDecimal> sharePrice = new WritableValue<BigDecimal>();
 
 	private final List<IPropertyChangeListener<BigDecimal>> stockPriceListeners = new ArrayList<IPropertyChangeListener<BigDecimal>>();
+	private IObservableValue<StockEntryFacade> stockEntryFacade = new WritableValue<StockEntryFacade>();
 
 	//	private Binding dividendBinding = null;
 
@@ -66,17 +70,17 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 	//
 	//	private DefaultValueBinding<BigDecimal> sharePriceBinding;
 
-	public StockEntryRowControl(final Composite parent, int style, VirtualRowTable rowTable, Block<StockEntryData, ? super StockEntryRowControl> rootBlock, final RowSelectionTracker selectionTracker, final FocusCellTracker focusCellTracker) {
+	public StockEntryRowControl(final Composite parent, int style, VirtualRowTable<EntryData, StockEntryRowControl> rowTable, Block<StockEntryRowControl> rootBlock, final RowSelectionTracker<StockEntryRowControl> selectionTracker, final FocusCellTracker focusCellTracker) {
 		super(parent, rowTable, rootBlock, selectionTracker, focusCellTracker);
-		init(this, this, rootBlock);
+		init(this, rootBlock);
 	}
 
 	/**
-	 * The input to this class is the StockEntryData with uncommitted model objects,
+	 * The input to this class is the StockEntryFacade with uncommitted model objects,
 	 * i.e. model objects from a transaction that has not been committed. 
 	 */
 	@Override
-	public void setInput(StockEntryData inputEntryData) {
+	public void setRowInput(EntryData inputEntryData) {
 		if (inputEntryData == null) {
 			System.out.println("here");
 		}
@@ -85,19 +89,39 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 		 * is called.  This sets the 'input' value in the base object and means
 		 * the following code can use that field.
 		 */
-		input.setValue(inputEntryData);
+		/*
+		 * This must be called after we have set our own stuff up.  The reason
+		 * being that this call loads controls (such as the stock price control).
+		 * These controls will not load correctly if this object is not set up.
+		 */
+		super.setRowInput(inputEntryData);
 
+		
+		
+		// If this is a new entry (this uncommitted entry is the new entry row) then
+		// we must set the currency to the default currency for the account.
+		// TODO is this the right place for this???
+		Entry entryInTransaction = uncommittedEntry.getValue();
+		if (entryInTransaction.getCommodity() == null) {
+			StockAccount account = (StockAccount)entryInTransaction.getAccount();
+			entryInTransaction.setCommodity(account.getCurrency());
+		}
+		
+		// Create the facade
+		StockEntryFacade facade = new StockEntryFacade(uncommittedEntry.getValue());
+		stockEntryFacade.setValue(facade);
+		
 		// This must be done before we add the default bindings
-		if (input.getValue().isPurchaseOrSale()) {
-			input.getValue().sharePrice().setValue(input.getValue().calculatePrice());
+		if (facade.isPurchaseOrSale()) {
+			facade.sharePrice().setValue(facade.calculatePrice());
 		} else {
-			input.getValue().sharePrice().setValue(null);
+			facade.sharePrice().setValue(null);
 		}
 
 		/*
 		 * Bind the default values if and only if this is a new transaction
 		 */
-		if (committedEntryData.getEntry() == null) {
+		if (inputEntryData.getEntry() == null) {
 			bindDefaultNetAmount();
 
 			// Purchases and sales:
@@ -110,11 +134,6 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 			// Dividends:
 			bindDividend();
 			bindDefaultWithholdingTax();
-
-
-			if (committedEntryData != inputEntryData) {
-				System.out.println("here");
-			}
 
 			/*
 			 * Note it is possible that bindings will be null even though they are
@@ -181,12 +200,6 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 			//			});
 		}
 
-		/*
-		 * This must be called after we have set our own stuff up.  The reason
-		 * being that this call loads controls (such as the stock price control).
-		 * These controls will not load correctly if this object is not set up.
-		 */
-		super.setInput(inputEntryData);
 	}
 
 	private boolean isGrossSameAsNetAmount(StockAccount account) {
@@ -208,15 +221,15 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 		 * However, if there are no commission or taxes configured for the
 		 * commodity type in this account then we can calculate backwards.
 		 */
-		final StockEntryData newEntryData = input.getValue();
-		StockAccount account = (StockAccount)getUncommittedEntryData().getEntry().getAccount();
+		final StockEntryFacade newEntryFacade = stockEntryFacade.getValue();
+		StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
 
 		if (isGrossSameAsNetAmount(account)) {
 			Bind.oneWay(new ComputedValue<BigDecimal>() {
 				@Override
 				protected BigDecimal calculate() {
-					if (newEntryData.isPurchaseOrSale()) {
-						if (input.getValue().getQuantity() == 0) {
+					if (newEntryFacade.isPurchaseOrSale()) {
+						if (newEntryFacade.getQuantity() == 0) {
 							return null;
 						}
 
@@ -226,27 +239,27 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 						 * are to have a value.  Once one is entered that will no longer be
 						 * bound to the default value.
 						 */
-						BigDecimal grossAmount = new BigDecimal(input.getValue().getNetAmount()).movePointLeft(2);
-						BigDecimal quantity = new BigDecimal(input.getValue().getQuantity());
+						BigDecimal grossAmount = new BigDecimal(newEntryFacade.getMainEntry().getAmount()).movePointLeft(2);
+						BigDecimal quantity = new BigDecimal(newEntryFacade.getQuantity());
 						return grossAmount.divide(quantity, 4, BigDecimal.ROUND_HALF_UP);
 					} else {
 						// Not a purchase or sale transaction
 						return null;
 					}
 				}
-			}).untilTargetChanges().to(input.getValue().sharePrice());
+			}).untilTargetChanges().to(newEntryFacade.sharePrice());
 		} else {
 			// No default value for the share price
 		}
 	}
 
 	private void bindDefaultQuantity() {
-		final StockEntryData newEntryData = input.getValue();
+		final StockEntryFacade newEntryFacade = stockEntryFacade.getValue();
 
 		ComputedValue<Long> quantityDefault = new ComputedValue<Long>() {
 			@Override
 			protected Long calculate() {
-				if (newEntryData.isPurchaseOrSale()) {
+				if (newEntryFacade.isPurchaseOrSale()) {
 					/*
 					 * The user would not usually enter the net amount for the
 					 * transaction because it is hard to calculate backwards from this.
@@ -259,9 +272,9 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 					 * However, if there are no commission or taxes configured for the
 					 * commodity type in this account then we can calculate backwards.
 					 */
-					StockAccount account = (StockAccount)newEntryData.getEntry().getAccount();
+					StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
 
-					BigDecimal sharePrice = newEntryData.sharePrice().getValue();
+					BigDecimal sharePrice = newEntryFacade.sharePrice().getValue();
 					if (sharePrice == null) {
 						return null;
 					}
@@ -273,7 +286,7 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 						 * are to have a value.  Once one is entered that will no longer be
 						 * bound to the default value.
 						 */
-						BigDecimal grossAmount = new BigDecimal(newEntryData.getEntry().getAmount()).movePointLeft(2);
+						BigDecimal grossAmount = new BigDecimal(newEntryFacade.getMainEntry().getAmount()).movePointLeft(2);
 						BigDecimal quantity = grossAmount.divide(sharePrice);
 						return quantity.movePointRight(3).longValue();
 					} else {
@@ -288,31 +301,33 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 
 		Bind.oneWay(quantityDefault)
 		.untilTargetChanges()
-		.to(newEntryData.quantity());
+		.to(newEntryFacade.quantity());
 	}
 
 	// All transaction types???
 	private void bindDefaultNetAmount() {
-		final StockEntryData newEntryData = input.getValue();
+		final StockEntryFacade newEntryFacade = stockEntryFacade.getValue();
 
 		ComputedValue<Long> netAmountDefault = new ComputedValue<Long>() {
 			@Override
 			protected Long calculate() {
+				// Must not return null because this is bound to property of type 'long'.
+				
 				//				if (newEntryData.isPurchaseOrSale()) {
-				Long grossAmount = calculateGrossAmount(newEntryData);
-				StockAccount account = (StockAccount)newEntryData.getEntry().getAccount();
+				Long grossAmount = calculateGrossAmount(newEntryFacade);
+				StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
 				if (grossAmount != null) {
 					long totalExpenses =
-							newEntryData.getCommission()
-							+ newEntryData.getTax1Amount()
-							+ newEntryData.getTax2Amount();
-					if (newEntryData.getTransactionType() == TransactionType.Sell) {
+							newEntryFacade.getCommission()
+							+ newEntryFacade.getTax1Amount()
+							+ newEntryFacade.getTax2Amount();
+					if (newEntryFacade.getTransactionType() == TransactionType.Sell) {
 						return grossAmount - totalExpenses;
 					} else {
 						return - grossAmount - totalExpenses;
 					}
 				} else {
-					return null;
+					return 0L;
 				}
 				//				} else {
 				//					// Not a purchase or sale transaction
@@ -323,21 +338,21 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 
 		Bind.oneWay(netAmountDefault)
 		.untilTargetChanges()
-		.to(newEntryData.netAmount());
+		.to(EntryInfo.getAmountAccessor().observe(newEntryFacade.getMainEntry()));
 	}
 
 	private void bindDefaultCommission() {
-		final StockEntryData newEntryData = input.getValue();
+		final StockEntryFacade newEntryFacade = stockEntryFacade.getValue();
 
 		ComputedValue<Long> commissionDefault = new ComputedValue<Long>() {
 			@Override
 			protected Long calculate() {
-				if (newEntryData.isPurchaseOrSale()) {
-					Long grossAmount = calculateGrossAmount(newEntryData);
-					StockAccount account = (StockAccount)newEntryData.getEntry().getAccount();
+				if (newEntryFacade.isPurchaseOrSale()) {
+					Long grossAmount = calculateGrossAmount(newEntryFacade);
+					StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
 					if (grossAmount != null) {
 						RatesTable commissionRates =
-								(newEntryData.getTransactionType() == TransactionType.Buy)
+								(newEntryFacade.getTransactionType() == TransactionType.Buy)
 								? account.getBuyCommissionRates()
 										: account.getSellCommissionRates();
 								if (account.getCommissionAccount() != null && commissionRates != null) {
@@ -357,18 +372,18 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 
 		Bind.oneWay(commissionDefault)
 		.untilTargetChanges()
-		.to(newEntryData.commission());
+		.to(newEntryFacade.commission());
 	}
 
 	private void bindDefaultTax1() {
-		final StockEntryData newEntryData = input.getValue();
+		final StockEntryFacade newEntryFacade = stockEntryFacade.getValue();
 
 		ComputedValue<Long> tax1Default = new ComputedValue<Long>() {
 			@Override
 			protected Long calculate() {
-				if (newEntryData.isPurchaseOrSale()) {
-					Long grossAmount = calculateGrossAmount(newEntryData);
-					StockAccount account = (StockAccount)newEntryData.getEntry().getAccount();
+				if (newEntryFacade.isPurchaseOrSale()) {
+					Long grossAmount = calculateGrossAmount(newEntryFacade);
+					StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
 					if (grossAmount != null) {
 						if (account.getTax1Account() != null && account.getTax1Rates() != null) {
 							return account.getTax1Rates().calculateRate(grossAmount);
@@ -387,18 +402,18 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 
 		Bind.oneWay(tax1Default)
 		.untilTargetChanges()
-		.to(newEntryData.tax1());
+		.to(newEntryFacade.tax1());
 	}
 
 	private void bindDefaultTax2() {
-		final StockEntryData newEntryData = input.getValue();
+		final StockEntryFacade newEntryFacade = stockEntryFacade.getValue();
 
 		ComputedValue<Long> tax2Default = new ComputedValue<Long>() {
 			@Override
 			protected Long calculate() {
-				if (newEntryData.isPurchaseOrSale()) {
-					Long grossAmount = calculateGrossAmount(newEntryData);
-					StockAccount account = (StockAccount)newEntryData.getEntry().getAccount();
+				if (newEntryFacade.isPurchaseOrSale()) {
+					Long grossAmount = calculateGrossAmount(newEntryFacade);
+					StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
 					if (grossAmount != null) {
 						if (account.getTax2Account() != null && account.getTax2Rates() != null) {
 							return account.getTax2Rates().calculateRate(grossAmount);
@@ -417,7 +432,7 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 
 		Bind.oneWay(tax2Default)
 		.untilTargetChanges()
-		.to(newEntryData.tax2());
+		.to(newEntryFacade.tax2());
 	}
 
 	private void bindDefaultWithholdingTax() {
@@ -442,32 +457,19 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 	 * shown to the user for the gross dividend amount.
 	 */
 	private void bindDividend() {
+		final StockEntryFacade thisEntryFacade = stockEntryFacade.getValue();
+
 		Bind.oneWay(new ComputedValue<Long>() {
 			@Override
 			protected Long calculate() {
-				if (input.getValue().isDividend()) {
-					long dividend = - input.getValue().getNetAmount() - input.getValue().getWithholdingTax();
+				if (thisEntryFacade.isDividend()) {
+					long dividend = - thisEntryFacade.getNetAmount() - thisEntryFacade.getWithholdingTax();
 					return dividend;
 				} else {
 					return null;
 				}
 			}
-		}).to(input.getValue().dividend());
-	}
-
-	@Override
-	protected StockEntryData createUncommittedEntryData(
-			Entry entryInTransaction, TransactionManagerForAccounts transactionManager) {
-
-		// If this is a new entry (this uncommitted entry is the new entry row) then
-		// we must set the currency to the default currency for the account.
-		if (entryInTransaction.getCommodity() == null) {
-			StockAccount account = (StockAccount)entryInTransaction.getAccount();
-			entryInTransaction.setCommodity(account.getCurrency());
-		}
-
-		StockEntryData entryData = new StockEntryData(entryInTransaction, transactionManager);
-		return entryData;
+		}).to(thisEntryFacade.dividend());
 	}
 
 	@Override
@@ -480,7 +482,7 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 	 * @param newEntryData 
 	 * @return
 	 */
-	private Long calculateGrossAmount(StockEntryData newEntryData) {
+	private Long calculateGrossAmount(StockEntryFacade newEntryData) {
 		// TODO: Can we clean this up a little?  Stock quantities are to three decimal places,
 		// (long value is number of thousandths) hence why we shift the long value three places.
 		long quantity = newEntryData.getQuantity();
@@ -519,7 +521,7 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 	@Override
 	protected void specificValidation() throws InvalidUserEntryException {
 		// TODO: We should remove this method and call the EntryData method directly.
-		input.getValue().specificValidation();
+		stockEntryFacade.getValue().specificValidation();
 	}
 
 	//	public BigDecimal getSharePrice() {
@@ -544,4 +546,9 @@ public class StockEntryRowControl extends BaseEntryRowControl<StockEntryData, St
 		stockPriceListeners.add(listener);
 
 	}
+
+	public IObservableValue<StockEntryFacade> observeEntryFacade() {
+		return stockEntryFacade;
+	}
+
 }

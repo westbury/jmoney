@@ -31,13 +31,13 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Layout;
 
 
-public class BlockLayout<T> extends Layout {
+public class BlockLayout<R> extends Layout {
 
-	private Block<? super T,?> block;
+	private Block<? super R> block;
 
 	private boolean linkedToHeader;
 	
-	private T entryData;
+	private R input;
 	
 	/**
 	 * marginTop specifies the number of pixels of vertical margin
@@ -72,14 +72,14 @@ public class BlockLayout<T> extends Layout {
  	 * 			If true then the hints are ignored and the widths are always taken from
  	 * 			the blocks.
  	 */
-	public BlockLayout(Block<? super T,?> block, boolean linkedToHeader) {
+	public BlockLayout(Block<? super R> block, boolean linkedToHeader, R input) {
 		this.block = block;
 		this.linkedToHeader = linkedToHeader;
-		this.entryData = null;
+		this.input = input;
 	}
 
-	public void setInput(T entryData) {
-		this.entryData = entryData;
+	public void setInput(R input) {
+		this.input = input;
 	}
 	
 	@Override
@@ -116,10 +116,10 @@ public class BlockLayout<T> extends Layout {
 		}
 		
 		Control [] children = composite.getChildren();
-		block.positionControls(Block.marginLeft, marginTop, verticalSpacing, children, entryData, flushCache);
+		block.positionControls(Block.marginLeft, marginTop, verticalSpacing, children, input, flushCache);
 	}
 
 	public void paintRowLines(GC gc, Composite composite) {
-		block.paintRowLines(gc, Block.marginLeft, marginTop, verticalSpacing, composite.getChildren(), entryData);
+		block.paintRowLines(gc, Block.marginLeft, marginTop, verticalSpacing, composite.getChildren(), input);
 	}
 }

@@ -35,7 +35,7 @@ import org.eclipse.core.runtime.Assert;
  *
  * @author Nigel Westbury
  */
-public class ObjectCollection<E extends IModelObject> extends ObservableSet<E> {
+public class ObjectCollection<E extends IModelObject> extends JMoneyObservableSet<E> {
 
 	private IListManager<E> listManager;
 

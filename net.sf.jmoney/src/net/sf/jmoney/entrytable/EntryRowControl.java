@@ -22,40 +22,50 @@
 
 package net.sf.jmoney.entrytable;
 
+import net.sf.jmoney.fields.IBlob;
+import net.sf.jmoney.isolation.TransactionManager;
+import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.TransactionManagerForAccounts;
+import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.pages.entries.ForeignCurrencyDialog;
 
 import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
 import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.swt.widgets.Composite;
 
-public class EntryRowControl extends BaseEntryRowControl<EntryData, EntryRowControl> {
+public class EntryRowControl extends BaseEntryRowControl<EntryRowControl, EntryRowControl> {
 
-	@SuppressWarnings("unchecked")
-	public EntryRowControl(final Composite parent, ICompositeTable<EntryData> rowTable, Block<EntryData, ? super EntryRowControl> rootBlock, final RowSelectionTracker selectionTracker, final FocusCellTracker focusCellTracker) {
+	private IObservableValue<EntryFacade> entryFacade = new WritableValue<EntryFacade>();
+
+	public EntryRowControl(final Composite parent, ICompositeTable<EntryData, EntryRowControl> rowTable, Block<? super EntryRowControl> rootBlock, final RowSelectionTracker selectionTracker, final FocusCellTracker focusCellTracker) {
 		super(parent, rowTable, rootBlock, selectionTracker, focusCellTracker);
-		init(this, this, rootBlock);
+		init(this, rootBlock);
 	}
 
 	@Override
-	public void setInput(final EntryData inputEntryData) {
+	public void setRowInput(final EntryData inputEntryData) {
 		/*
-		 * We do this first even though it is done again when the super method
-		 * is called.  This sets the 'input' value in the base object and means
-		 * the following code can use that field.
+		 * We do this first so the uncommitted entry has been created.
 		 */
-		input.setValue(inputEntryData);
+		super.setRowInput(inputEntryData);
 
+		entryFacade.setValue(new EntryFacade() {
+			@Override
+			public Entry getMainEntry() {
+				return uncommittedEntry.getValue();
+			}
+		});
+		
 		/*
 		 * Bind the default values if and only if this is a new transaction
 		 */
-		if (committedEntryData.getEntry() == null) {
+		if (inputEntryData.getEntry() == null) {
 
 			/*
 			 * This is listening to changes from the model.  It may be that we really
@@ -77,9 +87,9 @@ public class EntryRowControl extends BaseEntryRowControl<EntryData, EntryRowCont
 			IObservableValue<Entry> otherEntryObservable = new ComputedValue<Entry>() {
 				@Override
 				protected Entry calculate() {
-					if (!inputEntryData.hasSplitEntries()) {
-						Entry entry = inputEntryData.getEntry();
-						Entry otherEntry = inputEntryData.getOtherEntry();
+					Entry entry = uncommittedEntry.getValue();
+					if (!entry.hasSplitEntries()) {
+						Entry otherEntry = entry.getOtherEntry();
 						Commodity commodity1 = entry.getCommodityInternal();
 						Commodity commodity2 = otherEntry.getCommodityInternal();
 						if (commodity1 == null || commodity2 == null || commodity1.equals(commodity2)) {
@@ -91,8 +101,8 @@ public class EntryRowControl extends BaseEntryRowControl<EntryData, EntryRowCont
 			};
 
 			if (otherEntryObservable.getValue() != null) {
-				Entry entry = inputEntryData.getEntry();
-				Entry otherEntry = inputEntryData.getOtherEntry();
+				Entry entry = uncommittedEntry.getValue();
+				Entry otherEntry = entry.getOtherEntry();
 
 				final IObservableValue<Long> target = EntryInfo.getAmountAccessor().observe(otherEntry);
 				final IObservableValue<Long> source = EntryInfo.getAmountAccessor().observe(entry);
@@ -105,6 +115,8 @@ public class EntryRowControl extends BaseEntryRowControl<EntryData, EntryRowCont
 
 				Bind.oneWay(sourceNegated).untilTargetChanges().to(target);
 
+				// TODO this binding must be disposed if the transaction is committed.
+				
 				/*
 				 * If any changes happen to the transaction which mean the other entry is no longer
 				 * a suitable target, even if another entry should happen to become a suitable target,
@@ -124,19 +136,12 @@ public class EntryRowControl extends BaseEntryRowControl<EntryData, EntryRowCont
 			}
 		}
 
-		/*
-		 * This must be called after we have set our own stuff up.  The reason
-		 * being that this call loads controls (such as the stock price control).
-		 * These controls will not load correctly if this object is not set up.
-		 */
-		super.setInput(inputEntryData);
-	}
-
-	@Override
-	protected EntryData createUncommittedEntryData(Entry entryInTransaction,
-			TransactionManagerForAccounts transactionManager) {
-		final EntryData entryData = new EntryData(entryInTransaction, transactionManager);
-		return entryData;
+//		/*
+//		 * This must be called after we have set our own stuff up.  The reason
+//		 * being that this call loads controls (such as the stock price control).
+//		 * These controls will not load correctly if this object is not set up.
+//		 */
+//		super.setRowInput(inputEntryData);
 	}
 
 	@Override
@@ -146,7 +151,7 @@ public class EntryRowControl extends BaseEntryRowControl<EntryData, EntryRowCont
 
 	@Override
 	protected void specificValidation() throws InvalidUserEntryException {
-		EntryData uncommittedEntryData = input.getValue();
+		Entry uncommittedEntryData = uncommittedEntry.getValue();
 		/*
 		 * Check for zero amounts. A zero amount is normally a user
 		 * error and will not be accepted. However, if this is not a
@@ -160,15 +165,15 @@ public class EntryRowControl extends BaseEntryRowControl<EntryData, EntryRowCont
 		// entry whenever the currencies do not match.  This would expose
 		// the amount of the other entry.
 		if (!uncommittedEntryData.hasSplitEntries()
-				&& uncommittedEntryData.getEntry().getAmount() != 0
+				&& uncommittedEntryData.getAmount() != 0
 				&& uncommittedEntryData.getOtherEntry().getAmount() == 0
-				&& uncommittedEntryData.getOtherEntry().getCommodityInternal() != uncommittedEntryData.getEntry().getCommodityInternal()) {
+				&& uncommittedEntryData.getOtherEntry().getCommodityInternal() != uncommittedEntryData.getCommodityInternal()) {
 			ForeignCurrencyDialog dialog = new ForeignCurrencyDialog(
 					getShell(),
 					uncommittedEntryData);
 			dialog.open();
 		} else {
-			for (Entry entry: uncommittedEntryData.getEntry().getTransaction().getEntryCollection()) {
+			for (Entry entry: uncommittedEntryData.getTransaction().getEntryCollection()) {
 				if (entry.getAmount() == 0) {
 					throw new InvalidUserEntryException(
 							"A non-zero credit or debit amount must be entered.", //$NON-NLS-1$
@@ -177,5 +182,83 @@ public class EntryRowControl extends BaseEntryRowControl<EntryData, EntryRowCont
 			}
 		}
 	}
+	
+	/**
+	 * Copies data from the given entry into this row.  This method is used on the 'new entry'
+	 * row only when a row is duplicated.
+	 * 
+	 * @param sourceEntryData
+	 */
+	public void copyFrom(EntryData sourceEntryData) {
+		Entry selectedEntry = sourceEntryData.getEntry();
+Entry newEntry = uncommittedEntry.getValue();
+		
+		TransactionManager transactionManager = (TransactionManager)newEntry.getDataManager();
+
+		/*
+		 * Copy all values that are numbers, flags, text, or references to accounts or commodities.
+		 * We do not copy dates or statement numbers.
+		 */
+		Entry selectedEntryInTrans = transactionManager.getCopyInTransaction(selectedEntry);
+		for (ScalarPropertyAccessor<?, ? super Entry> accessor : EntryInfo.getPropertySet().getScalarProperties3()) {
+			copyValue(accessor, selectedEntryInTrans, newEntry);
+		}
+
+		/*
+		 * In the bank account entries, the new entry row will always have a second entry created.
+		 * In other entry types such as a stock entry, the new entry row will have only one row.
+		 */
+		Entry thisEntry = newEntry.getTransaction().getEntryCollection().size() != 2
+		? null : newEntry.getOtherEntry();
+
+		for (Entry origEntry: sourceEntryData.getEntry().getOtherEntries()) {
+			if (thisEntry == null) {
+				thisEntry = newEntry.getTransaction().createEntry();
+			}
+//			thisEntry.setAccount(transactionManager.getCopyInTransaction(origEntry.getAccount()));
+//			thisEntry.setMemo(origEntry.getMemo());
+//			thisEntry.setAmount(origEntry.getAmount());
+
+
+			Entry origEntryInTransaction = transactionManager.getCopyInTransaction(origEntry);
+
+			/*
+			 * Copy all values that are numbers, flags, text, or references to accounts or commodities.
+			 * We do not copy dates or statement numbers.
+			 */
+			for (ScalarPropertyAccessor<?, ? super Entry> accessor : EntryInfo.getPropertySet().getScalarProperties3()) {
+				copyValue(accessor, origEntryInTransaction, thisEntry);
+			}
+
+			thisEntry = null;
+		}
+	}
+
+	protected <V> void copyValue(ScalarPropertyAccessor<V, ? super Entry> accessor, Entry selectedEntry, Entry newEntry) {
+		V value = accessor.getValue(selectedEntry);
+
+		/*
+		 * Copy all values that are numbers, flags, text, or references to accounts or commodities.
+		 * We do not copy dates or statement numbers.
+		 */
+		// TODO is there a better way of deciding what to copy?  This code has never caused a problem
+		// but it just seems a bit of a hack.
+		if (value instanceof Long
+				|| value instanceof Boolean
+				|| value instanceof Integer
+				|| value instanceof IBlob
+				|| value instanceof String
+				|| value instanceof Account
+				|| value instanceof Commodity
+				) {
+			accessor.setValue(newEntry, value);
+		}
+	}
+
+	// TODO do we need an EntryFacade for the simple transactions?
+	public IObservableValue<EntryFacade> observeEntryFacade() {
+		return entryFacade;
+	}
+
 }
 

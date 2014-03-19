@@ -26,11 +26,11 @@ import java.util.LinkedList;
 
 import org.eclipse.swt.widgets.Composite;
 
-public class ReusableRowProvider implements IRowProvider<EntryData> {
+public class ReusableRowProvider implements IRowProvider<EntryData, EntryRowControl> {
 
-	private Block<EntryData, ? super EntryRowControl> rootBlock;
+	private Block<? super EntryRowControl> rootBlock;
 
-	private VirtualRowTable rowTable;
+	private VirtualRowTable<EntryData, EntryRowControl> rowTable;
 	
 	private RowSelectionTracker rowSelectionTracker;
 	
@@ -41,23 +41,22 @@ public class ReusableRowProvider implements IRowProvider<EntryData> {
 	 * visible. These a free for re-use, thus avoiding the need to create new
 	 * controls.
 	 */
-	private LinkedList<BaseEntryRowControl<EntryData, ?>> spareRows = new LinkedList<BaseEntryRowControl<EntryData, ?>>();
+	private LinkedList<EntryRowControl> spareRows = new LinkedList<EntryRowControl>();
 
-	public ReusableRowProvider(Block<EntryData, ? super EntryRowControl> rootBlock) {
+	public ReusableRowProvider(Block<? super EntryRowControl> rootBlock) {
 		this.rootBlock = rootBlock;
 	}
 	
 	@Override
-	public void init(VirtualRowTable rowTable, RowSelectionTracker rowSelectionTracker, FocusCellTracker focusCellTracker) {
+	public void init(VirtualRowTable<EntryData, EntryRowControl> rowTable, RowSelectionTracker rowSelectionTracker, FocusCellTracker focusCellTracker) {
 		this.rowTable = rowTable;
 		this.rowSelectionTracker = rowSelectionTracker;
 		this.focusCellTracker = focusCellTracker;
 	}
 	
 	@Override
-	@SuppressWarnings("unchecked")
-	public BaseEntryRowControl getNewRow(Composite parent, EntryData entryData) {
-		BaseEntryRowControl<EntryData, ?> rowControl;
+	public EntryRowControl getNewRow(Composite parent, EntryData entryData) {
+		EntryRowControl rowControl;
 		
 		if (spareRows.size() > 0) {
 			rowControl = spareRows.removeFirst();
@@ -66,13 +65,13 @@ public class ReusableRowProvider implements IRowProvider<EntryData> {
 			rowControl = new EntryRowControl(parent, rowTable, rootBlock, rowSelectionTracker, focusCellTracker);
 		}
 		
-		rowControl.setContent(entryData);
+		rowControl.setRowInput(entryData);
 		
 		return rowControl;
 	}
 	
 	@Override
-	public void releaseRow(BaseEntryRowControl<EntryData, ?> rowControl) {
+	public void releaseRow(EntryRowControl rowControl) {
 		rowControl.setVisible(false);
 		spareRows.add(rowControl);
 	}

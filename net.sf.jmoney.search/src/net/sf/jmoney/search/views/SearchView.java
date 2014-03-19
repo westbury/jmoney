@@ -3,25 +3,23 @@ package net.sf.jmoney.search.views;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.sf.jmoney.entrytable.BaseEntryRowControl;
 import net.sf.jmoney.entrytable.Block;
-import net.sf.jmoney.entrytable.CellBlock;
 import net.sf.jmoney.entrytable.DebitAndCreditColumns;
+import net.sf.jmoney.entrytable.DelegateBlock;
 import net.sf.jmoney.entrytable.DeleteTransactionHandler;
 import net.sf.jmoney.entrytable.EntryData;
+import net.sf.jmoney.entrytable.EntryFacade;
 import net.sf.jmoney.entrytable.EntryRowControl;
 import net.sf.jmoney.entrytable.FocusCellTracker;
 import net.sf.jmoney.entrytable.Header;
 import net.sf.jmoney.entrytable.HorizontalBlock;
 import net.sf.jmoney.entrytable.ICompositeTable;
-import net.sf.jmoney.entrytable.ISplitEntryContainer;
 import net.sf.jmoney.entrytable.IndividualBlock;
 import net.sf.jmoney.entrytable.OpenTransactionDialogHandler;
 import net.sf.jmoney.entrytable.OtherEntriesBlock;
 import net.sf.jmoney.entrytable.PropertyBlock;
-import net.sf.jmoney.entrytable.RowControl;
 import net.sf.jmoney.entrytable.RowSelectionTracker;
-import net.sf.jmoney.entrytable.SingleOtherEntryPropertyBlock;
+import net.sf.jmoney.entrytable.SingleOtherEntryDetailPropertyBlock;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
@@ -31,6 +29,11 @@ import net.sf.jmoney.resources.Messages;
 import net.sf.jmoney.search.IEntrySearch;
 
 import org.eclipse.core.commands.IHandler;
+import org.eclipse.core.databinding.observable.value.AbstractObservableValue;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.IValueChangeListener;
+import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.core.databinding.observable.value.ValueDiff;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.swt.SWT;
@@ -56,7 +59,7 @@ public class SearchView extends ViewPart {
 
 	private List<Entry> entries = new ArrayList<Entry>();
 
-	private Block<EntryData, EntryRowControl> rootBlock;
+	private Block<EntryRowControl> rootBlock;
 
 	private ScrolledComposite sc;
 
@@ -107,27 +110,87 @@ public class SearchView extends ViewPart {
 			/*
 			 * Setup the layout structure of the header and rows.
 			 */
-			IndividualBlock<EntryData, RowControl> transactionDateColumn = PropertyBlock.createTransactionColumn(TransactionInfo.getDateAccessor());
+			IndividualBlock<IObservableValue<? extends EntryFacade>> transactionDateColumn = PropertyBlock.createTransactionColumn(TransactionInfo.getDateAccessor());
 
 			// TODO: Formatting according to the default currency is not necessarily correct
-			CellBlock<EntryData, BaseEntryRowControl> debitColumnManager = DebitAndCreditColumns.createDebitColumn(session.getDefaultCurrency());
-			CellBlock<EntryData, BaseEntryRowControl> creditColumnManager = DebitAndCreditColumns.createCreditColumn(session.getDefaultCurrency());
+	    	Block<IObservableValue<EntryFacade>> debitAndCreditColumnsManager = new DelegateBlock<IObservableValue<EntryFacade>, IObservableValue<Entry>>(
+	    			DebitAndCreditColumns.createDebitAndCreditColumns(session.getDefaultCurrency())
+				) {
+				@Override
+				protected IObservableValue<Entry> convert(final IObservableValue<EntryFacade> blockInput) {
 
-			rootBlock = new HorizontalBlock<EntryData, EntryRowControl>(
+					return new AbstractObservableValue<Entry>() {
+
+						private IValueChangeListener<EntryFacade> delegateListener = new IValueChangeListener<EntryFacade>() {
+
+							@Override
+							public void handleValueChange(
+									final ValueChangeEvent<EntryFacade> event) {
+								fireValueChange(new ValueDiff<Entry>() {
+									@Override
+									public Entry getOldValue() {
+										return event.diff.getOldValue().getMainEntry();
+									}
+
+									@Override
+									public Entry getNewValue() {
+										return event.diff.getNewValue().getMainEntry();
+									}
+								});
+							}
+						};
+
+						@Override
+						public Object getValueType() {
+							return Entry.class;
+						}
+
+						@Override
+						protected Entry doGetValue() {
+							return blockInput.getValue() == null ? null : blockInput.getValue().getMainEntry();
+						}
+						
+						@Override
+						public synchronized void addValueChangeListener(
+								IValueChangeListener<Entry> listener) {
+							if (!hasListeners()) {
+								blockInput.addValueChangeListener(delegateListener);
+							}
+							super.addValueChangeListener(listener);
+						}
+
+						@Override
+						public synchronized void removeValueChangeListener(
+								IValueChangeListener<Entry> listener) {
+							super.removeValueChangeListener(listener);
+							if (!hasListeners()) {
+								blockInput.removeValueChangeListener(delegateListener);
+							}
+						}
+					};
+				}
+			};
+
+			rootBlock = new DelegateBlock<EntryRowControl, IObservableValue<EntryFacade>>(new HorizontalBlock<IObservableValue<EntryFacade>>(
 					transactionDateColumn,
 					PropertyBlock.createEntryColumn(EntryInfo.getAccountAccessor()),
 					PropertyBlock.createEntryColumn(EntryInfo.getMemoAccessor()),
 					new OtherEntriesBlock(
-							new HorizontalBlock<Entry, ISplitEntryContainer>(
-									new SingleOtherEntryPropertyBlock(EntryInfo.getAccountAccessor()),
-									new SingleOtherEntryPropertyBlock(EntryInfo.getMemoAccessor(), Messages.EntriesSection_EntryDescription),
-									new SingleOtherEntryPropertyBlock(EntryInfo.getAmountAccessor())
+							new HorizontalBlock<IObservableValue<Entry>>(
+									new SingleOtherEntryDetailPropertyBlock(EntryInfo.getAccountAccessor()),
+									new SingleOtherEntryDetailPropertyBlock(EntryInfo.getMemoAccessor(), Messages.EntriesSection_EntryDescription),
+									new SingleOtherEntryDetailPropertyBlock(EntryInfo.getAmountAccessor())
 							)
 					),
-					debitColumnManager,
-					creditColumnManager
-			);
-
+					debitAndCreditColumnsManager
+			)) {
+				@Override
+				protected IObservableValue<EntryFacade> convert(
+						EntryRowControl blockInput) {
+					return blockInput.observeEntryFacade();
+				}
+			}; 
+					
 			/*
 			 * Ensure indexes are set.
 			 */
@@ -181,28 +244,26 @@ public class SearchView extends ViewPart {
 		}
 	}
 
-	private void createTableControls(Block<EntryData, EntryRowControl> rootBlock) {
-		new Header<EntryData>(tableComposite, SWT.NONE, rootBlock).setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
+	private void createTableControls(Block<EntryRowControl> rootBlock) {
+		new Header<EntryRowControl>(tableComposite, SWT.NONE, rootBlock).setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
 
-		ICompositeTable<EntryData> tableWrapper = new ICompositeTable<EntryData>() {
+		ICompositeTable<EntryData, EntryRowControl> tableWrapper = new ICompositeTable<EntryData, EntryRowControl>() {
 
 			@Override
-			public void rowDeselected(
-					BaseEntryRowControl<EntryData, ?> rowControl) {
+			public void rowDeselected(EntryRowControl rowControl) {
 				// TODO Auto-generated method stub
 
 			}
 
 			@Override
-			public void scrollToShowRow(
-					BaseEntryRowControl<EntryData, ?> rowControl) {
+			public void scrollToShowRow(EntryRowControl rowControl) {
 				// TODO Auto-generated method stub
 
 			}
 
 			@Override
 			public void setCurrentRow(EntryData input,
-					EntryData uncommittedEntryData) {
+					EntryRowControl entryRowControl) {
 				// TODO Auto-generated method stub
 
 			}
@@ -211,7 +272,7 @@ public class SearchView extends ViewPart {
 		for (Entry entry: entries) {
 			EntryData entryData = new EntryData(entry, entry.getDataManager());
 			EntryRowControl row = new EntryRowControl(tableComposite, tableWrapper, rootBlock, rowTracker, cellTracker);
-			row.setContent(entryData);
+			row.setRowInput(entryData);
 			row.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
 		}
 	}

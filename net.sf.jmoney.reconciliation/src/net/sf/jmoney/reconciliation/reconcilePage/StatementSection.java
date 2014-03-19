@@ -29,25 +29,25 @@ import java.util.Date;
 import java.util.Vector;
 
 import net.sf.jmoney.entrytable.BalanceColumn;
-import net.sf.jmoney.entrytable.BaseEntryRowControl;
 import net.sf.jmoney.entrytable.Block;
 import net.sf.jmoney.entrytable.ButtonCellControl;
 import net.sf.jmoney.entrytable.CellBlock;
 import net.sf.jmoney.entrytable.DebitAndCreditColumns;
+import net.sf.jmoney.entrytable.DelegateBlock;
 import net.sf.jmoney.entrytable.EntriesTable;
 import net.sf.jmoney.entrytable.EntryData;
+import net.sf.jmoney.entrytable.EntryFacade;
 import net.sf.jmoney.entrytable.EntryRowControl;
 import net.sf.jmoney.entrytable.HorizontalBlock;
 import net.sf.jmoney.entrytable.IEntriesContent;
 import net.sf.jmoney.entrytable.IRowProvider;
-import net.sf.jmoney.entrytable.ISplitEntryContainer;
 import net.sf.jmoney.entrytable.IndividualBlock;
 import net.sf.jmoney.entrytable.OtherEntriesButton;
 import net.sf.jmoney.entrytable.PropertyBlock;
 import net.sf.jmoney.entrytable.ReusableRowProvider;
 import net.sf.jmoney.entrytable.RowControl;
 import net.sf.jmoney.entrytable.RowSelectionTracker;
-import net.sf.jmoney.entrytable.SingleOtherEntryPropertyBlock;
+import net.sf.jmoney.entrytable.SingleOtherEntryDetailPropertyBlock;
 import net.sf.jmoney.isolation.ReferenceViolationException;
 import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Account;
@@ -120,7 +120,7 @@ public class StatementSection extends SectionPart {
 
     IEntriesContent reconciledTableContents = null;
 
-    ArrayList<CellBlock<EntryData, EntryRowControl>> cellList;
+    ArrayList<CellBlock<EntryRowControl>> cellList;
 
     long openingBalance = 0;
 
@@ -260,11 +260,11 @@ public class StatementSection extends SectionPart {
 			}
 		});
 
-		CellBlock<EntryData, EntryRowControl> unreconcileButton = new CellBlock<EntryData, EntryRowControl>(20, 0) {
+		CellBlock<EntryRowControl> unreconcileButton = new CellBlock<EntryRowControl>(20, 0) {
 
 			@Override
-			public Control createCellControl(Composite parent, IObservableValue<? extends EntryData> master, final RowControl rowControl, final EntryRowControl coordinator) {
-				ButtonCellControl cellControl = new ButtonCellControl(parent, coordinator, unreconcileImage, "Remove Entry from this Statement") {
+			public Control createCellControl(Composite parent, final EntryRowControl blockInput, final RowControl rowControl) {
+				ButtonCellControl cellControl = new ButtonCellControl(parent, blockInput, unreconcileImage, "Remove Entry from this Statement") {
 					@Override
 					protected void run(EntryRowControl rowControl) {
 						unreconcileEntry(rowControl);
@@ -332,7 +332,7 @@ public class StatementSection extends SectionPart {
 						if (LocalSelectionTransfer.getTransfer().isSupportedType(event.currentDataType)) {
 							ISelection selection = LocalSelectionTransfer.getTransfer().getSelection();
 							Entry sourceEntry = (Entry)((StructuredSelection)selection).getFirstElement();
-							EntryRowControl dropRow = coordinator;
+							EntryRowControl dropRow = blockInput;
 
 							/*
 							 * Merge data from dragged transaction into the target transaction
@@ -365,7 +365,7 @@ public class StatementSection extends SectionPart {
 			}
 
 			@Override
-			public void createHeaderControls(Composite parent, EntryData entryData) {
+			public void createHeaderControls(Composite parent) {
 				/*
 				 * All CellBlock implementations must create a control because
 				 * the header and rows must match. Maybe these objects could
@@ -379,35 +379,62 @@ public class StatementSection extends SectionPart {
 			}
 		};
 
-		IndividualBlock<EntryData, RowControl> transactionDateColumn = PropertyBlock.createTransactionColumn(TransactionInfo.getDateAccessor());
-		CellBlock<EntryData, BaseEntryRowControl> debitColumnManager = DebitAndCreditColumns.createDebitColumn(fPage.getAccount().getCurrency());
-		CellBlock<EntryData, BaseEntryRowControl> creditColumnManager = DebitAndCreditColumns.createCreditColumn(fPage.getAccount().getCurrency());
-		CellBlock<EntryData, BaseEntryRowControl> balanceColumnManager = new BalanceColumn(fPage.getAccount().getCurrency());
+		IndividualBlock<IObservableValue<? extends EntryFacade>> transactionDateColumn = PropertyBlock.createTransactionColumn(TransactionInfo.getDateAccessor());
 
+    	Block<EntryRowControl> debitAndCreditColumnsManager = new DelegateBlock<EntryRowControl, IObservableValue<Entry>>(
+    			DebitAndCreditColumns.createDebitAndCreditColumns(fPage.getAccount().getCurrency())
+			) {
+			@Override
+			protected IObservableValue<Entry> convert(EntryRowControl blockInput) {
+				return blockInput.observeMainEntry();
+			}
+		};
+
+		Block<EntryRowControl> balanceColumnManager = new DelegateBlock<EntryRowControl, IObservableValue<EntryData>>(new BalanceColumn(fPage.getAccount().getCurrency())) {
+			@Override
+			protected IObservableValue<EntryData> convert(EntryRowControl blockInput) {
+				return blockInput.getRowInput();
+			}
+		};
+		
+		
 		/*
 		 * Setup the layout structure of the header and rows.
 		 */
-		Block<EntryData, EntryRowControl> rootBlock = new HorizontalBlock<EntryData, EntryRowControl>(
+		Block<EntryRowControl> rootBlock = new HorizontalBlock<EntryRowControl>(
 				unreconcileButton,
-				transactionDateColumn,
-				PropertyBlock.createEntryColumn(EntryInfo.getValutaAccessor()),
-				PropertyBlock.createEntryColumn(EntryInfo.getCheckAccessor()),
-				PropertyBlock.createEntryColumn(EntryInfo.getMemoAccessor()),
+				
+
+				new DelegateBlock<EntryRowControl, IObservableValue<? extends EntryFacade>>(
+						new HorizontalBlock<IObservableValue<? extends EntryFacade>>(
+								transactionDateColumn,
+								PropertyBlock.createEntryColumn(EntryInfo.getValutaAccessor()),
+								PropertyBlock.createEntryColumn(EntryInfo.getCheckAccessor()),
+								PropertyBlock.createEntryColumn(EntryInfo.getMemoAccessor())
+								)
+						) {
+					@Override
+					protected IObservableValue<? extends EntryFacade> convert(EntryRowControl blockInput) {
+						return blockInput.observeEntryFacade();
+					}
+				},
+
+				
 				new OtherEntriesButton(
-						new HorizontalBlock<Entry, ISplitEntryContainer>(
-								new SingleOtherEntryPropertyBlock(EntryInfo.getAccountAccessor()),
-								new SingleOtherEntryPropertyBlock(EntryInfo.getMemoAccessor(), NLS.bind(Messages.StatementSection_EntryDescription, null)),
-								new SingleOtherEntryPropertyBlock(EntryInfo.getAmountAccessor())
+						new HorizontalBlock<IObservableValue<Entry>>(
+								new SingleOtherEntryDetailPropertyBlock(EntryInfo.getAccountAccessor()),
+								new SingleOtherEntryDetailPropertyBlock(EntryInfo.getMemoAccessor(), NLS.bind(Messages.StatementSection_EntryDescription, null)),
+								new SingleOtherEntryDetailPropertyBlock(EntryInfo.getAmountAccessor())
 						)
 				),
-				debitColumnManager,
-				creditColumnManager,
+				
+				debitAndCreditColumnsManager,
 				balanceColumnManager
 		);
 
 		// Create the table control.
-	    IRowProvider rowProvider = new ReusableRowProvider(rootBlock);
-        fReconciledEntriesControl = new EntriesTable<EntryData>(container, rootBlock, reconciledTableContents, rowProvider, fPage.getAccount().getSession(), transactionDateColumn, rowTracker) {
+	    IRowProvider<EntryData, EntryRowControl> rowProvider = new ReusableRowProvider(rootBlock);
+        fReconciledEntriesControl = new EntriesTable<EntryRowControl>(container, rootBlock, reconciledTableContents, rowProvider, fPage.getAccount().getSession(), transactionDateColumn, rowTracker) {
 			@Override
 			protected EntryData createEntryRowInput(Entry entry) {
 				return new EntryData(entry, session.getDataManager());
@@ -455,7 +482,7 @@ public class StatementSection extends SectionPart {
     }
 
 	public void unreconcileEntry(EntryRowControl rowControl) {
-		Entry entry = rowControl.getUncommittedTopEntry();
+		Entry entry = rowControl.getUncommittedMainEntry();
 
 		// If the blank new entry row, entry will be null.
 		// We must guard against that.
@@ -535,7 +562,7 @@ public class StatementSection extends SectionPart {
 	boolean mergeTransaction(Entry committedSourceEntry, EntryRowControl recRowControl) {
 
 		// The target entry, which is in the transaction manager for the target row.
-		Entry targetEntry = recRowControl.getUncommittedTopEntry();
+		Entry targetEntry = recRowControl.getUncommittedMainEntry();
 
 		TransactionManager transactionManager = (TransactionManager)targetEntry.getDataManager();
 		Entry sourceEntry = transactionManager.getCopyInTransaction(committedSourceEntry);

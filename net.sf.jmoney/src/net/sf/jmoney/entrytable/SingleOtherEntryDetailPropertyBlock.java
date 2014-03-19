@@ -25,6 +25,7 @@ package net.sf.jmoney.entrytable;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -38,10 +39,10 @@ import org.eclipse.swt.widgets.Control;
  * object (not the EntryData object).  If the transaction is not split then this Entry
  * object will be the other entry in the transaction.
  */
-public class SingleOtherEntryPropertyBlock extends IndividualBlock<Entry> {
+public class SingleOtherEntryDetailPropertyBlock extends IndividualBlock<IObservableValue<Entry>> {
 	private ScalarPropertyAccessor<?, Entry> accessor;
 
-	public SingleOtherEntryPropertyBlock(ScalarPropertyAccessor<?,Entry> accessor) {
+	public SingleOtherEntryDetailPropertyBlock(ScalarPropertyAccessor<?,Entry> accessor) {
 		super(
 				accessor.getDisplayName(),
 				accessor.getMinimumWidth(),
@@ -51,7 +52,7 @@ public class SingleOtherEntryPropertyBlock extends IndividualBlock<Entry> {
 		this.accessor = accessor;
 	}
 
-	public SingleOtherEntryPropertyBlock(ScalarPropertyAccessor<?,Entry> accessor, String displayName) {
+	public SingleOtherEntryDetailPropertyBlock(ScalarPropertyAccessor<?,Entry> accessor, String displayName) {
 		super(
 				displayName,
 				accessor.getMinimumWidth(),
@@ -66,31 +67,23 @@ public class SingleOtherEntryPropertyBlock extends IndividualBlock<Entry> {
 	}
 
     @Override
-	public Control createCellControl(Composite parent, Entry blockInput, RowControl rowControl) {
-    	final Control propertyControl = accessor.createPropertyControl(parent, blockInput);
-
-
-
-
-//    	final IPropertyControl propertyControl = accessor.createPropertyControl(parent);
+	public Control createCellControl(Composite parent, IObservableValue<Entry> blockInput, RowControl rowControl) {
+    	final Control propertyControl = accessor.createPropertyControl2(parent, blockInput);
 
 		ICellControl2<Entry> cellControl = new ICellControl2<Entry>() {
 			@Override
 			public Control getControl() {
-//				return propertyControl.getControl();
 				return propertyControl;
 			}
 
 			@Override
 			public void load(Entry entry) {
 				// bound so nothing to do
-//				propertyControl.load(entry);
 			}
 
 			@Override
 			public void save() {
 				// bound so nothing to do
-//				propertyControl.save();
 			}
 
 			@Override

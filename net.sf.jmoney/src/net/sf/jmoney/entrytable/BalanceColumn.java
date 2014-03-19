@@ -37,13 +37,12 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 
-public class BalanceColumn extends IndividualBlock<EntryData, BaseEntryRowControl> {
+public class BalanceColumn extends IndividualBlock<IObservableValue<EntryData>> {
 
-	private class BalanceCellControl implements IPropertyControl<EntryData>, IBalanceChangeListener {
+	private class BalanceCellControl implements IPropertyControl<EntryData> {
 		private final Label balanceLabel;
-//		private EntryData entryData = null;
 
-		private BalanceCellControl(Label balanceLabel, final IObservableValue<? extends EntryData> entryData) {
+		private BalanceCellControl(Label balanceLabel, final IObservableValue<EntryData> entryData) {
 			this.balanceLabel = balanceLabel;
 			
 			IObservableValue<String> balanceText = new ComputedValue<String>() {
@@ -53,8 +52,22 @@ public class BalanceColumn extends IndividualBlock<EntryData, BaseEntryRowContro
 					 * If no input the control will not be visible, but this will still be calculated
 					 * and we can't throw a null pointer exception.
 					 */
-				return entryData.getValue() == null 
-						? "" : commodityForFormatting.format(entryData.getValue().getBalance() + entryData.getValue().getEntry().getAmount());
+					if (entryData.getValue() == null) {
+						return "";
+					}
+					
+					/*
+					 * If this is the new entry row then don't display a balance.  The balance column is based
+					 * on committed data and does not update as the user types credit and debit amounts. 
+					 */
+					if (entryData.getValue().getEntry() == null) {
+						return "";
+					}
+					
+					long previousBalance = entryData.getValue().getBalance();
+					long thisEntryAmount = entryData.getValue().getEntry().getAmount();
+					long newBalance = previousBalance + thisEntryAmount;
+					return commodityForFormatting.format(newBalance);
 				}
 			};
 			
@@ -68,7 +81,6 @@ public class BalanceColumn extends IndividualBlock<EntryData, BaseEntryRowContro
 
 		@Override
 		public void load(EntryData entryData) {
-//			this.entryData = entryData;
 			balanceLabel.setText(commodityForFormatting.format(entryData.getBalance() + entryData.getEntry().getAmount()));
 		}
 
@@ -79,17 +91,6 @@ public class BalanceColumn extends IndividualBlock<EntryData, BaseEntryRowContro
 
 		public void setFocusListener(FocusListener controlFocusListener) {
 			// Nothing to do
-		}
-
-		@Override
-		public void balanceChanged() {
-			/*
-			 * The balance in the EntryData object has changed. This happens if
-			 * the amount in a previous entry changes, or a previous entry is
-			 * inserted or removed.
-			 */
-			// This should be done now because all are tracked observables
-//			balanceLabel.setText(commodityForFormatting.format(entryData.getBalance() + entryData.getEntry().getAmount()));
 		}
 	}
 
@@ -108,12 +109,10 @@ public class BalanceColumn extends IndividualBlock<EntryData, BaseEntryRowContro
 	}
 
     @Override
-	public Control createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, BaseEntryRowControl coordinator) {
+	public Control createCellControl(Composite parent, IObservableValue<EntryData> blockInput, RowControl rowControl) {
 		final Label balanceLabel = new Label(parent, SWT.TRAIL);
 
-		BalanceCellControl cellControl = new BalanceCellControl(balanceLabel, master);
-
-		coordinator.addBalanceChangeListener(cellControl);
+		BalanceCellControl cellControl = new BalanceCellControl(balanceLabel, blockInput);
 
 		return cellControl.getControl();
 	}
@@ -121,5 +120,6 @@ public class BalanceColumn extends IndividualBlock<EntryData, BaseEntryRowContro
 	public String getId() {
 		return "balance"; //$NON-NLS-1$
 	}
+
 }
 

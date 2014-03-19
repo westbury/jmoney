@@ -23,8 +23,8 @@
 package net.sf.jmoney.entrytable;
 
 import net.sf.jmoney.model2.Entry;
-import net.sf.jmoney.model2.IPropertyControl;
 
+import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusListener;
@@ -42,13 +42,13 @@ import org.eclipse.swt.widgets.Control;
  *
  * @author Nigel Westbury
  */
-public class OtherEntriesBlock extends CellBlock<EntryData, BaseEntryRowControl> {
+public class OtherEntriesBlock<T extends EntryFacade> extends CellBlock<IObservableValue<T>> {
 
 	final static int DROPDOWN_BUTTON_WIDTH = 15;
 
-	private Block<Entry, ISplitEntryContainer> otherEntriesRootBlock;
+	private Block<IObservableValue<Entry>> otherEntriesRootBlock;
 
-	public OtherEntriesBlock(Block<Entry, ISplitEntryContainer> otherEntriesRootBlock) {
+	public OtherEntriesBlock(Block<IObservableValue<Entry>> otherEntriesRootBlock) {
 		super(
 				otherEntriesRootBlock.minimumWidth + DROPDOWN_BUTTON_WIDTH,
 				otherEntriesRootBlock.weight
@@ -59,10 +59,11 @@ public class OtherEntriesBlock extends CellBlock<EntryData, BaseEntryRowControl>
 		otherEntriesRootBlock.initIndexes(0);
 	}
 
-    @SuppressWarnings("unchecked")
     @Override
-	public Control createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, BaseEntryRowControl coordinator) {
-
+	public Control createCellControl(Composite parent, final IObservableValue<T> blockInput, RowControl rowControl) {
+if (blockInput == null) {
+	System.out.println("");
+}
 	    /*
 	     * Use a single row tracker for this
 	     * table.  This needs to be generalized for, say, the reconciliation
@@ -79,7 +80,13 @@ public class OtherEntriesBlock extends CellBlock<EntryData, BaseEntryRowControl>
 	    // same for all controls constructed from this object.
 	    FocusCellTracker cellTracker = rowControl.focusCellTracker;
 
-		final OtherEntriesControl control = new OtherEntriesControl(parent, master, rowControl, otherEntriesRootBlock, rowTracker, cellTracker);
+	    IObservableValue<Entry> observeMainEntry = new ComputedValue<Entry>() {
+			@Override
+			protected Entry calculate() {
+				return blockInput.getValue() == null ? null : blockInput.getValue().getMainEntry();
+			}
+	    };
+		final OtherEntriesControl control = new OtherEntriesControl(parent, observeMainEntry, rowControl, otherEntriesRootBlock, rowTracker, cellTracker);
 
 		FocusListener controlFocusListener = new NonCellFocusListener<RowControl>(rowControl);
 
@@ -95,18 +102,19 @@ public class OtherEntriesBlock extends CellBlock<EntryData, BaseEntryRowControl>
 	}
 
 	@SuppressWarnings("unchecked")
+	// Why second parameter????
 	@Override
-	public void createHeaderControls(Composite parent, EntryData entryData) {
+	public void createHeaderControls(Composite parent) {
 		Composite composite = new Composite(parent, SWT.NONE);
 
-		BlockLayout layout = new BlockLayout(otherEntriesRootBlock, true);
+		BlockLayout layout = new BlockLayout(otherEntriesRootBlock, true, null);
 		composite.setLayout(layout);
 
-		otherEntriesRootBlock.createHeaderControls(composite, null);
+		otherEntriesRootBlock.createHeaderControls(composite);
 	}
 
 	@Override
-	void layout(int width) {
+	protected void layout(int width) {
 		this.width = width;
 
 		/*
@@ -116,4 +124,5 @@ public class OtherEntriesBlock extends CellBlock<EntryData, BaseEntryRowControl>
 		 */
 		otherEntriesRootBlock.layout(width - DROPDOWN_BUTTON_WIDTH);
 	}
+
 }

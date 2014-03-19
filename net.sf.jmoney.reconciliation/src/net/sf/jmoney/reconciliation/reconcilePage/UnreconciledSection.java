@@ -33,20 +33,21 @@ import net.sf.jmoney.entrytable.Block;
 import net.sf.jmoney.entrytable.ButtonCellControl;
 import net.sf.jmoney.entrytable.CellBlock;
 import net.sf.jmoney.entrytable.DebitAndCreditColumns;
+import net.sf.jmoney.entrytable.DelegateBlock;
 import net.sf.jmoney.entrytable.EntriesTable;
 import net.sf.jmoney.entrytable.EntryData;
+import net.sf.jmoney.entrytable.EntryFacade;
 import net.sf.jmoney.entrytable.EntryRowControl;
 import net.sf.jmoney.entrytable.HorizontalBlock;
 import net.sf.jmoney.entrytable.IEntriesContent;
 import net.sf.jmoney.entrytable.IRowProvider;
-import net.sf.jmoney.entrytable.ISplitEntryContainer;
 import net.sf.jmoney.entrytable.IndividualBlock;
 import net.sf.jmoney.entrytable.OtherEntriesButton;
 import net.sf.jmoney.entrytable.PropertyBlock;
 import net.sf.jmoney.entrytable.ReusableRowProvider;
 import net.sf.jmoney.entrytable.RowControl;
 import net.sf.jmoney.entrytable.RowSelectionTracker;
-import net.sf.jmoney.entrytable.SingleOtherEntryPropertyBlock;
+import net.sf.jmoney.entrytable.SingleOtherEntryDetailPropertyBlock;
 import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.isolation.UncommittedObjectKey;
 import net.sf.jmoney.model2.Currency;
@@ -97,7 +98,7 @@ public class UnreconciledSection extends SectionPart {
 
 	IEntriesContent unreconciledTableContents = null;
 
-	ArrayList<CellBlock<EntryData, EntryRowControl>> cellList;
+	ArrayList<CellBlock<EntryRowControl>> cellList;
 
 	@SuppressWarnings("unchecked")
 	public UnreconciledSection(Composite parent, FormToolkit toolkit, ReconcileEditor page, RowSelectionTracker rowTracker) {
@@ -205,10 +206,10 @@ public class UnreconciledSection extends SectionPart {
 			}
 		});
 
-		CellBlock<EntryData, EntryRowControl> reconcileButton = new CellBlock<EntryData, EntryRowControl>(20, 0) {
+		CellBlock<EntryRowControl> reconcileButton = new CellBlock<EntryRowControl>(20, 0) {
 			@Override
-			public Control createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, final EntryRowControl coordinator) {
-				ButtonCellControl cellControl = new ButtonCellControl(parent, coordinator, reconcileImage, "Reconcile this Entry to the above Statement") {
+			public Control createCellControl(Composite parent, final EntryRowControl blockInput, RowControl rowControl) {
+				ButtonCellControl cellControl = new ButtonCellControl(parent, blockInput, reconcileImage, "Reconcile this Entry to the above Statement") {
 					@Override
 					protected void run(EntryRowControl rowControl) {
 						reconcileEntry(rowControl);
@@ -226,7 +227,7 @@ public class UnreconciledSection extends SectionPart {
 				dragSource.addDragListener(new DragSourceListener() {
 					@Override
 					public void dragStart(DragSourceEvent event) {
-						Entry uncommittedEntry = coordinator.getUncommittedEntryData().getEntry();
+						Entry uncommittedEntry = blockInput.getUncommittedMainEntry();
 						UncommittedObjectKey uncommittedKey = (UncommittedObjectKey)uncommittedEntry.getObjectKey();
 
 						// Allow a drag in all cases except where this entry is a new uncommitted entry.
@@ -241,7 +242,7 @@ public class UnreconciledSection extends SectionPart {
 					public void dragSetData(DragSourceEvent event) {
 						// Provide the data of the requested type.
 						if (LocalSelectionTransfer.getTransfer().isSupportedType(event.dataType)) {
-							Entry uncommittedEntry = coordinator.getUncommittedEntryData().getEntry();
+							Entry uncommittedEntry = blockInput.getUncommittedMainEntry();
 							UncommittedObjectKey uncommittedKey = (UncommittedObjectKey)uncommittedEntry.getObjectKey();
 							Object sourceEntry = uncommittedKey.getCommittedObjectKey().getObject();
 							LocalSelectionTransfer.getTransfer().setSelection(new StructuredSelection(sourceEntry));
@@ -272,7 +273,7 @@ public class UnreconciledSection extends SectionPart {
 			}
 
 			@Override
-			public void createHeaderControls(Composite parent, EntryData entryData) {
+			public void createHeaderControls(Composite parent) {
 				// All CellBlock implementations must create a control because
 				// the header and rows must match.
 				// Maybe these objects could just point to the header
@@ -284,35 +285,62 @@ public class UnreconciledSection extends SectionPart {
 			}
 		};
 
-		IndividualBlock<EntryData, RowControl> transactionDateColumn = PropertyBlock.createTransactionColumn(TransactionInfo.getDateAccessor());
-		CellBlock<EntryData, BaseEntryRowControl> debitColumnManager = DebitAndCreditColumns.createDebitColumn(editor.getAccount().getCurrency());
-		CellBlock<EntryData, BaseEntryRowControl> creditColumnManager = DebitAndCreditColumns.createCreditColumn(editor.getAccount().getCurrency());
-		CellBlock<EntryData, BaseEntryRowControl> balanceColumnManager = new BalanceColumn(editor.getAccount().getCurrency());
+		IndividualBlock<IObservableValue<? extends EntryFacade>> transactionDateColumn = PropertyBlock.createTransactionColumn(TransactionInfo.getDateAccessor());
 
+    	Block<EntryRowControl> debitAndCreditColumnsManager = new DelegateBlock<EntryRowControl, IObservableValue<Entry>>(
+    			DebitAndCreditColumns.createDebitAndCreditColumns(editor.getAccount().getCurrency())
+			) {
+			@Override
+			protected IObservableValue<Entry> convert(EntryRowControl blockInput) {
+				return blockInput.observeMainEntry();
+			}
+		};
+
+		Block<EntryRowControl> balanceColumnManager = new DelegateBlock<EntryRowControl, IObservableValue<EntryData>>(new BalanceColumn(editor.getAccount().getCurrency())) {
+			@Override
+			protected IObservableValue<EntryData> convert(EntryRowControl blockInput) {
+				return blockInput.getRowInput();
+			}
+		};
+		
+		
 		/*
 		 * Setup the layout structure of the header and rows.
 		 */
-		Block<EntryData, EntryRowControl> rootBlock = new HorizontalBlock<EntryData, EntryRowControl>(
+		Block<EntryRowControl> rootBlock = new HorizontalBlock<EntryRowControl>(
 				reconcileButton,
-				transactionDateColumn,
-				PropertyBlock.createEntryColumn(EntryInfo.getValutaAccessor()),
-				PropertyBlock.createEntryColumn(EntryInfo.getCheckAccessor()),
-				PropertyBlock.createEntryColumn(EntryInfo.getMemoAccessor()),
+				
+				
+				new DelegateBlock<EntryRowControl, IObservableValue<? extends EntryFacade>>(
+						new HorizontalBlock<IObservableValue<? extends EntryFacade>>(
+								transactionDateColumn,
+								PropertyBlock.createEntryColumn(EntryInfo.getValutaAccessor()),
+								PropertyBlock.createEntryColumn(EntryInfo.getCheckAccessor()),
+								PropertyBlock.createEntryColumn(EntryInfo.getMemoAccessor())
+								)
+					) {
+					@Override
+					protected IObservableValue<? extends EntryFacade> convert(EntryRowControl blockInput) {
+						return blockInput.observeEntryFacade();
+					}
+				},
+				
+				
+				
 				new OtherEntriesButton(
-						new HorizontalBlock<Entry, ISplitEntryContainer>(
-								new SingleOtherEntryPropertyBlock(EntryInfo.getAccountAccessor()),
-								new SingleOtherEntryPropertyBlock(EntryInfo.getMemoAccessor(), NLS.bind(Messages.UnreconciledSection_EntryDescription, null)),
-								new SingleOtherEntryPropertyBlock(EntryInfo.getAmountAccessor())
+						new HorizontalBlock<IObservableValue<Entry>>(
+								new SingleOtherEntryDetailPropertyBlock(EntryInfo.getAccountAccessor()),
+								new SingleOtherEntryDetailPropertyBlock(EntryInfo.getMemoAccessor(), NLS.bind(Messages.UnreconciledSection_EntryDescription, null)),
+								new SingleOtherEntryDetailPropertyBlock(EntryInfo.getAmountAccessor())
 						)
 				),
-				debitColumnManager,
-				creditColumnManager,
+				debitAndCreditColumnsManager,
 				balanceColumnManager
 		);
 
 		// Create the table control.
 	    IRowProvider rowProvider = new ReusableRowProvider(rootBlock);
-		fUnreconciledEntriesControl = new EntriesTable<EntryData>(getSection(), rootBlock, unreconciledTableContents, rowProvider, editor.getAccount().getSession(), transactionDateColumn, rowTracker) {
+		fUnreconciledEntriesControl = new EntriesTable<EntryRowControl>(getSection(), rootBlock, unreconciledTableContents, rowProvider, editor.getAccount().getSession(), transactionDateColumn, rowTracker) {
 			@Override
 			protected EntryData createEntryRowInput(Entry entry) {
 				return new EntryData(entry, session.getDataManager());
@@ -331,7 +359,7 @@ public class UnreconciledSection extends SectionPart {
 
 	public void reconcileEntry(EntryRowControl rowControl) {
 		if (editor.getStatement() != null) {
-			Entry entry = rowControl.getUncommittedTopEntry();
+			Entry entry = rowControl.getUncommittedMainEntry();
 
 			// TODO: What do we do about the blank entry???
 

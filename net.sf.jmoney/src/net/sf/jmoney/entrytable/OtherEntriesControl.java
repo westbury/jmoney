@@ -1,15 +1,10 @@
 package net.sf.jmoney.entrytable;
 
 
-import java.util.HashSet;
 import java.util.Set;
 
 import net.sf.jmoney.JMoneyPlugin;
-import net.sf.jmoney.isolation.IModelObject;
-import net.sf.jmoney.isolation.SessionChangeAdapter;
-import net.sf.jmoney.isolation.SessionChangeListener;
 import net.sf.jmoney.model2.Entry;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.resources.Messages;
 
 import org.eclipse.core.databinding.observable.set.ComputedSet;
@@ -17,6 +12,7 @@ import org.eclipse.core.databinding.observable.set.IObservableSet;
 import org.eclipse.core.databinding.observable.set.ISetChangeListener;
 import org.eclipse.core.databinding.observable.set.SetChangeEvent;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StackLayout;
@@ -46,7 +42,7 @@ import org.eclipse.swt.widgets.Layout;
 public class OtherEntriesControl extends Composite {
 
 	private RowControl rowControl;
-	private Block<Entry, ISplitEntryContainer> rootBlock;
+	private Block<IObservableValue<Entry>> rootBlock;
 	private RowSelectionTracker<BaseEntryRowControl> selectionTracker;
 	private FocusCellTracker focusCellTracker;
 	
@@ -77,6 +73,8 @@ public class OtherEntriesControl extends Composite {
 	 * the split entry data.
 	 */
 	Button downArrowButton;
+
+	private IObservableValue<Entry> otherEntry = new WritableValue<Entry>();
 
 //	private EntryData entryData;
 
@@ -123,10 +121,10 @@ public class OtherEntriesControl extends Composite {
 	
 	static private Image downArrowImage = null;
 
-	public OtherEntriesControl(Composite parent, final IObservableValue<? extends EntryData> masterEntryData, RowControl rowControl, Block<Entry, ISplitEntryContainer> rootBlock, RowSelectionTracker<BaseEntryRowControl> selectionTracker, FocusCellTracker focusCellTracker) {
+	public OtherEntriesControl(Composite parent, final IObservableValue<Entry> mainEntry, RowControl rowControl, Block<IObservableValue<Entry>> otherEntriesRootBlock, RowSelectionTracker<BaseEntryRowControl> selectionTracker, FocusCellTracker focusCellTracker) {
 		super(parent, SWT.NONE);
 		this.rowControl = rowControl;
-		this.rootBlock = rootBlock;
+		this.rootBlock = otherEntriesRootBlock;
 		this.selectionTracker = selectionTracker;
 		this.focusCellTracker = focusCellTracker;
 		
@@ -137,21 +135,14 @@ public class OtherEntriesControl extends Composite {
 		final IObservableSet<Entry> otherEntries = new ComputedSet<Entry>() {
 			@Override
 			protected Set<Entry> calculate() {
-				// TODO Make getSplitEntries return Set, not Collection,
-				// so we don't have to wrap here.
-				if (masterEntryData.getValue() != null) {
-					System.out.println(masterEntryData.getValue().getSplitEntries().size());
-				} else {
-					System.out.println("null");
-				}
-				return masterEntryData.getValue() == null
+				return mainEntry.getValue() == null
 						? null
-								: new HashSet<Entry>(masterEntryData.getValue().getSplitEntries());
+								: mainEntry.getValue().getOtherEntries();
 			}
 		};
 		
 		createChildComposite();
-		createDownArrowButton(masterEntryData);
+		createDownArrowButton(mainEntry);
 
 		otherEntries.addSetChangeListener(new ISetChangeListener<Entry>() {
 			@Override
@@ -161,13 +152,12 @@ public class OtherEntriesControl extends Composite {
 		});
 		
 		setStackControl(otherEntries);
-		
 	}
 
 	private void setStackControl(Set<Entry> otherEntries) {
 		if (otherEntries.size() == 1) {
 			Entry theOnlyOtherEntry = otherEntries.iterator().next();
-			otherEntryControl.setInput(theOnlyOtherEntry);
+			otherEntry.setValue(theOnlyOtherEntry);
 			stackLayout.topControl = otherEntryControl;
 		} else {
 			stackLayout.topControl = splitLabel;
@@ -175,7 +165,7 @@ public class OtherEntriesControl extends Composite {
 		stackComposite.layout(true);
 	}
 
-	private Control createDownArrowButton(final IObservableValue<? extends EntryData> entryData) {
+	private Control createDownArrowButton(final IObservableValue<? extends Entry> mainEntry) {
 		downArrowButton = new Button(this, SWT.NO_TRIM);
 		if (downArrowImage == null) {
 			ImageDescriptor descriptor = JMoneyPlugin.createImageDescriptor("comboArrow.gif"); //$NON-NLS-1$
@@ -186,7 +176,7 @@ public class OtherEntriesControl extends Composite {
 		downArrowButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 		    public void widgetSelected(SelectionEvent event) {
-				final OtherEntriesShell shell = new OtherEntriesShell(getShell(), SWT.ON_TOP, entryData.getValue(), rootBlock, true);
+				final OtherEntriesShell shell = new OtherEntriesShell(getShell(), SWT.ON_TOP, mainEntry.getValue(), rootBlock, true);
     	        Display display = getDisplay();
     	        Rectangle rect = display.map(OtherEntriesControl.this.getParent(), null, getBounds());
     	        shell.open(rect);
@@ -207,8 +197,8 @@ public class OtherEntriesControl extends Composite {
 		splitLabel = new Label(stackComposite, SWT.NONE);
 		splitLabel.setText(Messages.OtherEntriesControl_SplitEntry);
 
-		otherEntryControl = new OtherEntryControl(stackComposite, rowControl, rootBlock, true, selectionTracker, focusCellTracker);
-		
+		otherEntryControl = new OtherEntryControl(stackComposite, otherEntry, rowControl, rootBlock, true, selectionTracker, focusCellTracker);
+
 		return stackComposite;
 	}
 	

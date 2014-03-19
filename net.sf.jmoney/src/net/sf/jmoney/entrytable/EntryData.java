@@ -24,18 +24,13 @@ package net.sf.jmoney.entrytable;
 
 import java.util.Collection;
 
-import net.sf.jmoney.fields.IBlob;
 import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IScalarPropertyAccessor;
 import net.sf.jmoney.isolation.SessionChangeAdapter;
 import net.sf.jmoney.isolation.SessionChangeListener;
-import net.sf.jmoney.isolation.TransactionManager;
-import net.sf.jmoney.model2.Account;
-import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
-import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
 import org.eclipse.core.databinding.observable.list.IObservableList;
 import org.eclipse.core.databinding.observable.list.WritableList;
@@ -43,7 +38,6 @@ import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
 import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
 import org.eclipse.core.databinding.observable.value.WritableValue;
-import org.eclipse.core.runtime.Assert;
 
 /**
  * Class representing a top level entry in the list.
@@ -75,7 +69,7 @@ public class EntryData {
 	 * user for this line is calculated by adding this balance property to the
 	 * amount of this entry.
 	 */
-	private long balance;
+	private IObservableValue<Long> balance = new WritableValue<Long>();
 
 	private int index;
 
@@ -152,38 +146,16 @@ public class EntryData {
 	}
 
 	/**
-	 * A transaction with split entries is a transaction that
-	 * has entries in three or more accounts (where each account
-	 * may be either a capital account or an income and
-	 * expense category).
-	 */
-	public boolean hasSplitEntries() {
-		return entry.getTransaction().getEntryCollection().size() >= 3;
-	}
-
-	/**
-	 * @return
-	 */
-	public Entry getOtherEntry() {
-		Assert.isTrue(!hasSplitEntries());
-		return buildOtherEntriesList().get(0);
-	}
-
-	/**
-	 * @return
-	 */
-	public Collection<Entry> getSplitEntries() {
-		return buildOtherEntriesList();
-	}
-
-	/**
 	 * @return the balance before this entry is added in, so
 	 * 		the balance show to the user for this line is calculated
 	 * 		by adding this balance property to the amount of this
 	 * 		entry
+	 * @trackedGetter
 	 */
 	public long getBalance() {
-		return balance;
+		// Currently balances may be got before they are set,
+		// so protect against a null value.
+		return balance.getValue() == null ? 0 : balance.getValue();
 	}
 
 	/**
@@ -193,7 +165,7 @@ public class EntryData {
 	 * 		entry
 	 */
 	public void setBalance(long balance) {
-		this.balance = balance;
+		this.balance.setValue(balance);
 	}
 
 	/**
@@ -228,70 +200,16 @@ public class EntryData {
 			return otherEntries;
 	}
 
-	public void copyFrom(EntryData sourceEntryData) {
-		Entry selectedEntry = sourceEntryData.getEntry();
-
-		Entry newEntry = getEntry();
-		TransactionManager transactionManager = (TransactionManager)newEntry.getDataManager();
-
-		/*
-		 * Copy all values that are numbers, flags, text, or references to accounts or commodities.
-		 * We do not copy dates or statement numbers.
-		 */
-		Entry selectedEntryInTrans = transactionManager.getCopyInTransaction(selectedEntry);
-		for (ScalarPropertyAccessor<?, ? super Entry> accessor : EntryInfo.getPropertySet().getScalarProperties3()) {
-			copyValue(accessor, selectedEntryInTrans, newEntry);
-		}
-
-		/*
-		 * In the bank account entries, the new entry row will always have a second entry created.
-		 * In other entry types such as a stock entry, the new entry row will have only one row.
-		 */
-		Entry thisEntry = getSplitEntries().isEmpty()
-		? null : getOtherEntry();
-
-		for (Entry origEntry: sourceEntryData.getSplitEntries()) {
-			if (thisEntry == null) {
-				thisEntry = getEntry().getTransaction().createEntry();
-			}
-//			thisEntry.setAccount(transactionManager.getCopyInTransaction(origEntry.getAccount()));
-//			thisEntry.setMemo(origEntry.getMemo());
-//			thisEntry.setAmount(origEntry.getAmount());
-
-
-			Entry origEntryInTransaction = transactionManager.getCopyInTransaction(origEntry);
-
-			/*
-			 * Copy all values that are numbers, flags, text, or references to accounts or commodities.
-			 * We do not copy dates or statement numbers.
-			 */
-			for (ScalarPropertyAccessor<?, ? super Entry> accessor : EntryInfo.getPropertySet().getScalarProperties3()) {
-				copyValue(accessor, origEntryInTransaction, thisEntry);
-			}
-
-			thisEntry = null;
-		}
+	public boolean hasSplitEntries() {
+		return entry.hasSplitEntries();
 	}
 
-	protected <V> void copyValue(ScalarPropertyAccessor<V, ? super Entry> accessor, Entry selectedEntry, Entry newEntry) {
-		V value = accessor.getValue(selectedEntry);
+	public Entry getOtherEntry() {
+		return entry.getOtherEntry();
+	}
 
-		/*
-		 * Copy all values that are numbers, flags, text, or references to accounts or commodities.
-		 * We do not copy dates or statement numbers.
-		 */
-		// TODO is there a better way of deciding what to copy?  This code has never caused a problem
-		// but it just seems a bit of a hack.
-		if (value instanceof Long
-				|| value instanceof Boolean
-				|| value instanceof Integer
-				|| value instanceof IBlob
-				|| value instanceof String
-				|| value instanceof Account
-				|| value instanceof Commodity
-				) {
-			accessor.setValue(newEntry, value);
-		}
+	public Collection<Entry> getOtherEntries() {
+		return entry.getOtherEntries();
 	}
 
 }

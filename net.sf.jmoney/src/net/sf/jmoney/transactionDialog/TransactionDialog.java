@@ -93,11 +93,11 @@ public class TransactionDialog extends Dialog {
 
 	private Composite tableComposite;
 
-	private RowSelectionTracker<SplitEntryRowControl> rowTracker;
+	private RowSelectionTracker<SplitEntryRowControl<Entry>> rowTracker;
 
 	private FocusCellTracker cellTracker;
 
-	private Block<Entry, SplitEntryRowControl> rootBlock;
+	private Block<Entry> rootBlock;
 
 	private Transaction transaction;
 
@@ -195,15 +195,15 @@ public class TransactionDialog extends Dialog {
 		 */
 		cellTracker.setFocusCell(null);
 
-		SplitEntryRowControl rowControl = rowTracker.getSelectedRow();
-		transaction.deleteEntry(rowControl.getInput());
+		SplitEntryRowControl<Entry> rowControl = rowTracker.getSelectedRow();
+		transaction.deleteEntry(rowControl.getRowInput());
 	}
 
 	private void adjustAmount() {
-		SplitEntryRowControl rowControl = rowTracker.getSelectedRow();
+		SplitEntryRowControl<Entry> rowControl = rowTracker.getSelectedRow();
 		// TODO: Is a row ever not selected?
 		if (rowControl != null) {
-			Entry entry = rowControl.getInput();
+			Entry entry = rowControl.getRowInput();
 
 			long totalAmount = 0;
 			for (Entry eachEntry: transaction.getEntryCollection()) {
@@ -529,10 +529,10 @@ public class TransactionDialog extends Dialog {
 		 * Setup the layout structure of the header and rows.
 		 */
 
-		CellBlock<Entry, SplitEntryRowControl> debitColumnManager = SplitEntryDebitAndCreditColumns.createDebitColumn(transaction.getSession().getDefaultCurrency());
-		CellBlock<Entry, SplitEntryRowControl> creditColumnManager = SplitEntryDebitAndCreditColumns.createCreditColumn(transaction.getSession().getDefaultCurrency());
+		CellBlock<Entry> debitColumnManager = SplitEntryDebitAndCreditColumns.createDebitColumn(transaction.getSession().getDefaultCurrency());
+		CellBlock<Entry> creditColumnManager = SplitEntryDebitAndCreditColumns.createCreditColumn(transaction.getSession().getDefaultCurrency());
 
-		rootBlock = new HorizontalBlock<Entry, SplitEntryRowControl>(
+		rootBlock = new HorizontalBlock<Entry>(
 								new SingleOtherEntryPropertyBlock(EntryInfo.getAccountAccessor()),
 								new SingleOtherEntryPropertyBlock(EntryInfo.getMemoAccessor()),
 								new PropertiesBlock(this),
@@ -545,7 +545,7 @@ public class TransactionDialog extends Dialog {
 		 */
 		rootBlock.initIndexes(0);
 
-		rowTracker = new RowSelectionTracker<SplitEntryRowControl>();
+		rowTracker = new RowSelectionTracker<SplitEntryRowControl<Entry>>();
 		cellTracker = new FocusCellTracker();
 		tableComposite = new Composite(parent, SWT.NONE);
 		tableComposite.setLayout(new GridLayout(1, false));
@@ -562,7 +562,7 @@ public class TransactionDialog extends Dialog {
 
 	private void createEntryRow(Entry entry) {
 		// SplitEntryRowControl really should not have input because it is always created for a single Entry
-		SplitEntryRowControl rowControl = new SplitEntryRowControl(tableComposite, rootBlock, false, rowTracker, cellTracker, entry);
+		SplitEntryRowControl<Entry> rowControl = new SplitEntryRowControl<Entry>(tableComposite, rootBlock, false, rowTracker, cellTracker, entry);
 //		rowControl.setInput(entry);
 		rowControl.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
 

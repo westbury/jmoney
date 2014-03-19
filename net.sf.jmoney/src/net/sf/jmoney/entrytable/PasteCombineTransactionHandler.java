@@ -41,10 +41,10 @@ public class PasteCombineTransactionHandler extends AbstractHandler {
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		Shell shell = HandlerUtil.getActiveShellChecked(event);
 
-		BaseEntryRowControl<EntryData, EntryRowControl> selectedRowControl = rowTracker.getSelectedRow();
+		BaseEntryRowControl<EntryRowControl, EntryRowControl> selectedRowControl = rowTracker.getSelectedRow();
 
 		if (selectedRowControl != null) {
-			Entry selectedEntry = selectedRowControl.input.getValue().getEntry();
+			Entry selectedEntry = selectedRowControl.getUncommittedMainEntry();
 
 			if (selectedEntry == null) {
 				/*

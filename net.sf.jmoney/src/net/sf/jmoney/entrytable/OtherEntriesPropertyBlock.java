@@ -26,7 +26,6 @@ import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
-import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.layout.GridData;
@@ -42,7 +41,7 @@ import org.eclipse.swt.widgets.Control;
  *
  * @author Nigel Westbury
  */
-public class OtherEntriesPropertyBlock extends IndividualBlock<EntryData, EntryRowControl> {
+public class OtherEntriesPropertyBlock extends IndividualBlock<EntryRowControl> {
 	protected ScalarPropertyAccessor<?,Entry> accessor;
 	private String id;
 
@@ -79,7 +78,7 @@ public class OtherEntriesPropertyBlock extends IndividualBlock<EntryData, EntryR
 	}
 
     @Override
-	public Control createCellControl(Composite parent, IObservableValue<? extends EntryData> master, RowControl rowControl, EntryRowControl coordinator) {
+	public Control createCellControl(Composite parent, EntryRowControl blockInput, RowControl rowControl) {
 		// Because this may be multi-valued, setup the container only.
 		final Composite composite = new Composite(parent, SWT.NONE);
 
@@ -105,7 +104,7 @@ public class OtherEntriesPropertyBlock extends IndividualBlock<EntryData, EntryR
 					child.dispose();
 				}
 
-				for (Entry entry: data.getSplitEntries()) {
+				for (Entry entry: data.getOtherEntries()) {
 					Control propertyControl = accessor.createPropertyControl(composite, entry);
 
 					propertyControl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
@@ -149,4 +148,5 @@ public class OtherEntriesPropertyBlock extends IndividualBlock<EntryData, EntryR
 			}
 		}
 	}
+
 }

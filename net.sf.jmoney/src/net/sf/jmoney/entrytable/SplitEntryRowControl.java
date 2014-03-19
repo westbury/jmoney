@@ -22,8 +22,6 @@
 
 package net.sf.jmoney.entrytable;
 
-import net.sf.jmoney.model2.Entry;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.PaintEvent;
 import org.eclipse.swt.events.PaintListener;
@@ -34,7 +32,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 
-public class SplitEntryRowControl extends RowControl<Entry, SplitEntryRowControl> implements ISplitEntryContainer {
+public class SplitEntryRowControl<B> extends RowControl<B, B, SplitEntryRowControl<B>> {
 
 	// The lighter colors for the sub-entry lines
 	protected static final Color normalColor = new Color(Display.getCurrent(),
@@ -57,25 +55,21 @@ public class SplitEntryRowControl extends RowControl<Entry, SplitEntryRowControl
 		}
 	};
 
-	public SplitEntryRowControl(final Composite parent, Block<Entry, ? super SplitEntryRowControl> rootBlock, boolean isLinked, final RowSelectionTracker<SplitEntryRowControl> selectionTracker, final FocusCellTracker focusCellTracker, Entry entry) {
-		super(parent, selectionTracker, focusCellTracker);
+	public SplitEntryRowControl(final Composite parent, Block<B> rootBlock, boolean isLinked, final RowSelectionTracker<SplitEntryRowControl<B>> selectionTracker, final FocusCellTracker focusCellTracker, B blockInput) {
+		super(parent, blockInput, blockInput, selectionTracker, focusCellTracker);
 
 		/*
 		 * We set the top and bottom margins to zero here because that ensures
 		 * the controls inside this composite line up with the rows that are
 		 * outside this composite and in the same row.
 		 */
-		BlockLayout<Entry> layout = new BlockLayout<Entry>(rootBlock, isLinked);
+		BlockLayout<B> layout = new BlockLayout<B>(rootBlock, isLinked, blockInput);
 		layout.marginTop = 0;
 		layout.marginBottom = 0;
 		layout.verticalSpacing = 1;
 		setLayout(layout);
 
-		// Must setInput before carrying on.  This is because this class does not
-		// take a master observable.  The Entry must be known and set when constructed.
-		setInput(entry);
-		
-		init(this, this, rootBlock);
+		init(this, rootBlock);
 
 		addPaintListener(paintListener);
 	}
@@ -212,4 +206,5 @@ public class SplitEntryRowControl extends RowControl<Entry, SplitEntryRowControl
 	protected SplitEntryRowControl getThis() {
 		return this;
 	}
+
 }

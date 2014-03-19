@@ -9,6 +9,9 @@ public class FocusCellTracker {
 	 * with the focus.
 	 */
 	protected ICellControl2 cellControl = null;
+	
+	// Or perhaps we could instead get cell information from cellControl???
+	private int currentColumn;
 
 	public void setFocusCell(ICellControl2 cellControl) {
 		this.cellControl = cellControl;
@@ -16,5 +19,9 @@ public class FocusCellTracker {
 
 	public ICellControl2 getFocusCell() {
 		return cellControl;
+	}
+
+	public int getCurrentColumn() {
+		return currentColumn;
 	}
 }

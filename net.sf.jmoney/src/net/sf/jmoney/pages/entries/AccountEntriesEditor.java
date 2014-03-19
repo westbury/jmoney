@@ -5,11 +5,10 @@ import java.beans.PropertyChangeListener;
 import java.util.Vector;
 
 import net.sf.jmoney.JMoneyPlugin;
-import net.sf.jmoney.entrytable.EntryData;
+import net.sf.jmoney.entrytable.EntryRowControl;
 import net.sf.jmoney.entrytable.IndividualBlock;
 import net.sf.jmoney.entrytable.OtherEntriesPropertyBlock;
 import net.sf.jmoney.entrytable.PropertyBlock;
-import net.sf.jmoney.entrytable.RowControl;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.CurrencyAccount;
 import net.sf.jmoney.model2.Entry;
@@ -105,10 +104,10 @@ public class AccountEntriesEditor extends EditorPart {
         
         // Add properties from the transaction.
         for (final ScalarPropertyAccessor<?, ? super Transaction> propertyAccessor: TransactionInfo.getPropertySet().getScalarProperties3()) {
-        	allEntryDataObjects.add(new PropertyBlock<EntryData, RowControl, Transaction>(propertyAccessor, "transaction") { //$NON-NLS-1$
+        	allEntryDataObjects.add(new PropertyBlock<EntryRowControl, Transaction>(propertyAccessor, "transaction") { //$NON-NLS-1$
     		    @Override	
-        		public Transaction getObjectContainingProperty(EntryData data) {
-        			return data.getEntry().getTransaction();
+        		public Transaction getObjectContainingProperty(EntryRowControl data) {
+        			return data.getUncommittedMainEntry().getTransaction();
         		}
         	});
         }
@@ -122,10 +121,10 @@ public class AccountEntriesEditor extends EditorPart {
            		&& propertyAccessor != EntryInfo.getIncomeExpenseCurrencyAccessor()
         		&& propertyAccessor != EntryInfo.getAmountAccessor()) {
             	if (propertyAccessor.isScalar() && propertyAccessor.isEditable()) {
-            		allEntryDataObjects.add(new PropertyBlock<EntryData, RowControl, Entry>(propertyAccessor, "this") { //$NON-NLS-1$
+            		allEntryDataObjects.add(new PropertyBlock<EntryRowControl, Entry>(propertyAccessor, "this") { //$NON-NLS-1$
             		    @Override	
-    					public Entry getObjectContainingProperty(EntryData data) {
-    						return data.getEntry();
+    					public Entry getObjectContainingProperty(EntryRowControl data) {
+    						return data.getUncommittedMainEntry();
     					}
                 	});
             	}
@@ -153,10 +152,10 @@ public class AccountEntriesEditor extends EditorPart {
 		 * account object.
 		 */
    		// TODO: This is not correct at all...
-        allEntryDataObjects.add(new PropertyBlock<EntryData, RowControl,Entry>(EntryInfo.getIncomeExpenseCurrencyAccessor(), "common2") { //$NON-NLS-1$
+        allEntryDataObjects.add(new PropertyBlock<EntryRowControl,Entry>(EntryInfo.getIncomeExpenseCurrencyAccessor(), "common2") { //$NON-NLS-1$
 		    @Override	
-        	public Entry getObjectContainingProperty(EntryData data) {
-        		Entry entry = data.getEntry();
+        	public Entry getObjectContainingProperty(EntryRowControl data) {
+        		Entry entry = data.getUncommittedMainEntry();
         		if (entry != null
         				&& entry.getAccount() instanceof IncomeExpenseAccount) {
         			IncomeExpenseAccount account = (IncomeExpenseAccount)entry.getAccount();
@@ -186,11 +185,11 @@ public class AccountEntriesEditor extends EditorPart {
 		 * the credit or debit column).
 		 */
         if (account instanceof CurrencyAccount) {
-        	allEntryDataObjects.add(new PropertyBlock<EntryData, RowControl, Entry>(EntryInfo.getAmountAccessor(), "other") { //$NON-NLS-1$
+        	allEntryDataObjects.add(new PropertyBlock<EntryRowControl, Entry>(EntryInfo.getAmountAccessor(), "other") { //$NON-NLS-1$
         		@Override	
-        		public Entry getObjectContainingProperty(EntryData data) {
-        			if (!data.hasSplitEntries()) {
-        				Entry entry = data.getOtherEntry();
+        		public Entry getObjectContainingProperty(EntryRowControl data) {
+        			if (!data.getUncommittedMainEntry().hasSplitEntries()) {
+        				Entry entry = data.getUncommittedMainEntry().getOtherEntry();
         				if (entry.getAccount() instanceof IncomeExpenseAccount
         						&& !JMoneyPlugin.areEqual(entry.getCommodityInternal(), ((CurrencyAccount)account).getCurrency())) {
         					return entry;

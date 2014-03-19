@@ -26,7 +26,6 @@ package net.sf.jmoney.entrytable;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.events.PaintEvent;
@@ -39,31 +38,31 @@ import org.eclipse.swt.widgets.Display;
  * This is used in rows only, not for headers.
  * (anything to be gained by using it in headers too????)
  */
-public class StackControl<T, R> extends Composite /*implements IPropertyControl<T>*/ {
+public class StackControl<R> extends Composite {
 
 	private RowControl rowControl;
 	
-	private R coordinator;
+	private R input;
 	
-	private StackBlock<T, R> stackBlock;
+	private StackBlock<R> stackBlock;
 	
 	/**
 	 * Maps each child block to the child control of the stack composite
 	 * that shows that block in the header.
 	 */
-	private Map<Block, CellContainer<T,R>> childControls = new HashMap<Block, CellContainer<T,R>>();
+	private Map<Block, CellContainer<R>> childControls = new HashMap<Block, CellContainer<R>>();
 
 	private CompressedStackLayout stackLayout;
 	
-	private IObservableValue<? extends T> master;
+//	private IObservableValue<? extends T> master;
 	
-	public StackControl(Composite parent, RowControl rowControl, R coordinator, StackBlock<T, R> stackBlock, IObservableValue<? extends T> master) {
+	public StackControl(Composite parent, RowControl rowControl, R input, StackBlock<R> stackBlock) {
 		super(parent, SWT.NONE);
 		this.rowControl = rowControl;
-		this.coordinator = coordinator;
+		// Need to save master because of lazy creation of child blocks
+		this.input = input;
 		this.stackBlock = stackBlock;
-	// Need to save master because of lazy creation of child blocks????
-		this.master = master; 
+//		this.master = master; 
 	
 		
 		stackLayout = new CompressedStackLayout();
@@ -81,19 +80,19 @@ public class StackControl<T, R> extends Composite /*implements IPropertyControl<
 	 * 
 	 * @param topBlock
 	 */
-	public void setTopBlock(Block<? super T, ? super R> topBlock) {
+	public void setTopBlock(Block<? super R> topBlock) {
 		// First set the top control in this row
-		CellContainer<T,R> topControl;
+		CellContainer<R> topControl;
 		if (topBlock == null) {
 			topControl = null;  // Causes nothing to show in stacked composite
 		} else {
 			topControl = childControls.get(topBlock); 
 			if (topControl == null) {
-				topControl = new CellContainer<T,R>(this);
-				final BlockLayout<T> childLayout = new BlockLayout<T>(topBlock, false);
+				topControl = new CellContainer<R>(this, input);
+				final BlockLayout<R> childLayout = new BlockLayout<R>(topBlock, false, input);
 				topControl.setLayout(childLayout);
 				
-				topControl.init(rowControl, coordinator, topBlock); 
+				topControl.init(rowControl, topBlock); 
 				
 				final Composite finalTopControl = topControl;
 				topControl.addPaintListener(new PaintListener() {
@@ -116,7 +115,7 @@ public class StackControl<T, R> extends Composite /*implements IPropertyControl<
 				childControls.put(topBlock, topControl);
 			}
 
-			topControl.setInput(master.getValue());
+//			topControl.setInput(input);
 		}
 		stackLayout.topControl = topControl;
 		
@@ -130,7 +129,7 @@ public class StackControl<T, R> extends Composite /*implements IPropertyControl<
 		// Fire event that tells header to change
 		if (rowControl instanceof BaseEntryRowControl
 				&& ((BaseEntryRowControl)rowControl).isSelected()) {
-			stackBlock.setTopHeaderBlock(topBlock, master.getValue());
+			stackBlock.setTopHeaderBlock(topBlock, input);
 		}
 	}
 

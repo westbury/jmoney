@@ -23,36 +23,35 @@
 package net.sf.jmoney.entrytable;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 
-public class VerticalBlock<T, R> extends Block<T,R> {
-	private List<Block<? super T,? super R>> children;
+public class VerticalBlock<R> extends Block<R> {
+	private List<Block<? super R>> children;
 
-	public VerticalBlock(Block<? super T,? super R> child1, Block<? super T,? super R> child2) {
-		List<Block<? super T,? super R>> children = new ArrayList<Block<? super T,? super R>>();
+	public VerticalBlock(Block<? super R> child1, Block<? super R> child2) {
+		List<Block<? super R>> children = new ArrayList<Block<? super R>>();
 		children.add(child1);
 		children.add(child2);
 		init(children);
 	}
 	
-	public VerticalBlock(Block<? super T,? super R> child1, Block<? super T,? super R> child2, Block<? super T,? super R> child3) {
-		List<Block<? super T,? super R>> children = new ArrayList<Block<? super T,? super R>>();
+	public VerticalBlock(Block<? super R> child1, Block<? super R> child2, Block<? super R> child3) {
+		List<Block<? super R>> children = new ArrayList<Block<? super R>>();
 		children.add(child1);
 		children.add(child2);
 		children.add(child3);
 		init(children);
 	}
 	
-	public VerticalBlock(List<Block<? super T,? super R>> children) {
+	public VerticalBlock(List<Block<? super R>> children) {
 		init(children);
 	}
 
-	private void init(List<Block<? super T,? super R>> children) {
+	private void init(List<Block<? super R>> children) {
 		this.children = children;
 
 		/*
@@ -62,7 +61,7 @@ public class VerticalBlock<T, R> extends Block<T,R> {
 		 */
 		minimumWidth = 0;
 		weight = 0;
-		for (Block<? super T,? super R> child: children) {
+		for (Block<? super R> child: children) {
 			minimumWidth = Math.max(minimumWidth, child.minimumWidth);
 			weight = Math.max(weight, child.weight);
 		}
@@ -71,7 +70,7 @@ public class VerticalBlock<T, R> extends Block<T,R> {
 	@Override
 	public int initIndexes(int startIndex) {
 		int totalCount = 0;
-		for (Block<? super T,? super R> child: children) {
+		for (Block<? super R> child: children) {
 			int count = child.initIndexes(startIndex + totalCount);
 			totalCount += count;
 		}
@@ -79,25 +78,23 @@ public class VerticalBlock<T, R> extends Block<T,R> {
 	}
 
 	@Override
-	public Collection<CellBlock<? super T,? super R>> buildCellList() {
-		List<CellBlock<? super T,? super R>> cellList = new ArrayList<CellBlock<? super T,? super R>>();
-		for (Block<? super T,? super R> child: children) {
-			cellList.addAll(child.buildCellList());
-		}
-		return cellList;
-	}
-
-	@Override
-	public void createHeaderControls(Composite parent, T entryData) {
-		for (Block<? super T,? super R> child: children) {
-			child.createHeaderControls(parent, entryData);
+	public void createCellControls(Composite parent, R input, RowControl rowControl) {
+		for (Block<? super R> child: children) {
+			child.createCellControls(parent, input, rowControl);
 		}
 	}
 
 	@Override
-	int getHeightForGivenWidth(int width, int verticalSpacing, Control[] controls, boolean changed) {
+	public void createHeaderControls(Composite parent) {
+		for (Block<? super R> child: children) {
+			child.createHeaderControls(parent);
+		}
+	}
+
+	@Override
+	protected int getHeightForGivenWidth(int width, int verticalSpacing, Control[] controls, boolean changed) {
 		int height = 0; 
-		for (Block<? super T,? super R> child: children) {
+		for (Block<? super R> child: children) {
 			height += child.getHeightForGivenWidth(width, verticalSpacing, controls, changed);
 		}
 		height += (children.size() - 1) * verticalSpacing;
@@ -105,28 +102,28 @@ public class VerticalBlock<T, R> extends Block<T,R> {
 	}
 
 	@Override
-	void layout(int width) {
+	protected void layout(int width) {
 		if (this.width != width) {
 			this.width = width;
-			for (Block<? super T,? super R> child: children) {
+			for (Block<? super R> child: children) {
 				child.layout(width);
 			}
 		}
 	}
 
 	@Override
-	void positionControls(int left, int top, int verticalSpacing, Control[] controls, T entryData, boolean flushCache) {
+	protected void positionControls(int left, int top, int verticalSpacing, Control[] controls, R input, boolean flushCache) {
 		int y = top;
-		for (Block<? super T,? super R> child: children) {
-			child.positionControls(left, y, verticalSpacing, controls, entryData, flushCache);
+		for (Block<? super R> child: children) {
+			child.positionControls(left, y, verticalSpacing, controls, input, flushCache);
 			y += child.getHeight(verticalSpacing, controls) + verticalSpacing;
 		}
 	}
 
 	@Override
-	int getHeight(int verticalSpacing, Control[] controls) {
+	protected int getHeight(int verticalSpacing, Control[] controls) {
 		int height = 0; 
-		for (Block<? super T,? super R> child: children) {
+		for (Block<? super R> child: children) {
 			height += child.getHeight(verticalSpacing, controls);
 		}
 		height += (children.size() - 1) * verticalSpacing;
@@ -134,7 +131,7 @@ public class VerticalBlock<T, R> extends Block<T,R> {
 	}
 
 	@Override
-	void paintRowLines(GC gc, int left, int top, int verticalSpacing, Control[] controls, T entryData) {
+	protected void paintRowLines(GC gc, int left, int top, int verticalSpacing, Control[] controls, R input) {
 		/* Paint the horizontal lines between the controls.
 		 * 
 		 * We need to make nested calls in case there are nested blocks that
@@ -142,7 +139,7 @@ public class VerticalBlock<T, R> extends Block<T,R> {
 		 */
 		int y = top;
 		for (int i = 0; i < children.size(); i++) {
-			children.get(i).paintRowLines(gc, left, y, verticalSpacing, controls, entryData);
+			children.get(i).paintRowLines(gc, left, y, verticalSpacing, controls, input);
 			
 			// Draw a horizontal separator line only if this is not the last control.
 			if (i != children.size() - 1) {
@@ -154,8 +151,8 @@ public class VerticalBlock<T, R> extends Block<T,R> {
 	}
 
 	@Override
-	void setInput(T input) {
-		for (Block<? super T,? super R> child: children) {
+	protected void setInput(R input) {
+		for (Block<? super R> child: children) {
 			child.setInput(input);
 		}
 	}

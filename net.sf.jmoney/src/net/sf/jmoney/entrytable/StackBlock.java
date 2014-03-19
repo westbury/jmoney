@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 
 import net.sf.jmoney.isolation.IDataManager;
-import net.sf.jmoney.isolation.SessionChangeListener;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StackLayout;
@@ -55,8 +54,8 @@ import org.eclipse.swt.widgets.Control;
  * @param <T>
  * @param <R>
  */
-public abstract class StackBlock<T, R> extends CellBlock<T,R> {
-	private List<Block<? super T,? super R>> children;
+public abstract class StackBlock<R> extends CellBlock<R> {
+	private List<Block<? super R>> children;
 
 	/**
 	 * Maps each child block to the child control of the stack composite
@@ -74,39 +73,51 @@ public abstract class StackBlock<T, R> extends CellBlock<T,R> {
 	 */
 	private StackLayout stackLayout; 
 	
-	public StackBlock(Block<? super T,? super R> child1, Block<? super T,? super R> child2) {
+	public StackBlock(Block<? super R> child1, Block<? super R> child2) {
 		super(0, 0);
-		ArrayList<Block<? super T,? super R>> children = new ArrayList<Block<? super T,? super R>>();
-		children.add(child1);
-		children.add(child2);
+		ArrayList<Block<? super R>> children = new ArrayList<Block<? super R>>();
+		if (child1 != null) children.add(child1);
+		if (child2 != null) children.add(child2);
 		init(children);
 	}
 	
-	public StackBlock(Block<? super T,? super R> child1, Block<? super T,? super R> child2, Block<? super T,? super R> child3) {
+	public StackBlock(Block<? super R> child1, Block<? super R> child2, Block<? super R> child3) {
 		super(0, 0);
-		ArrayList<Block<? super T,? super R>> children = new ArrayList<Block<? super T,? super R>>();
-		children.add(child1);
-		children.add(child2);
-		children.add(child3);
+		ArrayList<Block<? super R>> children = new ArrayList<Block<? super R>>();
+		if (child1 != null) children.add(child1);
+		if (child2 != null) children.add(child2);
+		if (child3 != null) children.add(child3);
 		init(children);
 	}
 	
-	public StackBlock(Block<? super T,? super R> child1, Block<? super T,? super R> child2, Block<? super T,? super R> child3, Block<? super T,? super R> child4) {
+	/**
+	 * This method allows null values.  They will be ignored.  This is a convenience
+	 * as it makes construction simpler when there is a case that may or may not require
+	 * controls.  For example, if an account has a withholding tax then the dividend transaction
+	 * type will need a block in the stack for it, but if the account does not have a withholding
+	 * tax account then the block will not be needed.
+	 * 
+	 * @param child1
+	 * @param child2
+	 * @param child3
+	 * @param child4
+	 */
+	public StackBlock(Block<? super R> child1, Block<? super R> child2, Block<? super R> child3, Block<? super R> child4) {
 		super(0, 0);
-		ArrayList<Block<? super T,? super R>> children = new ArrayList<Block<? super T,? super R>>();
-		children.add(child1);
-		children.add(child2);
-		children.add(child3);
-		children.add(child4);
+		ArrayList<Block<? super R>> children = new ArrayList<Block<? super R>>();
+		if (child1 != null) children.add(child1);
+		if (child2 != null) children.add(child2);
+		if (child3 != null) children.add(child3);
+		if (child4 != null) children.add(child4);
 		init(children);
 	}
 	
-	public StackBlock(List<Block<? super T,? super R>> children) {
+	public StackBlock(List<Block<? super R>> children) {
 		super(0, 0);
 		init(children);
 	}
 	
-	private void init(List<Block<? super T,? super R>> children) {
+	private void init(List<Block<? super R>> children) {
 		this.children = children;
 
 		/*
@@ -116,7 +127,7 @@ public abstract class StackBlock<T, R> extends CellBlock<T,R> {
 		 */
 		minimumWidth = 0;
 		weight = 0;
-		for (Block<? super T,? super R> child: children) {
+		for (Block<? super R> child: children) {
 			minimumWidth = Math.max(minimumWidth, child.minimumWidth);
 			weight = Math.max(weight, child.weight);
 			
@@ -130,7 +141,7 @@ public abstract class StackBlock<T, R> extends CellBlock<T,R> {
 
 	// TODO: remove entryData parameter from this method.
 	@Override
-	public void createHeaderControls(Composite parent, T entryData) {
+	public void createHeaderControls(Composite parent) {
 		stackComposite = new Composite(parent, SWT.NULL);
 		stackLayout = new StackLayout();
 		stackComposite.setLayout(stackLayout);
@@ -141,10 +152,10 @@ public abstract class StackBlock<T, R> extends CellBlock<T,R> {
 		 * of the tallest block in the stack.  (We don't want to header
 		 * height changing as selections are made in the table).
 		 */
-		for (Block<? super T,? super R> child: children) {
+		for (Block<? super R> child: children) {
 			Composite childControl = new Composite(stackComposite, SWT.NULL);
-			childControl.setLayout(new BlockLayout<T>(child, false));
-			child.createHeaderControls(childControl, entryData);
+			childControl.setLayout(new BlockLayout<R>(child, false, null));
+			child.createHeaderControls(childControl);
 			childControls.put(child, childControl);
 		}
 	}
@@ -155,7 +166,7 @@ public abstract class StackBlock<T, R> extends CellBlock<T,R> {
 	// TODO: we need entryData so that we can determine the top block for any
 	// stack controls nested inside this stack control.  That implies that we
 	// don't need topBlock for this stack control.  Remove topBlock parameter.
-	void setTopHeaderBlock(Block<? super T,? super R> topBlock, T entryData) {
+	void setTopHeaderBlock(Block<? super R> topBlock, R input) {
 		Composite topControl = childControls.get(topBlock);
 		// now done in init....
 //		if (topControl == null) {
@@ -168,7 +179,7 @@ public abstract class StackBlock<T, R> extends CellBlock<T,R> {
 		
 		// Pass down because nested blocks may also be affected by the input.
 		if (topBlock != null) {
-			topBlock.setInput(entryData);
+			topBlock.setInput(input);
 		}
 
 		stackComposite.layout(true);  //????
@@ -176,7 +187,7 @@ public abstract class StackBlock<T, R> extends CellBlock<T,R> {
 	}
 
 	// TODO: Do we really need this?
-	protected abstract IDataManager getDataManager(T data);
+	protected abstract IDataManager getDataManager(R data);
 
 
 	/**
@@ -192,26 +203,29 @@ public abstract class StackBlock<T, R> extends CellBlock<T,R> {
 	 * used in the header and the rows, so we can simply pass on the request.
 	 */
 	@Override
-	int getHeightForGivenWidth(int width, int verticalSpacing, Control[] controls, boolean changed) {
+	protected int getHeightForGivenWidth(int width, int verticalSpacing, Control[] controls, boolean changed) {
 		return super.getHeightForGivenWidth(width, verticalSpacing, controls, changed);
 	}
 	@Override
-	int getHeight(int verticalSpacing, Control[] controls) {
+	protected int getHeight(int verticalSpacing, Control[] controls) {
 		return super.getHeight(verticalSpacing, controls);
 	}
 
 	@Override
-	void paintRowLines(GC gc, int left, int top, int verticalSpacing, Control[] controls, T entryData) {
-		if (entryData != null) {
-			getTopBlock(entryData).paintRowLines(gc, left, top, verticalSpacing, controls, entryData);
-		}
+	protected void paintRowLines(GC gc, int left, int top, int verticalSpacing, Control[] controls, R input) {
+//		if (input != null) {
+			Block<? super R> topBlock = getTopBlock(input);
+			if (topBlock != null) {
+				topBlock.paintRowLines(gc, left, top, verticalSpacing, controls, input);
+			}
+//		}
 	}
 	
-	protected abstract Block<? super T, ? super R> getTopBlock(T data);
+	protected abstract Block<? super R> getTopBlock(R data);
 
 	@Override
-	void setInput(T input) {
-		Block<? super T, ? super R> topBlock = getTopBlock(input);
+	protected void setInput(R input) {
+		Block<? super R> topBlock = getTopBlock(input);
 		setTopHeaderBlock(topBlock, input);
 	}
 }

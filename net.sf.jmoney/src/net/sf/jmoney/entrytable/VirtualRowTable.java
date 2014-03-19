@@ -27,6 +27,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.core.databinding.observable.list.IListChangeListener;
+import org.eclipse.core.databinding.observable.list.IObservableList;
+import org.eclipse.core.databinding.observable.list.ListChangeEvent;
+import org.eclipse.core.databinding.observable.list.ListDiffEntry;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.events.ControlEvent;
@@ -43,7 +48,50 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Slider;
 
-public class VirtualRowTable<T extends EntryData> extends Composite implements ICompositeTable<T> {
+/**
+ * Class that displays a list of controls vertically.  Each control is given a width
+ * equal to the width of the client area of this composite and a height that is the preferred
+ * height for the given width.
+ * <P>
+ * This class is a virtualized composite.  A virtualized composite is a composite that contains
+ * scroll bars or some other means of moving around a view-port that shows only a part of the
+ * composite.  Furthermore, controls in the part of the composite that is not shown may not even
+ * be created.
+ * 
+ * 
+ * 
+ * 
+ * We have a problem.  In order to determine which rows are to be shown for a given scroll bar position,
+ * we need to know the total height of all the controls and also a method for determining which controls
+ * would be positioned at a particular position.  We don't actually create all the controls and we don't want
+ * to for performance reasons.  The solution taken here is that the scroll bar scrolls based on row index, not on
+ * the y-position.  For example, if there are a million rows and the scroll bar is positioned 43% of the way down then
+ * the row with index 430,000 will be shown.  This row may not be 43% of the way down in terms of its y position.  Indeed, if all the rows
+ * above it are short and all the rows below it are tall then row 430,000 would be rather less than 43% of the way down
+ * the composite.  One effect of this approach is that moving the scroll bar at constant speed will not move the content
+ * at constant speed.  The content will move faster when tall controls are in view and slower when short controls are in view.
+ * However if the rows are not drastically different in height then the effect will not be noticable to the user.
+ * <P>
+ * More specifically, scrolling is done as follows:
+ * 
+ * If the scroll bar is p% of the way down, then find the row whose 0-based index is int(p * n) where n is the total number
+ * of rows.
+ * 
+ * A request for cell contents (whether for displaying text or for creating a
+ * cell editor) goes first to the IEntriesTableProperty object. That object then
+ * gets data from the EntryData object to create and load the control for
+ * the cell. As the IEntriesTableProperty object has the property accessor,
+ * the property value associated with the cell can be got and set.
+ * <P>
+ * Controls may be marked as 'dirty'.  A dirty row will not be released even if it is not
+ * visible.  There are various reasons for marking a control as dirty, but all these reasons essentially
+ * are that there is state in the control that is not reflected in the model object used as input to the
+ * control.  Perhaps unsaved edits, focus state, positions of scroll bars etc.  It may just look odd if the
+ * user scrolls a control off the screen, scrolls it back and it looks different.
+ * 
+
+ */
+public class VirtualRowTable<T, R extends RowControl<IObservableValue<T>,R,R>> extends Composite implements ICompositeTable<T,R> {
 
 	/** the number of rows in the underlying model */
 	int rowCount;
@@ -56,14 +104,9 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 
 	/**
 	 * the set of row objects for all the rows that are either currently visible or
-	 * is the selected row (control for the selected row is maintained even when scrolled
-	 * out of view because it may contain unsaved data or may have data that cannot be saved
-	 * because it is not valid)
-	 * <P>
-	 * The 'committed' entry data is mapped (the 'uncommitted' entry data being internal to
-	 * the row control)
+	 * are 'dirty'.  See the JavaDoc for this class for an explanation of a dirty control.
 	 */
-	Map<EntryData, BaseEntryRowControl> rows = new HashMap<EntryData, BaseEntryRowControl>();
+	Map<T,R> rows = new HashMap<T,R>();
 
 	/**
 	 * the list of row objects for all the rows that used to be visible and may be re-used,
@@ -72,7 +115,7 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 	 * scroll position (which moves the row control back from this field to the rows field),
 	 * then releases any rows left in this field.
 	 */
-	Map<EntryData, BaseEntryRowControl> previousRows = new HashMap<EntryData, BaseEntryRowControl>();
+	Map<T,R> previousRows = new HashMap<T,R>();
 	
 	/**
 	 * the currently selected row, as a 0-based index into the underlying rows,
@@ -90,13 +133,13 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 	 * <P> 
 	 *  This field always represents the same row as <code>currentRow</code>. 
 	 */
-	RowSelectionTracker rowTracker;
+	RowSelectionTracker<R> rowTracker;
 	
-	IContentProvider<T> contentProvider;
+	IObservableList<T> contentProvider;
 
-	IRowProvider<T> rowProvider;
+	IRowProvider<T,R> rowProvider;
 
-	private Header<T> header;
+	private Header<R> header;
 	
 	private Composite contentPane;
 	
@@ -138,13 +181,12 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 	 * 
 	 * @param parent
 	 * @param rootBlock
-	 * @param contentProvider
+	 * @param content
 	 * @param rowTracker 
 	 */
-	// TODO: tidy up EntriesTable parameter.  Perhaps we need to remove EntriesTable altogether?
-	public VirtualRowTable(Composite parent, Block<? super T, ?> rootBlock, EntriesTable entriesTable, IContentProvider<T> contentProvider, IRowProvider<T> rowProvider, RowSelectionTracker rowTracker) {
+	public VirtualRowTable(Composite parent, Block<R> rootBlock, IObservableList<T> content, IRowProvider<T,R> rowProvider, RowSelectionTracker<R> rowTracker) {
 		super(parent, SWT.NONE);
-		this.contentProvider = contentProvider;
+		this.contentProvider = content;
 		this.rowProvider = rowProvider;
 		this.rowTracker = rowTracker;
 		
@@ -155,7 +197,7 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 		layout.verticalSpacing = 0;
 		setLayout(layout);
 	
-		header = new Header<T>(this, SWT.NONE, rootBlock);
+		header = new Header<R>(this, SWT.NONE, rootBlock);
 		Composite blankPane = new Composite(this, SWT.NONE);
 		contentPane = createContentPane(this);
 		vSlider = new Slider(this, SWT.VERTICAL);
@@ -167,102 +209,62 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 
 		vSlider.addSelectionListener(sliderSelectionListener);
 
-		rowCount = contentProvider.getRowCount();
+		rowCount = content.size();
 		sliderPosition = 0;
-	}
-
-	/**
-	 * Refreshes the content of the rows.  The set of rows is
-	 * assumed unchanged.
-	 */
-	public void refreshContentOfAllRows() {
-		// TODO Auto-generated method stub
 		
+		content.addListChangeListener(new IListChangeListener<T>() {
+
+			@Override
+			public void handleListChange(ListChangeEvent<T> event) {
+				/*
+				 * We really must process these list changes all in one go because
+				 * the changes are already all reflected in the list, so quite apart
+				 * from performance issues, it will all go horribly wrong if we try
+				 * to process one at a time.
+				 */
+				for (ListDiffEntry<? extends T> diff : event.diff.getDifferencesAsList()) {
+					if (diff.isAddition()) {
+						rowCount++;
+					} else {
+						/*
+						 * If the row being deleted is the selected row then any uncommitted
+						 * changes are discarded without warning (it is assumed that the
+						 * caller gave sufficient warning to the user).
+						 */
+						if (diff.getPosition() == currentRow) {
+							currentRow = -1;
+						}
+						rowCount--;
+					}
+				}
+
+					// Now done through data binding...
+//					refreshBalancesOfAllRows();
+
+				adjustVerticalScrollBar();
+			}
+		});
 	}
 
 	/**
 	 * Similar to <code>refreshContentOfAllRows</code>
 	 * but updates the balances only.
 	 */
-	public void refreshBalancesOfAllRows() {
-		for (EntryData entryData: rows.keySet()) {
-			rows.get(entryData).refreshBalance();
-		}
-	}
+	// Now done through data binding???
+//	public void refreshBalancesOfAllRows() {
+//		for (T entryData: rows.keySet()) {
+//			rows.get(entryData).refreshBalance();
+//		}
+//	}
 
 	// TODO: Verify first parameter needed.
 	// Can we clean this up?
 	@Override
-	public void setCurrentRow(T committedEntryData, T uncommittedEntryData) {
+	public void setCurrentRow(T committedEntryData, R rowControl) {
 		currentRow = contentProvider.indexOf(committedEntryData);
 		
-		header.setInput(uncommittedEntryData);
+		header.setInput(rowControl);
 	}	
-
-	/**
-	 * Deletes the given row.
-	 * 
-	 * The row must be deleted from the underlying content.  This
-	 * method is not responsible for doing that.  This method does
-	 * update the display, decrement the row count.
-`	 * 
-	 * If the row being deleted is the selected row then any uncommitted
-	 * changes are discarded without warning (it is assumed that the
-	 * caller gave sufficient warning to the user).
-	 * 
-	 * @param data
-	 */
-	public void deleteRow(int index) {
-		if (index == currentRow) {
-			currentRow = -1;
-		}
-		
-		// Three cases
-//		if (index < topVisibleRow) {
-//			topVisibleRow--;
-//		} else if (index >= topVisibleRow + rows.size()) {
-//			// nothing to do in this case
-//		} else {
-//			EntryData entryData
-//			BaseEntryRowControl removedRow = rows.remove(index - topVisibleRow);
-//			rowProvider.releaseRow(removedRow);
-//		}
-		
-		rowCount--;
-		adjustVerticalScrollBar();
-
-		refreshBalancesOfAllRows();
-	}
-
-	/**
-	 * Inserts the given row.
-	 * <P> 
-	 * The row must have been inserted into the underlying content.  This
-	 * method is not responsible for doing that.  This method does
-	 * update the display, increment the row count and adjusting the scroll
-	 * bar.
-	 * <P>
-	 * This method does not affect the current selection.  It is possible that 
-	 * a row is inserted by another view/editor while a row is being edited.
-	 * In such a case, the editing of the row is not affected.
-	 * 
-	 * @param index the index into the content of this new row
-	 */
-	public void insertRow(int index) {
-		rowCount++;
-		adjustVerticalScrollBar();
-	}
-
-	/**
-	 * Sets the focus to the given column and row.
-	 *  
-	 * @param x
-	 * @param y
-	 */
-	public void setSelection(int x, int y) {
-		// TODO Auto-generated method stub
-		
-	}
 
 	/**
 	 * 
@@ -285,7 +287,7 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 
 				if (newSize.x != clientAreaSize.x) {
 					// Width has changed.  Update the sizes of the row controls.
-					for (BaseEntryRowControl rowControl: rows.values()) {
+					for (RowControl rowControl: rows.values()) {
 						int rowHeight = rowControl.computeSize(newSize.x, SWT.DEFAULT).y;
 						rowControl.setSize(newSize.x, rowHeight);
 					}
@@ -468,7 +470,7 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 		 * that were previously visible will remain visible, so we keep these controls.
 		 */
 		previousRows = rows;
-		rows = new HashMap<EntryData, BaseEntryRowControl>();
+		rows = new HashMap<T,R>();
 		
 		/*
 		 * The <code>rows</code> field contains a list of consecutive rows
@@ -557,7 +559,7 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 		rowIndex = topVisibleRow;
 		
 		while (topPosition < clientAreaSize.y && rowIndex < rowCount) {
-			BaseEntryRowControl rowControl = getRowControl(rowIndex);
+			RowControl rowControl = getRowControl(rowIndex);
 			int rowHeight = rowControl.getSize().y;
 			if (rowControl.getBounds().y >= topPosition) {
 				rowControl.setBounds(0, topPosition, clientAreaSize.x, rowHeight);
@@ -568,7 +570,7 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 
 		while (topPosition > 0) {
 			rowIndex--;
-			BaseEntryRowControl rowControl = getRowControl(rowIndex);
+			RowControl rowControl = getRowControl(rowIndex);
 			int rowHeight = rowControl.getSize().y;
 			topPosition -= rowHeight;
 			if (rowControl.getBounds().y < topPosition) {
@@ -587,9 +589,9 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 		 * so we move it off just before the top of the visible area. This
 		 * ensures it remains not visible even if the client area is re-sized.
 		 */
-		BaseEntryRowControl selectedRow = (BaseEntryRowControl)rowTracker.getSelectedRow();
+		R selectedRow = rowTracker.getSelectedRow();
 		if (selectedRow != null) {
-			EntryData selectedEntryData = selectedRow.committedEntryData;
+			T selectedEntryData = selectedRow.getRowInput().getValue();
 			if (previousRows.containsKey(selectedEntryData)) {
 				rows.put(selectedEntryData, selectedRow);
 				previousRows.remove(selectedEntryData);
@@ -606,7 +608,7 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 		 * outside this method that attempts to get a row control may end up with a
 		 * row control that has already been released.
 		 */
-		for (BaseEntryRowControl<T, ?> rowControl: previousRows.values()) {
+		for (R rowControl: previousRows.values()) {
 			rowProvider.releaseRow(rowControl);
 		}
 		previousRows.clear();
@@ -632,10 +634,10 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 	 * 			on the rows in the underlying model
 	 * @return
 	 */
-	private BaseEntryRowControl getRowControl(int rowIndex) {
-		T entryData = contentProvider.getElement(rowIndex);
+	private RowControl getRowControl(int rowIndex) {
+		T entryData = contentProvider.get(rowIndex);
 
-		BaseEntryRowControl rowControl = rows.get(entryData);
+		R rowControl = rows.get(entryData);
 		if (rowControl == null) {
 			rowControl = previousRows.remove(entryData);
 			if (rowControl == null) {
@@ -666,13 +668,11 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 		}
 
 		if (currentRow > 0) {
-			BaseEntryRowControl selectedRow = getSelectedRow();
+			RowControl selectedRow = getSelectedRow();
 
 			if (!selectedRow.canDepart()) {
 				return;
 			}
-
-			int currentColumn = selectedRow.getCurrentColumn();
 
 			/*
 			 * Get previous row until we reach a row that, if positioned at the
@@ -690,7 +690,7 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 			} while (currentRow > 0);
 
 			scrollToShowRow(currentRow);
-			getRowControl(currentRow).arrive(currentColumn);
+			getRowControl(currentRow).arrive();
 		}
 	}
 
@@ -700,13 +700,11 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 		}
 
 		if (currentRow < rowCount - 1) {
-			BaseEntryRowControl selectedRow = getSelectedRow();
+			RowControl selectedRow = getSelectedRow();
 
 			if (!selectedRow.canDepart()) {
 				return;
 			}
-
-			int currentColumn = selectedRow.getCurrentColumn();
 
 			/*
 			 * Get previous row until we reach a row that, if positioned at the
@@ -724,7 +722,7 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 			} while (currentRow < rowCount - 1);
 
 			scrollToShowRow(currentRow);
-			getRowControl(currentRow).arrive(currentColumn);
+			getRowControl(currentRow).arrive();
 		}
 	}
 
@@ -734,17 +732,15 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 		}
 
 		if (currentRow > 0) {
-			BaseEntryRowControl selectedRow = getSelectedRow();
+			RowControl selectedRow = getSelectedRow();
 
 			if (!selectedRow.canDepart()) {
 				return;
 			}
 
-			int currentColumn = selectedRow.getCurrentColumn();
-
 			currentRow--;
 			scrollToShowRow(currentRow);
-			getRowControl(currentRow).arrive(currentColumn);
+			getRowControl(currentRow).arrive();
 		}
 	}
 
@@ -754,25 +750,23 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 		}
 
 		if (currentRow < rowCount - 1) {
-			BaseEntryRowControl selectedRow = getSelectedRow();
+			RowControl selectedRow = getSelectedRow();
 
 			if (!selectedRow.canDepart()) {
 				return;
 			}
 
-			int currentColumn = selectedRow.getCurrentColumn();
-
 			currentRow++;
 			scrollToShowRow(currentRow);
-			getRowControl(currentRow).arrive(currentColumn);
+			getRowControl(currentRow).arrive();
 		}
 	}
 
-	private BaseEntryRowControl getSelectedRow() {
+	private RowControl getSelectedRow() {
 		if (currentRow == -1) {
 			return null;
 		} else {
-			EntryData entryData = contentProvider.getElement(currentRow);
+			T entryData = contentProvider.get(currentRow);
 			return rows.get(entryData);
 		}
 	}
@@ -801,7 +795,7 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 			// exception, but is in any case incorrect.  The anchorRowNumber in the
 			// following call must be within the range given by the content provider
 			// but it is not always.
-			BaseEntryRowControl anchorRowControl = getRowControl(anchorRowNumber);
+			RowControl anchorRowControl = getRowControl(anchorRowNumber);
 			int anchorRowHeight = anchorRowControl.getSize().y;
 			int anchorRowPosition = (int)(portion * clientAreaSize.y - anchorRowHeight * rowRemainder);
 			anchorRowControl.setSize(clientAreaSize.x, anchorRowHeight);
@@ -818,9 +812,9 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 	 * 		are issues with a previously selected row that prevent the change
 	 * 		in selection from being made
 	 */
-//	public boolean setSelection(BaseEntryRowControl row,
+//	public boolean setSelection(RowControl row,
 //			CellBlock column) {
-//		BaseEntryRowControl currentRowControl = getSelectedRow();
+//		RowControl currentRowControl = getSelectedRow();
 //		if (row != currentRowControl) {
 //			if (currentRowControl != null) {
 //				if (!currentRowControl.canDepart()) {
@@ -884,7 +878,7 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 				 */
 				int bottomRow = topVisibleRow + rows.size() - 1;
 				if (rows.size() == 1) {
-					Control rowControl = rows.get(contentProvider.getElement(bottomRow)); 
+					Control rowControl = rows.get(contentProvider.get(bottomRow)); 
 					scrollToGivenFix(bottomRow, rowControl.getBounds().y - clientAreaSize.y * 90 / 100);
 				} else {
 					scrollToGivenFix(bottomRow, 0);
@@ -905,7 +899,7 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 				 *  area.
 				 */
 				if (rows.size() == 1) {
-					Control rowControl = rows.get(contentProvider.getElement(topVisibleRow)); 
+					Control rowControl = rows.get(contentProvider.get(topVisibleRow)); 
 					scrollToGivenFix(topVisibleRow, rowControl.getBounds().y + clientAreaSize.y * 90 / 100);
 				} else {
 					scrollToGivenFix(topVisibleRow+1, clientAreaSize.y);
@@ -946,6 +940,8 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 		}
 	};
 
+	private int currentColumn;
+
 	/**
 	 * This method is called when the content changes.
 	 * Specific changes to the content such as a row insert
@@ -958,7 +954,7 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 	// TODO: Are there more efficent methods following JFace conventions
 	// to do this?
 	public void refreshContent() {
-		rowCount = contentProvider.getRowCount();
+		rowCount = contentProvider.size();
 		// TODO: ensure selected row remains selected and visible
 		// (if a sort.  Now if a filter then it may not remain visible).
 		setTopRow(0);
@@ -1003,8 +999,8 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 	 * the user needs to correct the errors in the row.
 	 */
 	@Override
-	public void scrollToShowRow(BaseEntryRowControl<T, ?> rowControl) {
-		int rowIndex = contentProvider.indexOf(rowControl.getContent());
+	public void scrollToShowRow(R rowControl) {
+		int rowIndex = contentProvider.indexOf(rowControl.getRowInput());
 		scrollToShowRow(rowIndex);
 	}
 
@@ -1013,7 +1009,7 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 	 * regardless of whether the row is currently visible or not.
 	 */
 	@Override
-	public void rowDeselected(BaseEntryRowControl<T, ?> rowControl) {
+	public void rowDeselected(R rowControl) {
 		/*
 		 * If the row is not visible then we can release it.  However,
 		 * there is no easy way of knowing whether it is visible. (We know
@@ -1036,10 +1032,10 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 	 * @param newEntryRow
 	 * @return
 	 */
-	public BaseEntryRowControl getRowControl(T entryData) {
+	public RowControl getRowControl(T entryData) {
 		// Crappy code...
 		scrollToShowRow(contentProvider.indexOf(entryData));
-		BaseEntryRowControl rowControl = rows.get(entryData);
+		RowControl rowControl = rows.get(entryData);
 		rowControl.getChildren()[0].setFocus();
 		return rowControl;
 	}
@@ -1068,14 +1064,16 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 	 *  
 	 * @param rowControl
 	 */
-	public void refreshSize(BaseEntryRowControl<T, ?> rowControl) {
+	public void refreshSize(RowControl<IObservableValue<T>, ?, ?> rowControl) {
+		T rowInput = rowControl.getRowInput().getValue();
+
 		/*
 		 * If the row is not in our currently active list, ignore it.  This is actually
 		 * quite important because this method can be called while input is being set
 		 * into a row control that is not yet active, and this can cause problems, including problems with
 		 * recursion, if we try to process it.
 		 */
-		if (!rows.containsKey(rowControl.committedEntryData)) {
+		if (!rows.containsKey(rowInput)) {
 			return;
 		}
 		
@@ -1089,7 +1087,7 @@ public class VirtualRowTable<T extends EntryData> extends Composite implements I
 		int rowHeight = rowControl.computeSize(clientAreaSize.x, SWT.DEFAULT).y;
 		rowControl.setSize(clientAreaSize.x, rowHeight);
 
-		int rowIndex = contentProvider.indexOf(rowControl.getContent());
+		int rowIndex = contentProvider.indexOf(rowInput);
 		scrollToGivenFix(rowIndex, rowTop);
 	}
 

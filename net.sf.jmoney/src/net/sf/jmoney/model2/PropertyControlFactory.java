@@ -2,7 +2,6 @@ package net.sf.jmoney.model2;
 
 import java.util.Comparator;
 
-import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;

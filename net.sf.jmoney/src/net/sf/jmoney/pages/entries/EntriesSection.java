@@ -21,28 +21,26 @@ package net.sf.jmoney.pages.entries;
 import java.util.Collection;
 
 import net.sf.jmoney.entrytable.BalanceColumn;
-import net.sf.jmoney.entrytable.BaseEntryRowControl;
 import net.sf.jmoney.entrytable.Block;
-import net.sf.jmoney.entrytable.CellBlock;
 import net.sf.jmoney.entrytable.DebitAndCreditColumns;
+import net.sf.jmoney.entrytable.DelegateBlock;
 import net.sf.jmoney.entrytable.DeleteTransactionHandler;
 import net.sf.jmoney.entrytable.DuplicateTransactionHandler;
 import net.sf.jmoney.entrytable.EntriesTable;
 import net.sf.jmoney.entrytable.EntryData;
+import net.sf.jmoney.entrytable.EntryFacade;
 import net.sf.jmoney.entrytable.EntryRowControl;
 import net.sf.jmoney.entrytable.HorizontalBlock;
 import net.sf.jmoney.entrytable.IEntriesContent;
 import net.sf.jmoney.entrytable.IRowProvider;
-import net.sf.jmoney.entrytable.ISplitEntryContainer;
 import net.sf.jmoney.entrytable.IndividualBlock;
 import net.sf.jmoney.entrytable.NewTransactionHandler;
 import net.sf.jmoney.entrytable.OpenTransactionDialogHandler;
 import net.sf.jmoney.entrytable.OtherEntriesBlock;
 import net.sf.jmoney.entrytable.PropertyBlock;
 import net.sf.jmoney.entrytable.ReusableRowProvider;
-import net.sf.jmoney.entrytable.RowControl;
 import net.sf.jmoney.entrytable.RowSelectionTracker;
-import net.sf.jmoney.entrytable.SingleOtherEntryPropertyBlock;
+import net.sf.jmoney.entrytable.SingleOtherEntryDetailPropertyBlock;
 import net.sf.jmoney.entrytable.VerticalBlock;
 import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Account;
@@ -56,6 +54,7 @@ import net.sf.jmoney.model2.TransactionInfo;
 import net.sf.jmoney.resources.Messages;
 
 import org.eclipse.core.commands.IHandler;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.forms.SectionPart;
@@ -78,7 +77,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
     
     private EntryRowSelectionListener tableSelectionListener = null;
     
-    private Block<EntryData, ? super EntryRowControl> rootBlock;
+    private Block<EntryRowControl> rootBlock;
     
     public EntriesSection(Composite parent, Account account, EntriesFilter filter, FormToolkit toolkit, IHandlerService handlerService) {
         super(parent, toolkit, Section.TITLE_BAR);
@@ -120,62 +119,83 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		/*
 		 * Setup the layout structure of the header and rows.
 		 */
-		IndividualBlock<EntryData, RowControl> transactionDateColumn = PropertyBlock.createTransactionColumn(TransactionInfo.getDateAccessor());
+		IndividualBlock<IObservableValue<? extends EntryFacade>> transactionDateColumn = PropertyBlock.createTransactionColumn(TransactionInfo.getDateAccessor());
 
+		Currency currencyOfAccount;
+		Block<IObservableValue<EntryFacade>> part1SubBlock;
+		
 		if (account instanceof CurrencyAccount) {
 			CurrencyAccount currencyAccount = (CurrencyAccount)account;
+			currencyOfAccount = currencyAccount.getCurrency();
 
-		CellBlock<EntryData, BaseEntryRowControl> debitColumnManager = DebitAndCreditColumns.createDebitColumn(currencyAccount.getCurrency());
-		CellBlock<EntryData, BaseEntryRowControl> creditColumnManager = DebitAndCreditColumns.createCreditColumn(currencyAccount.getCurrency());
-    	CellBlock<EntryData, BaseEntryRowControl> balanceColumnManager = new BalanceColumn(currencyAccount.getCurrency());
-		
-		rootBlock = new HorizontalBlock<EntryData, EntryRowControl>(
+			part1SubBlock = new HorizontalBlock<IObservableValue<EntryFacade>>(
 				transactionDateColumn,
-				new VerticalBlock<EntryData, EntryRowControl>(
+				new VerticalBlock<IObservableValue<EntryFacade>>(
 						PropertyBlock.createEntryColumn(EntryInfo.getMemoAccessor()),
-						new HorizontalBlock<EntryData, EntryRowControl>(
+						new HorizontalBlock<IObservableValue<EntryFacade>>(
 								PropertyBlock.createEntryColumn(EntryInfo.getCheckAccessor()),
 								PropertyBlock.createEntryColumn(EntryInfo.getValutaAccessor())
 						)
 				),
-				new OtherEntriesBlock(
-						new HorizontalBlock<Entry, ISplitEntryContainer>(
-								new SingleOtherEntryPropertyBlock(EntryInfo.getAccountAccessor()),
-								new SingleOtherEntryPropertyBlock(EntryInfo.getMemoAccessor(), Messages.EntriesSection_EntryDescription),
-								new SingleOtherEntryPropertyBlock(EntryInfo.getAmountAccessor())
+				new OtherEntriesBlock<EntryFacade>(
+						new HorizontalBlock<IObservableValue<Entry>>(
+								new SingleOtherEntryDetailPropertyBlock(EntryInfo.getAccountAccessor()),
+								new SingleOtherEntryDetailPropertyBlock(EntryInfo.getMemoAccessor(), Messages.EntriesSection_EntryDescription),
+								new SingleOtherEntryDetailPropertyBlock(EntryInfo.getAmountAccessor())
 						)
-				),
-				debitColumnManager,
-				creditColumnManager,
-				balanceColumnManager
-		);
+				)
+			);
 		} else {
 			IncomeExpenseAccount categoryAccount = (IncomeExpenseAccount)account;
+			currencyOfAccount = categoryAccount.getCurrency();
 			
-			CellBlock<EntryData, BaseEntryRowControl> debitColumnManager = DebitAndCreditColumns.createDebitColumn(categoryAccount.getCurrency());
-			CellBlock<EntryData, BaseEntryRowControl> creditColumnManager = DebitAndCreditColumns.createCreditColumn(categoryAccount.getCurrency());
-	    	CellBlock<EntryData, BaseEntryRowControl> balanceColumnManager = new BalanceColumn(categoryAccount.getCurrency());
-			
-			rootBlock = new HorizontalBlock<EntryData, EntryRowControl>(
+			part1SubBlock = new HorizontalBlock<IObservableValue<EntryFacade>>(
 					transactionDateColumn,
 					PropertyBlock.createEntryColumn(EntryInfo.getMemoAccessor(), Messages.CategoryEntriesSection_EntryDescription),
-					new OtherEntriesBlock(
-							new HorizontalBlock<Entry, ISplitEntryContainer>(
-									new SingleOtherEntryPropertyBlock(EntryInfo.getAccountAccessor()),
-									new SingleOtherEntryPropertyBlock(EntryInfo.getMemoAccessor()),
-									new SingleOtherEntryPropertyBlock(EntryInfo.getAmountAccessor())
+					new OtherEntriesBlock<EntryFacade>(
+							new HorizontalBlock<IObservableValue<Entry>>(
+									new SingleOtherEntryDetailPropertyBlock(EntryInfo.getAccountAccessor()),
+									new SingleOtherEntryDetailPropertyBlock(EntryInfo.getMemoAccessor()),
+									new SingleOtherEntryDetailPropertyBlock(EntryInfo.getAmountAccessor())
 							)
-					),
-					debitColumnManager,
-					creditColumnManager,
-					balanceColumnManager
+					)
 			);
 		}
 		
+		Block<EntryRowControl> part1Block = new DelegateBlock<EntryRowControl, IObservableValue<EntryFacade>>(part1SubBlock) {
+			@Override
+			protected IObservableValue<EntryFacade> convert(
+					EntryRowControl blockInput) {
+				return blockInput.observeEntryFacade();
+			}
+		};
+
+    	Block<EntryRowControl> debitAndCreditColumnsManager = new DelegateBlock<EntryRowControl, IObservableValue<Entry>>(
+    			DebitAndCreditColumns.createDebitAndCreditColumns(currencyOfAccount)
+			) {
+			@Override
+			protected IObservableValue<Entry> convert(EntryRowControl blockInput) {
+				return blockInput.observeMainEntry();
+			}
+		};
+
+		Block<EntryRowControl> balanceColumnManager = new DelegateBlock<EntryRowControl, IObservableValue<EntryData>>(new BalanceColumn(currencyOfAccount)) {
+			@Override
+			protected IObservableValue<EntryData> convert(EntryRowControl blockInput) {
+				return blockInput.getRowInput();
+			}
+		};
+
+		rootBlock = new HorizontalBlock<EntryRowControl>(
+				part1Block,
+				debitAndCreditColumnsManager,
+				balanceColumnManager
+		);
+
 		// Create the table control.
-	    IRowProvider<EntryData> rowProvider = new ReusableRowProvider(rootBlock);
+	    IRowProvider<EntryData, EntryRowControl> rowProvider = new ReusableRowProvider(rootBlock);
 		RowSelectionTracker<EntryRowControl> rowTracker = new RowSelectionTracker<EntryRowControl>();
-		fEntriesControl = new EntriesTable<EntryData>(getSection(), rootBlock, this, rowProvider, account.getSession(), transactionDateColumn, rowTracker) {
+		fEntriesControl = new EntriesTable<EntryRowControl>(getSection(), rootBlock, this, rowProvider, account.getSession(), transactionDateColumn, rowTracker) {
 			@Override
 			protected EntryData createEntryRowInput(Entry entry) {
 				return new EntryData(entry, session.getDataManager());

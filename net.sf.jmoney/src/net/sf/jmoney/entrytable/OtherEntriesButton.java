@@ -47,30 +47,30 @@ import org.eclipse.swt.widgets.Label;
  *
  * @author Nigel Westbury
  */
-public class OtherEntriesButton extends CellBlock<EntryData, EntryRowControl> {
+public class OtherEntriesButton extends CellBlock<EntryRowControl> {
 
 	private final static int DROPDOWN_BUTTON_WIDTH = 15;
 
 	static private Image downArrowImage = null;
 
-	private Block<Entry, ISplitEntryContainer> otherEntriesRootBlock;
+	private Block<IObservableValue<Entry>> otherEntriesRootBlock;
 
-	public OtherEntriesButton(Block<Entry, ISplitEntryContainer> otherEntriesRootBlock) {
+	public OtherEntriesButton(Block<IObservableValue<Entry>> otherEntriesRootBlock) {
 		super(DROPDOWN_BUTTON_WIDTH, 0);
 		this.otherEntriesRootBlock = otherEntriesRootBlock;
 	}
 
     @Override
-	public Control createCellControl(Composite parent, IObservableValue<? extends EntryData> master, final RowControl rowControl, final EntryRowControl coordinator) {
+	public Control createCellControl(Composite parent, final EntryRowControl blockInput, RowControl rowControl) {
 		if (downArrowImage == null) {
 			ImageDescriptor descriptor = JMoneyPlugin.createImageDescriptor("comboArrow.gif"); //$NON-NLS-1$
 			downArrowImage = descriptor.createImage();
 		}
 
-		IPropertyControl control = new ButtonCellControl(rowControl, coordinator, downArrowImage, Messages.OtherEntriesButton_ToolTipText) {
+		IPropertyControl control = new ButtonCellControl(rowControl, blockInput, downArrowImage, Messages.OtherEntriesButton_ToolTipText) {
 			@Override
 			protected void run(EntryRowControl rowControl) {
-				final OtherEntriesShell shell = new OtherEntriesShell(rowControl.getShell(), SWT.ON_TOP, coordinator.getUncommittedEntryData(), otherEntriesRootBlock, false);
+				final OtherEntriesShell shell = new OtherEntriesShell(rowControl.getShell(), SWT.ON_TOP, blockInput.getUncommittedMainEntry(), otherEntriesRootBlock, false);
     	        Display display = rowControl.getDisplay();
     	        Rectangle rect = display.map(rowControl, null, this.getControl().getBounds());
     	        shell.open(rect);
@@ -81,7 +81,7 @@ public class OtherEntriesButton extends CellBlock<EntryData, EntryRowControl> {
 	}
 
 	@Override
-	public void createHeaderControls(Composite parent, EntryData entryData) {
+	public void createHeaderControls(Composite parent) {
 		/*
 		 * All CellBlock implementations must create a control because
 		 * the header and rows must match. Maybe these objects could
@@ -93,4 +93,5 @@ public class OtherEntriesButton extends CellBlock<EntryData, EntryRowControl> {
 		 */
 		new Label(parent, SWT.NONE);
 	}
+
 }

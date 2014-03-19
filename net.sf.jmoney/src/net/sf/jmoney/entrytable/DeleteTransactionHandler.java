@@ -28,10 +28,10 @@ public class DeleteTransactionHandler extends AbstractHandler {
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		Shell shell = HandlerUtil.getActiveShellChecked(event);
 		
-		BaseEntryRowControl selectedRowControl = rowTracker.getSelectedRow();
+		BaseEntryRowControl<?,?> selectedRowControl = rowTracker.getSelectedRow();
 		
 		if (selectedRowControl != null) {
-    		Entry selectedEntry = selectedRowControl.committedEntryData.getEntry();
+    		Entry selectedEntry = selectedRowControl.rowInput.getValue().getEntry();
 			
     		if (selectedEntry == null) {
     			// This is the empty row control.

@@ -26,7 +26,6 @@ import net.sf.jmoney.entrytable.CellBlock;
 import net.sf.jmoney.entrytable.CellFocusListener;
 import net.sf.jmoney.entrytable.ICellControl2;
 import net.sf.jmoney.entrytable.RowControl;
-import net.sf.jmoney.entrytable.SplitEntryRowControl;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Entry;
@@ -62,7 +61,7 @@ import org.eclipse.swt.widgets.Label;
  * according to what is applicable to each entry.  This is not the most user friendly of formats,
  * but it does give the user the most control.
  */
-class PropertiesBlock extends CellBlock<Entry, SplitEntryRowControl> {
+class PropertiesBlock extends CellBlock<Entry> {
 
 	// TODO We should not really have this field.  We should use listeners or something, not sure what.
 	TransactionDialog transactionDialog;
@@ -74,29 +73,29 @@ class PropertiesBlock extends CellBlock<Entry, SplitEntryRowControl> {
 
 	// TODO: remove entry parameter from this method.
 	@Override
-	public void createHeaderControls(Composite parent, Entry entry) {
+	public void createHeaderControls(Composite parent) {
 		Label label = new Label(parent, SWT.NULL);
 		label.setText(Messages.PropertiesBlock_Properties);
 		label.setBackground(Display.getCurrent().getSystemColor(SWT.COLOR_GRAY));
 	}
 
 	@Override
-	public Control createCellControl(Composite parent, IObservableValue<? extends Entry> master,
-			RowControl rowControl, SplitEntryRowControl coordinator) {
-    	return new PropertiesCellControl(parent, rowControl, master).getControl();
+	public Control createCellControl(Composite parent, Entry entry,
+			RowControl rowControl) {
+    	return new PropertiesCellControl(parent, rowControl, entry).getControl();
 	}
 
 	private class PropertiesCellControl implements IPropertyControl<Entry> {
 		private final class PropertyControlCreator extends ControlCreator {
 			private final ScalarPropertyAccessor<?, ? super Entry> accessor;
-			private final IObservableValue<? extends Entry> entryObservable;
+			private final Entry entry;
 
 			private PropertyControlCreator(UpdatingComposite parent,
 					ScalarPropertyAccessor<?, ? super Entry> accessor,
-					IObservableValue<? extends Entry> entryObservable) {
+					Entry entry) {
 				super(parent);
 				this.accessor = accessor;
-				this.entryObservable = entryObservable;
+				this.entry = entry;
 			}
 
 			@Override
@@ -107,7 +106,7 @@ class PropertiesBlock extends CellBlock<Entry, SplitEntryRowControl> {
 				label.setText(accessor.getDisplayName() + ":"); //$NON-NLS-1$
 				label.setForeground(labelColor);
 
-				final Control propertyControl = accessor.createPropertyControl2(composite, entryObservable);
+				final Control propertyControl = accessor.createPropertyControl(composite, entry);
 				propertyControl.setLayoutData(new GridData(accessor.getMinimumWidth(), SWT.DEFAULT));
 				propertyControl.setBackground(controlColor);
 
@@ -174,14 +173,12 @@ class PropertiesBlock extends CellBlock<Entry, SplitEntryRowControl> {
 //		private List<IPropertyControl> properties;
 		private RowControl rowControl;
 
-		public PropertiesCellControl(Composite parent, RowControl rowControl, final IObservableValue<? extends Entry> entryObservable) {
+		public PropertiesCellControl(Composite parent, RowControl rowControl, final Entry entry) {
 	    	this.rowControl = rowControl;
 
 			labelColor = Display.getCurrent().getSystemColor(SWT.COLOR_BLUE);
 			controlColor = Display.getCurrent().getSystemColor(SWT.COLOR_YELLOW);
 
-//			final Map<ScalarPropertyAccessor<?, ? super Entry>, ControlCreator> controlCreators = new HashMap<ScalarPropertyAccessor<?, ? super Entry>, ControlCreator>();
-				
 			propertiesControl = new UpdatingComposite(parent, SWT.NONE) {
 				@Override
 				protected void createControls() {
@@ -189,7 +186,7 @@ class PropertiesBlock extends CellBlock<Entry, SplitEntryRowControl> {
 					 * This is a tracked getter, so be sure to get the account
 					 * through an observable.
 					 */
-					Account account = EntryInfo.getAccountAccessor().observe(entryObservable.getValue()).getValue();
+					Account account = EntryInfo.getAccountAccessor().observe(entry).getValue();
 					
 					if (account != null) {
 						for (final ScalarPropertyAccessor<?, ? super Entry> accessor : EntryInfo.getPropertySet().getScalarProperties3()) {
@@ -197,11 +194,11 @@ class PropertiesBlock extends CellBlock<Entry, SplitEntryRowControl> {
 							if (accessor != EntryInfo.getAccountAccessor()
 									&& accessor != EntryInfo.getMemoAccessor()
 									&& accessor != EntryInfo.getAmountAccessor()
-									&& isEntryPropertyApplicable(accessor, entryObservable.getValue(), account)) {
+									&& isEntryPropertyApplicable(accessor, entry, account)) {
 //								ControlCreator creator = controlCreators.get(accessor);
 //								if (creator == null) {
 									ControlCreator creator = new PropertyControlCreator(this, accessor,
-											entryObservable);
+											entry);
 //									controlCreators.put(accessor, creator);
 //								}
 								creator.create();
@@ -276,7 +273,7 @@ class PropertiesBlock extends CellBlock<Entry, SplitEntryRowControl> {
 			 * Is this entirely correct?  Do we stipulate that which properties are to be shown depends only on
 			 * the account?  I suspect not.  We should show only applicable properties which depends on many things.
 			 */
-			IObservableValue<Account> accountObservable = EntryInfo.getAccountAccessor().observeDetail(entryObservable);
+			IObservableValue<Account> accountObservable = EntryInfo.getAccountAccessor().observe(entry);
 
 			// Don't need this anymore because all in UpdatableComposite
 //			createPropertyControls(accountObservable.getValue());

@@ -24,6 +24,7 @@ package net.sf.jmoney.entrytable;
 
 import net.sf.jmoney.model2.Entry;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.PaintEvent;
 import org.eclipse.swt.events.PaintListener;
@@ -40,7 +41,7 @@ import org.eclipse.swt.widgets.Display;
  * This composite is placed inside the composite represented by
  * OtherEntriesControl.
  */
-public class OtherEntryControl extends CellContainer<Entry, ISplitEntryContainer> {
+public class OtherEntryControl extends CellContainer<IObservableValue<Entry>> {
 
 	private PaintListener paintListener = new PaintListener() {
 		@Override
@@ -49,23 +50,21 @@ public class OtherEntryControl extends CellContainer<Entry, ISplitEntryContainer
 		}
 	};
 
-	public OtherEntryControl(final Composite parent,RowControl rowControl, Block<Entry, ISplitEntryContainer> rootBlock, boolean isLinked, final RowSelectionTracker<BaseEntryRowControl> selectionTracker, final FocusCellTracker focusCellTracker/*, IObservableValue<? extends Entry> masterEntry*/) {
-		super(parent);
+	public OtherEntryControl(final Composite parent, IObservableValue<Entry> mainEntry, RowControl rowControl, Block<IObservableValue<Entry>> rootBlock, boolean isLinked, final RowSelectionTracker<BaseEntryRowControl> selectionTracker, final FocusCellTracker focusCellTracker) {
+		super(parent, mainEntry);
 
 		/*
 		 * We set the top and bottom margins to zero here because that ensures
 		 * the controls inside this composite line up with the rows that are
 		 * outside this composite and in the same row.
 		 */
-		BlockLayout<Entry> layout = new BlockLayout<Entry>(rootBlock, isLinked);
+		BlockLayout<IObservableValue<Entry>> layout = new BlockLayout<IObservableValue<Entry>>(rootBlock, isLinked, mainEntry);
 		layout.marginTop = 0;
 		layout.marginBottom = 0;
 		layout.verticalSpacing = 1;
 		setLayout(layout);
 
-		ISplitEntryContainer coordinator = new ISplitEntryContainer() {};
-		 
-		init(rowControl, coordinator, rootBlock);
+		init(rowControl, rootBlock);
 
 		addPaintListener(paintListener);
 		

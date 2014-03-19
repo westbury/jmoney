@@ -72,7 +72,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 
 	private RealPropertyAccount account;
 
-    private EntriesTable<EntryData> fEntriesControl;
+    private EntriesTable<EntryData, EntryRowControl> fEntriesControl;
     
     private Block<EntryData, EntryRowControl> rootBlock;
     
@@ -112,8 +112,8 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		);
 
 		// Create the table control.
-	    IRowProvider<EntryData> rowProvider = new ReusableRowProvider(rootBlock);
-		fEntriesControl = new EntriesTable<EntryData>(getSection(), rootBlock, this, rowProvider, account.getSession(), transactionDateColumn, rowTracker) {
+	    IRowProvider<EntryData, EntryRowControl> rowProvider = new ReusableRowProvider(rootBlock);
+		fEntriesControl = new EntriesTable<EntryData, EntryRowControl>(getSection(), rootBlock, this, rowProvider, account.getSession(), transactionDateColumn, rowTracker) {
 			@Override
 			protected EntryData createEntryRowInput(Entry entry) {
 				return new EntryData(entry, session.getDataManager());

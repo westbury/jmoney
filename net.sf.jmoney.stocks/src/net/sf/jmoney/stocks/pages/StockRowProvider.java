@@ -24,8 +24,8 @@ package net.sf.jmoney.stocks.pages;
 
 import java.util.LinkedList;
 
-import net.sf.jmoney.entrytable.BaseEntryRowControl;
 import net.sf.jmoney.entrytable.Block;
+import net.sf.jmoney.entrytable.EntryData;
 import net.sf.jmoney.entrytable.FocusCellTracker;
 import net.sf.jmoney.entrytable.IRowProvider;
 import net.sf.jmoney.entrytable.RowSelectionTracker;
@@ -34,9 +34,9 @@ import net.sf.jmoney.entrytable.VirtualRowTable;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 
-public class StockRowProvider implements IRowProvider<StockEntryData> {
+public class StockRowProvider implements IRowProvider<EntryData, StockEntryRowControl> {
 
-	private final Block<StockEntryData, StockEntryRowControl> rootBlock;
+	private final Block<StockEntryRowControl> rootBlock;
 
 	private VirtualRowTable rowTable;
 
@@ -49,9 +49,9 @@ public class StockRowProvider implements IRowProvider<StockEntryData> {
 	 * visible. These a free for re-use, thus avoiding the need to create new
 	 * controls.
 	 */
-	private final LinkedList<BaseEntryRowControl<StockEntryData, ?>> spareRows = new LinkedList<BaseEntryRowControl<StockEntryData, ?>>();
+	private final LinkedList<StockEntryRowControl> spareRows = new LinkedList<StockEntryRowControl>();
 
-	public StockRowProvider(Block<StockEntryData, StockEntryRowControl> rootBlock) {
+	public StockRowProvider(Block<StockEntryRowControl> rootBlock) {
 		this.rootBlock = rootBlock;
 	}
 
@@ -63,8 +63,8 @@ public class StockRowProvider implements IRowProvider<StockEntryData> {
 	}
 
 	@Override
-	public BaseEntryRowControl getNewRow(Composite parent, StockEntryData entryData) {
-		BaseEntryRowControl<StockEntryData, ?> rowControl;
+	public StockEntryRowControl getNewRow(Composite parent, EntryData entryData) {
+		StockEntryRowControl rowControl;
 
 		if (spareRows.size() > 0) {
 			rowControl = spareRows.removeFirst();
@@ -73,13 +73,13 @@ public class StockRowProvider implements IRowProvider<StockEntryData> {
 			rowControl = new StockEntryRowControl(parent, SWT.NONE, rowTable, rootBlock, rowSelectionTracker, focusCellTracker);
 		}
 
-		rowControl.setContent(entryData);
+		rowControl.setRowInput(entryData);
 
 		return rowControl;
 	}
 
 	@Override
-	public void releaseRow(BaseEntryRowControl<StockEntryData, ?> rowControl) {
+	public void releaseRow(StockEntryRowControl rowControl) {
 		rowControl.setVisible(false);
 		spareRows.add(rowControl);
 	}

@@ -45,7 +45,7 @@ import org.eclipse.swt.widgets.Shell;
  * exist for the credit, debit, and balance columns. More generic
  * implementations exist for the other properties.
  */
-public abstract class IndividualBlock<T, R> extends CellBlock<T, R> {
+public abstract class IndividualBlock<R> extends CellBlock<R> {
 
 	/**
 	 * The localized text to be shown in the header.
@@ -58,7 +58,7 @@ public abstract class IndividualBlock<T, R> extends CellBlock<T, R> {
 	}
 
 	@Override
-	public void createHeaderControls(Composite parent, T entryData) {
+	public void createHeaderControls(Composite parent) {
 		Label label = new Label(parent, SWT.NULL);
 		label.setText(text);
 		label
@@ -69,7 +69,7 @@ public abstract class IndividualBlock<T, R> extends CellBlock<T, R> {
 	}
 
 	@Override
-	void layout(int width) {
+	protected void layout(int width) {
 		this.width = width;
 	}
 
@@ -77,7 +77,7 @@ public abstract class IndividualBlock<T, R> extends CellBlock<T, R> {
 	 * @return a comparator to be used for sorting rows based on the values in
 	 *         this column, or null if this column is not suitable for sorting
 	 */
-	public Comparator<T> getComparator() {
+	public Comparator<R> getComparator() {
 		return null;
 	}
 

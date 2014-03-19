@@ -22,15 +22,16 @@
 
 package net.sf.jmoney.entrytable;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.swt.widgets.Composite;
 
 
-public interface IRowProvider<T extends EntryData> {
+public interface IRowProvider<T, C extends RowControl<IObservableValue<T>, C, C>> {
 
-	void init(VirtualRowTable rowTable, RowSelectionTracker rowSelectionTracker, FocusCellTracker focusCellTracker);
+	void init(VirtualRowTable<T,C> rowTable, RowSelectionTracker rowSelectionTracker, FocusCellTracker focusCellTracker);
 
-	BaseEntryRowControl getNewRow(Composite parent, T entryData);
+	C getNewRow(Composite parent, T entryData);
 
-	void releaseRow(BaseEntryRowControl<T, ?> rowControl);
+	void releaseRow(C rowControl);
 
 }

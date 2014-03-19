@@ -25,10 +25,10 @@ public class OpenTransactionDialogHandler extends AbstractHandler {
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		Shell shell = HandlerUtil.getActiveShellChecked(event);
 		
-		BaseEntryRowControl<EntryData, EntryRowControl> selectedRowControl = rowTracker.getSelectedRow();
+		BaseEntryRowControl<EntryRowControl, EntryRowControl> selectedRowControl = rowTracker.getSelectedRow();
 		
 		if (selectedRowControl != null) {
-			Entry selectedEntry = selectedRowControl.input.getValue().getEntry();
+			Entry selectedEntry = selectedRowControl.getUncommittedMainEntry();
 
 			TransactionDialog dialog = new TransactionDialog(shell, selectedEntry);
 			dialog.open();

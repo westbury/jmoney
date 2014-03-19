@@ -25,7 +25,6 @@ package net.sf.jmoney.fields;
 import java.util.Comparator;
 
 import net.sf.jmoney.model2.ExtendableObject;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 

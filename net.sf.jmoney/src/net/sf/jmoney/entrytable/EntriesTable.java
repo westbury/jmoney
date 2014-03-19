@@ -24,12 +24,10 @@ package net.sf.jmoney.entrytable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -43,6 +41,8 @@ import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.pages.entries.EntryRowSelectionListener;
 
+import org.eclipse.core.databinding.observable.list.IObservableList;
+import org.eclipse.core.databinding.observable.list.WritableList;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -108,29 +108,35 @@ import org.eclipse.swt.widgets.Control;
  * gets data from the EntryData object to create and load the control for
  * the cell. As the IEntriesTableProperty object has the property accessor,
  * the property value associated with the cell can be got and set.
+ * <P>
+	 * <P>
+	 * The 'committed' entry data is mapped (the 'uncommitted' entry data being internal to
+	 * the row control)
+ * 
  */
+
 // TODO: make this not abstract but instead move the abstract methods into the
 // content providers?????
-public abstract class EntriesTable<T extends EntryData> extends Composite {
+public abstract class EntriesTable<R extends BaseEntryRowControl<?,R>> extends Composite {
 
 	protected Session session;
 
 	protected IEntriesContent entriesContent;
 
-	public VirtualRowTable<T> table;
+	public VirtualRowTable<EntryData, R> table;
 
 	/**
 	 * List of entries to show in the table. Only the top level entries are
 	 * included, the other entries in the transactions, which are shown as child
 	 * items, are not in this list. The elements are not sorted.
 	 */
-	Map<Entry, T> entries;
+	Map<Entry, EntryData> entries;
 
 	/**
 	 * The 'new entry' row, being an extra blank row at the bottom of the table that
 	 * the user can use to enter new entries.
 	 */
-	T newEntryRow;
+	EntryData newEntryRow;
 
 	/**
 	 * The comparator that sorts entries according to the current sort order.
@@ -141,7 +147,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 	 * The entries in sorted order.  This list contains the same
 	 * items that are in the entries map.
 	 */
-	List<T> sortedEntries;
+	IObservableList<EntryData> sortedEntries;
 
 	/**
 	 * Set of listeners for selection changes
@@ -153,9 +159,8 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 	 * shared with other tables (thus forcing a single row selection for two
 	 * or more tables).
 	 */
-	@SuppressWarnings("unchecked")
-	public EntriesTable(Composite parent, Block rootBlock,
-			final IEntriesContent entriesContent, IRowProvider<T> rowProvider, final Session session, IndividualBlock<EntryData, ?> defaultSortColumn, final RowSelectionTracker<? extends BaseEntryRowControl> rowTracker) {
+	public EntriesTable(Composite parent, Block<R> rootBlock,
+			final IEntriesContent entriesContent, IRowProvider<EntryData,R> rowProvider, final Session session, IndividualBlock<?> defaultSortColumn, final RowSelectionTracker<R> rowTracker) {
 		super(parent, SWT.NONE);
 
 		this.session = session;
@@ -203,27 +208,10 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 			}
 		};
 
+		sortedEntries = new WritableList<EntryData>();
 	    sort();
 
-	    IContentProvider<T> contentProvider = new IContentProvider<T>() {
-
-			@Override
-			public int getRowCount() {
-				return sortedEntries.size();
-			}
-
-			@Override
-			public T getElement(int rowNumber) {
-				return sortedEntries.get(rowNumber);
-			}
-
-			@Override
-			public int indexOf(EntryData entryData) {
-				return sortedEntries.indexOf(entryData);
-			}
-	    };
-
-		table = new VirtualRowTable<T>(this, rootBlock, this, contentProvider, rowProvider, rowTracker);
+		table = new VirtualRowTable<EntryData,R>(this, rootBlock, sortedEntries, rowProvider, rowTracker);
 
 		/*
 		 * Use a single cell focus tracker for this table. The row focus tracker
@@ -394,12 +382,14 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 				 */
 				if (propertyAccessor == AccountInfo.getNameAccessor()
 						|| propertyAccessor == CommodityInfo.getNameAccessor()) {
-					table.refreshContentOfAllRows();
+					// This method was empty anyway.
+					// TODO check if this is refreshed anyway
+//					table.refreshContentOfAllRows();
 				}
 			}
 
 			private void updateEntryInTable(Entry entry) {
-				T data = entries.get(entry);
+				EntryData data = entries.get(entry);
 
 				/*
 				 * This change may result in the entry moving in the sort order.
@@ -421,7 +411,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 
 				// Bubble up the screen (down the sort order)
 				while (index > 0) {
-					T data2 = sortedEntries.get(index-1);
+					EntryData data2 = sortedEntries.get(index-1);
 					if (rowComparator.compare(data2, data) <= 0) {
 						break;
 					}
@@ -434,7 +424,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 
 				// Bubble down the screen (up the sort order)
 				while (index < entries.size() - 1) {
-					T data2 = sortedEntries.get(index+1);
+					EntryData data2 = sortedEntries.get(index+1);
 
 					if (rowComparator.compare(data, data2) <= 0) {
 						break;
@@ -455,10 +445,6 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 
 				if (index != originalIndex) {
 					table.moveRow(originalIndex, index);
-				} else {
-					// TODO: Test to see if the amount has changed, and update the following
-					// rows only if so (as the balances will have changed).
-					table.refreshBalancesOfAllRows();
 				}
 			}
 
@@ -471,11 +457,12 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 				// Update all the later entries
 				updateFollowingValues(indexToRemove, data.getBalance());
 
-				table.deleteRow(indexToRemove);
+				// Now done through observable
+//				table.deleteRow(indexToRemove);
 			}
 
 			private void addEntryToTable(Entry entry) {
-				T newData = createEntryRowInput(entry);
+				EntryData newData = createEntryRowInput(entry);
 
 				entries.put(entry, newData);
 
@@ -509,12 +496,13 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 
 				updateFollowingValues(insertIndex, balance);
 
-				table.insertRow(insertIndex);
+				// Now done though observable list
+//				table.insertRow(insertIndex);
 			}
 		}, this);
 	}
 
-	protected abstract T createNewEntryRowInput();
+	protected abstract EntryData createNewEntryRowInput();
 
 	/**
 	 * Adjust the indexes and balances of all entries in the table starting at
@@ -549,7 +537,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 	/**
 	 * Change the sort according to the given parameters.
 	 */
-	public void sort(IndividualBlock<EntryData, BaseEntryRowControl> sortProperty, boolean sortAscending) {
+	public void sort(IndividualBlock<BaseEntryRowControl> sortProperty, boolean sortAscending) {
 //		rowComparator = new RowComparator(sortProperty, sortAscending);
 		rowComparator = new Comparator<EntryData>() {
 			@Override
@@ -589,7 +577,9 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 		 *
 		 * We therefore copy the entries into a list and then sort that.
 		 */
-		sortedEntries = new ArrayList<T>();
+		// Note:  We must re-use the same sortedEntries because it is the content
+		// to the upper panel.
+		sortedEntries.clear();
 		sortedEntries.addAll(entries.values());
 		Collections.sort(sortedEntries, rowComparator);
 
@@ -612,9 +602,9 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
     private void buildEntryList() {
         // Note that the balances are not set at this time. This is done
         // when the data is sorted.
-        entries = new HashMap<Entry, T>();
+        entries = new HashMap<Entry, EntryData>();
         for (Entry accountEntry: entriesContent.getEntries()) {
-        	T data = createEntryRowInput(accountEntry);
+        	EntryData data = createEntryRowInput(accountEntry);
             if (matchesFilter(data)) {
                 entries.put(accountEntry, data);
             }
@@ -1004,17 +994,17 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 
 	// TODO: This class is duplicated in Header.
 	// Need to get sorting working.
-	private class RowComparator implements Comparator<EntryData> {
-		private Comparator<EntryData> cellComparator;
+	private class RowComparator implements Comparator<R> {
+		private Comparator<R> cellComparator;
 		private boolean ascending;
 
-		RowComparator(IndividualBlock<EntryData, ?> sortProperty, boolean ascending) {
+		RowComparator(IndividualBlock<R> sortProperty, boolean ascending) {
 			this.cellComparator = sortProperty.getComparator();
 			this.ascending = ascending;
 		}
 
 		@Override
-		public int compare(EntryData entryData1, EntryData entryData2) {
+		public int compare(R entryData1, R entryData2) {
 			int result = cellComparator.compare(entryData1, entryData2);
 			return ascending ? result : -result;
 		}
@@ -1024,7 +1014,7 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 		return session;
 	}
 
-	protected abstract T createEntryRowInput(Entry entry);
+	protected abstract EntryData createEntryRowInput(Entry entry);
 
 	/**
 	 * Gets the row control that represents the 'new entry' row.  This row
@@ -1035,16 +1025,17 @@ public abstract class EntriesTable<T extends EntryData> extends Composite {
 	 * 'duplicate transaction' handler will call this method to get the
 	 * 'new entry' row and set data into it from the source transaction.
 	 */
-	public BaseEntryRowControl getNewEntryRowControl() {
-		return table.getRowControl(newEntryRow);
+	public EntryData getNewEntryRowData() {
+		return newEntryRow;
 	}
 
 	/**
 	 * This method is currently used only by the 'new transaction'
 	 * handler.  It sets the new entry row as the current row.
+	 * @return 
 	 */
-	public void selectNewEntryRow() {
+	public RowControl selectNewEntryRow() {
 		// TODO: Is this method name confusing?
-		table.getRowControl(newEntryRow);
+		return table.getRowControl(newEntryRow);
 	}
 }
