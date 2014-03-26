@@ -53,8 +53,6 @@ public class StockEntryFacade implements EntryFacade {
 	 */
 	private Entry netAmountEntry;
 	
-//	private IDataManagerForAccounts dataManager;
-
 	private final IObservableValue<TransactionType> transactionType = new WritableValue<TransactionType>();
 
 	private Entry dividendEntry;
@@ -75,11 +73,6 @@ public class StockEntryFacade implements EntryFacade {
 	private Entry transferEntry;
 
 	private boolean unknownTransactionType;
-
-	//	private List<IPropertyChangeListener<Long>> withholdingTaxChangeListeners = new ArrayList<IPropertyChangeListener<Long>>();
-	//	private List<IPropertyChangeListener<Long>> commissionChangeListeners = new ArrayList<IPropertyChangeListener<Long>>();
-	//	private List<IPropertyChangeListener<Long>> tax1ChangeListeners = new ArrayList<IPropertyChangeListener<Long>>();
-	//	private List<IPropertyChangeListener<Long>> tax2ChangeListeners = new ArrayList<IPropertyChangeListener<Long>>();
 
 	// bound to getPurchaseOrSaleEntry().getAmount() except this is always positive whereas
 	// getPurchaseOrSaleEntry().getAmount() would be negative for a sale
@@ -568,24 +561,17 @@ public class StockEntryFacade implements EntryFacade {
 		transactionType.setValue(TransactionType.Dividend);
 
 		/*
-		 * Currently entries can't be deleted by removing from the entry collection.
-		 * A call must be made to the appropriate method in the transaction.
+		 * Remove entries that are not appropriate for a 'dividend' transaction.
 		 */
-//		Set<Entry> toRemove = new HashSet<Entry>();
 		EntryCollection entries = getMainEntry().getTransaction().getEntryCollection();
 		for (Iterator<Entry> iter = entries.iterator(); iter.hasNext(); ) {
 			Entry entry = iter.next();
 			if (entry != getMainEntry()
 					&& entry != dividendEntry
 					&& entry != withholdingTaxEntry) {
-//				toRemove.add(entry);
 				iter.remove();
 			}
 		}
-		// Now we can delete and not get a concurrent access exception.
-//		for (Entry entry : toRemove) {
-//			getMainEntry().getTransaction().deleteEntry(entry);
-//		}
 
 		commissionEntry = null;
 		tax1Entry = null;
@@ -604,26 +590,6 @@ public class StockEntryFacade implements EntryFacade {
 			grossDividend += withholdingTaxEntry.getAmount();
 		}
 		dividendEntry.setAmount(grossDividend);
-	}
-
-	/**
-	 * This security is used only when a transaction is being forced by the user from one
-	 * transaction type to another.  For example if the user decided that a stock purchase
-	 * transaction was really a dividend payment.  The value returned by this method is
-	 * used to ensure the stock stays set but it is not critical if no stock is returned.
-	 *
-	 * @return the security involved in this transaction, or null if the transaction
-	 * 			does not involve a security (eg cash transfer), involves multiple securities
-	 * 			(eg merger), or the transaction is not complete
-	 */
-	private Security getSecurityFromTransaction() {
-		if (isPurchaseOrSale()) {
-			return (Security)purchaseOrSaleEntry.getCommodityInternal();
-		} else if (isDividend()) {
-			return StockEntryInfo.getSecurityAccessor().getValue(dividendEntry);
-		} else {
-			return null;
-		}
 	}
 
 	public void forceTransactionToBuy() {
