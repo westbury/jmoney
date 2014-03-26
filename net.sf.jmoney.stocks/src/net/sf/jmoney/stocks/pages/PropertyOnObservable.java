@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * Copyright (c) 2014 Nigel Westbury and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *     Nigel Westbury - initial API and implementation
+ *******************************************************************************/
 package net.sf.jmoney.stocks.pages;
 
 import org.eclipse.core.databinding.observable.IChangeListener;
@@ -11,15 +21,17 @@ import org.eclipse.core.databinding.property.value.ValueProperty;
  * This class is here because we have some model objects that have methods that
  * return observables.  That's really great if you want to bind to that property
  * of the model object.  The problem is when you want to do a master-detail on
- * to the property.  This class can be used to create a Property object that can
- * then be used in master-detail.
+ * to the property or if you want a IValueProperty for providing labels in a table.
+ * This class can be used to create a Property object that can
+ * then be used in these situations.
  * 
- * @author Nigel
- *
- * @param <V>
+ * @param <S> type of the source object
+ * @param <V> type of the value, being the generic type of the IObservableValue
+ * 				that is the observable property value
+ * @author Nigel Westbury
  */
-abstract class PropertyOnObservable<V> extends
-		ValueProperty<StockEntryFacade, V> {
+abstract class PropertyOnObservable<S, V> extends
+		ValueProperty<S, V> {
 	
 	private Class<V> valueClass;
 	
@@ -34,11 +46,11 @@ abstract class PropertyOnObservable<V> extends
 
 	@Override
 	public IObservableValue<V> observe(Realm realm,
-			final StockEntryFacade source) {
+			final S source) {
 		/*
 		 * This is a bit hacky.  It would be nice if we could simply return
-		 * source.sharePrice().  Unfortunately the caller owns the returned observable
-		 * and may well dispose it.  We can't dispose source.sharePrice() hence all this code.
+		 * the observable directly.  Unfortunately the caller owns the returned observable
+		 * and may well dispose it.  We don't own this observable hence all this code.
 		 */
 		return new AbstractObservableValue<V>() {
 
@@ -79,6 +91,6 @@ abstract class PropertyOnObservable<V> extends
 		};
 	}
 
-	protected abstract IObservableValue<V> getObservable(StockEntryFacade source);
+	protected abstract IObservableValue<V> getObservable(S source);
 
 }
