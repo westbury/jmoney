@@ -1,6 +1,11 @@
 package net.sf.jmoney.model2;
 
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.eclipse.core.databinding.observable.list.ComputedList;
+import org.eclipse.core.databinding.observable.list.IObservableList;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.swt.widgets.Composite;
@@ -42,8 +47,23 @@ public abstract class CommodityControlFactory<S extends ExtendableObject, P> ext
 //	}
 
 	@Override
-	public Control createPropertyControl(Composite parent, final ScalarPropertyAccessor<Commodity,S> propertyAccessor, IObservableValue<? extends S> modelObservable) {
-		CommodityControl<Commodity> control = new CommodityControl<Commodity>(parent, null, Commodity.class);
+	public Control createPropertyControl(Composite parent, final ScalarPropertyAccessor<Commodity,S> propertyAccessor, final IObservableValue<? extends S> modelObservable) {
+    	IObservableList<Commodity> currencyListObservable = new ComputedList<Commodity>() {
+			@Override
+			protected List<Commodity> calculate() {
+				/*
+				 * The model object may be null if the control is created before input
+				 * is set.
+				 */
+				List<Commodity> result = new ArrayList<Commodity>();
+				if (modelObservable.getValue() != null) {
+					result.addAll(modelObservable.getValue().getSession().getCommodityCollection());
+				}
+				return result;
+			}
+    	};
+
+		CommodityControl<Commodity> control = new CommodityControl<Commodity>(parent, currencyListObservable, Commodity.class);
 
 		Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
 		.to(control.commodity);

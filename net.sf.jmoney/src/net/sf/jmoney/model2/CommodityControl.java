@@ -29,6 +29,7 @@ import java.util.Vector;
 
 import org.eclipse.core.databinding.conversion.Converter;
 import org.eclipse.core.databinding.conversion.IConverter;
+import org.eclipse.core.databinding.observable.list.IObservableList;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.jface.databinding.swt.SWTObservables;
@@ -64,7 +65,8 @@ public class CommodityControl<A extends Commodity> extends Composite {
 
 	Text textControl;
 
-	private Session session;
+	private IObservableList<A> commodityListObservable;
+	
 	private Class<A> commodityClass;
 
     /**
@@ -81,9 +83,9 @@ public class CommodityControl<A extends Commodity> extends Composite {
 	 * @param parent
 	 * @param style
 	 */
-	public CommodityControl(final Composite parent, Session session, final Class<A> commodityClass) {
+	public CommodityControl(final Composite parent, IObservableList<A> commodityListObservable, final Class<A> commodityClass) {
 		super(parent, SWT.NONE);
-		this.session = session;
+		this.commodityListObservable = commodityListObservable;
 		this.commodityClass = commodityClass;
 
 		setBackgroundMode(SWT.INHERIT_FORCE);
@@ -141,11 +143,8 @@ public class CommodityControl<A extends Commodity> extends Composite {
         final List listControl = new List(shell, SWT.SINGLE | SWT.V_SCROLL);
         listControl.setLayoutData(new RowData(SWT.DEFAULT, 100));
 
-        // Important we use the field for the session and commodityClass.  We do not use the parameters
-        // (the parameters may be null, but fields should always have been set by
-        // the time control gets focus).
         allCommodities = new Vector<A>();
-        addCommodities("", CommodityControl.this.session.getCommodityCollection(), listControl, CommodityControl.this.commodityClass);
+        addCommodities("", commodityListObservable, listControl, CommodityControl.this.commodityClass);
 
 //        shell.setSize(listControl.computeSize(SWT.DEFAULT, listControl.getItemHeight()*10));
 
@@ -297,17 +296,5 @@ public class CommodityControl<A extends Commodity> extends Composite {
 
 	public Control getControl() {
 		return this;
-	}
-
-	/**
-	 * Normally the session is set through the constructor. However in some
-	 * circumstances (i.e. in the custom cell editors) the session is not
-	 * available at construction time and null will be set. This method must
-	 * then be called to set the session before the control is used (i.e. before
-	 * the control gets focus).
-	 */
-	public void setSession(Session session, Class<A> commodityClass) {
-		this.session = session;
-		this.commodityClass = commodityClass;
 	}
 }
