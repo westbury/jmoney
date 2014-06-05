@@ -89,10 +89,8 @@ public class AmazonHtmlImportWizardPage extends WizardPage  {
 
 		Label label = new Label(composite, SWT.WRAP);
 		label.setText(
-				"The selected CSV file will be imported.  As you have not selected an account into which the import is to be made, " +
-				"an investment account called 'Ameritrade' must exist and the data will be imported into that account. " +
-				"The file must have been downloaded from Ameritrade for this import to work.  To download from Ameritrade, go to Statements, History. " +
-				"If entries have already been imported, this import will not create duplicates.");
+				"Imports an HTML page that was obtained by going to amazon.co.uk, listing Orders, and saving the page (it will be saved with an htm extension).  " +
+						"You must also select 'Details' for any orders that contain more than a single item and save that page.");
 		GridData gd = new GridData(SWT.FILL, SWT.FILL, true, true);
 		gd.horizontalSpan = 2;
 		gd.widthHint = 600;
