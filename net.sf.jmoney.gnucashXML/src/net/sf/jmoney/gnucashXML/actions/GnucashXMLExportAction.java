@@ -28,12 +28,15 @@ import net.sf.jmoney.gnucashXML.GnucashXML;
 import net.sf.jmoney.gnucashXML.GnucashXMLPlugin;
 import net.sf.jmoney.model2.Session;
 
-import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.jface.viewers.ISelection;
+import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.jface.wizard.Wizard;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.ui.IExportWizard;
+import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.IWorkbenchWindowActionDelegate;
 
@@ -45,21 +48,32 @@ import org.eclipse.ui.IWorkbenchWindowActionDelegate;
  * delegated to it.
  * @see IWorkbenchWindowActionDelegate
  */
-public class GnucashXMLExportAction implements IWorkbenchWindowActionDelegate {
+public class GnucashXMLExportAction extends Wizard implements IExportWizard {
+
 	private IWorkbenchWindow window;
+
+	private GnuCashExportWizardPage mainPage;
+
 	/**
 	 * The constructor.
 	 */
 	public GnucashXMLExportAction() {
+		IDialogSettings workbenchSettings = GnucashXMLPlugin.getDefault().getDialogSettings();
+		IDialogSettings section = workbenchSettings.getSection("GnuCashExportWizard");//$NON-NLS-1$
+		if (section == null) {
+			section = workbenchSettings.addNewSection("GnuCashExportWizard");//$NON-NLS-1$
+		}
+		setDialogSettings(section);
 	}
 
 	/**
-	 * The action has been activated. The argument of the
-	 * method represents the 'real' action sitting
-	 * in the workbench UI.
-	 * @see IWorkbenchWindowActionDelegate#run
+	 * We will cache window object in order to
+	 * be able to provide parent shell for the message dialog.
+	 * @see IWorkbenchWindowActionDelegate#init
 	 */
-	public void run(IAction action) {
+	public void init(IWorkbench workbench, IStructuredSelection selection) {
+		this.window = workbench.getActiveWorkbenchWindow();
+
 		Session session = JMoneyPlugin.getDefault().getSession(); 
 
 		// Original JMoney disabled the export menu items when no
@@ -75,10 +89,18 @@ public class GnucashXMLExportAction implements IWorkbenchWindowActionDelegate {
 						MessageDialog.INFORMATION, 
 						new String[] { IDialogConstants.OK_LABEL }, 0);
 	        waitDialog.open();
-			return;
+	        return;
 		}
         
+		mainPage = new GnuCashExportWizardPage(window);
+		addPage(mainPage);
+	}
+
+	@Override
+	public boolean performFinish() {
         
+		Session session = JMoneyPlugin.getDefault().getSession(); 
+
         // Display a warning
         // TODO Remove this warning when the problem is resolved 
         MessageBox diag = new MessageBox(window.getShell());
@@ -86,46 +108,12 @@ public class GnucashXMLExportAction implements IWorkbenchWindowActionDelegate {
         diag.setMessage("Warning:\nFor this time, the export as a GnuCash file produce a file which can't be imported under GnuCash. The file can only be imported in the current JMoney application.");
         diag.open();
 		
-	    FileDialog xmlFileChooser = new FileDialog(window.getShell());
-		xmlFileChooser.setText(
-				GnucashXMLPlugin.getResourceString("MainFrame.export"));
-		xmlFileChooser.setFilterExtensions(new String[] { "*.xml;*.xac" });
-		xmlFileChooser.setFilterNames(new String[] { "XML Gnucash Files (*.xml; *.xac)" });
-		// TODO: Faucheux - delete Directory 
-		xmlFileChooser.setFilterPath("D:\\Documents and Settings\\Administrateur\\Mes documents\\Mes comptes");
-		String fileName = xmlFileChooser.open();
-
+        String fileName = this.mainPage.getFileName();
 	    if (fileName != null) {
 	        GnucashXML export = GnucashXML.getSingleton(window);
 	        export.export(session, fileName);
 		}
-	    
-	}
 
-	/**
-	 * Selection in the workbench has been changed. We 
-	 * can change the state of the 'real' action here
-	 * if we want, but this can only happen after 
-	 * the delegate has been created.
-	 * @see IWorkbenchWindowActionDelegate#selectionChanged
-	 */
-	public void selectionChanged(IAction action, ISelection selection) {
-	}
-
-	/**
-	 * We can use this method to dispose of any system
-	 * resources we previously allocated.
-	 * @see IWorkbenchWindowActionDelegate#dispose
-	 */
-	public void dispose() {
-	}
-
-	/**
-	 * We will cache window object in order to
-	 * be able to provide parent shell for the message dialog.
-	 * @see IWorkbenchWindowActionDelegate#init
-	 */
-	public void init(IWorkbenchWindow window) {
-		this.window = window;
+	    return true;
 	}
 }

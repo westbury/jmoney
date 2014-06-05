@@ -844,12 +844,13 @@ public final class GnucashXML implements FileFormat, IRunnableWithProgress {
 
 		e = doc.createElement("split:value");
 		String s = entry.getAmount() + "/"
-				+ entry.getCommodityInternal().getScaleFactor();
+				+ ((entry.getCommodityInternal() == null) ? 2 : entry.getCommodityInternal().getScaleFactor());
 		e.appendChild(doc.createTextNode(s));
 		entryElement.appendChild(e);
 
 		e = doc.createElement("split:quantity");
-		s = entry.getAmount() + "/" + entry.getCommodityInternal().getScaleFactor();
+		s = entry.getAmount() + "/"
+				+ ((entry.getCommodityInternal() == null) ? 2 : entry.getCommodityInternal().getScaleFactor());
 		e.appendChild(doc.createTextNode(s));
 		entryElement.appendChild(e);
 
