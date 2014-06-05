@@ -128,6 +128,13 @@ public class BankStatement implements Comparable<BankStatement> {
 		} else if (this.statementDate != null && otherStatement.statementDate != null) {
 			return this.statementDate.compareTo(otherStatement.statementDate);
 		} else {
+			System.out.println("mixed statement types!!!");
+			if (this.statementDate != null && otherStatement.statementDate == null) {
+				return 1;
+			}
+			if (this.statementDate == null && otherStatement.statementDate != null) {
+				return -1;
+			}
 			throw new RuntimeException("mixed statement types!!!");
 		}
 	}
