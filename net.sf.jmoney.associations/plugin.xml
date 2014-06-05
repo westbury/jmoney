@@ -4,16 +4,6 @@
 
      <extension-point id="metadata" name="Account Associations" schema="schema/accountAssociations.exsd"/>
 
-	<extension point="org.eclipse.ui.importWizards">
-		<wizard id="net.sf.jmoney.importer.ImportWizard"
-			name="%importWizard.name"
-			class="net.sf.jmoney.associations.wizards.CsvImportToAccountWizard">
-			<description>
-				Import data from CSV file downloaded from importer. 
-			</description>
-		</wizard>
-	</extension>
-
    <extension
          point="net.sf.jmoney.fields">
       
