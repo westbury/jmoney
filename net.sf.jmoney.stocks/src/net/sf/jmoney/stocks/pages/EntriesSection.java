@@ -134,10 +134,9 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		// Null does not work as a child of StackBlock so create an empty one.
 		// No, it is fine to be null now, I think.
 		final Block<IObservableValue<StockEntryFacade>> withholdingTaxColumn =
-//				account.getWithholdingTaxAccount() == null 
-//				? new BlankBlock()
-//				: 
-					new EntryAmountBlock("Withholding Tax", withholdingTaxProperty, account.getWithholdingTaxAccount().getCurrency());
+				account.getWithholdingTaxAccount() == null 
+				? null //new BlankBlock()
+				: new EntryAmountBlock("Withholding Tax", withholdingTaxProperty, account.getWithholdingTaxAccount().getCurrency());
 
 		List<Block<? super IObservableValue<StockEntryFacade>>> expenseColumns = new ArrayList<Block<? super IObservableValue<StockEntryFacade>>>();
 
