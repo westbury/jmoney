@@ -28,9 +28,9 @@ import org.eclipse.swt.widgets.Display;
 
 public class Header<B> extends Composite {
 
-	private Block<B> rootBlock;
+	private Block<? super B> rootBlock;
 	
-	public Header(Composite parent, int style, Block<B> rootBlock) {
+	public Header(Composite parent, int style, Block<? super B> rootBlock) {
 		super(parent, style);
 		this.rootBlock = rootBlock;
 		
