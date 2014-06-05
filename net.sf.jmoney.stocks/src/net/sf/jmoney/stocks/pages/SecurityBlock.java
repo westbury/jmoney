@@ -33,7 +33,7 @@ public class SecurityBlock extends
 			}
 		};
 
-		IValueProperty<StockEntryFacade, Security> securityProperty = new PropertyOnObservable<Security>(Security.class) {
+		IValueProperty<StockEntryFacade, Security> securityProperty = new PropertyOnObservable<StockEntryFacade, Security>(Security.class) {
 			@Override
 			protected IObservableValue<Security> getObservable(
 					StockEntryFacade source) {

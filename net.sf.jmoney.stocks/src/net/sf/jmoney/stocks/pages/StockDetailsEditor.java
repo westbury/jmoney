@@ -186,7 +186,7 @@ public class StockDetailsEditor extends EditorPart {
 
 		IndividualBlock<IObservableValue<StockEntryFacade>> shareQuantityColumn = new ShareQuantityBlock(account);
 
-		PropertyOnObservable<Long> withholdingTaxProperty = new PropertyOnObservable<Long>(Long.class) {
+		IValueProperty<StockEntryFacade, Long> withholdingTaxProperty = new PropertyOnObservable<StockEntryFacade, Long>(Long.class) {
 			@Override
 			protected IObservableValue<Long> getObservable(StockEntryFacade source) {
 				return source.withholdingTax();
@@ -203,7 +203,7 @@ public class StockDetailsEditor extends EditorPart {
 		List<Block<? super IObservableValue<StockEntryFacade>>> expenseColumns = new ArrayList<Block<? super IObservableValue<StockEntryFacade>>>();
 
 		if (account.getCommissionAccount() != null) {
-			PropertyOnObservable<Long> commissionProperty = new PropertyOnObservable<Long>(Long.class) {
+			IValueProperty<StockEntryFacade, Long> commissionProperty = new PropertyOnObservable<StockEntryFacade, Long>(Long.class) {
 				@Override
 				protected IObservableValue<Long> getObservable(StockEntryFacade source) {
 					return source.commission();
@@ -217,7 +217,7 @@ public class StockDetailsEditor extends EditorPart {
 		}
 
 		if (account.getTax1Name() != null && account.getTax1Account() != null) {
-			PropertyOnObservable<Long> tax1Property = new PropertyOnObservable<Long>(Long.class) {
+			IValueProperty<StockEntryFacade, Long> tax1Property = new PropertyOnObservable<StockEntryFacade, Long>(Long.class) {
 				@Override
 				protected IObservableValue<Long> getObservable(StockEntryFacade source) {
 					return source.tax1();
@@ -231,7 +231,7 @@ public class StockDetailsEditor extends EditorPart {
 		}
 
 		if (account.getTax2Name() != null && account.getTax2Account() != null) {
-			PropertyOnObservable<Long> tax2Property = new PropertyOnObservable<Long>(Long.class) {
+			IValueProperty<StockEntryFacade, Long> tax2Property = new PropertyOnObservable<StockEntryFacade, Long>(Long.class) {
 				@Override
 				protected IObservableValue<Long> getObservable(StockEntryFacade source) {
 					return source.tax2();
@@ -330,7 +330,7 @@ public class StockDetailsEditor extends EditorPart {
 					public Control createCellControl(Composite parent, final IObservableValue<StockEntryFacade> blockInput, final RowControl rowControl) {
 						final StackControl<IObservableValue<StockEntryFacade>> control = new StackControl<IObservableValue<StockEntryFacade>>(parent, rowControl, blockInput, this);
 
-						IValueProperty<StockEntryFacade, TransactionType> transactionProperty = new PropertyOnObservable<TransactionType>(TransactionType.class) {
+						IValueProperty<StockEntryFacade, TransactionType> transactionProperty = new PropertyOnObservable<StockEntryFacade, TransactionType>(TransactionType.class) {
 							@Override
 							protected IObservableValue<TransactionType> getObservable(
 									StockEntryFacade source) {

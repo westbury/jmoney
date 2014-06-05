@@ -10,6 +10,7 @@ import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
 
 import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.property.value.IValueProperty;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
 import org.eclipse.core.runtime.CoreException;
@@ -83,7 +84,7 @@ public class ShareQuantityBlock extends
 				}
 			};
 
-			PropertyOnObservable<Long> shareQuantityProperty = new PropertyOnObservable<Long>(Long.class) {
+			IValueProperty<StockEntryFacade, Long> shareQuantityProperty = new PropertyOnObservable<StockEntryFacade, Long>(Long.class) {
 				@Override
 				protected IObservableValue<Long> getObservable(StockEntryFacade source) {
 					return source.quantity();

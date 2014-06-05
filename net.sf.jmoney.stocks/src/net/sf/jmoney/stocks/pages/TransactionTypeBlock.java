@@ -37,7 +37,7 @@ public class TransactionTypeBlock extends
 				}
 			});
 			viewer.setInput(TransactionType.values());
-			IValueProperty<StockEntryFacade, TransactionType> transactionProperty = new PropertyOnObservable<TransactionType>(TransactionType.class) {
+			IValueProperty<StockEntryFacade, TransactionType> transactionProperty = new PropertyOnObservable<StockEntryFacade, TransactionType>(TransactionType.class) {
 				@Override
 				protected IObservableValue<TransactionType> getObservable(
 						StockEntryFacade source) {

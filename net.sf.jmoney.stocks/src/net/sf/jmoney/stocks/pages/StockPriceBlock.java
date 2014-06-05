@@ -9,6 +9,7 @@ import net.sf.jmoney.entrytable.RowControl;
 import net.sf.jmoney.stocks.model.StockAccount;
 
 import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.property.value.IValueProperty;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
 import org.eclipse.core.runtime.CoreException;
@@ -54,7 +55,7 @@ public class StockPriceBlock extends
 			}
 		};
 
-		PropertyOnObservable<BigDecimal> sharePriceProperty = new PropertyOnObservable<BigDecimal>(BigDecimal.class) {
+		IValueProperty<StockEntryFacade, BigDecimal> sharePriceProperty = new PropertyOnObservable<StockEntryFacade, BigDecimal>(BigDecimal.class) {
 			@Override
 			protected IObservableValue<BigDecimal> getObservable(StockEntryFacade source) {
 				return source.sharePrice();
