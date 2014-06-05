@@ -36,6 +36,7 @@ import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ReferenceViolationException;
 import net.sf.jmoney.jdbcdatastore.SessionManager.DatabaseListKey;
 import net.sf.jmoney.model2.ListPropertyAccessor;
+import net.sf.jmoney.model2.SessionInfo;
 
 /**
  * Every datastore implementation must provide an implementation
@@ -123,13 +124,26 @@ public class ListManagerUncached<E extends IModelObject, S extends IModelObject>
 			ListPropertyAccessor<?,?> listPropertyAccessor2 = (ListPropertyAccessor<?,?>)listKey.listPropertyAccessor;
 			
 			String tableName = listPropertyAccessor2.getElementPropertySet().getId().replace('.', '_');
-			String columnName = listPropertyAccessor2.getName().replace('.', '_');
-			String sql = "SELECT COUNT(*) FROM " + tableName
-			+ " WHERE \"" + columnName + "\" = ?";
+
+			
+			/* If the containing list property is a property in one of the three
+			 * lists in the session object
+			 * then, as an optimization, there is no parent column.
+			 */
+			String sql = "SELECT COUNT(*) FROM " + tableName;
+			if (listPropertyAccessor2.getPropertySet() != SessionInfo.getPropertySet()) {
+				String columnName = listPropertyAccessor2.getName().replace('.', '_');
+				sql += " WHERE \"" + columnName + "\" = ?";
+			}
+			
 			System.out.println(sql);
 			PreparedStatement stmt = sessionManager.getConnection().prepareStatement(sql);
 			try {
-				stmt.setInt(1, listKey.parentKey.getRowId());
+				// Set parent id (unless it's the session in which case it's optimized out)
+				if (listPropertyAccessor2.getPropertySet() != SessionInfo.getPropertySet()) {
+					stmt.setInt(1, listKey.parentKey.getRowId());
+				}
+				
 				ResultSet resultSet = stmt.executeQuery();
 				resultSet.next();
 				int size = resultSet.getInt(1);
