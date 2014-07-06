@@ -22,24 +22,16 @@
 
 package net.sf.jmoney.importer.model;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import net.sf.jmoney.associations.model.AccountAssociation;
-import net.sf.jmoney.associations.model.AccountAssociationInfo;
 import net.sf.jmoney.isolation.IValues;
-import net.sf.jmoney.isolation.ObjectCollection;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.CapitalAccountInfo;
 import net.sf.jmoney.model2.ExtensionPropertySet;
 import net.sf.jmoney.model2.IExtensionObjectConstructors;
-import net.sf.jmoney.model2.IListGetter;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.IPropertySetInfo;
-import net.sf.jmoney.model2.ListPropertyAccessor;
 import net.sf.jmoney.model2.PropertyControlFactory;
 import net.sf.jmoney.model2.PropertySet;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
@@ -75,14 +67,12 @@ public class ImportAccountInfo implements IPropertySetInfo {
 		public ImportAccount construct(CapitalAccount extendedObject, IValues<CapitalAccount> values) {
 			return new ImportAccount(
 					extendedObject,
-					values.getScalarValue(getImportDataExtensionIdAccessor()),
-					values.getListManager(extendedObject.getObjectKey(), getAssociationsAccessor())
+					values.getScalarValue(getImportDataExtensionIdAccessor())
 			);
 		}
 	});
 
 	private static ScalarPropertyAccessor<String,CapitalAccount> importDataExtensionIdAccessor = null;
-	private static ListPropertyAccessor<AccountAssociation,CapitalAccount> associationsAccessor = null;
 
 	@Override
 	public PropertySet<ImportAccount,CapitalAccount> registerProperties() {
@@ -197,15 +187,7 @@ public class ImportAccountInfo implements IPropertySetInfo {
 			}
 		};
 
-		IListGetter<ImportAccount, AccountAssociation> associationListGetter = new IListGetter<ImportAccount, AccountAssociation>() {
-			@Override
-			public ObjectCollection<AccountAssociation> getList(ImportAccount parentObject) {
-				return parentObject.getAssociationCollection();
-			}
-		};
-
 		importDataExtensionIdAccessor = propertySet.addProperty("importDataExtensionId", "Table Structure", String.class, 1, 5, importDataControlFactory, null);
-		associationsAccessor = propertySet.addPropertyList("associations", "Associations", AccountAssociationInfo.getPropertySet(), associationListGetter);
 
 		return propertySet;
 	}
@@ -222,12 +204,5 @@ public class ImportAccountInfo implements IPropertySetInfo {
 	 */
 	public static ScalarPropertyAccessor<String,CapitalAccount> getImportDataExtensionIdAccessor() {
 		return importDataExtensionIdAccessor;
-	}
-
-	/**
-	 * @return
-	 */
-	public static ListPropertyAccessor<AccountAssociation,CapitalAccount> getAssociationsAccessor() {
-		return associationsAccessor;
 	}
 }

@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import net.sf.jmoney.associations.model.AccountAssociation;
+import net.sf.jmoney.associations.model.AccountAssociationsExtension;
+import net.sf.jmoney.associations.model.AccountAssociationsInfo;
 import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.importer.matcher.EntryData;
 import net.sf.jmoney.importer.matcher.ImportMatcher;
@@ -106,7 +108,7 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 	 * @return
 	 */
 	protected Account getAssociatedAccount(String id) {
-		ImportAccount a = accountInsideTransaction.getExtension(ImportAccountInfo.getPropertySet(), false);
+		AccountAssociationsExtension a = accountInsideTransaction.getExtension(AccountAssociationsInfo.getPropertySet(), false);
 		if (a != null) {
 			for (AccountAssociation aa : a.getAssociationCollection()) {
 				if (aa.getId().equals(id)) {

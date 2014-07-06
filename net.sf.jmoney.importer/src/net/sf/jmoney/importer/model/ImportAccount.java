@@ -22,10 +22,7 @@
 
 package net.sf.jmoney.importer.model;
 
-import net.sf.jmoney.associations.model.AccountAssociation;
 import net.sf.jmoney.importer.wizards.IAccountImportWizard;
-import net.sf.jmoney.isolation.IListManager;
-import net.sf.jmoney.isolation.ObjectCollection;
 import net.sf.jmoney.model2.CapitalAccountExtension;
 import net.sf.jmoney.model2.ExtendableObject;
 
@@ -45,8 +42,6 @@ public class ImportAccount extends CapitalAccountExtension {
 	
 	protected String importDataExtensionId = null;
 	
-	protected IListManager<AccountAssociation> associations;
-	
 	/**
 	 * A default constructor is mandatory for all extension objects.
 	 * The default constructor sets the extension properties to
@@ -54,7 +49,6 @@ public class ImportAccount extends CapitalAccountExtension {
 	 */
 	public ImportAccount(ExtendableObject extendedObject) {
 		super(extendedObject);
-		this.associations = extendedObject.getObjectKey().constructListManager(ImportAccountInfo.getAssociationsAccessor());
 	}
 	
 	/**
@@ -65,11 +59,9 @@ public class ImportAccount extends CapitalAccountExtension {
 	 */
 	public ImportAccount(
 			ExtendableObject extendedObject,
-			String importDataExtensionId, 
-			IListManager<AccountAssociation> associations) {
+			String importDataExtensionId) {
 		super(extendedObject);
 		this.importDataExtensionId = importDataExtensionId;
-		this.associations = associations;
 	}
 	
 	public String getImportDataExtensionId() {
@@ -82,10 +74,6 @@ public class ImportAccount extends CapitalAccountExtension {
 		processPropertyChange(ImportAccountInfo.getImportDataExtensionIdAccessor(), oldImportDataExtensionId, importDataExtensionId);
 	}
 	
-	public ObjectCollection<AccountAssociation> getAssociationCollection() {
-		return new ObjectCollection<AccountAssociation>(associations, getBaseObject(), ImportAccountInfo.getAssociationsAccessor());
-	}
-
 	public IAccountImportWizard getImportWizard() {
 		/*
 		 * The importDataExtensionId property in the account is an id for a configuration element
