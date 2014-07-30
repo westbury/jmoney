@@ -23,11 +23,14 @@
 package net.sf.jmoney.importer.matcher;
 
 import java.net.URL;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -38,11 +41,11 @@ import net.sf.jmoney.importer.model.MemoPattern;
 import net.sf.jmoney.importer.model.MemoPatternInfo;
 import net.sf.jmoney.importer.model.PatternMatcherAccount;
 import net.sf.jmoney.importer.model.PatternMatcherAccountInfo;
+import net.sf.jmoney.importer.model.TransactionType;
 import net.sf.jmoney.isolation.ObjectCollection;
 import net.sf.jmoney.isolation.ReferenceViolationException;
 import net.sf.jmoney.isolation.TransactionManager;
-import net.sf.jmoney.model2.Account;
-import net.sf.jmoney.model2.AccountCellEditor;
+import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
@@ -50,13 +53,19 @@ import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
 
+import org.eclipse.core.databinding.observable.value.ComputedValue;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
 import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.jface.databinding.viewers.ViewerProperties;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.DialogMessageArea;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.IMessageProvider;
 import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.internal.databinding.provisional.swt.ControlCreator;
+import org.eclipse.jface.internal.databinding.provisional.swt.UpdatingComposite;
+import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.CellEditor;
@@ -66,10 +75,12 @@ import org.eclipse.jface.viewers.ColumnViewerEditor;
 import org.eclipse.jface.viewers.ColumnViewerEditorActivationEvent;
 import org.eclipse.jface.viewers.ColumnViewerEditorActivationStrategy;
 import org.eclipse.jface.viewers.ColumnViewerToolTipSupport;
+import org.eclipse.jface.viewers.ComboBoxViewerCellEditor;
 import org.eclipse.jface.viewers.EditingSupport;
 import org.eclipse.jface.viewers.FocusCellOwnerDrawHighlighter;
 import org.eclipse.jface.viewers.IStructuredContentProvider;
 import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
 import org.eclipse.jface.viewers.TableViewerEditor;
@@ -88,6 +99,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
@@ -99,6 +111,124 @@ import org.eclipse.swt.widgets.Table;
  * @author Nigel Westbury
  */
 public class PatternMatchingDialog extends Dialog {
+
+	public class ParametersComposite extends UpdatingComposite {
+
+		LabelCreator labelCreator = new LabelCreator(this);
+
+		public ParametersComposite(Composite parent, int style) {
+			super(parent, style);
+			setLayout(new GridLayout(2, false));
+		}
+
+		@Override
+		protected void createControls() {
+			MemoPattern pattern = ViewerProperties.<MemoPattern>singleSelection().observe(patternViewer).getValue();
+			String transactionTypeId = MemoPatternInfo.getTransactionTypeIdAccessor().observe(pattern).getValue();
+			
+			TransactionType transType = lookupTransactionType(transactionTypeId);
+			if (transType == null) {
+				return;
+			}
+
+//			IObservableMap<String, String> transactionParameterValues = pattern.getTransactionParameterValueMap();
+
+			EntryData entryData = ViewerProperties.<EntryData>singleSelection().observe(entriesViewer).getValue();
+
+			Object [] args = null;
+			
+			if (entryData != null) {
+
+				boolean unmatchedFound = false;
+				for (ImportEntryProperty importEntryProperty : importEntryProperties) {
+					String importEntryPropertyValue = importEntryProperty.getCurrentValue(entryData);
+					Pattern compiledPattern = pattern.getCompiledPattern(importEntryProperty.id);
+
+					if (compiledPattern != null) {
+						Matcher m = compiledPattern.matcher(importEntryPropertyValue);
+						if (!m.matches()) {
+							unmatchedFound = true;
+							break;
+						}
+
+						/*
+						 * Only 'memo' provides arguments.
+						 */
+						if (importEntryProperty.id.equals("memo")) {
+							/*
+							 * Group zero is the entire string and the groupCount method
+							 * does not include that group, so there is really one more group
+							 * than the number given by groupCount.
+							 *
+							 * This code also tidies up the imported text.
+							 */
+							args = new Object[m.groupCount()+1];
+							for (int i = 0; i <= m.groupCount(); i++) {
+								// Not sure why it can be null, but it happened...
+								args[i] = m.group(i) == null ? null : ImportMatcher.convertToMixedCase(m.group(i));
+							}
+						}
+					}
+				}
+				
+				if (unmatchedFound) {
+					// Set args back to null, because null should be set if any don't match,
+					// even if the memo pattern does match.
+					args = null;
+				}
+			}
+			
+			GridDataFactory textLayoutData = GridDataFactory.fillDefaults().minSize(200, SWT.DEFAULT);
+			
+			for (TransactionParamMetadata paramMetadata : transType.getParameters()) {
+				Label label = labelCreator.create();
+				label.setText(paramMetadata.getName() + ":");
+
+				TextboxCreator textboxCreator = new TextboxCreator(this, paramMetadata);
+				Control textbox = textboxCreator.create();
+				textLayoutData.applyTo(textbox);
+			}
+		}
+	}
+
+	public class LabelCreator extends ControlCreator<Label> {
+		public LabelCreator(ParametersComposite updatingComposite) {
+			super(updatingComposite, Label.class);
+		}
+
+		@Override
+		public Label createControl() {
+			return new Label(parent, SWT.NONE);
+		}
+	}
+
+	public class TextboxCreator extends ControlCreator<Control> {
+		private TransactionParamMetadata paramMetadata;
+		
+		public TextboxCreator(ParametersComposite updatingComposite, TransactionParamMetadata paramMetadata) {
+			super(updatingComposite, Control.class);
+			this.paramMetadata = paramMetadata;
+		}
+
+		@Override
+		public Control createControl() {
+			return paramMetadata.createControl(parent, ViewerProperties.<MemoPattern>singleSelection().observe(patternViewer), args);
+		}
+		
+		@Override
+		public boolean equals(Object other) {
+			if (other instanceof TextboxCreator) {
+				return ((TextboxCreator)other).paramMetadata.equals(paramMetadata);
+			} else {
+				return false;
+			}
+		}
+		
+		@Override
+		public int hashCode() {
+			return paramMetadata.hashCode();
+		}
+	}
 
 	private TransactionManager transactionManager;
 
@@ -113,6 +243,40 @@ public class PatternMatchingDialog extends Dialog {
 
 	TableViewer patternViewer;
 
+	public IObservableValue<String[]> args = new ComputedValue<String[]>() {
+		@Override
+		protected String[] calculate() {
+			EntryData entryData = ViewerProperties.<EntryData>singleSelection().observe(entriesViewer).getValue();
+			MemoPattern pattern = ViewerProperties.<MemoPattern>singleSelection().observe(patternViewer).getValue();
+
+			/*
+			 * The pattern may not yet have been entered if the user has just added a new
+			 * pattern.
+			 */
+			if (pattern != null && entryData != null) {
+				Pattern compiledPattern = pattern.getCompiledPattern();
+				Matcher m = compiledPattern.matcher(entryData.getDefaultDescription());
+				if (m.matches()) {
+					/*
+					 * Group zero is the entire string and the groupCount method
+					 * does not include that group, so there is really one more group
+					 * than the number given by groupCount.
+					 *
+					 * This code also tidies up the imported text.
+					 */
+					String [] args = new String[m.groupCount()+1];
+					for (int i = 0; i <= m.groupCount(); i++) {
+						// Not sure why it can be null, but it happened...
+						args[i] = m.group(i) == null ? null : ImportMatcher.convertToMixedCase(m.group(i));
+					}
+					return args;
+				}
+			}
+			
+			return null;
+		}
+	};
+	
 	AccountControl<IncomeExpenseAccount> defaultAccountControl;
 
 	Image errorImage;
@@ -132,6 +296,10 @@ public class PatternMatchingDialog extends Dialog {
 
 	private ArrayList<MemoPattern> sortedPatterns;
 
+	private List<ImportEntryProperty> importEntryProperties;
+	
+	private List<TransactionType> applicableTransactionTypes;
+
 	/**
 	 * Creates an input dialog with OK and Cancel buttons. Note that the dialog
 	 * will have no visual representation (no widgets) until it is told to open.
@@ -143,10 +311,12 @@ public class PatternMatchingDialog extends Dialog {
 	 *            the parent shell
 	 * @param importedEntries
 	 */
-	public PatternMatchingDialog(Shell parentShell, PatternMatcherAccount account, Collection<? extends EntryData> sampleEntries) {
+	public PatternMatchingDialog(Shell parentShell, PatternMatcherAccount account, Collection<? extends EntryData> sampleEntries, List<ImportEntryProperty> importEntryProperties, List<TransactionType> applicableTransactionTypes) {
 		super(parentShell);
 		this.sampleEntries = sampleEntries;
-
+		this.importEntryProperties = importEntryProperties;
+		this.applicableTransactionTypes = applicableTransactionTypes;
+		
 		//		matcher = new ImportMatcher(account);
 		sortedPatterns = new ArrayList<MemoPattern>(account.getPatternCollection());
 		Collections.sort(sortedPatterns, new Comparator<MemoPattern>(){
@@ -281,9 +451,8 @@ public class PatternMatchingDialog extends Dialog {
 		// Create the table of sample entries
 		Control patternMatchingTableControl = createSampleEntriesTableControl(composite);
 		GridData tableData = new GridData(SWT.FILL, SWT.FILL, true, true);
-//		tableData.horizontalSpan = 2;
 		tableData.grabExcessHorizontalSpace = true;
-		tableData.grabExcessVerticalSpace = true;  //?????
+		tableData.grabExcessVerticalSpace = true;
 		patternMatchingTableControl.setLayoutData(tableData);
 
 		return composite;
@@ -339,26 +508,54 @@ public class PatternMatchingDialog extends Dialog {
 		// Add the columns
 		TableViewerColumn column1 = new TableViewerColumn(entriesViewer, SWT.LEFT);
 		column1.getColumn().setWidth(40);
-		column1.getColumn().setText("");
+		column1.getColumn().setText("Description");
 		column1.setLabelProvider(new CellLabelProvider() {
 			@Override
 			public void update(ViewerCell cell) {
 				EntryData pattern = (EntryData)cell.getElement();
-				cell.setText(pattern.getTextToMatch());
+				cell.setText(pattern.getDefaultMemo());
 			}
-
-			//			@Override
-			//			public String getToolTipText(Object element) {
-			//				MemoPattern pattern = (MemoPattern)element;
-			//				return isMemoPatternValid(pattern);
-			//			}
 		});
 
-		//		addColumn2(MemoPatternInfo.getCheckAccessor(), "The value to be put in the check field.  The values in this table may contain {0}, [1} etc. where the number matches the group number in the Java regular expression.");
+		// TODO don't hard code this.
+		final Currency currency = account.getSession().getCurrencyForCode("GBP");
+
+		TableViewerColumn column2 = new TableViewerColumn(entriesViewer, SWT.RIGHT);
+		column2.getColumn().setWidth(30);
+		column2.getColumn().setText("Amount");
+		column2.setLabelProvider(new CellLabelProvider() {
+			@Override
+			public void update(ViewerCell cell) {
+				EntryData pattern = (EntryData)cell.getElement();
+				cell.setText(currency.format(pattern.amount));
+			}
+		});
+
 		addColumn2(MemoPatternInfo.getOrderingIndexAccessor(), "The pattern index.");
-		addColumn2(MemoPatternInfo.getMemoAccessor(), "The value to be put in the memo field.  The values in this table may contain {0}, [1} etc. where the number matches the group number in the Java regular expression.");
-		addColumn2(MemoPatternInfo.getAccountAccessor(), "The account to be used for entries that match this pattern.");
-		addColumn2(MemoPatternInfo.getDescriptionAccessor(), "The value to be put in the description field.  The values in this table may contain {0}, [1} etc. where the number matches the group number in the Java regular expression.");
+		addColumn2(MemoPatternInfo.getTransactionTypeIdAccessor(), "The transaction type.");
+
+		/*
+		 * Build a list of all the columns. We use LinkedHashMap because that
+		 * keeps the order of elements the same as the order in which they were
+		 * added to the map. This results in the columns being in a more
+		 * sensible order.
+		 * 
+		 * Note that we keep just a set of parameter names. We don't try to
+		 * build a map of names to TransactionParamMetadata objects. This is
+		 * because there may be different TransactionParamMetadata objects with
+		 * the same name but in different transaction types. We put these in the
+		 * same column but we must use in the label provider the correct
+		 * TransactionParamMetadata for the transaction type.
+		 */
+		LinkedHashSet<String> allParams = new LinkedHashSet<String>();
+		for (TransactionType transactionType : applicableTransactionTypes) {
+			for (TransactionParamMetadata paramMetadata : transactionType.getParameters()) {
+				allParams.add(paramMetadata.getName());
+			}
+		}
+		for (String paramName : allParams) {
+			addColumnForParameter(paramName);
+		}
 
 		entriesViewer.setInput(sampleEntries);
 
@@ -372,7 +569,7 @@ public class PatternMatchingDialog extends Dialog {
 
 	private Control createPatternMatchingTableControl(Composite parent) {
 		Composite composite = new Composite(parent, SWT.NONE);
-		composite.setLayout(new GridLayout(2, false));
+		composite.setLayout(new GridLayout(3, false));
 
 		// Create the table viewer to display the pattern matching rules
 		patternViewer = new TableViewer(composite, SWT.BORDER | SWT.FULL_SELECTION | SWT.V_SCROLL);
@@ -447,10 +644,15 @@ public class PatternMatchingDialog extends Dialog {
 			}
 		});
 
-		addColumn(MemoPatternInfo.getPatternAccessor(), "<html>The pattern is a Java regular expression that is matched against the memo in the downloadable file.<br>For each record from the bank, the first row in this table with a matching pattern is used.</html>");
-		addColumn(MemoPatternInfo.getMemoAccessor(), "The value to be put in the memo field.  The values in this table may contain {0}, [1} etc. where the number matches the group number in the Java regular expression.");
-		addColumn(MemoPatternInfo.getAccountAccessor(), "The account to be used for entries that match this pattern.");
-		addColumn(MemoPatternInfo.getDescriptionAccessor(), "The value to be put in the description field.  The values in this table may contain {0}, [1} etc. where the number matches the group number in the Java regular expression.");
+		for (ImportEntryProperty importEntryProperty : importEntryProperties) {
+			addColumn(importEntryProperty, "<html>The pattern is a Java regular expression that is matched against the memo in the downloadable file.<br>For each record from the bank, the first row in this table with a matching pattern is used.</html>");
+		}
+		
+		addColumn(MemoPatternInfo.getTransactionTypeIdAccessor(), "The id for the transaction type.  The values of this property must be a type supported by the account type.");
+		addColumn(MemoPatternInfo.getTransactionParameterValuesAccessor(), "Text that specifies the value of each parameter to the transaction, the parameter metadata depending on the transaction type.");
+//		addColumn(MemoPatternInfo.getMemoAccessor(), "The value to be put in the memo field.  The values in this table may contain {0}, {1} etc. where the number matches the group number in the Java regular expression.");
+//		addColumn(MemoPatternInfo.getAccountAccessor(), "The account to be used for entries that match this pattern.");
+//		addColumn(MemoPatternInfo.getDescriptionAccessor(), "The value to be put in the description field.  The values in this table may contain {0}, [1} etc. where the number matches the group number in the Java regular expression.");
 
 		/*
 		 * Set the account as the input object that contains the list of pattern
@@ -467,9 +669,16 @@ public class PatternMatchingDialog extends Dialog {
 		table.setHeaderVisible(true);
 		table.setLinesVisible(true);
 
+		// Create the area with the parameter values
+		Control parametersAreaControl = createParametersArea(composite);
+		GridData layoutData = new GridData(SWT.LEFT, SWT.FILL, true, true);
+		layoutData.minimumHeight = 150;
+		layoutData.minimumWidth = 400;
+		parametersAreaControl.setLayoutData(layoutData);
+
 		// Create the button area
 		Control buttonAreaControl = createButtonArea(composite);
-		buttonAreaControl.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, false, true));
+//		buttonAreaControl.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, false, false));
 
 		return composite;
 	}
@@ -498,6 +707,7 @@ public class PatternMatchingDialog extends Dialog {
 		return null;
 	}
 
+	// Used for ordering index only
 	private void addColumn2(final ScalarPropertyAccessor<?,MemoPattern> propertyAccessor, String tooltip) {
 		TableViewerColumn column = new TableViewerColumn(entriesViewer, SWT.LEFT);
 		column.getColumn().setWidth(propertyAccessor.getMinimumWidth());
@@ -510,47 +720,48 @@ public class PatternMatchingDialog extends Dialog {
 				EntryData entryData = (EntryData)element;
 
 				for (MemoPattern pattern: sortedPatterns) {
-					Pattern compiledPattern = pattern.getCompiledPattern();
-
 					/*
 					 * The pattern may not yet have been entered if the user has just added a new
 					 * pattern.
 					 */
-					if (compiledPattern != null) {
-						Matcher m = compiledPattern.matcher(entryData.getTextToMatch());
-						if (m.matches()) {
-							/*
-							 * Group zero is the entire string and the groupCount method
-							 * does not include that group, so there is really one more group
-							 * than the number given by groupCount.
-							 *
-							 * This code also tidies up the imported text.
-							 */
-							Object [] args = new Object[m.groupCount()+1];
-							for (int i = 0; i <= m.groupCount(); i++) {
-								args[i] = ImportMatcher.convertToMixedCase(m.group(i));
+					boolean unmatchedFound = false;
+					Object [] args = null;
+					for (ImportEntryProperty importEntryProperty : importEntryProperties) {
+						String importEntryPropertyValue = importEntryProperty.getCurrentValue(entryData);
+						Pattern compiledPattern = pattern.getCompiledPattern(importEntryProperty.id);
+
+						if (compiledPattern != null && importEntryPropertyValue != null) {
+							Matcher m = compiledPattern.matcher(importEntryPropertyValue);
+							if (!m.matches()) {
+								unmatchedFound = true;
+								break;
 							}
 
-							if (propertyAccessor == MemoPatternInfo.getMemoAccessor()
-									|| propertyAccessor == MemoPatternInfo.getDescriptionAccessor()) {
-								String format = (String)propertyAccessor.getValue(pattern);
-								if (format == null) {
-									return "";
-								} else {
-									return new java.text.MessageFormat(
-											format,
-											java.util.Locale.US)
-									.format(args);
-								}
-							} else if (propertyAccessor == MemoPatternInfo.getAccountAccessor()) {
+							/*
+							 * Only 'memo' provides arguments.
+							 */
+							if (importEntryProperty.id.equals("memo")) {
 								/*
-								 * The user may not yet have entered an account if the user has
-								 * just entered the new pattern.
+								 * Group zero is the entire string and the groupCount method
+								 * does not include that group, so there is really one more group
+								 * than the number given by groupCount.
+								 *
+								 * This code also tidies up the imported text.
 								 */
-								return pattern.getAccount() == null ? "" : pattern.getAccount().getName();
-							} else if (propertyAccessor == MemoPatternInfo.getOrderingIndexAccessor()) {
-								return Integer.toString(pattern.getOrderingIndex());
+								args = new Object[m.groupCount()+1];
+								for (int i = 0; i <= m.groupCount(); i++) {
+									// Not sure why it can be null, but it happened...
+									args[i] = m.group(i) == null ? null : ImportMatcher.convertToMixedCase(m.group(i));
+								}
 							}
+						}
+					}
+					
+					if (!unmatchedFound) {
+						if (propertyAccessor == MemoPatternInfo.getOrderingIndexAccessor()) {
+							return Integer.toString(pattern.getOrderingIndex());
+						} else if (propertyAccessor == MemoPatternInfo.getTransactionTypeIdAccessor()) {
+							return lookupTransactionType(pattern.getTransactionTypeId()).getLabel();
 						}
 					}
 				}
@@ -559,6 +770,146 @@ public class PatternMatchingDialog extends Dialog {
 			}
 
 		});
+	}
+
+	// Used for param values only
+	private void addColumnForParameter(final String parameterName) {
+		String tooltip = MessageFormat.format(
+				"The value to be used for the {0}.  The values in this table may contain {0}, [1} etc. where the number matches the group number in the Java regular expression.",
+				parameterName);
+		
+		TableViewerColumn column = new TableViewerColumn(entriesViewer, SWT.LEFT);
+		column.getColumn().setWidth(200);
+		column.getColumn().setText(parameterName);
+		column.getColumn().setToolTipText(tooltip);
+
+		column.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(Object element) {
+				EntryData entryData = (EntryData)element;
+
+				MemoPattern matchingPattern = null;
+				Object [] args = null;
+				for (MemoPattern pattern: sortedPatterns) {
+//					Pattern compiledPattern = pattern.getCompiledPattern();
+
+					/*
+					 * The pattern may not yet have been entered if the user has just added a new
+					 * pattern.
+					 */
+					boolean unmatchedFound = false;
+					for (ImportEntryProperty importEntryProperty : importEntryProperties) {
+						String importEntryPropertyValue = importEntryProperty.getCurrentValue(entryData);
+						Pattern compiledPattern = pattern.getCompiledPattern(importEntryProperty.id);
+
+						if (compiledPattern != null && importEntryPropertyValue != null) {
+							Matcher m = compiledPattern.matcher(importEntryPropertyValue);
+							if (!m.matches()) {
+								unmatchedFound = true;
+								break;
+							}
+
+							/*
+							 * Only 'memo' provides arguments.
+							 */
+							if (importEntryProperty.id.equals("memo")) {
+								/*
+								 * Group zero is the entire string and the groupCount method
+								 * does not include that group, so there is really one more group
+								 * than the number given by groupCount.
+								 *
+								 * This code also tidies up the imported text.
+								 */
+								args = new Object[m.groupCount()+1];
+								for (int i = 0; i <= m.groupCount(); i++) {
+									// Not sure why it can be null, but it happened...
+									args[i] = m.group(i) == null ? null : ImportMatcher.convertToMixedCase(m.group(i));
+								}
+							}
+						}
+					}
+					
+					if (!unmatchedFound) {
+						matchingPattern = pattern;
+						break;
+					}
+				}
+				
+				/*
+				 * Now we know the pattern that matches, lookup the transaction type.
+				 * See if there is a parameter in this transaction type that has a name
+				 * that matches the name in this column. 
+				 */
+				if (matchingPattern != null) {
+					TransactionType transType = lookupTransactionType(matchingPattern.getTransactionTypeId());
+					TransactionParamMetadata paramMetadata = lookupParamByName(transType, parameterName);
+					if (paramMetadata != null) {
+						return paramMetadata.getResolvedValueAsString(matchingPattern, args);
+					} else {
+						return "N/A";
+					}
+				} else {
+					return "no match";
+				}
+			}
+
+		});
+	}
+
+	private void addColumn(final ImportEntryProperty importEntryProperty, String tooltip) {
+		TableViewerColumn column = new TableViewerColumn(patternViewer, SWT.LEFT);
+		column.getColumn().setWidth(100);
+		column.getColumn().setText(importEntryProperty.label + " Pattern");
+		column.getColumn().setToolTipText(tooltip);
+
+		column.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(Object element) {
+				MemoPattern pattern = (MemoPattern)element;
+				return pattern.getPattern(importEntryProperty.id);
+			}
+
+		});
+		
+		EditingSupport editingSupport;
+		
+		editingSupport= new EditingSupport(patternViewer) {
+			@Override
+			protected boolean canEdit(Object element) {
+				return true;
+			}
+
+			@Override
+			protected CellEditor getCellEditor(Object element) {
+				return new TextCellEditor(patternViewer.getTable());
+			}
+
+			@Override
+			protected Object getValue(Object element) {
+				// The text cell editor requires that null is never returned
+				// by this method.
+				MemoPattern pattern = (MemoPattern)element;
+				Object value = pattern.getPattern(importEntryProperty.id);
+				if (value == null) {
+					value = "";
+				}
+				return value;
+			}
+
+			@Override
+			protected void setValue(Object element, Object value) {
+				MemoPattern pattern = (MemoPattern)element;
+				// Update only if a value change, otherwise
+				// it all goes horribly circular
+				if (value != null && !value.equals(pattern.getPattern(importEntryProperty.id))) {
+					pattern.setPattern(importEntryProperty.id, (String)value);
+
+					updateSampleEntriesTable();
+					updateErrorMessage();
+				}
+			}
+		};
+		column.setEditingSupport(editingSupport);
 	}
 
 	private void addColumn(final ScalarPropertyAccessor<?,MemoPattern> propertyAccessor, String tooltip) {
@@ -575,57 +926,66 @@ public class PatternMatchingDialog extends Dialog {
 			}
 
 		});
-		column.setEditingSupport(new EditingSupport(patternViewer) {
-			@Override
-			protected boolean canEdit(Object element) {
-				return true;
-			}
+		
+		EditingSupport editingSupport;
+		
+		if (propertyAccessor == MemoPatternInfo.getTransactionTypeIdAccessor()) {
+			editingSupport= new EditingSupport(patternViewer) {
+				
+				@Override
+				protected boolean canEdit(Object element) {
+					return true;
+				}
 
-			@Override
-			protected CellEditor getCellEditor(Object element) {
-				if (propertyAccessor == MemoPatternInfo.getAccountAccessor()) {
-					return new AccountCellEditor<Account>(patternViewer.getTable(), account.getSession()) {
+				@Override
+				protected CellEditor getCellEditor(Object element) {
+					ComboBoxViewerCellEditor cellEditor = new ComboBoxViewerCellEditor(patternViewer.getTable());
+					cellEditor.setContentProvider(ArrayContentProvider.getInstance());
+					cellEditor.setLabelProvider(new LabelProvider() {
 						@Override
-						protected Class<Account> getClassOfAccount() {
-							return Account.class;
+						public String getText(Object element) {
+							return ((TransactionType)element).getLabel();
 						}
-					};
-				} else {
-					return new TextCellEditor(patternViewer.getTable());
+					});
+
+					cellEditor.setInput(applicableTransactionTypes);
+					
+					return cellEditor;
 				}
-			}
 
-			@Override
-			protected Object getValue(Object element) {
-				// The text cell editor requires that null is never returned
-				// by this method.
-				MemoPattern pattern = (MemoPattern)element;
-				Object value = propertyAccessor.getValue(pattern);
-				if (value == null && propertyAccessor.getClassOfValueObject() == String.class) {
-					value = "";
+				@Override
+				protected Object getValue(Object element) {
+					MemoPattern pattern = (MemoPattern)element;
+					String transactionTypeId = pattern.getTransactionTypeId();
+					
+					for (TransactionType transType : applicableTransactionTypes) {
+						if (transType.getId().equals(transactionTypeId)) {
+							return transType;
+						}
+					}
+					return null;
 				}
-				return value;
-			}
 
-			@Override
-			protected void setValue(Object element, Object value) {
-				MemoPattern pattern = (MemoPattern)element;
-				// Update only if a value change, otherwise
-				// it all goes horribly circular
-				if (value != null && !value.equals(propertyAccessor.getValue(pattern))) {
-					setValue(pattern, propertyAccessor, value);
-					patternViewer.update(element, null);
+				@Override
+				protected void setValue(Object element, Object value) {
+					MemoPattern pattern = (MemoPattern)element;
+					TransactionType transactionType = (TransactionType)value;
+					
+					// Update only if a value change, otherwise
+					// it all goes horribly circular
+					if (transactionType != null && !transactionType.getId().equals(pattern.getTransactionTypeId())) {
+						pattern.setTransactionTypeId(transactionType.getId());
+						patternViewer.update(element, null);
 
-					updateSampleEntriesTable();
-					updateErrorMessage();
+						updateSampleEntriesTable();
+						updateErrorMessage();
+					}
 				}
-			}
-
-			private <V> void setValue(MemoPattern pattern, ScalarPropertyAccessor<V,MemoPattern> property, Object value) {
-				V typedValue = property.getClassOfValueObject().cast(value);
-				property.setValue(pattern, typedValue);
-			}
-		});
+			};
+		} else {
+			editingSupport = null;
+		}
+		column.setEditingSupport(editingSupport);
 	}
 
 	/**
@@ -634,6 +994,17 @@ public class PatternMatchingDialog extends Dialog {
 	 */
 	protected void updateSampleEntriesTable() {
 		entriesViewer.refresh(true);
+	}
+
+	private Control createParametersArea(Composite parent) {
+		Group group = new Group(parent, SWT.NONE);
+		group.setText("Extracted Values");
+		GridLayout groupLayout = new GridLayout();
+		group.setLayout(groupLayout);
+		
+		Composite composite = new ParametersComposite(group, SWT.NONE);
+
+		return composite;
 	}
 
 	private Composite createButtonArea(Composite parent) {
@@ -830,6 +1201,26 @@ public class PatternMatchingDialog extends Dialog {
 		 */
 		sortedPatterns.add(thisPattern);
 		sortedPatterns.add(abovePattern);
+	}
+
+	private TransactionType lookupTransactionType(String transactionTypeId) {
+		TransactionType transType = null;
+		for (TransactionType eachTransType : applicableTransactionTypes) {
+			if (eachTransType.getId().equals(transactionTypeId)) {
+				transType = eachTransType;
+				break;
+			}
+		}
+		return transType;
+	}
+
+	private TransactionParamMetadata lookupParamByName(TransactionType transType, String parameterName) {
+		for (TransactionParamMetadata paramMetadata : transType.getParameters()) {
+			if (paramMetadata.getName().equals(parameterName)) {
+				return paramMetadata;
+			}
+		}
+		return null;
 	}
 
 	/**

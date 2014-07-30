@@ -1,5 +1,6 @@
 package net.sf.jmoney.reconciliation.reconcilePage;
 
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
@@ -606,7 +607,7 @@ public class ReconcileEditor extends EditorPart {
 			 * rules, seeing how they apply against these imported entries.
 			 */
 			PatternMatcherAccount matcherAccount = account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
-			Dialog dialog = new PatternMatchingDialog(this.getSite().getShell(), matcherAccount, importedEntries);
+			Dialog dialog = new PatternMatchingDialog(this.getSite().getShell(), matcherAccount, importedEntries, Arrays.asList(statementSource.getImportEntryProperties()), statementSource.getApplicableTransactionTypes());
 			if (dialog.open() == Dialog.OK) {
 				/*
 				 * Create a transaction to be used to import the entries.  This allows the entries to

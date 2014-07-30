@@ -28,20 +28,23 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 import net.sf.jmoney.associations.model.AccountAssociation;
 import net.sf.jmoney.associations.model.AccountAssociationsExtension;
 import net.sf.jmoney.associations.model.AccountAssociationsInfo;
 import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.importer.matcher.EntryData;
+import net.sf.jmoney.importer.matcher.ImportEntryProperty;
 import net.sf.jmoney.importer.matcher.ImportMatcher;
 import net.sf.jmoney.importer.matcher.PatternMatchingDialog;
-import net.sf.jmoney.importer.model.ImportAccount;
-import net.sf.jmoney.importer.model.ImportAccountInfo;
 import net.sf.jmoney.importer.model.PatternMatcherAccount;
 import net.sf.jmoney.importer.model.PatternMatcherAccountInfo;
 import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
+import net.sf.jmoney.importer.model.TransactionType;
+import net.sf.jmoney.importer.model.TransactionTypeBasic;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
@@ -68,9 +71,9 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 	/**
 	 * Set when <code>importFile</code> is called.
 	 */
-	private Account accountInsideTransaction;
+	protected Account accountInsideTransaction;
 
-	private Collection<EntryData> importedEntries = new ArrayList<EntryData>();
+	protected Collection<EntryData> importedEntries = new ArrayList<EntryData>();
 
 
 	public CsvImportToAccountWizard() {
@@ -178,9 +181,9 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 //				importedEntries2.add(entryData);
 //			}
 
-			Dialog dialog = new PatternMatchingDialog(window.getShell(), matcherAccount, importedEntries);
+			Dialog dialog = new PatternMatchingDialog(window.getShell(), matcherAccount, importedEntries, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
 			if (dialog.open() == Dialog.OK) {
-				ImportMatcher matcher = new ImportMatcher(matcherAccount);
+				ImportMatcher matcher = new ImportMatcher(matcherAccount, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
 
 				for (EntryData entryData: importedEntries) {
 					Entry entry = matcher.process(entryData, accountInsideTransaction.getSession());
@@ -195,6 +198,16 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 		}
 		
 		return true;
+	}
+
+	public ImportEntryProperty[] getImportEntryProperties() {
+		return new ImportEntryProperty [] {
+				new ImportEntryProperty("memo", "Memo") {
+					protected String getCurrentValue(EntryData importEntry) {
+						return importEntry.getMemo();
+					}
+				},
+		};
 	}
 
 	/**
@@ -283,8 +296,6 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 			 * Read the data
 			 */
 			
-    		Collection<EntryData> importedEntries = new ArrayList<EntryData>();
-
 			currentLine = readNext();
 			while (currentLine != null) {
 				
@@ -324,39 +335,7 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 			 * Import the entries using the matcher dialog
 			 */
 			
-			PatternMatcherAccount matcherAccount = accountInsideTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
-			
-			/**
-			 * We can't import if there is no default category into which
-			 * entries can be put.
-			 */
-			if (matcherAccount.getDefaultCategory() == null) {
-				MessageDialog.openError(window.getShell(), "Import Error", MessageFormat.format("No default category is set for {0}.", accountInsideTransaction.getName()));
-				return false;
-			}
-
-			Dialog dialog = new PatternMatchingDialog(window.getShell(), matcherAccount, importedEntries);
-			if (dialog.open() == Dialog.OK) {
-				ImportMatcher matcher = new ImportMatcher(matcherAccount);
-
-				for (EntryData entryData: importedEntries) {
-					Entry entry = matcher.process(entryData, transactionManager.getSession());
-					ReconciliationEntryInfo.getUniqueIdAccessor().setValue(entry, entryData.uniqueId);
-				}
-
-				/*
-				 * All entries have been imported and all the properties
-				 * have been set and should be in a valid state, so we
-				 * can now commit the imported entries to the datastore.
-				 */
-				String transactionDescription = MessageFormat.format("Import {0}", file.getName());
-				transactionManager.commit(transactionDescription);									
-
-				return true;
-			} else {
-				return false;
-			}
-
+			return doImport(transactionManager, file);
 			
 			
 					
@@ -378,4 +357,64 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 			return false;
 		}
 	}
+
+	/**
+	 * This method was split out so that this code can be replaced in the new and improved stock account
+	 * importers.
+	 * 
+	 * @param transactionManager
+	 * @param file
+	 * @return
+	 */
+	protected boolean doImport(TransactionManagerForAccounts transactionManager, File file) {
+		PatternMatcherAccount matcherAccount = accountInsideTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
+		
+		/**
+		 * We can't import if there is no default category into which
+		 * entries can be put.
+		 */
+		if (matcherAccount.getDefaultCategory() == null) {
+			MessageDialog.openError(window.getShell(), "Import Error", MessageFormat.format("No default category is set for {0}.", accountInsideTransaction.getName()));
+			return false;
+		}
+
+		List<TransactionType> applicableTransactionTypes = getApplicableTransactionTypes();
+		Dialog dialog = new PatternMatchingDialog(window.getShell(), matcherAccount, importedEntries, Arrays.asList(getImportEntryProperties()), applicableTransactionTypes);
+		if (dialog.open() == Dialog.OK) {
+			ImportMatcher matcher = new ImportMatcher(matcherAccount, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
+
+			for (EntryData entryData: importedEntries) {
+				Entry entry = matcher.process(entryData, transactionManager.getSession());
+				ReconciliationEntryInfo.getUniqueIdAccessor().setValue(entry, entryData.uniqueId);
+			}
+
+			/*
+			 * All entries have been imported and all the properties
+			 * have been set and should be in a valid state, so we
+			 * can now commit the imported entries to the datastore.
+			 */
+			String transactionDescription = MessageFormat.format("Import {0}", file.getName());
+			transactionManager.commit(transactionDescription);									
+
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	/**
+	 * Note that this list is not cached, meaning new instances will be created
+	 * for each call to this method.
+	 * 
+	 * @param account
+	 * @return
+	 */
+	public List<TransactionType> getApplicableTransactionTypes() {
+			List<TransactionType> result = new ArrayList<TransactionType>();
+
+			result.add(new TransactionTypeBasic());
+
+			return result;
+	}
+
 }

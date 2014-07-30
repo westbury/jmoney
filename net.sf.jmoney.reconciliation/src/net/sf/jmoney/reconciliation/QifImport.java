@@ -30,15 +30,20 @@ import java.io.IOException;
 import java.io.Reader;
 import java.text.NumberFormat;
 import java.text.ParsePosition;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
 import net.sf.jmoney.JMoneyPlugin;
 import net.sf.jmoney.importer.matcher.EntryData;
+import net.sf.jmoney.importer.matcher.ImportEntryProperty;
+import net.sf.jmoney.importer.model.TransactionType;
+import net.sf.jmoney.importer.model.TransactionTypeBasic;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.CurrencyAccount;
 import net.sf.jmoney.reconciliation.reconcilePage.ImportStatementDialog;
@@ -302,5 +307,33 @@ public class QifImport implements IBankStatementSource {
 		// order only when we assume EU format then indicate
 		// EU format, otherwise assume US format.
 		return (usDatesInOrder || !euDatesInOrder);
+	}
+
+	@Override
+	public ImportEntryProperty[] getImportEntryProperties() {
+		return new ImportEntryProperty [] {
+				new ImportEntryProperty("memo", "Memo") {
+					@Override
+					protected String getCurrentValue(EntryData importEntry) {
+						return importEntry.getMemo();
+					}
+				},
+		};
+	}
+
+	/**
+	 * Note that this list is not cached, meaning new instances will be created
+	 * for each call to this method.
+	 * 
+	 * @param account
+	 * @return
+	 */
+	@Override
+	public List<TransactionType> getApplicableTransactionTypes() {
+			List<TransactionType> result = new ArrayList<TransactionType>();
+
+			result.add(new TransactionTypeBasic());
+
+			return result;
 	}
 }

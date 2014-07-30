@@ -27,13 +27,18 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Currency;
 import java.util.Date;
+import java.util.List;
 import java.util.Vector;
 
 import net.sf.jmoney.importer.matcher.EntryData;
+import net.sf.jmoney.importer.matcher.ImportEntryProperty;
+import net.sf.jmoney.importer.model.TransactionType;
+import net.sf.jmoney.importer.model.TransactionTypeBasic;
 import net.sf.jmoney.model2.CurrencyAccount;
 import net.sf.jmoney.ofx.parser.SimpleDOMParser;
 import net.sf.jmoney.ofx.parser.SimpleElement;
@@ -252,5 +257,33 @@ public class OfxImport implements IBankStatementSource {
 		// }
 
 		return entryData;
+	}
+
+	@Override
+	public ImportEntryProperty[] getImportEntryProperties() {
+		return new ImportEntryProperty [] {
+				new ImportEntryProperty("memo", "Memo") {
+					@Override
+					protected String getCurrentValue(EntryData importEntry) {
+						return importEntry.getMemo();
+					}
+				},
+		};
+	}
+
+	/**
+	 * Note that this list is not cached, meaning new instances will be created
+	 * for each call to this method.
+	 * 
+	 * @param account
+	 * @return
+	 */
+	@Override
+	public List<TransactionType> getApplicableTransactionTypes() {
+			List<TransactionType> result = new ArrayList<TransactionType>();
+
+			result.add(new TransactionTypeBasic());
+
+			return result;
 	}
 }

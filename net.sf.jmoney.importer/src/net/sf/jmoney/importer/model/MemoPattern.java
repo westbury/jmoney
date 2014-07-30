@@ -23,6 +23,9 @@
 
 package net.sf.jmoney.importer.model;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -32,6 +35,11 @@ import net.sf.jmoney.isolation.ListKey;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.ExtendableObject;
+
+import org.eclipse.core.databinding.observable.map.IObservableMap;
+import org.eclipse.core.databinding.observable.map.WritableMap;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.internal.databinding.observable.MapEntryObservableValue;
 
 /**
  * The data model for an entry.
@@ -66,6 +74,37 @@ public final class MemoPattern extends ExtendableObject {
 	// TODO: same comment as for account above.
 	public IObjectKey incomeExpenseCurrencyKey = null; 
 	
+	/**
+	 * The id of the transaction type.
+	 * <P>
+	 * The transaction type might be, for example, a stock sale,
+	 * or a stock split, or a simple expense item.  Each transaction
+	 * type has an id and it is used here to indicate the transaction
+	 * type for all import items that match this pattern.
+	 */
+	private String transactionTypeId = null;
+	
+	/**
+	 * String containing a list of parameterized values.  The values
+	 * may be fixed for this pattern, or may be extracted from the
+	 * text that matched.
+	 * <P>
+	 * Text may contain {n} or {description,n}.  The first form allowed only
+	 * if there is a single text field in the input. 
+	 * <P>
+	 * Values are of the form name=value.  Each pair is separated by a new-line.
+	 */
+	private String transactionParameterValues = null;
+	
+	/**
+	 * Extracted values from transactionParameterValues
+	 */
+	private IObservableMap<String, String> transactionParameterValueMap;
+
+	private Map<String, String> patternMap;
+
+	private Map<String, Pattern> compiledPatternMap;
+
     /**
      * Constructor used by datastore plug-ins to create
      * a pattern object.
@@ -82,6 +121,8 @@ public final class MemoPattern extends ExtendableObject {
 			ListKey<? super MemoPattern,?> parentKey,
 			int        orderingIndex,
 			String     pattern,
+			String     transactionTypeId,
+			String     transactionParameterValues, 
     		String     description,
     		IObjectKey accountKey,
     		String     memo,
@@ -91,21 +132,80 @@ public final class MemoPattern extends ExtendableObject {
 
 		this.orderingIndex = orderingIndex;
 		this.pattern = pattern;
+		this.transactionTypeId = transactionTypeId;
+		this.transactionParameterValues = transactionParameterValues;
 		this.description = description;
 		this.accountKey = accountKey;
 		this.memo = memo;
 		this.incomeExpenseCurrencyKey = incomeExpenseCurrencyKey;
 	
+		patternMap = new HashMap<String, String>();
+		compiledPatternMap = new HashMap<String, Pattern>();
 		if (pattern != null) {
-			try {
-				compiledPattern = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
-			} catch (PatternSyntaxException e) {
-				compiledPattern = null;
+			extractPatterns();
+
+			if (patternMap.get("memo") != null) {
+				try {
+					compiledPattern = Pattern.compile(patternMap.get("memo"), Pattern.CASE_INSENSITIVE);
+				} catch (PatternSyntaxException e) {
+					compiledPattern = null;
+				}
 			}
  		}
+		
+		extractParameterValues();
 	}
 	
-    /**
+    private void extractPatterns() {
+    	patternMap = new WritableMap<String, String>();
+    	compiledPatternMap = new WritableMap<String, Pattern>();
+    	 
+ 		if (pattern != null) {
+ 			for (String pair : pattern.split("\n")) {
+ 				String [] parts = pair.split("=");
+ 				String columnId = parts[0];
+ 				String columnPattern = parts[1];
+ 				putPattern(columnId, columnPattern);
+
+ 				try {
+ 					Pattern thisCompiledPattern = Pattern.compile(columnPattern, Pattern.CASE_INSENSITIVE);
+ 					compiledPatternMap.put(columnId, thisCompiledPattern);
+ 				} catch (PatternSyntaxException e) {
+ 					compiledPatternMap.remove(columnId);
+ 				}
+ 			}
+ 		}
+	}
+
+	private void putPattern(String columnId, String columnPattern) {
+		if (columnPattern.indexOf("\n") != -1) {
+			throw new Error("Newline characters somehow got into a pattern");
+		}
+		
+		patternMap.put(columnId, columnPattern);
+		
+		try {
+			Pattern thisCompiledPattern = Pattern.compile(columnPattern, Pattern.CASE_INSENSITIVE);
+			compiledPatternMap.put(columnId, thisCompiledPattern);
+		} catch (PatternSyntaxException e) {
+			compiledPatternMap.remove(columnId);
+		}
+	}
+
+    private void extractParameterValues() {
+   	 transactionParameterValueMap = new WritableMap<String, String>();
+   	 
+		if (transactionParameterValues != null) {
+			for (String pair : transactionParameterValues.split("/n|\n")) {
+				String [] parts = pair.split("=");
+				String paramId = parts[0];
+				String paramValue = parts[1];
+				transactionParameterValueMap.put(paramId, paramValue);
+			}
+		}
+	}
+
+	/**
      * Constructor used by datastore plug-ins to create
      * a pattern object.
      *
@@ -123,10 +223,15 @@ public final class MemoPattern extends ExtendableObject {
 
 		this.orderingIndex = 0;
 		this.pattern = null;
+		this.transactionTypeId = null;
+		this.transactionParameterValues = null;
 		this.description = null;
 		this.accountKey = null;
 		this.memo = null;
 		this.incomeExpenseCurrencyKey = null;
+
+		patternMap = new HashMap<String, String>();
+		transactionParameterValueMap = new WritableMap<String, String>();
 	}
 
 	@Override
@@ -149,6 +254,22 @@ public final class MemoPattern extends ExtendableObject {
 		return pattern;
 	}
 	
+	/**
+	 * Returns the transaction type id.
+	 */
+	public String getTransactionTypeId() {
+		return transactionTypeId;
+	}
+	
+	/**
+	 * Returns the transaction parameter values.  The values are returned
+	 * as a single serialized string being the format in which it is stored
+	 * in the datastore.
+	 */
+	public String getTransactionParameterValues() {
+		return transactionParameterValues;
+	}
+
 	/**
 	 * Returns the description.
 	 */
@@ -219,6 +340,30 @@ public final class MemoPattern extends ExtendableObject {
 		
 		// Notify the change manager.
 		processPropertyChange(MemoPatternInfo.getPatternAccessor(), oldPattern, pattern);
+	}
+	
+	/**
+	 * Sets the transaction type id.
+	 */
+	public void setTransactionTypeId(String transactionTypeId) {
+		String oldTransactionTypeId = this.transactionTypeId;
+		this.transactionTypeId = transactionTypeId;
+		
+		// Notify the change manager.
+		processPropertyChange(MemoPatternInfo.getTransactionTypeIdAccessor(), oldTransactionTypeId, transactionTypeId);
+	}
+	
+	/**
+	 * Sets the transaction parameter values.
+	 */
+	public void setTransactionParameterValues(String transactionParameterValues) {
+		String oldTransactionParameterValues = this.transactionParameterValues;
+		this.transactionParameterValues = transactionParameterValues;
+		
+		extractParameterValues();
+		
+		// Notify the change manager.
+		processPropertyChange(MemoPatternInfo.getTransactionParameterValuesAccessor(), oldTransactionParameterValues, transactionParameterValues);
 	}
 	
 	/**
@@ -297,5 +442,57 @@ public final class MemoPattern extends ExtendableObject {
 	
 	public Pattern getCompiledPattern() {
 		return compiledPattern;
+	}
+
+	public void setTransactionParameterValue(String parameterId, String value) {
+		if (value.indexOf("\n") != -1) {
+			throw new Error("Newline characters somehow got into a parameter value");
+		}
+		
+		transactionParameterValueMap.put(parameterId, value);
+		
+		StringBuffer buffer = new StringBuffer();
+		String separator = "";
+		for (Entry<String, String> entry : transactionParameterValueMap.entrySet()) {
+			buffer.append(separator)
+			.append(entry.getKey())
+			.append('=')
+			.append(entry.getValue());
+			separator = "\n";
+		}
+
+		String oldTransactionParameterValues = this.transactionParameterValues;
+		this.transactionParameterValues = buffer.toString();
+		
+		// Notify the change manager.
+		processPropertyChange(MemoPatternInfo.getTransactionParameterValuesAccessor(), oldTransactionParameterValues, transactionParameterValues);
+	}
+
+	/**
+	 * 
+	 * @param parameterId
+	 * @return the value, may be the empty string but never null, may
+	 * 				contain {0}, {1} etc for substituting values extracted
+	 * 				from the import entry properties
+	 */
+	public String getParameterValue(String parameterId) {
+		String value = transactionParameterValueMap.get(parameterId);
+		return value == null ? "" : value;
+	}
+
+	public IObservableValue<String> observeParameterValue(String parameterId) {
+		return new MapEntryObservableValue<String, String>(transactionParameterValueMap, parameterId, String.class);
+	}
+
+	public String getPattern(String importEntryPropertyId) {
+		return patternMap.get(importEntryPropertyId);
+	}
+
+	public void setPattern(String importEntryPropertyId, String value) {
+		putPattern(importEntryPropertyId, value);
+	}
+
+	public Pattern getCompiledPattern(String importEntryPropertyId) {
+		return compiledPatternMap.get(importEntryPropertyId);
 	}
 }

@@ -153,6 +153,17 @@ public class EntryData {
 	}
 
 	/**
+	 * Returns a string suitable for matching against
+	 * the patterns.
+	 * 
+	 * @return the memo which may be empty but cannot
+	 * 			be null
+	 */
+	public String getMemo() {
+		return memo == null ? "" : memo;
+	}
+	
+	/**
 	 * The memo if no patterns match
 	 */
 	public String getDefaultMemo() {

@@ -24,8 +24,11 @@ package net.sf.jmoney.reconciliation;
 
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 
 import net.sf.jmoney.importer.matcher.EntryData;
+import net.sf.jmoney.importer.matcher.ImportEntryProperty;
+import net.sf.jmoney.importer.model.TransactionType;
 import net.sf.jmoney.model2.CurrencyAccount;
 
 import org.eclipse.swt.widgets.Shell;
@@ -57,4 +60,8 @@ public interface IBankStatementSource {
 	 *         error occured.
 	 */
 	Collection<EntryData> importEntries(Shell shell, CurrencyAccount account, Date defaultStartDate, Date defaultEndDate);
+
+	ImportEntryProperty[] getImportEntryProperties();
+
+	List<TransactionType> getApplicableTransactionTypes();
 }

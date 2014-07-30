@@ -6,18 +6,16 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.model.MemoPattern;
 import net.sf.jmoney.importer.model.PatternMatcherAccount;
 import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
-import net.sf.jmoney.model2.Commodity;
+import net.sf.jmoney.importer.model.TransactionType;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
-
-import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.ui.PlatformUI;
 
 public class ImportMatcher {
 
@@ -25,8 +23,14 @@ public class ImportMatcher {
 
 	private List<MemoPattern> sortedPatterns;
 
-	public ImportMatcher(PatternMatcherAccount account) {
+	private List<ImportEntryProperty> importEntryProperties;
+
+	private List<TransactionType> applicableTransactionTypes;
+
+	public ImportMatcher(PatternMatcherAccount account, List<ImportEntryProperty> importEntryProperties, List<TransactionType> applicableTransactionTypes) {
 		this.account = account;
+		this.importEntryProperties = importEntryProperties;
+		this.applicableTransactionTypes = applicableTransactionTypes;
 
 		/*
 		 * Get the patterns sorted into order.  It is important that we test patterns in the
@@ -53,57 +57,56 @@ public class ImportMatcher {
 	 * @param defaultMemo
 	 * @param defaultDescription
 	 */
-	public void matchAndFill(String text, Entry entry1, Entry entry2, String defaultMemo, String defaultDescription) {
+	public void matchAndFill(EntryData entryData, Entry entry1, Entry entry2, String defaultMemo, String defaultDescription) {
    		for (MemoPattern pattern: sortedPatterns) {
-   			Matcher m = pattern.getCompiledPattern().matcher(text);
-   			System.out.println(pattern.getPattern() + ", " + text);
-   			if (m.matches()) {
-   				/*
-   				 * Group zero is the entire string and the groupCount method
-   				 * does not include that group, so there is really one more group
-   				 * than the number given by groupCount.
-   				 *
-   				 * This code also tidies up the imported text.
-   				 */
-   				Object [] args = new Object[m.groupCount()+1];
-   				for (int i = 0; i <= m.groupCount(); i++) {
-   					args[i] = convertToMixedCase(m.group(i));
-   				}
+   			
+			boolean unmatchedFound = false;
+			Object [] args = null;
+			for (ImportEntryProperty importEntryProperty : importEntryProperties) {
+				String importEntryPropertyValue = importEntryProperty.getCurrentValue(entryData);
+				Pattern compiledPattern = pattern.getCompiledPattern(importEntryProperty.id);
 
-   				if (entry1 != null && pattern.getMemo() != null) {
-   					entry1.setMemo(
-   							new java.text.MessageFormat(
-   									pattern.getMemo(),
-   									java.util.Locale.US)
-   							.format(args));
-   				}
+				if (compiledPattern != null && importEntryPropertyValue != null) {
+					Matcher m = compiledPattern.matcher(importEntryPropertyValue);
+					if (!m.matches()) {
+						unmatchedFound = true;
+						break;
+					}
 
-   				if (pattern.getDescription() != null) {
-       				entry2.setMemo(
-       						new java.text.MessageFormat(
-       								pattern.getDescription(),
-       								java.util.Locale.US)
-       								.format(args));
-   				}
-
-   				/*
-   				 * Before setting the account, check that if a default
-   				 * account was previously set then the currency is the
-   				 * same.  The amount will end up being just plain wrong
-   				 * if we change the currency.
-   				 */
-   				if (entry2.getAccount() != null) {
-   					Commodity currencyBefore = entry2.getCommodity();
-   	           		entry2.setAccount(pattern.getAccount());
-   					Commodity currencyAfter = entry2.getCommodity();
-   					if (currencyBefore != currencyAfter) {
-   						MessageDialog.openError(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), "Problem Transaction", "Currency is being changed by pattern match.");
-   						throw new RuntimeException("currency change on pattern match");
+					/*
+					 * Only 'memo' provides arguments.
+					 */
+					if (importEntryProperty.id.equals("memo")) {
+						/*
+						 * Group zero is the entire string and the groupCount method
+						 * does not include that group, so there is really one more group
+						 * than the number given by groupCount.
+						 *
+						 * This code also tidies up the imported text.
+						 */
+						args = new Object[m.groupCount()+1];
+						for (int i = 0; i <= m.groupCount(); i++) {
+							// Not sure why it can be null, but it happened...
+							args[i] = m.group(i) == null ? null : ImportMatcher.convertToMixedCase(m.group(i));
+						}
+					}
+				}
+			}
+			
+			if (!unmatchedFound) {
+   				String transactionId = pattern.getTransactionTypeId();
+   				
+   				TransactionType transactionType = null;
+   				for (TransactionType type : applicableTransactionTypes) {
+   					if (type.getId().equals(transactionId)) {
+   						transactionType = type;
+   						break;
    					}
    				}
-           		entry2.setAccount(pattern.getAccount());
 
-           		break;
+   				transactionType.createTransaction(entry1, entry2, pattern, args);
+
+   				break;
    			}
    		}
 
@@ -271,8 +274,7 @@ public class ImportMatcher {
    		 * Scan for a match in the patterns.  If a match is found,
    		 * use the values for memo, description etc. from the pattern.
    		 */
-		String text = entryData.getTextToMatch();
-		matchAndFill(text, entry1, entry2, entryData.getDefaultMemo(), entryData.getDefaultDescription());
+		matchAndFill(entryData, entry1, entry2, entryData.getDefaultMemo(), entryData.getDefaultDescription());
 
    		return entry1;
 	}

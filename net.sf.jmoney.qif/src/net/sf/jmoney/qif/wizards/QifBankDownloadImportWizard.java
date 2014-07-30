@@ -26,17 +26,22 @@ import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 
 import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.matcher.EntryData;
+import net.sf.jmoney.importer.matcher.ImportEntryProperty;
 import net.sf.jmoney.importer.matcher.ImportMatcher;
 import net.sf.jmoney.importer.matcher.PatternMatchingDialog;
 import net.sf.jmoney.importer.model.PatternMatcherAccount;
 import net.sf.jmoney.importer.model.PatternMatcherAccountInfo;
 import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
+import net.sf.jmoney.importer.model.TransactionType;
+import net.sf.jmoney.importer.model.TransactionTypeBasic;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.CurrencyAccount;
@@ -291,9 +296,9 @@ do just the above.  The following is obsolete.
 						
 						PatternMatcherAccount matcherAccount = account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
 						
-						Dialog dialog = new PatternMatchingDialog(window.getShell(), matcherAccount, importedEntries);
+						Dialog dialog = new PatternMatchingDialog(window.getShell(), matcherAccount, importedEntries, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
 						if (dialog.open() == Dialog.OK) {
-							ImportMatcher matcher = new ImportMatcher(accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true));
+							ImportMatcher matcher = new ImportMatcher(accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true), Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
 
 							for (net.sf.jmoney.importer.matcher.EntryData entryData: importedEntries) {
 								Entry entry = matcher.process(entryData, sessionInTransaction);
@@ -333,6 +338,32 @@ do just the above.  The following is obsolete.
 		}
 	}
 	
+	private ImportEntryProperty [] getImportEntryProperties() {
+		return new ImportEntryProperty [] {
+				new ImportEntryProperty("memo", "Memo") {
+					@Override
+					protected String getCurrentValue(EntryData importEntry) {
+						return importEntry.getMemo();
+					}
+				},
+		};
+	}
+
+	/**
+	 * Note that this list is not cached, meaning new instances will be created
+	 * for each call to this method.
+	 * 
+	 * @param account
+	 * @return
+	 */
+	public List<TransactionType> getApplicableTransactionTypes() {
+			List<TransactionType> result = new ArrayList<TransactionType>();
+
+			result.add(new TransactionTypeBasic());
+
+			return result;
+	}
+
 	private Date convertDate(QifDate date) {
 		Calendar calendar = Calendar.getInstance();
 		calendar.clear();

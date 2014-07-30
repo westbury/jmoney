@@ -31,6 +31,7 @@ import java.text.MessageFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
@@ -432,7 +433,7 @@ public class OfxImporter {
 
 		Dialog dialog = new PatternMatchingDialog(window.getShell(), matcherAccount, importedEntries);
 		if (dialog.open() == Dialog.OK) {
-			ImportMatcher matcher = new ImportMatcher(account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true));
+			ImportMatcher matcher = new ImportMatcher(account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true), Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
 
 			for (OfxEntryData entryData: importedEntries) {
 				Entry entry = matcher.process(entryData, transactionManager.getSession());

@@ -41,6 +41,10 @@ import net.sf.jmoney.model2.PropertySet;
 import net.sf.jmoney.model2.ReferencePropertyAccessor;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
+import org.eclipse.core.databinding.observable.Realm;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.property.value.IValueProperty;
+import org.eclipse.core.databinding.property.value.ValueProperty;
 import org.eclipse.osgi.util.NLS;
 
 /**
@@ -71,6 +75,8 @@ public class MemoPatternInfo implements IPropertySetInfo {
 					parentKey, 
 					values.getScalarValue(MemoPatternInfo.getOrderingIndexAccessor()),
 					values.getScalarValue(MemoPatternInfo.getPatternAccessor()),
+					values.getScalarValue(MemoPatternInfo.getTransactionTypeIdAccessor()),
+					values.getScalarValue(MemoPatternInfo.getTransactionParameterValuesAccessor()),
 					values.getScalarValue(MemoPatternInfo.getDescriptionAccessor()),
 					values.getReferencedObjectKey(MemoPatternInfo.getAccountAccessor()),
 					values.getScalarValue(MemoPatternInfo.getMemoAccessor()),
@@ -82,6 +88,8 @@ public class MemoPatternInfo implements IPropertySetInfo {
 	
 	private static ScalarPropertyAccessor<Integer,MemoPattern> orderingIndexAccessor = null;
 	private static ScalarPropertyAccessor<String,MemoPattern> patternAccessor = null;
+	private static ScalarPropertyAccessor<String,MemoPattern> transactionTypeIdAccessor = null;
+	private static ScalarPropertyAccessor<String,MemoPattern> transactionParameterValuesAccessor = null;
 	private static ScalarPropertyAccessor<String,MemoPattern> descriptionAccessor = null;
 	private static ReferencePropertyAccessor<Account,MemoPattern> accountAccessor = null;
 	private static ScalarPropertyAccessor<String,MemoPattern> memoAccessor = null;
@@ -92,6 +100,8 @@ public class MemoPatternInfo implements IPropertySetInfo {
 		IPropertyControlFactory<MemoPattern,Integer> integerControlFactory = new IntegerControlFactory<MemoPattern>();
 
 		IPropertyControlFactory<MemoPattern,String> textControlFactory = new TextControlFactory<MemoPattern>();
+
+		IPropertyControlFactory<MemoPattern,String> transTypeControlFactory = new TransactionTypeControlFactory<MemoPattern,MemoPattern>();
 
 		IReferenceControlFactory<MemoPattern,MemoPattern,Account> accountControlFactory = new AccountControlFactory<MemoPattern,MemoPattern,Account>() {
 			@Override
@@ -107,12 +117,14 @@ public class MemoPatternInfo implements IPropertySetInfo {
 			}
 		};
 
-		orderingIndexAccessor = propertySet.addProperty("orderingIndex", "Ordering Index",                                    Integer.class,1, 20,  integerControlFactory, null);
-		patternAccessor       = propertySet.addProperty("pattern",       "Pattern",                                           String.class, 2, 50,  textControlFactory,    null);
-		descriptionAccessor   = propertySet.addProperty("description",   NLS.bind(Messages.MemoPatternInfo_EntryDescription, null), String.class, 5, 100, textControlFactory,    null);
-		accountAccessor       = propertySet.addProperty("account",       NLS.bind(Messages.MemoPatternInfo_EntryCategory, null),    Account.class,2, 70,  accountControlFactory, null);
-		memoAccessor          = propertySet.addProperty("memo",          NLS.bind(Messages.MemoPatternInfo_EntryMemo, null),        String.class, 5, 100, textControlFactory,    null);
-		incomeExpenseCurrencyAccessor = propertySet.addProperty("incomeExpenseCurrency",    NLS.bind(Messages.MemoPatternInfo_EntryCurrency, null), Currency.class, 2, 70, currencyControlFactory, null);
+		orderingIndexAccessor              = propertySet.addProperty("orderingIndex",             "Ordering Index",                                          Integer.class,1, 20,  integerControlFactory, null);
+		patternAccessor                    = propertySet.addProperty("pattern",                   "Pattern",                                                 String.class, 2, 50,  textControlFactory,    null);
+		transactionTypeIdAccessor          = propertySet.addProperty("transactionTypeId",         "Type Id",                                                 String.class, 2, 50,  transTypeControlFactory,null);
+		transactionParameterValuesAccessor = propertySet.addProperty("transactionParameterValues","Parameter Values",                                        String.class, 2, 50,  textControlFactory,    null);
+		descriptionAccessor                = propertySet.addProperty("description",               NLS.bind(Messages.MemoPatternInfo_EntryDescription, null), String.class, 5, 100, textControlFactory,    null);
+		accountAccessor                    = propertySet.addProperty("account",                   NLS.bind(Messages.MemoPatternInfo_EntryCategory, null),    Account.class,2, 70,  accountControlFactory, null);
+		memoAccessor                       = propertySet.addProperty("memo",                      NLS.bind(Messages.MemoPatternInfo_EntryMemo, null),        String.class, 5, 100, textControlFactory,    null);
+		incomeExpenseCurrencyAccessor      = propertySet.addProperty("incomeExpenseCurrency",     NLS.bind(Messages.MemoPatternInfo_EntryCurrency, null),    Currency.class, 2, 70,currencyControlFactory,null);
 		
 		return propertySet;
 	}
@@ -136,6 +148,20 @@ public class MemoPatternInfo implements IPropertySetInfo {
 	 */
 	public static ScalarPropertyAccessor<String,MemoPattern> getPatternAccessor() {
 		return patternAccessor;
+	}
+	
+	/**
+	 * @return
+	 */
+	public static ScalarPropertyAccessor<String,MemoPattern> getTransactionTypeIdAccessor() {
+		return transactionTypeIdAccessor;
+	}	
+
+	/**
+	 * @return
+	 */
+	public static ScalarPropertyAccessor<String,MemoPattern> getTransactionParameterValuesAccessor() {
+		return transactionParameterValuesAccessor;
 	}	
 
 	/**
@@ -165,5 +191,26 @@ public class MemoPatternInfo implements IPropertySetInfo {
 	 */
 	public static ReferencePropertyAccessor<Currency,MemoPattern> getIncomeExpenseCurrencyAccessor() {
 		return incomeExpenseCurrencyAccessor;
+	}
+
+	public static IValueProperty<MemoPattern, String> getParameterValueProperty(final String parameterId) {
+		return new ValueProperty<MemoPattern, String>() {
+
+			@Override
+			public Object getValueType() {
+				return String.class;
+			}
+
+			@Override
+			public Class<String> getValueClass() {
+				return String.class;
+			}
+
+			@Override
+			public IObservableValue<String> observe(Realm realm, final MemoPattern source) {
+				return source.observeParameterValue(parameterId);
+			}
+
+		};
 	}	
 }
