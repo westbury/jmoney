@@ -4,16 +4,6 @@
 
      <extension-point id="importdata" name="Import Data" schema="schema/importData.exsd"/>
 
-	<extension point="org.eclipse.ui.importWizards">
-		<wizard id="net.sf.jmoney.importer.ImportWizard"
-			name="%importWizard.name"
-			class="net.sf.jmoney.importer.wizards.CsvImportToAccountWizard">
-			<description>
-				Import data from CSV file downloaded from importer. 
-			</description>
-		</wizard>
-	</extension>
-
 	<extension point="net.sf.jmoney.associations.metadata">
 		<associations class="net.sf.jmoney.importer.wizards.CsvImportToAccountAssociations"/>
 	</extension>
@@ -96,7 +86,7 @@
          </propertySection>
       </propertySections>
    </extension>
-
+<!--
    <extension point="org.eclipse.ui.views.properties.tabbed.propertySections">
       <propertySections contributorId="net.sf.jmoney.navigationView">
          <propertySection
@@ -108,5 +98,5 @@
          </propertySection>
       </propertySections>
    </extension>
-
+-->
 </plugin>
