@@ -90,10 +90,13 @@ import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.jface.viewers.ViewerCell;
 import org.eclipse.jface.viewers.ViewerSorter;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -254,8 +257,8 @@ public class PatternMatchingDialog extends Dialog {
 			 * pattern.
 			 */
 			if (pattern != null && entryData != null) {
-				Pattern compiledPattern = pattern.getCompiledPattern();
-				Matcher m = compiledPattern.matcher(entryData.getDefaultDescription());
+				Pattern compiledPattern = pattern.getCompiledPattern("memo");
+				Matcher m = compiledPattern.matcher(entryData.getMemo());
 				if (m.matches()) {
 					/*
 					 * Group zero is the entire string and the groupCount method
@@ -291,8 +294,6 @@ public class PatternMatchingDialog extends Dialog {
 	int nextOrderingIndex;
 
 	private Collection<? extends EntryData> sampleEntries;
-
-	private ImportMatcher matcher;
 
 	private ArrayList<MemoPattern> sortedPatterns;
 
@@ -644,6 +645,8 @@ public class PatternMatchingDialog extends Dialog {
 			}
 		});
 
+		addColumn(MemoPatternInfo.getOrderingIndexAccessor(), "The pattern index, used in the above imported entries table to indicate the matching pattern.");
+
 		for (ImportEntryProperty importEntryProperty : importEntryProperties) {
 			addColumn(importEntryProperty, "<html>The pattern is a Java regular expression that is matched against the memo in the downloadable file.<br>For each record from the bank, the first row in this table with a matching pattern is used.</html>");
 		}
@@ -707,12 +710,17 @@ public class PatternMatchingDialog extends Dialog {
 		return null;
 	}
 
-	// Used for ordering index only
+	// Used for ordering index only and transaction type only
 	private void addColumn2(final ScalarPropertyAccessor<?,MemoPattern> propertyAccessor, String tooltip) {
 		TableViewerColumn column = new TableViewerColumn(entriesViewer, SWT.LEFT);
 		column.getColumn().setWidth(propertyAccessor.getMinimumWidth());
-		column.getColumn().setText(propertyAccessor.getDisplayName());
 		column.getColumn().setToolTipText(tooltip);
+
+		if (propertyAccessor == MemoPatternInfo.getOrderingIndexAccessor()) {
+			column.getColumn().setText("Pattern Index");
+		} else if (propertyAccessor == MemoPatternInfo.getTransactionTypeIdAccessor()) {
+			column.getColumn().setText(propertyAccessor.getDisplayName());
+		}
 
 		column.setLabelProvider(new ColumnLabelProvider() {
 			@Override
@@ -772,7 +780,17 @@ public class PatternMatchingDialog extends Dialog {
 		});
 	}
 
-	// Used for param values only
+	/**
+	 * Adds columns for the parameters.  The column contains the value that will be
+	 * used for the parameter after substitution markers have been replaced by matches
+	 * from the import data.
+	 * <P>
+	 * Note that the column contains information for all parameters with a given parameter
+	 * label.  Thus two parameters with the same label but that are used in different transaction
+	 * types will share the same column.
+	 *
+	 * @param parameterName the name of the parameters being shown in this column
+	 */
 	private void addColumnForParameter(final String parameterName) {
 		String tooltip = MessageFormat.format(
 				"The value to be used for the {0}.  The values in this table may contain {0}, [1} etc. where the number matches the group number in the Java regular expression.",
@@ -915,8 +933,13 @@ public class PatternMatchingDialog extends Dialog {
 	private void addColumn(final ScalarPropertyAccessor<?,MemoPattern> propertyAccessor, String tooltip) {
 		TableViewerColumn column = new TableViewerColumn(patternViewer, SWT.LEFT);
 		column.getColumn().setWidth(propertyAccessor.getMinimumWidth());
-		column.getColumn().setText(propertyAccessor.getDisplayName());
 		column.getColumn().setToolTipText(tooltip);
+
+		if (propertyAccessor == MemoPatternInfo.getOrderingIndexAccessor()) {
+			column.getColumn().setText("Pattern Index");
+		} else {
+			column.getColumn().setText(propertyAccessor.getDisplayName());
+		}
 
 		column.setLabelProvider(new ColumnLabelProvider() {
 			@Override
@@ -999,12 +1022,36 @@ public class PatternMatchingDialog extends Dialog {
 	private Control createParametersArea(Composite parent) {
 		Group group = new Group(parent, SWT.NONE);
 		group.setText("Extracted Values");
-		GridLayout groupLayout = new GridLayout();
+		FillLayout groupLayout = new FillLayout();
 		group.setLayout(groupLayout);
 		
-		Composite composite = new ParametersComposite(group, SWT.NONE);
+		final ScrolledComposite sc = new ScrolledComposite(group, SWT.V_SCROLL | SWT.H_SCROLL);
 
-		return composite;
+		final Composite updatingComposite = new ParametersComposite(sc, SWT.NONE);
+
+		sc.setContent(updatingComposite);	
+
+		sc.setExpandHorizontal(true);
+		sc.setExpandVertical(true);
+
+		final IObservableValue<Point> observeSize = new ComputedValue<Point>() {
+			@Override
+			protected Point calculate() {
+				return updatingComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+			}
+		};
+		
+		// TODO replace this by one-way binding to Bean minSize property???
+		sc.setMinSize(observeSize.getValue());
+		
+		observeSize.addValueChangeListener(new IValueChangeListener<Point>() {
+			@Override
+			public void handleValueChange(ValueChangeEvent<Point> event) {
+				sc.setMinSize(observeSize.getValue());
+			}
+		});
+		
+		return group;
 	}
 
 	private Composite createButtonArea(Composite parent) {
@@ -1014,12 +1061,10 @@ public class PatternMatchingDialog extends Dialog {
 		layout.marginHeight = 30;
 		container.setLayout(layout);
 
-		Button button;
-
-		button = new Button(container, SWT.PUSH);
-		button.setText("Add Row");
-		button.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
-		button.addSelectionListener(new SelectionAdapter() {
+		Button addButton = new Button(container, SWT.PUSH);
+		addButton.setText("Add Row");
+		addButton.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
+		addButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				ObjectCollection<MemoPattern> patterns = account.getPatternCollection();
@@ -1037,10 +1082,10 @@ public class PatternMatchingDialog extends Dialog {
 			}
 		});
 
-		button = new Button(container, SWT.PUSH);
-		button.setText("Remove Row");
-		button.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
-		button.addSelectionListener(new SelectionAdapter() {
+		Button removeButton = new Button(container, SWT.PUSH);
+		removeButton.setText("Remove Row");
+		removeButton.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
+		removeButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				IStructuredSelection ssel = (IStructuredSelection)patternViewer.getSelection();
@@ -1066,10 +1111,10 @@ public class PatternMatchingDialog extends Dialog {
 			}
 		});
 
-		button = new Button(container, SWT.PUSH);
-		button.setText("Up");
-		button.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
-		button.addSelectionListener(new SelectionAdapter() {
+		Button upButton = new Button(container, SWT.PUSH);
+		upButton.setText("Up");
+		upButton.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
+		upButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				IStructuredSelection ssel = (IStructuredSelection)patternViewer.getSelection();
@@ -1102,10 +1147,10 @@ public class PatternMatchingDialog extends Dialog {
 			}
 		});
 
-		button = new Button(container, SWT.PUSH);
-		button.setText("Down");
-		button.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
-		button.addSelectionListener(new SelectionAdapter() {
+		Button downButton = new Button(container, SWT.PUSH);
+		downButton.setText("Down");
+		downButton.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
+		downButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				IStructuredSelection ssel = (IStructuredSelection)patternViewer.getSelection();

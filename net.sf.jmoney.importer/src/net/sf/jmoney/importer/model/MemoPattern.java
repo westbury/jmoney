@@ -59,12 +59,6 @@ public final class MemoPattern extends ExtendableObject {
 	
 	protected String memo = null;
 
-	/*
-	 * The compiled pattern.  This is not a property but
-	 * it is compiled each time an object of this class is constructed.
-	 */
-	Pattern compiledPattern = null;
-	
 	/**
 	 * Applicable only if the account is an IncomeExpenseAccount
 	 * and the multi-currency property in the account is set.
@@ -143,14 +137,6 @@ public final class MemoPattern extends ExtendableObject {
 		compiledPatternMap = new HashMap<String, Pattern>();
 		if (pattern != null) {
 			extractPatterns();
-
-			if (patternMap.get("memo") != null) {
-				try {
-					compiledPattern = Pattern.compile(patternMap.get("memo"), Pattern.CASE_INSENSITIVE);
-				} catch (PatternSyntaxException e) {
-					compiledPattern = null;
-				}
-			}
  		}
 		
 		extractParameterValues();
@@ -162,9 +148,24 @@ public final class MemoPattern extends ExtendableObject {
     	 
  		if (pattern != null) {
  			for (String pair : pattern.split("\n")) {
+ 				/*
+ 				 * We split at the first '=', taking into account
+ 				 * that the value may contain one or more '=' that
+ 				 * should not cause a split.
+ 				 */
  				String [] parts = pair.split("=");
- 				String columnId = parts[0];
- 				String columnPattern = parts[1];
+
+ 				String columnId;
+ 				String columnPattern;
+ 				int splitIndex = pair.indexOf("=");
+ 				if (splitIndex == -1) {
+ 					columnId = pair;
+ 					columnPattern = "bad value";
+ 				} else {
+ 					columnId = pair.substring(0, splitIndex);
+ 					columnPattern = pair.substring(splitIndex + 1);
+ 				}
+
  				putPattern(columnId, columnPattern);
 
  				try {
@@ -190,6 +191,25 @@ public final class MemoPattern extends ExtendableObject {
 		} catch (PatternSyntaxException e) {
 			compiledPatternMap.remove(columnId);
 		}
+
+		// Update the underlying data too, as this is what counts when
+		// saving, binding to changes etc.
+		StringBuffer buffer = new StringBuffer();
+		String separator = "";
+		for (Entry<String, String> entry : patternMap.entrySet()) {
+			buffer.append(separator)
+			.append(entry.getKey())
+			.append('=')
+			.append(entry.getValue());
+			separator = "\n";
+		}
+
+		String oldPattern = this.pattern;
+		this.pattern = buffer.toString();
+		
+		// Notify the change manager.
+		processPropertyChange(MemoPatternInfo.getPatternAccessor(), oldPattern, pattern);
+		
 	}
 
     private void extractParameterValues() {
@@ -328,16 +348,6 @@ public final class MemoPattern extends ExtendableObject {
 		String oldPattern = this.pattern;
 		this.pattern = pattern;
 		
-		if (pattern != null) {
-			try {
-				compiledPattern = Pattern.compile(pattern);
-			} catch (PatternSyntaxException e) {
-				compiledPattern = null;
-			}
-		} else {
-			compiledPattern = null;
-		}
-		
 		// Notify the change manager.
 		processPropertyChange(MemoPatternInfo.getPatternAccessor(), oldPattern, pattern);
 	}
@@ -440,10 +450,6 @@ public final class MemoPattern extends ExtendableObject {
 		processPropertyChange(MemoPatternInfo.getIncomeExpenseCurrencyAccessor(), oldIncomeExpenseCurrency, incomeExpenseCurrency);
 	}
 	
-	public Pattern getCompiledPattern() {
-		return compiledPattern;
-	}
-
 	public void setTransactionParameterValue(String parameterId, String value) {
 		if (value.indexOf("\n") != -1) {
 			throw new Error("Newline characters somehow got into a parameter value");
