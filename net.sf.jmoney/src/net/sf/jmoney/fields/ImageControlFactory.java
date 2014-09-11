@@ -29,6 +29,8 @@ import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
 import org.eclipse.core.databinding.beans.BeansObservables;
+import org.eclipse.core.databinding.beans.PojoObservables;
+import org.eclipse.core.databinding.beans.PojoProperties;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.swt.widgets.Composite;
@@ -80,8 +82,8 @@ public class ImageControlFactory<S extends ExtendableObject> implements IPropert
 //			}
 //		};
 
-		Bind.twoWay(modelBlobObservable)
-		.to(BeansObservables.observeValue(propertyControl, "blob", IBlob.class));
+		Bind.oneWay(modelBlobObservable)
+		.to(PojoProperties.value(ImageControl.class, "blob", IBlob.class).observe(propertyControl));
 
 		return propertyControl;
     }
