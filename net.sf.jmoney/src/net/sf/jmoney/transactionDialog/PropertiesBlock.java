@@ -86,14 +86,51 @@ class PropertiesBlock extends CellBlock<Entry> {
 	}
 
 	private class PropertiesCellControl implements IPropertyControl<Entry> {
-		private final class PropertyControlCreator extends ControlCreator {
+		private class PropertiesComposite extends UpdatingComposite {
+			Entry entry;
+			
+			private PropertiesComposite(Composite parent, Entry entry) {
+				super(parent, SWT.NONE);
+				this.entry = entry;
+				setLayout(new RowLayout(SWT.HORIZONTAL));
+			}
+
+			@Override
+			protected void createControls() {
+				/*
+				 * This is a tracked getter, so be sure to get the account
+				 * through an observable.
+				 */
+					Account account = EntryInfo.getAccountAccessor().observe(entry).getValue();
+					
+					if (account != null) {
+						for (final ScalarPropertyAccessor<?, ? super Entry> accessor : EntryInfo.getPropertySet().getScalarProperties3()) {
+							// Be sure not to include the three properties that have their own columns
+							if (accessor != EntryInfo.getAccountAccessor()
+									&& accessor != EntryInfo.getMemoAccessor()
+									&& accessor != EntryInfo.getAmountAccessor()
+									&& isEntryPropertyApplicable(accessor, entry, account)) {
+//								ControlCreator creator = controlCreators.get(accessor);
+//								if (creator == null) {
+									ControlCreator creator = new PropertyControlCreator(this, accessor,
+											entry);
+//									controlCreators.put(accessor, creator);
+//								}
+								creator.create();
+							}
+						}
+					}
+			}
+		}
+
+		private final class PropertyControlCreator extends ControlCreator<Control> {
 			private final ScalarPropertyAccessor<?, ? super Entry> accessor;
 			private final Entry entry;
 
 			private PropertyControlCreator(UpdatingComposite parent,
 					ScalarPropertyAccessor<?, ? super Entry> accessor,
 					Entry entry) {
-				super(parent);
+				super(parent, Control.class);
 				this.accessor = accessor;
 				this.entry = entry;
 			}
@@ -179,35 +216,7 @@ class PropertiesBlock extends CellBlock<Entry> {
 			labelColor = Display.getCurrent().getSystemColor(SWT.COLOR_BLUE);
 			controlColor = Display.getCurrent().getSystemColor(SWT.COLOR_YELLOW);
 
-			propertiesControl = new UpdatingComposite(parent, SWT.NONE) {
-				@Override
-				protected void createControls() {
-					/*
-					 * This is a tracked getter, so be sure to get the account
-					 * through an observable.
-					 */
-					Account account = EntryInfo.getAccountAccessor().observe(entry).getValue();
-					
-					if (account != null) {
-						for (final ScalarPropertyAccessor<?, ? super Entry> accessor : EntryInfo.getPropertySet().getScalarProperties3()) {
-							// Be sure not to include the three properties that have their own columns
-							if (accessor != EntryInfo.getAccountAccessor()
-									&& accessor != EntryInfo.getMemoAccessor()
-									&& accessor != EntryInfo.getAmountAccessor()
-									&& isEntryPropertyApplicable(accessor, entry, account)) {
-//								ControlCreator creator = controlCreators.get(accessor);
-//								if (creator == null) {
-									ControlCreator creator = new PropertyControlCreator(this, accessor,
-											entry);
-//									controlCreators.put(accessor, creator);
-//								}
-								creator.create();
-							}
-						}
-					}
-				}
-			};
-			propertiesControl.setLayout(new RowLayout(SWT.HORIZONTAL));
+			propertiesControl = new PropertiesComposite(parent, entry);
 
 			// This is a bit of a hack because we don't have any layouts that track
 			// changes.

@@ -52,6 +52,10 @@ import net.sf.jmoney.model2.TransactionInfo;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.resources.Messages;
 
+import org.eclipse.core.databinding.observable.value.ComputedValue;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.IValueChangeListener;
+import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.DialogMessageArea;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -66,6 +70,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 
@@ -499,9 +504,47 @@ public class TransactionDialog extends Dialog {
 		scrolled.setExpandHorizontal(true);
 		scrolled.setExpandVertical(true);
 
-		Point preferredSize = entriesTable.computeSize(SWT.DEFAULT, SWT.DEFAULT, false);
-		scrolled.setMinSize(preferredSize);
+//		Point preferredSize = entriesTable.computeSize(SWT.DEFAULT, SWT.DEFAULT, false);
+//		scrolled.setMinSize(preferredSize);
 
+		final IObservableValue<Point> observeSize = new ComputedValue<Point>() {
+			@Override
+			protected Point calculate() {
+				return entriesTable.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+			}
+		};
+		
+//		 TODO replace this by one-way binding to Bean minSize property???
+		scrolled.setMinSize(observeSize.getValue());
+
+//		Point preferredSize = scrolled.computeSize(SWT.DEFAULT, SWT.DEFAULT, true);
+//		if (preferredSize.y > 400) {
+//			preferredSize.y = 400;
+//		}
+//		scrolled.setLayoutData(new GridData(preferredSize.x, preferredSize.y));
+
+		observeSize.addValueChangeListener(new IValueChangeListener<Point>() {
+			@Override
+			public void handleValueChange(ValueChangeEvent<Point> event) {
+				scrolled.setMinSize(observeSize.getValue());
+
+//				Point preferredSize = scrolled.computeSize(SWT.DEFAULT, SWT.DEFAULT, true);
+//				if (preferredSize.y > 400) {
+//					preferredSize.y = 400;
+//				}
+//				scrolled.setLayoutData(new GridData(preferredSize.x, preferredSize.y));
+//				
+//				scrolled.getParent().layout(true);
+		}
+		});
+		
+		Display.getCurrent().asyncExec(new Runnable() {
+			@Override
+			public void run() {
+				refreshScrolling();
+			}
+		});
+		
 		return scrolled;
 	}
 
