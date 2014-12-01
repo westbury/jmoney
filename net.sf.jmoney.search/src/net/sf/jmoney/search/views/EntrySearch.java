@@ -161,7 +161,7 @@ public class EntrySearch implements IEntrySearch {
 			
 			if (memo != null) {
 				whereClause.append(separator);
-				whereClause.append("\"memo\" like ? ");
+				whereClause.append("UPPER(\"memo\") like UPPER(?) ");
 				separator = "and ";
 			}
 			

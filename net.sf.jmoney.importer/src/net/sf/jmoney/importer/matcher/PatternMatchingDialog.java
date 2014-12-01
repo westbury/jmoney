@@ -45,8 +45,8 @@ import net.sf.jmoney.importer.model.TransactionType;
 import net.sf.jmoney.isolation.ObjectCollection;
 import net.sf.jmoney.isolation.ReferenceViolationException;
 import net.sf.jmoney.isolation.TransactionManager;
+import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Currency;
-import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
@@ -122,6 +122,7 @@ public class PatternMatchingDialog extends Dialog {
 		public ParametersComposite(Composite parent, int style) {
 			super(parent, style);
 			setLayout(new GridLayout(2, false));
+			createAndTrackControls();
 		}
 
 		@Override
@@ -238,7 +239,7 @@ public class PatternMatchingDialog extends Dialog {
 	/**
 	 * The account for which we are configuring, which is in our own transaction.
 	 */
-	PatternMatcherAccount account;
+	final PatternMatcherAccount account;
 
 	private DialogMessageArea messageArea;
 
@@ -312,13 +313,20 @@ public class PatternMatchingDialog extends Dialog {
 	 *            the parent shell
 	 * @param importedEntries
 	 */
-	public PatternMatchingDialog(Shell parentShell, PatternMatcherAccount account, Collection<? extends EntryData> sampleEntries, List<ImportEntryProperty> importEntryProperties, List<TransactionType> applicableTransactionTypes) {
+	public PatternMatchingDialog(Shell parentShell, PatternMatcherAccount accountOutsideTransaction, Collection<? extends EntryData> sampleEntries, List<ImportEntryProperty> importEntryProperties, List<TransactionType> applicableTransactionTypes) {
 		super(parentShell);
 		this.sampleEntries = sampleEntries;
 		this.importEntryProperties = importEntryProperties;
 		this.applicableTransactionTypes = applicableTransactionTypes;
 		
-		//		matcher = new ImportMatcher(account);
+		/*
+		 * All changes within this dialog are made within a transaction, so canceling
+		 * is trivial (the transaction is simply not committed).
+		 */
+		transactionManager = new TransactionManagerForAccounts(accountOutsideTransaction.getDataManager());
+		CapitalAccount accountInTransaction = transactionManager.getCopyInTransaction(accountOutsideTransaction.getBaseObject());
+		this.account = accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
+
 		sortedPatterns = new ArrayList<MemoPattern>(account.getPatternCollection());
 		Collections.sort(sortedPatterns, new Comparator<MemoPattern>(){
 			@Override
@@ -326,14 +334,6 @@ public class PatternMatchingDialog extends Dialog {
 				return pattern1.getOrderingIndex() - pattern2.getOrderingIndex();
 			}
 		});
-
-		/*
-		 * All changes within this dialog are made within a transaction, so canceling
-		 * is trivial (the transaction is simply not committed).
-		 */
-		transactionManager = new TransactionManagerForAccounts(account.getDataManager());
-		ExtendableObject accountInTransaction = transactionManager.getCopyInTransaction(account.getBaseObject());
-		this.account = accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
 
 		// Load the error indicator
 		URL installURL = Activator.getDefault().getBundle().getEntry("/icons/error.gif");
@@ -809,8 +809,6 @@ public class PatternMatchingDialog extends Dialog {
 				MemoPattern matchingPattern = null;
 				Object [] args = null;
 				for (MemoPattern pattern: sortedPatterns) {
-//					Pattern compiledPattern = pattern.getCompiledPattern();
-
 					/*
 					 * The pattern may not yet have been entered if the user has just added a new
 					 * pattern.
@@ -924,6 +922,9 @@ public class PatternMatchingDialog extends Dialog {
 
 					updateSampleEntriesTable();
 					updateErrorMessage();
+
+					// This seems to be necessary.  I don't know why the cell editor stopped doing this.
+					patternViewer.refresh(element);
 				}
 			}
 		};

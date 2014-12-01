@@ -22,6 +22,7 @@
 
 package net.sf.jmoney.importer.model;
 
+import java.util.Collections;
 import java.util.List;
 
 import net.sf.jmoney.importer.wizards.IAccountImportWizard;
@@ -147,7 +148,16 @@ public class TransactionTypeControlFactory<P, S extends ExtendableObject> extend
         return value == null ? "" : value.getLabel(); //$NON-NLS-1$
     }
 
+    /**
+     * This is a general implementation that has no context.  The actual supported transaction
+     * types depend on context.   So we must include all possible transaction types here, regardless
+     * of whether they are supported only by OFX or only by custom CSV import.
+     * 
+     * @param account
+     * @return
+     */
 	private List<TransactionType> getTransactionTypes(CapitalAccount account) {
+		
 //		IConfigurationElement wizardElement = findWizard(account);
 
 		// Merge with code in CsvImportToAccountAssociations???
@@ -177,9 +187,8 @@ public class TransactionTypeControlFactory<P, S extends ExtendableObject> extend
 			}
 		}
 		
-		return null;
-
-		
+		// No CSV wizard found, so return those for OFX.
+		return Collections.<TransactionType>singletonList(new TransactionTypeBasic());
 	}
 
 	@Override

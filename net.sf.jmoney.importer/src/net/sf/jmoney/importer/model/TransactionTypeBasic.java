@@ -20,6 +20,7 @@ public class TransactionTypeBasic extends TransactionType {
 	private TransactionParamMetadataAccount accountParam = new TransactionParamMetadataAccount("account", "Category", Account.class);
 	private TransactionParamMetadataString checkParam = new TransactionParamMetadataString("check", "Check");
 	private TransactionParamMetadataString transDateParam = new TransactionParamMetadataString("transDate", "Transaction Date");
+	private TransactionParamMetadataString valueDateParam = new TransactionParamMetadataString("valueDate", "Value Date");
 
 	public TransactionTypeBasic() {
 		super("basic", "Basic");
@@ -32,7 +33,8 @@ public class TransactionTypeBasic extends TransactionType {
 				memoParam,
 				accountParam,
 				checkParam,
-				transDateParam
+				transDateParam,
+				valueDateParam
 		});
 	}
 
@@ -81,7 +83,7 @@ public class TransactionTypeBasic extends TransactionType {
 					throw new RuntimeException("currency change on pattern match");
 				}
 			} else {
-				entry2.setAccount(pattern.getAccount());
+				entry2.setAccount(accountParam.obtainAccount(pattern));
 			}
 
 	}

@@ -618,7 +618,7 @@ public class ReconcileEditor extends EditorPart {
 				CurrencyAccount accountInTransaction = transactionManager.getCopyInTransaction((account));
 				Session sessionInTransaction = accountInTransaction.getSession();
 
-				ImportMatcher matcher = new ImportMatcher(accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true));
+				ImportMatcher matcher = new ImportMatcher(accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true), Arrays.asList(statementSource.getImportEntryProperties()), statementSource.getApplicableTransactionTypes());
 
 				for (net.sf.jmoney.importer.matcher.EntryData entryData: importedEntries) {
 					Entry entry = matcher.process(entryData, sessionInTransaction);

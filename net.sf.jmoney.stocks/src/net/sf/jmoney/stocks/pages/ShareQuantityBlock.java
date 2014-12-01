@@ -40,6 +40,11 @@ public class ShareQuantityBlock extends
 				public String modelToTarget(Long quantity) {
 					StockEntryFacade stockEntryFacade = master.getValue();
 					
+					if (!stockEntryFacade.isPurchaseOrSale()) {
+						// TODO is this correct????
+						return null;
+					}
+
 					IAmountFormatter formatter = getFormatter(stockEntryFacade);
 
 //						long quantity = stockEntryFacade.getPurchaseOrSaleEntry().getAmount();
@@ -47,7 +52,7 @@ public class ShareQuantityBlock extends
 //							quantity = -quantity;
 					}
 					
-					return formatter.format(quantity);
+					return quantity == null ? null : formatter.format(quantity);
 				}
 
 				@Override
@@ -66,6 +71,12 @@ public class ShareQuantityBlock extends
 					}
 				}
 
+				/**
+				 * The transaction must be a stock purchase or sale.
+				 * 
+				 * @param stockEntryFacade
+				 * @return
+				 */
 				private IAmountFormatter getFormatter(StockEntryFacade stockEntryFacade) {
 					IAmountFormatter formatter = stockEntryFacade.getPurchaseOrSaleEntry().getCommodity();
 					if (formatter == null) {

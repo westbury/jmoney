@@ -147,7 +147,8 @@ public final class MemoPattern extends ExtendableObject {
     	compiledPatternMap = new WritableMap<String, Pattern>();
     	 
  		if (pattern != null) {
- 			for (String pair : pattern.split("\n")) {
+ 			String[] pairs = pattern.split("\n");
+			for (String pair : pairs) {
  				/*
  				 * We split at the first '=', taking into account
  				 * that the value may contain one or more '=' that
@@ -166,13 +167,15 @@ public final class MemoPattern extends ExtendableObject {
  					columnPattern = pair.substring(splitIndex + 1);
  				}
 
- 				putPattern(columnId, columnPattern);
-
- 				try {
- 					Pattern thisCompiledPattern = Pattern.compile(columnPattern, Pattern.CASE_INSENSITIVE);
- 					compiledPatternMap.put(columnId, thisCompiledPattern);
- 				} catch (PatternSyntaxException e) {
- 					compiledPatternMap.remove(columnId);
+				/*
+				 * The pattern should not be empty, but this has happened and
+				 * when it does happen it is very confusing to the user because
+				 * the user can't see an empty pattern and it matches nothing
+				 * (except an empty string) whereas a null pattern effectively
+				 * matches everything.
+				 */
+ 				if (!columnPattern.trim().isEmpty()) {
+ 					putPatternInternally(columnId, columnPattern);
  				}
  			}
  		}
@@ -182,15 +185,12 @@ public final class MemoPattern extends ExtendableObject {
 		if (columnPattern.indexOf("\n") != -1) {
 			throw new Error("Newline characters somehow got into a pattern");
 		}
-		
-		patternMap.put(columnId, columnPattern);
-		
-		try {
-			Pattern thisCompiledPattern = Pattern.compile(columnPattern, Pattern.CASE_INSENSITIVE);
-			compiledPatternMap.put(columnId, thisCompiledPattern);
-		} catch (PatternSyntaxException e) {
-			compiledPatternMap.remove(columnId);
+		if (columnPattern.trim().isEmpty()) {
+			columnPattern = null;
+//			throw new Error("Empty string somehow got into a pattern");
 		}
+		
+		putPatternInternally(columnId, columnPattern);
 
 		// Update the underlying data too, as this is what counts when
 		// saving, binding to changes etc.
@@ -210,6 +210,30 @@ public final class MemoPattern extends ExtendableObject {
 		// Notify the change manager.
 		processPropertyChange(MemoPatternInfo.getPatternAccessor(), oldPattern, pattern);
 		
+	}
+
+	/**
+	 * Puts the pattern for the given id into our maps.
+	 * 
+	 * This method is a private method that does not fire change events
+	 * or anything like that.
+	 * 
+	 * @param columnId
+	 * @param columnPattern
+	 */
+	private void putPatternInternally(String columnId, String columnPattern) {
+		System.out.println("Setting " + columnId + " to " + columnPattern);
+		if (columnPattern == null || columnPattern.trim().isEmpty()) {
+			System.out.println("empty");
+		}
+		patternMap.put(columnId, columnPattern);
+		
+		try {
+			Pattern thisCompiledPattern = Pattern.compile(columnPattern, Pattern.CASE_INSENSITIVE);
+			compiledPatternMap.put(columnId, thisCompiledPattern);
+		} catch (PatternSyntaxException e) {
+			compiledPatternMap.remove(columnId);
+		}
 	}
 
     private void extractParameterValues() {

@@ -35,17 +35,22 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.matcher.EntryData;
+import net.sf.jmoney.importer.matcher.ImportEntryProperty;
 import net.sf.jmoney.importer.matcher.ImportMatcher;
 import net.sf.jmoney.importer.matcher.PatternMatchingDialog;
 import net.sf.jmoney.importer.model.PatternMatcherAccount;
 import net.sf.jmoney.importer.model.PatternMatcherAccountInfo;
+import net.sf.jmoney.importer.model.TransactionType;
+import net.sf.jmoney.importer.model.TransactionTypeBasic;
 import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.BankAccount;
@@ -431,7 +436,7 @@ public class OfxImporter {
 
 		PatternMatcherAccount matcherAccount = account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
 
-		Dialog dialog = new PatternMatchingDialog(window.getShell(), matcherAccount, importedEntries);
+		Dialog dialog = new PatternMatchingDialog(window.getShell(), matcherAccount, importedEntries, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
 		if (dialog.open() == Dialog.OK) {
 			ImportMatcher matcher = new ImportMatcher(account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true), Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
 
@@ -588,7 +593,7 @@ public class OfxImporter {
 
 		SimpleElement transListElement = statementResultElement.getDescendant("INVTRANLIST");
 
-		ImportMatcher matcher = new ImportMatcher(account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true));
+		ImportMatcher matcher = new ImportMatcher(account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true), Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
 
 		for (SimpleElement transactionElement : transListElement.getChildElements()) {
 			if (transactionElement.getTagName().equals("DTSTART")) {
@@ -668,15 +673,20 @@ public class OfxImporter {
 		   		 * use the values for memo, description etc. from the pattern.
 		   		 */
 				String trnType = stmtTrnElement.getString("TRNTYPE");
-				String textToMatch = MessageFormat.format(
-						"TRNTYPE={0}\nMEMO={1}",
-						trnType,
-						memo);
+//				String textToMatch = MessageFormat.format(
+//						"TRNTYPE={0}\nMEMO={1}",
+//						trnType,
+//						memo);
 				String defaultDescription = MessageFormat.format(
 						"{0}: {1}",
 						trnType.toLowerCase(),
 						toTitleCase(memo));
-				matcher.matchAndFill(textToMatch, firstEntry, otherEntry, toTitleCase(memo), defaultDescription);
+				
+//				matchAndFill(entryData, entry1, entry2, entryData.getDefaultMemo(), entryData.getDefaultDescription());
+
+				EntryData entryData = new EntryData();
+				entryData.setMemo(memo);
+				matcher.matchAndFill(entryData, firstEntry, otherEntry, toTitleCase(memo), defaultDescription);
 			} else {
 				// Assume a stock transaction
 
@@ -837,15 +847,19 @@ public class OfxImporter {
 						Entry otherEntry = transaction.createEntry();
 						otherEntry.setAmount(-total);
 
-						String textToMatch = MessageFormat.format(
-								"INCOMETYPE={0}\nMEMO={1}",
-								incomeType,
-								memo);
+//						String textToMatch = MessageFormat.format(
+//								"INCOMETYPE={0}\nMEMO={1}",
+//								incomeType,
+//								memo);
 						String defaultDescription = MessageFormat.format(
 								"{0}: {1}",
 								incomeType.toLowerCase(),
 								toTitleCase(memo));
-						matcher.matchAndFill(textToMatch, firstEntry, otherEntry, toTitleCase(memo), defaultDescription);
+
+						EntryData entryData = new EntryData();
+						entryData.setMemo(memo);
+
+						matcher.matchAndFill(entryData, firstEntry, otherEntry, toTitleCase(memo), defaultDescription);
 					}
 
 					/*
@@ -908,13 +922,17 @@ public class OfxImporter {
 					// so set the security.
 					otherEntry.setSecurity(stock);
 
-					String textToMatch = MessageFormat.format(
-							"INVEXPENSE\nMEMO={0}",
-							memo);
+//					String textToMatch = MessageFormat.format(
+//							"INVEXPENSE\nMEMO={0}",
+//							memo);
 					String defaultDescription = MessageFormat.format(
 							"Investment Expense: {0}",
 							toTitleCase(memo));
-					matcher.matchAndFill(textToMatch, firstEntry, otherEntry.getBaseObject(), toTitleCase(memo), defaultDescription);
+
+					EntryData entryData = new EntryData();
+					entryData.setMemo(memo);
+
+					matcher.matchAndFill(entryData, firstEntry, otherEntry.getBaseObject(), toTitleCase(memo), defaultDescription);
 				} else if (transactionElement.getTagName().equals("TRANSFER")) {
 					String units = transactionElement.getString("UNITS");
 					Long quantity = stock.parse(units);
@@ -1106,4 +1124,39 @@ public class OfxImporter {
 
 		return stock;
 	}
+
+	public ImportEntryProperty[] getImportEntryProperties() {
+		return new ImportEntryProperty [] {
+				new ImportEntryProperty("memo", "Memo") {
+					protected String getCurrentValue(EntryData importEntry) {
+						return importEntry.getMemo();
+					}
+				},
+				new ImportEntryProperty("amount", "Amount") {
+					protected String getCurrentValue(EntryData importEntry) {
+						// As we don't have an account accessible that would give us a currency, just format using USD
+						// TODO There must be a better way...
+						IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)window.getActivePage().getInput();
+						IAmountFormatter formatter = sessionManager.getSession().getCurrencyForCode("USD");
+						return formatter.format(importEntry.amount);
+					}
+				},
+		};
+	}
+
+	/**
+	 * Note that this list is not cached, meaning new instances will be created
+	 * for each call to this method.
+	 * 
+	 * @param account
+	 * @return
+	 */
+	public List<TransactionType> getApplicableTransactionTypes() {
+			List<TransactionType> result = new ArrayList<TransactionType>();
+
+			result.add(new TransactionTypeBasic());
+
+			return result;
+	}
+
 }
