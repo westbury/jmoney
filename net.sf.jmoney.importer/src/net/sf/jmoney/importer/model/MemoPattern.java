@@ -142,6 +142,36 @@ public final class MemoPattern extends ExtendableObject {
 		extractParameterValues();
 	}
 	
+	/**
+     * Constructor used by datastore plug-ins to create
+     * a pattern object.
+     *
+     * @param parent The key to a Transaction object.
+     * 		This parameter must be non-null.
+     * 		The getObject method must not be called on this
+     * 		key from within this constructor because the
+     * 		key may not yet be in a state in which it is
+     * 		capable of materializing an object.   
+     */
+	public MemoPattern(
+			IObjectKey objectKey,
+    		ListKey<? super MemoPattern,?> parentKey) {
+		super(objectKey, parentKey);
+
+		this.orderingIndex = 0;
+		this.pattern = null;
+		this.transactionTypeId = null;
+		this.transactionParameterValues = null;
+		this.description = null;
+		this.accountKey = null;
+		this.memo = null;
+		this.incomeExpenseCurrencyKey = null;
+
+		patternMap = new HashMap<String, String>();
+		compiledPatternMap = new HashMap<String, Pattern>();
+		transactionParameterValueMap = new WritableMap<String, String>();
+	}
+
     private void extractPatterns() {
     	patternMap = new WritableMap<String, String>();
     	compiledPatternMap = new WritableMap<String, Pattern>();
@@ -219,20 +249,24 @@ public final class MemoPattern extends ExtendableObject {
 	 * or anything like that.
 	 * 
 	 * @param columnId
-	 * @param columnPattern
+	 * @param columnPattern the pattern that this column must match, or null
+	 * 			if there are to be no restrictions on this column
 	 */
 	private void putPatternInternally(String columnId, String columnPattern) {
 		System.out.println("Setting " + columnId + " to " + columnPattern);
-		if (columnPattern == null || columnPattern.trim().isEmpty()) {
-			System.out.println("empty");
-		}
-		patternMap.put(columnId, columnPattern);
 		
-		try {
-			Pattern thisCompiledPattern = Pattern.compile(columnPattern, Pattern.CASE_INSENSITIVE);
-			compiledPatternMap.put(columnId, thisCompiledPattern);
-		} catch (PatternSyntaxException e) {
+		if (columnPattern == null) {
+			patternMap.remove(columnId);
 			compiledPatternMap.remove(columnId);
+		} else {
+			patternMap.put(columnId, columnPattern);
+
+			try {
+				Pattern thisCompiledPattern = Pattern.compile(columnPattern, Pattern.CASE_INSENSITIVE);
+				compiledPatternMap.put(columnId, thisCompiledPattern);
+			} catch (PatternSyntaxException e) {
+				compiledPatternMap.remove(columnId);
+			}
 		}
 	}
 
@@ -247,35 +281,6 @@ public final class MemoPattern extends ExtendableObject {
 				transactionParameterValueMap.put(paramId, paramValue);
 			}
 		}
-	}
-
-	/**
-     * Constructor used by datastore plug-ins to create
-     * a pattern object.
-     *
-     * @param parent The key to a Transaction object.
-     * 		This parameter must be non-null.
-     * 		The getObject method must not be called on this
-     * 		key from within this constructor because the
-     * 		key may not yet be in a state in which it is
-     * 		capable of materializing an object.   
-     */
-	public MemoPattern(
-			IObjectKey objectKey,
-    		ListKey<? super MemoPattern,?> parentKey) {
-		super(objectKey, parentKey);
-
-		this.orderingIndex = 0;
-		this.pattern = null;
-		this.transactionTypeId = null;
-		this.transactionParameterValues = null;
-		this.description = null;
-		this.accountKey = null;
-		this.memo = null;
-		this.incomeExpenseCurrencyKey = null;
-
-		patternMap = new HashMap<String, String>();
-		transactionParameterValueMap = new WritableMap<String, String>();
 	}
 
 	@Override

@@ -769,7 +769,9 @@ public class PatternMatchingDialog extends Dialog {
 						if (propertyAccessor == MemoPatternInfo.getOrderingIndexAccessor()) {
 							return Integer.toString(pattern.getOrderingIndex());
 						} else if (propertyAccessor == MemoPatternInfo.getTransactionTypeIdAccessor()) {
-							return lookupTransactionType(pattern.getTransactionTypeId()).getLabel();
+							return pattern.getTransactionTypeId() == null
+									? ""
+											: lookupTransactionType(pattern.getTransactionTypeId()).getLabel();
 						}
 					}
 				}
@@ -857,12 +859,17 @@ public class PatternMatchingDialog extends Dialog {
 				 * that matches the name in this column. 
 				 */
 				if (matchingPattern != null) {
-					TransactionType transType = lookupTransactionType(matchingPattern.getTransactionTypeId());
-					TransactionParamMetadata paramMetadata = lookupParamByName(transType, parameterName);
-					if (paramMetadata != null) {
-						return paramMetadata.getResolvedValueAsString(matchingPattern, args);
+					if (matchingPattern.getTransactionTypeId() == null) {
+						// User hasn't entered type yet.  It must be a new pattern being entered.
+						return "";
 					} else {
-						return "N/A";
+						TransactionType transType = lookupTransactionType(matchingPattern.getTransactionTypeId());
+						TransactionParamMetadata paramMetadata = lookupParamByName(transType, parameterName);
+						if (paramMetadata != null) {
+							return paramMetadata.getResolvedValueAsString(matchingPattern, args);
+						} else {
+							return "N/A";
+						}
 					}
 				} else {
 					return "no match";
