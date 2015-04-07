@@ -337,10 +337,10 @@ public class TransactionDialog extends Dialog {
 		createTransactionPropertiesArea(composite).setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 
 		// Create the table area
-		GridData tableData = new GridData(SWT.FILL, SWT.FILL, true, true);
-		tableData.minimumWidth = 200;
-		tableData.minimumHeight = 200;
-		createScrollableEntriesTable(composite).setLayoutData(tableData);
+//		GridData tableData = new GridData(SWT.FILL, SWT.FILL, true, true);
+//		tableData.minimumWidth = 450;
+//		tableData.minimumHeight = 450;
+		createScrollableEntriesTable(composite); //.setLayoutData(tableData);
 
 		applyDialogFont(composite);
 		return composite;
@@ -488,24 +488,12 @@ public class TransactionDialog extends Dialog {
 	private Control createScrollableEntriesTable(Composite parent) {
 		scrolled = new ScrolledComposite(parent, SWT.V_SCROLL | SWT.H_SCROLL);
 
-		GridData resultData = new GridData(SWT.DEFAULT, 200);
-		resultData.heightHint = 200;
-
-		GridData resultData2 = new GridData(SWT.DEFAULT, 200);
-		resultData2.heightHint = 200;
-
 		entriesTable = createEntriesTable(scrolled);
-		entriesTable.setLayoutData(resultData);
-
-		entriesTable.setLayoutData(resultData2);
 
 		scrolled.setContent(entriesTable);
 
 		scrolled.setExpandHorizontal(true);
 		scrolled.setExpandVertical(true);
-
-//		Point preferredSize = entriesTable.computeSize(SWT.DEFAULT, SWT.DEFAULT, false);
-//		scrolled.setMinSize(preferredSize);
 
 		final IObservableValue<Point> observeSize = new ComputedValue<Point>() {
 			@Override
@@ -517,11 +505,11 @@ public class TransactionDialog extends Dialog {
 //		 TODO replace this by one-way binding to Bean minSize property???
 		scrolled.setMinSize(observeSize.getValue());
 
-//		Point preferredSize = scrolled.computeSize(SWT.DEFAULT, SWT.DEFAULT, true);
-//		if (preferredSize.y > 400) {
-//			preferredSize.y = 400;
-//		}
-//		scrolled.setLayoutData(new GridData(preferredSize.x, preferredSize.y));
+		Point preferredSize = scrolled.computeSize(SWT.DEFAULT, SWT.DEFAULT, true);
+		if (preferredSize.y > 400) {
+			preferredSize.y = 400;
+		}
+		scrolled.setLayoutData(new GridData(preferredSize.x, preferredSize.y));
 
 		observeSize.addValueChangeListener(new IValueChangeListener<Point>() {
 			@Override
@@ -538,12 +526,14 @@ public class TransactionDialog extends Dialog {
 		}
 		});
 		
-		Display.getCurrent().asyncExec(new Runnable() {
-			@Override
-			public void run() {
-				refreshScrolling();
-			}
-		});
+//		Display.getCurrent().asyncExec(new Runnable() {
+//			@Override
+//			public void run() {
+//				refreshScrolling();
+//				getShell().layout(true);
+//		        getShell().pack(true);
+//			}
+//		});
 		
 		return scrolled;
 	}

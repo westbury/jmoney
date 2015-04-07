@@ -93,6 +93,7 @@ class PropertiesBlock extends CellBlock<Entry> {
 				super(parent, SWT.NONE);
 				this.entry = entry;
 				setLayout(new RowLayout(SWT.HORIZONTAL));
+				createAndTrackControls();
 			}
 
 			@Override
@@ -104,18 +105,15 @@ class PropertiesBlock extends CellBlock<Entry> {
 					Account account = EntryInfo.getAccountAccessor().observe(entry).getValue();
 					
 					if (account != null) {
+						int limit = 3;
 						for (final ScalarPropertyAccessor<?, ? super Entry> accessor : EntryInfo.getPropertySet().getScalarProperties3()) {
 							// Be sure not to include the three properties that have their own columns
 							if (accessor != EntryInfo.getAccountAccessor()
 									&& accessor != EntryInfo.getMemoAccessor()
 									&& accessor != EntryInfo.getAmountAccessor()
 									&& isEntryPropertyApplicable(accessor, entry, account)) {
-//								ControlCreator creator = controlCreators.get(accessor);
-//								if (creator == null) {
-									ControlCreator creator = new PropertyControlCreator(this, accessor,
-											entry);
-//									controlCreators.put(accessor, creator);
-//								}
+//								if (--limit < 0) break;
+								ControlCreator creator = new PropertyControlCreator(this, accessor, entry);
 								creator.create();
 							}
 						}
