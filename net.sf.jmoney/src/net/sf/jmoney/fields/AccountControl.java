@@ -117,108 +117,126 @@ public abstract class AccountControl<A extends Account> extends AccountComposite
 					return;
 				}
 
-				shell = new Shell(parent.getShell(), SWT.ON_TOP);
-		        shell.setLayout(new RowLayout());
+				
 
-		        final List listControl = new List(shell, SWT.SINGLE | SWT.V_SCROLL);
-		        listControl.setLayoutData(new RowData(SWT.DEFAULT, 100));
+				getDisplay().asyncExec(new Runnable() {
 
-		        // Important we use the field for the session and accountClass.  We do not use the parameters
-		        // (the parameters may be null, but fields should always have been set by
-		        // the time control gets focus).
-		        allAccounts = new Vector<A>();
-		        addAccounts("", AccountControl.this.getSession().getAccountCollection(), listControl, AccountControl.this.accountClass); //$NON-NLS-1$
+					@Override
+					public void run() {
+						/*
+						 * Sometimes the focus goes to the text box multiple times.  Protect
+						 * against this by checking that we don't already have a shell for
+						 * this text box.
+						 */
+						if (shell != null) {
+							return;
+						}
+						
+						shell = new Shell(parent.getShell(), SWT.ON_TOP);
+				        shell.setLayout(new RowLayout());
 
-//		        shell.setSize(listControl.computeSize(SWT.DEFAULT, listControl.getItemHeight()*10));
+				        final List listControl = new List(shell, SWT.SINGLE | SWT.V_SCROLL);
+				        listControl.setLayoutData(new RowData(SWT.DEFAULT, 100));
 
-                // Set the currently set account into the list control.
-    	        listControl.select(allAccounts.indexOf(account));
+				        // Important we use the field for the session and accountClass.  We do not use the parameters
+				        // (the parameters may be null, but fields should always have been set by
+				        // the time control gets focus).
+				        allAccounts = new Vector<A>();
+				        addAccounts("", AccountControl.this.getSession().getAccountCollection(), listControl, AccountControl.this.accountClass); //$NON-NLS-1$
 
-    	        listControl.addSelectionListener(
-                		new SelectionAdapter() {
-                		    @Override
-							public void widgetSelected(SelectionEvent e) {
-								int selectionIndex = listControl.getSelectionIndex();
-								account.setValue(allAccounts.get(selectionIndex));
-							}
-                		});
+//				        shell.setSize(listControl.computeSize(SWT.DEFAULT, listControl.getItemHeight()*10));
 
-    			listControl.addKeyListener(new KeyAdapter() {
-    				String pattern;
-    				int lastTime = 0;
+		                // Set the currently set account into the list control.
+		    	        listControl.select(allAccounts.indexOf(account));
 
-    			    @Override
-    				public void keyPressed(KeyEvent e) {
-    					if (Character.isLetterOrDigit(e.character)) {
-    						if ((e.time - lastTime) < 1000) {
-    							pattern += Character.toUpperCase(e.character);
-    						} else {
-    							pattern = String.valueOf(Character.toUpperCase(e.character));
-    						}
-    						lastTime = e.time;
+		    	        listControl.addSelectionListener(
+		                		new SelectionAdapter() {
+		                		    @Override
+									public void widgetSelected(SelectionEvent e) {
+										int selectionIndex = listControl.getSelectionIndex();
+										account.setValue(allAccounts.get(selectionIndex));
+									}
+		                		});
 
-    						/*
-    						 *
-    						 Starting at the currently selected account,
-    						 search for an account starting with these characters.
-    						 */
-    						int startIndex = listControl.getSelectionIndex();
-    						if (startIndex == -1) {
-    							startIndex = 0;
-    						}
+		    			listControl.addKeyListener(new KeyAdapter() {
+		    				String pattern;
+		    				int lastTime = 0;
 
-    						int match = -1;
-    						int i = startIndex;
-    						do {
-    							if (allAccounts.get(i).getName().toUpperCase().startsWith(pattern)) {
-    								match = i;
-    								break;
-    							}
+		    			    @Override
+		    				public void keyPressed(KeyEvent e) {
+		    					if (Character.isLetterOrDigit(e.character)) {
+		    						if ((e.time - lastTime) < 1000) {
+		    							pattern += Character.toUpperCase(e.character);
+		    						} else {
+		    							pattern = String.valueOf(Character.toUpperCase(e.character));
+		    						}
+		    						lastTime = e.time;
 
-    							i++;
-    							if (i == allAccounts.size()) {
-    								i = 0;
-    							}
-    						} while (i != startIndex);
+		    						/*
+		    						 *
+		    						 Starting at the currently selected account,
+		    						 search for an account starting with these characters.
+		    						 */
+		    						int startIndex = listControl.getSelectionIndex();
+		    						if (startIndex == -1) {
+		    							startIndex = 0;
+		    						}
 
-    						if (match != -1) {
-    							account.setValue(allAccounts.get(match));
-    							listControl.select(match);
-    							listControl.setTopIndex(match);
-    						}
+		    						int match = -1;
+		    						int i = startIndex;
+		    						do {
+		    							if (allAccounts.get(i).getName().toUpperCase().startsWith(pattern)) {
+		    								match = i;
+		    								break;
+		    							}
 
-    						e.doit = false;
-    					}
-    				}
-    			});
+		    							i++;
+		    							if (i == allAccounts.size()) {
+		    								i = 0;
+		    							}
+		    						} while (i != startIndex);
 
-    			shell.pack();
+		    						if (match != -1) {
+		    							account.setValue(allAccounts.get(match));
+		    							listControl.select(match);
+		    							listControl.setTopIndex(match);
+		    						}
 
-    	        /*
-				 * Position the shell below the text box, unless the account
-				 * control is so near the bottom of the display that the shell
-				 * would go off the bottom of the display, in which case
-				 * position the shell above the text box.
-				 */
-    	        Display display = getDisplay();
-    	        Rectangle rect = display.map(parent, null, getBounds());
-    	        int calendarShellHeight = shell.getSize().y;
-    	        if (rect.y + rect.height + calendarShellHeight <= display.getBounds().height) {
-        	        shell.setLocation(rect.x, rect.y + rect.height);
-    	        } else {
-        	        shell.setLocation(rect.x, rect.y - calendarShellHeight);
-    	        }
+		    						e.doit = false;
+		    					}
+		    				}
+		    			});
 
-    	        shell.open();
+		    			shell.pack();
 
-    	        shell.addShellListener(new ShellAdapter() {
-    			    @Override
-    	        	public void shellDeactivated(ShellEvent e) {
-    	        		closingShell = true;
-    	        		shell.close();
-    	        		closingShell = false;
-    	        	}
-    	        });
+		    	        /*
+						 * Position the shell below the text box, unless the account
+						 * control is so near the bottom of the display that the shell
+						 * would go off the bottom of the display, in which case
+						 * position the shell above the text box.
+						 */
+		    	        Display display = getDisplay();
+		    	        Rectangle rect = display.map(parent, null, getBounds());
+		    	        int calendarShellHeight = shell.getSize().y;
+		    	        if (rect.y + rect.height + calendarShellHeight <= display.getBounds().height) {
+		        	        shell.setLocation(rect.x, rect.y + rect.height);
+		    	        } else {
+		        	        shell.setLocation(rect.x, rect.y - calendarShellHeight);
+		    	        }
+		    	        shell.open();
+
+		    	        shell.addShellListener(new ShellAdapter() {
+		    			    @Override
+		    	        	public void shellDeactivated(ShellEvent e) {
+		    	        		closingShell = true;
+		    	        		shell.close();
+		    	        		shell = null;
+		    	        		closingShell = false;
+		    	        	}
+		    	        });
+					}
+				});
+    	        
 			}
 
 			@Override
