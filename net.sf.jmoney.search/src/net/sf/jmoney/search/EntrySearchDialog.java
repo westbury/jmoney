@@ -63,7 +63,7 @@ public class EntrySearchDialog extends Dialog {
 	            amount = null;
 	        } else {
 	        	// TODO: Have a drop down with the currency on which
-	        	// we are searching.
+	        	// we are searching?
 	        	Currency currency = JMoneyPlugin.getDefault().getSession().getDefaultCurrency();
 	            try {
 					amount = currency.parse(amountString);
