@@ -35,6 +35,7 @@ import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ReferenceViolationException;
 import net.sf.jmoney.jdbcdatastore.SessionManager.DatabaseListKey;
+import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.ListPropertyAccessor;
 import net.sf.jmoney.model2.SessionInfo;
 
@@ -75,7 +76,7 @@ public class ListManagerUncached<E extends IModelObject, S extends IModelObject>
 		
 		// Insert the new object into the tables.
 		
-		int rowId = sessionManager.insertIntoDatabase(propertySet, extendableObject, listKey);
+		int rowId = sessionManager.insertIntoDatabase(propertySet, (ExtendableObject)extendableObject, listKey);
 		objectKey.setRowId(rowId);
 		
 		return extendableObject;
@@ -100,7 +101,7 @@ public class ListManagerUncached<E extends IModelObject, S extends IModelObject>
 		
 		// Insert the new object into the tables.
 		
-		int rowId = sessionManager.insertIntoDatabase(propertySet, extendableObject, listKey);
+		int rowId = sessionManager.insertIntoDatabase(propertySet, (ExtendableObject)extendableObject, listKey);
 		objectKey.setRowId(rowId);
 		
 		return extendableObject;

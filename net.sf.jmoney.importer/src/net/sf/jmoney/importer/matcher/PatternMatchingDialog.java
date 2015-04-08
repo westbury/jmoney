@@ -127,7 +127,7 @@ public class PatternMatchingDialog extends Dialog {
 
 		@Override
 		protected void createControls() {
-			MemoPattern pattern = ViewerProperties.<MemoPattern>singleSelection().observe(patternViewer).getValue();
+			MemoPattern pattern = ViewerProperties.<MemoPattern>singleSelection(MemoPattern.class).observe(patternViewer).getValue();
 			String transactionTypeId = MemoPatternInfo.getTransactionTypeIdAccessor().observe(pattern).getValue();
 			
 			TransactionType transType = lookupTransactionType(transactionTypeId);
@@ -137,7 +137,7 @@ public class PatternMatchingDialog extends Dialog {
 
 //			IObservableMap<String, String> transactionParameterValues = pattern.getTransactionParameterValueMap();
 
-			EntryData entryData = ViewerProperties.<EntryData>singleSelection().observe(entriesViewer).getValue();
+			EntryData entryData = ViewerProperties.<EntryData>singleSelection(EntryData.class).observe(entriesViewer).getValue();
 
 			Object [] args = null;
 			
@@ -216,7 +216,7 @@ public class PatternMatchingDialog extends Dialog {
 
 		@Override
 		public Control createControl() {
-			return paramMetadata.createControl(parent, ViewerProperties.<MemoPattern>singleSelection().observe(patternViewer), args);
+			return paramMetadata.createControl(parent, ViewerProperties.<MemoPattern>singleSelection(MemoPattern.class).observe(patternViewer), args);
 		}
 		
 		@Override
@@ -234,6 +234,8 @@ public class PatternMatchingDialog extends Dialog {
 		}
 	}
 
+	private static final int SAVE_PATTERNS_ONLY_ID = IDialogConstants.CLIENT_ID + 0;
+
 	private TransactionManager transactionManager;
 
 	/**
@@ -250,8 +252,8 @@ public class PatternMatchingDialog extends Dialog {
 	public IObservableValue<String[]> args = new ComputedValue<String[]>() {
 		@Override
 		protected String[] calculate() {
-			EntryData entryData = ViewerProperties.<EntryData>singleSelection().observe(entriesViewer).getValue();
-			MemoPattern pattern = ViewerProperties.<MemoPattern>singleSelection().observe(patternViewer).getValue();
+			EntryData entryData = ViewerProperties.<EntryData>singleSelection(EntryData.class).observe(entriesViewer).getValue();
+			MemoPattern pattern = ViewerProperties.<MemoPattern>singleSelection(MemoPattern.class).observe(patternViewer).getValue();
 
 			/*
 			 * The pattern may not yet have been entered if the user has just added a new
@@ -351,10 +353,18 @@ public class PatternMatchingDialog extends Dialog {
 
 	@Override
 	protected void buttonPressed(int buttonId) {
-		if (buttonId == IDialogConstants.OK_ID) {
+		switch (buttonId) {
+		case IDialogConstants.OK_ID:
 			// All edits are transferred to the model as they are made,
 			// so we just need to commit them.
 			transactionManager.commit("Change Import Options");
+			break;
+		case SAVE_PATTERNS_ONLY_ID:
+			// All edits are transferred to the model as they are made,
+			// so we just need to commit them.
+			transactionManager.commit("Change Import Options");
+			cancelPressed();
+			break;
 		}
 		super.buttonPressed(buttonId);
 	}
@@ -384,6 +394,8 @@ public class PatternMatchingDialog extends Dialog {
 				IDialogConstants.OK_LABEL, true);
 		createButton(parent, IDialogConstants.CANCEL_ID,
 				IDialogConstants.CANCEL_LABEL, false);
+		createButton(parent, SAVE_PATTERNS_ONLY_ID,
+				"Save Patterns Only", false);
 	}
 
 	@Override

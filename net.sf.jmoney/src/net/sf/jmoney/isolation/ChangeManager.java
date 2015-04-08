@@ -301,7 +301,7 @@ public class ChangeManager {
 				public <E2 extends IModelObject> IListManager<E2> getListManager(
 						IObjectKey listOwnerKey,
 						IListPropertyAccessor<E2,? super E> listAccessor) {
-					return listOwnerKey.constructListManager(listAccessor);
+					return listOwnerKey.constructListManager((IListPropertyAccessor<E2,? super E>)listAccessor);
 				}
 			};
 			

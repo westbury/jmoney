@@ -499,7 +499,7 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 	 * 
 	 * @return The id of the inserted row
 	 */
-	public <S extends IModelObject> int insertIntoDatabase(IExtendablePropertySet<S> propertySet, S newObject, DatabaseListKey<?,?> listKey) {
+	public <S extends IModelObject> int insertIntoDatabase(IExtendablePropertySet<S> propertySet, ExtendableObject newObject, DatabaseListKey<?,?> listKey) {
 		int rowId = -1;
 
 		try {
@@ -543,7 +543,7 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 					String columnName = getColumnName(propertyAccessor);
 
 					// Get the value from the passed property value array.
-					Object value = propertyAccessor.getValue(newObject);
+					Object value = propertyAccessor.getValue((S)newObject);
 
 					columnNames += separator + "\"" + columnName + "\"";
 					columnValues += separator + valueToSQLText(value);
@@ -599,7 +599,7 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 					int parameterNumber = 1;
 					for (ScalarPropertyAccessor<?,? super S> propertyAccessor: propertySet2.getScalarProperties2()) {
 						// Get the value from the passed property value array.
-						Object value = propertyAccessor.getValue(newObject);
+						Object value = propertyAccessor.getValue((S)newObject);
 
 						// Currently only blobs use parameters
 						if (value instanceof IBlob) {
