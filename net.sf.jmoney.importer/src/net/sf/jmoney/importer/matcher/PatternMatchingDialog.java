@@ -22,6 +22,8 @@
 
 package net.sf.jmoney.importer.matcher;
 
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -53,6 +55,8 @@ import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
 
+import org.eclipse.core.databinding.observable.set.ISetChangeListener;
+import org.eclipse.core.databinding.observable.set.SetChangeEvent;
 import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
@@ -252,8 +256,8 @@ public class PatternMatchingDialog extends Dialog {
 	public IObservableValue<String[]> args = new ComputedValue<String[]>() {
 		@Override
 		protected String[] calculate() {
-			EntryData entryData = ViewerProperties.<EntryData>singleSelection(EntryData.class).observe(entriesViewer).getValue();
-			MemoPattern pattern = ViewerProperties.<MemoPattern>singleSelection(MemoPattern.class).observe(patternViewer).getValue();
+			EntryData entryData = (EntryData) ViewerProperties.<EntryData>singleSelection().observe(entriesViewer).getValue();
+			MemoPattern pattern = (MemoPattern) ViewerProperties.<MemoPattern>singleSelection().observe(patternViewer).getValue();
 
 			/*
 			 * The pattern may not yet have been entered if the user has just added a new
@@ -577,6 +581,35 @@ public class PatternMatchingDialog extends Dialog {
 			table.getColumn(i).pack();
 		}
 
+		// Listen for changes to the patterns and refresh when changed.
+		// Bit of a hack...
+		account.getPatternCollection().addSetChangeListener(new ISetChangeListener<MemoPattern>() {
+			@Override
+			public void handleSetChange(SetChangeEvent<MemoPattern> event) {
+				updateSampleEntriesTable();
+				updateErrorMessage();
+				
+				for (MemoPattern pattern : event.diff.getAdditions()) {
+					pattern.addPropertyChangeListener(new PropertyChangeListener() {
+						@Override
+						public void propertyChange(PropertyChangeEvent event) {
+							updateSampleEntriesTable();
+							updateErrorMessage();
+						}
+					});
+				}
+			}
+		});
+		for (MemoPattern pattern : account.getPatternCollection()) {
+			pattern.addPropertyChangeListener(new PropertyChangeListener() {
+				@Override
+				public void propertyChange(PropertyChangeEvent event) {
+					updateSampleEntriesTable();
+					updateErrorMessage();
+				}
+			});
+		}
+
 		return table;
 	}
 
@@ -749,7 +782,7 @@ public class PatternMatchingDialog extends Dialog {
 					for (ImportEntryProperty importEntryProperty : importEntryProperties) {
 						String importEntryPropertyValue = importEntryProperty.getCurrentValue(entryData);
 						Pattern compiledPattern = pattern.getCompiledPattern(importEntryProperty.id);
-
+						
 						if (compiledPattern != null && importEntryPropertyValue != null) {
 							Matcher m = compiledPattern.matcher(importEntryPropertyValue);
 							if (!m.matches()) {

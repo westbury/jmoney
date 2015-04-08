@@ -36,7 +36,9 @@ import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.ExtendableObject;
 
+import org.eclipse.core.databinding.observable.map.IMapChangeListener;
 import org.eclipse.core.databinding.observable.map.IObservableMap;
+import org.eclipse.core.databinding.observable.map.MapChangeEvent;
 import org.eclipse.core.databinding.observable.map.WritableMap;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.observable.MapEntryObservableValue;
@@ -46,6 +48,28 @@ import org.eclipse.core.internal.databinding.observable.MapEntryObservableValue;
  */
 public final class MemoPattern extends ExtendableObject {
 	
+	private final class ParameterMapChangeListener implements
+			IMapChangeListener<String, String> {
+		@Override
+		public void handleMapChange(MapChangeEvent<String,String> event) {
+			StringBuffer buffer = new StringBuffer();
+			String separator = "";
+			for (Entry<String, String> entry : transactionParameterValueMap.entrySet()) {
+				buffer.append(separator)
+				.append(entry.getKey())
+				.append('=')
+				.append(entry.getValue());
+				separator = "\n";
+			}
+
+			String oldTransactionParameterValues = MemoPattern.this.transactionParameterValues;
+			MemoPattern.this.transactionParameterValues = buffer.toString();
+			
+			// Notify the change manager.
+			processPropertyChange(MemoPatternInfo.getTransactionParameterValuesAccessor(), oldTransactionParameterValues, MemoPattern.this.transactionParameterValues);
+		}
+	}
+
 	protected int orderingIndex = 0;
 	
 	protected String pattern = null;
@@ -140,6 +164,8 @@ public final class MemoPattern extends ExtendableObject {
  		}
 		
 		extractParameterValues();
+		
+		transactionParameterValueMap.addMapChangeListener(new ParameterMapChangeListener());
 	}
 	
 	/**
@@ -170,6 +196,8 @@ public final class MemoPattern extends ExtendableObject {
 		patternMap = new HashMap<String, String>();
 		compiledPatternMap = new HashMap<String, Pattern>();
 		transactionParameterValueMap = new WritableMap<String, String>();
+
+		transactionParameterValueMap.addMapChangeListener(new ParameterMapChangeListener());
 	}
 
     private void extractPatterns() {
@@ -485,22 +513,23 @@ public final class MemoPattern extends ExtendableObject {
 		}
 		
 		transactionParameterValueMap.put(parameterId, value);
-		
-		StringBuffer buffer = new StringBuffer();
-		String separator = "";
-		for (Entry<String, String> entry : transactionParameterValueMap.entrySet()) {
-			buffer.append(separator)
-			.append(entry.getKey())
-			.append('=')
-			.append(entry.getValue());
-			separator = "\n";
-		}
 
-		String oldTransactionParameterValues = this.transactionParameterValues;
-		this.transactionParameterValues = buffer.toString();
-		
-		// Notify the change manager.
-		processPropertyChange(MemoPatternInfo.getTransactionParameterValuesAccessor(), oldTransactionParameterValues, transactionParameterValues);
+		// moved to change listener
+//		StringBuffer buffer = new StringBuffer();
+//		String separator = "";
+//		for (Entry<String, String> entry : transactionParameterValueMap.entrySet()) {
+//			buffer.append(separator)
+//			.append(entry.getKey())
+//			.append('=')
+//			.append(entry.getValue());
+//			separator = "\n";
+//		}
+//
+//		String oldTransactionParameterValues = this.transactionParameterValues;
+//		this.transactionParameterValues = buffer.toString();
+//		
+//		// Notify the change manager.
+//		processPropertyChange(MemoPatternInfo.getTransactionParameterValuesAccessor(), oldTransactionParameterValues, transactionParameterValues);
 	}
 
 	/**
