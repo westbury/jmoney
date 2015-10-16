@@ -49,7 +49,7 @@ public abstract class MatchingEntryFinder {
 	public Entry findMatch(CapitalAccount account, long amount, Date startSearchDate, int numberOfDays, String checkNumber) {
 		Collection<Entry> possibleMatches = new ArrayList<Entry>();
 		for (Entry entry : account.getEntries()) {
-			if (!alreadyMatched(entry)
+			if (!doNotConsiderEntryForMatch(entry)
 					&& entry.getAmount() == amount) {
 				Date date = entry.getTransaction().getDate();
 				if (entry.getCheck() == null) {
@@ -126,5 +126,5 @@ public abstract class MatchingEntryFinder {
 	 * @return true if the given entry is already marked as being matched to an
 	 *         imported entry using this same importer
 	 */
-	abstract protected boolean alreadyMatched(Entry entry);
+	abstract protected boolean doNotConsiderEntryForMatch(Entry entry);
 }

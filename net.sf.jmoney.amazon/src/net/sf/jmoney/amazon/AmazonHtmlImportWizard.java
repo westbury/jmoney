@@ -828,7 +828,7 @@ public class AmazonHtmlImportWizard extends Wizard implements IImportWizard {
 					 */
 					MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
 						@Override
-						protected boolean alreadyMatched(Entry entry) {
+						protected boolean doNotConsiderEntryForMatch(Entry entry) {
 							return AmazonEntryInfo.getOrderIdAccessor().getValue(entry) != null;
 						}
 					};

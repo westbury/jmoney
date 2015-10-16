@@ -183,7 +183,7 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 		 */
 		MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
 			@Override
-			protected boolean alreadyMatched(Entry entry) {
+			protected boolean doNotConsiderEntryForMatch(Entry entry) {
 				return AmazonEntryInfo.getOrderIdAccessor().getValue(entry) != null;
 			}
 		};

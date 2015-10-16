@@ -195,7 +195,7 @@ public class QifBankDownloadImportWizard extends Wizard implements IImportWizard
 						
 						MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
 							@Override
-							protected boolean alreadyMatched(Entry entry) {
+							protected boolean doNotConsiderEntryForMatch(Entry entry) {
 								return ReconciliationEntryInfo.getUniqueIdAccessor().getValue(entry) != null;
 							}
 						};

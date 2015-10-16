@@ -294,7 +294,7 @@ public class OfxImporter {
 		 */
 		MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
 			@Override
-			protected boolean alreadyMatched(Entry entry) {
+			protected boolean doNotConsiderEntryForMatch(Entry entry) {
 				return OfxEntryInfo.getFitidAccessor().getValue(entry) != null;
 			}
 		};
@@ -440,9 +440,16 @@ public class OfxImporter {
 		if (dialog.open() == Dialog.OK) {
 			ImportMatcher matcher = new ImportMatcher(account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true), Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
 
+			Set<Entry> ourEntries = new HashSet<Entry>();
 			for (OfxEntryData entryData: importedEntries) {
-				Entry entry = matcher.process(entryData, transactionManager.getSession());
+				if (Math.abs(entryData.amount) == 14900) {
+					System.out.println("here");
+				}
+				
+				Entry entry = matcher.process(entryData, transactionManager.getSession(), ourEntries);
 				OfxEntryInfo.getFitidAccessor().setValue(entry, entryData.fitid);
+				
+				ourEntries.add(entry);
 			}
 
 			return true;
@@ -636,7 +643,7 @@ public class OfxImporter {
 				 */
 				MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
 					@Override
-					protected boolean alreadyMatched(Entry entry) {
+					protected boolean doNotConsiderEntryForMatch(Entry entry) {
 						return OfxEntryInfo.getFitidAccessor().getValue(entry) != null;
 					}
 				};

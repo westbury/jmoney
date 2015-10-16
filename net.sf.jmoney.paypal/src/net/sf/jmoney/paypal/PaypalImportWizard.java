@@ -731,7 +731,7 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 		 */
 		MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
 			@Override
-			protected boolean alreadyMatched(Entry entry) {
+			protected boolean doNotConsiderEntryForMatch(Entry entry) {
 				if (entry.getOtherAccount() == paypalAccountForCurrency
 						&& ReconciliationEntryInfo.getUniqueIdAccessor().getValue(entry.getTransaction().getOther(entry)) != null) {
 						return true;

@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -195,13 +196,24 @@ public class ImportMatcher {
 
 	/**
 	 *
+	 * This method looks to see if there is already an entry that matches this entry.  If there is then it is assumed to
+	 * be the same entry.  The other entry may already be there because:
+	 * <UL>
+	 * <LI> This import file or a file with an overlapping import range has already been imported</LI>
+	 * <LI> This entry was entered manually</LI>
+	 * <LI> Entries for another account were imported and this entry was the other entry for a transfer</LI>
+	 * </UL>
+	 * The only exception is that if a matching entry is found in this import then we do import the duplicate.  After all,
+	 * if an import contains two identical transactions then it is likely a genuine duplicate.  The ourEntries set is
+	 * used to detect this situation.
+	 * 
 	 * @param entryData
 	 * @param transactionManager
 	 * @param session
-	 * @param statement
+	 * @param ourEntries a set of entries that have been added in this import up to now, being a read-only set
 	 * @return the entry for this transaction.
 	 */
-	public Entry process(net.sf.jmoney.importer.matcher.EntryData entryData, Session session) {
+	public Entry process(net.sf.jmoney.importer.matcher.EntryData entryData, Session session, final Set<Entry> ourEntries) {
 		// Fill the fields from the entry.  This is for convenience
 		// so other places just use the EntryData fields.  This needs
 		// cleaning up.
@@ -228,8 +240,15 @@ public class ImportMatcher {
 
 		MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
 			@Override
-			protected boolean alreadyMatched(Entry entry) {
-				return ReconciliationEntryInfo.getUniqueIdAccessor().getValue(entry) != null;
+			protected boolean doNotConsiderEntryForMatch(Entry entry) {
+				/*
+				 * If this given entry is in our map then it means we have just added it.  That means we have multiple identical
+				 * entries in the import file.  In that case we want to be sure that we keep the multiple entries as they are
+				 * genuine duplicates.
+				 * 
+				 * 'already matched' means don't consider this prior entry when looking for entries that might match this entry.
+				 */
+				return ourEntries.contains(entry) || ReconciliationEntryInfo.getUniqueIdAccessor().getValue(entry) != null;
 			}
 		};
 		Entry matchedEntry = matchFinder.findMatch(account.getBaseObject(), entryData.amount, importedDate, 5, entryData.check);
