@@ -12,8 +12,6 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.ui.navigator,
  org.eclipse.ui.views,
  org.eclipse.core.expressions,
- org.eclipse.ui.intro.universal,
- org.eclipse.ui.views.log,
  org.eclipse.help,
  org.eclipse.help.ui,
  org.eclipse.ui.views.properties.tabbed,
@@ -35,4 +33,4 @@ Export-Package: net.sf.jmoney,
  net.sf.jmoney.wizards
 Bundle-ActivationPolicy: lazy
 Bundle-Vendor: JMoney.sf.net
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
