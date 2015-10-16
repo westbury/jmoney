@@ -309,6 +309,8 @@ public abstract class CsvImportWizard extends Wizard {
 
 		protected int columnIndex;
 
+		public boolean isOptional = false;
+		
 		ImportedColumn(String name) {
 			this.name = name;
 		}
@@ -322,6 +324,10 @@ public abstract class CsvImportWizard extends Wizard {
 
 		public void setColumnIndex(int columnIndex) {
 			this.columnIndex = columnIndex;
+		}
+
+		public boolean isOptional() {
+			return isOptional;
 		}
 	}
 
@@ -355,7 +361,7 @@ public abstract class CsvImportWizard extends Wizard {
 		}
 
 		public Date getDate() throws ImportException {
-			if (currentLine[columnIndex].isEmpty()) {
+			if (columnIndex == -1 || currentLine[columnIndex].isEmpty()) {
 				return null;
 			} else {
 				try {
@@ -363,7 +369,7 @@ public abstract class CsvImportWizard extends Wizard {
 				} catch (ParseException e) {
 					throw new ImportException(
 							MessageFormat.format(
-									"A date in format {0}was expected but {1} was found.",
+									"A date in format {0} was expected but {1} was found.",
 									dateFormatString,
 									currentLine[columnIndex]),
 									e);

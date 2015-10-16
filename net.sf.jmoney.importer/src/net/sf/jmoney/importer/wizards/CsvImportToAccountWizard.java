@@ -75,6 +75,12 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 
 	protected Collection<EntryData> importedEntries = new ArrayList<EntryData>();
 
+	/*
+	 * Set when column headers are matched to expected columns.  This is the largest column
+	 * index of all the columns that match to an expected column.
+	 */
+	private int maximumColumnIndex = -1;
+
 
 	public CsvImportToAccountWizard() {
 		IDialogSettings workbenchSettings = Activator.getDefault().getDialogSettings();
@@ -283,12 +289,25 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
     		ImportedColumn[] expectedColumns = getExpectedColumns();
     		for (int columnIndex = 0; columnIndex < expectedColumns.length; columnIndex++) {
     			if (expectedColumns[columnIndex] != null) {
-    				if (!headerRow[columnIndex].trim().equals(expectedColumns[columnIndex].getName())) {
-    					MessageDialog.openError(getShell(), "Unexpected Data", "Expected '" + expectedColumns[columnIndex].getName()
-    							+ "' in row 1, column " + (columnIndex+1) + " but found '" + headerRow[columnIndex] + "'.");
-    					return false;
+    				int actualColumnIndex = -1;
+    				for (int columnIndex2 = 0; columnIndex2 < headerRow.length; columnIndex2++) {
+    					if (headerRow[columnIndex2].trim().equals(expectedColumns[columnIndex].getName())) {
+    						actualColumnIndex = columnIndex2; 
+    					}
     				}
-    				expectedColumns[columnIndex].setColumnIndex(columnIndex);
+    				if (actualColumnIndex == -1) {
+    					if (!expectedColumns[columnIndex].isOptional()) {
+    						MessageDialog.openError(getShell(), "Unexpected Data", "Expected '" + expectedColumns[columnIndex].getName()
+    								+ "' in row 1, column " + (columnIndex+1) + " but found '" + headerRow[columnIndex] + "'.");
+    						return false;
+    					}
+    				}
+  					expectedColumns[columnIndex].setColumnIndex(actualColumnIndex);
+  					
+  					if (maximumColumnIndex < actualColumnIndex) {
+  						maximumColumnIndex = actualColumnIndex;
+  					}
+  						
     			}
     		}
 
@@ -312,7 +331,7 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 				 * There may be extra columns in the file that we ignore, but if there are
 				 * fewer columns than expected then we can't import the row.
 				 */
-				if (currentLine.length < expectedColumns.length) {
+				if (currentLine.length <= maximumColumnIndex) {
 					break;
 				}
 				
