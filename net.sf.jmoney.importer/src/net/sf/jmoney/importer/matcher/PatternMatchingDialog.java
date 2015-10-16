@@ -256,8 +256,8 @@ public class PatternMatchingDialog extends Dialog {
 	public IObservableValue<String[]> args = new ComputedValue<String[]>() {
 		@Override
 		protected String[] calculate() {
-			EntryData entryData = (EntryData) ViewerProperties.<EntryData>singleSelection().observe(entriesViewer).getValue();
-			MemoPattern pattern = (MemoPattern) ViewerProperties.<MemoPattern>singleSelection().observe(patternViewer).getValue();
+			EntryData entryData = ViewerProperties.<EntryData>singleSelection(EntryData.class).observe(entriesViewer).getValue();
+			MemoPattern pattern = ViewerProperties.<MemoPattern>singleSelection(MemoPattern.class).observe(patternViewer).getValue();
 
 			/*
 			 * The pattern may not yet have been entered if the user has just added a new
