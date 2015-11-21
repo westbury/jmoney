@@ -114,9 +114,7 @@ public abstract class AccountControl<A extends Account> extends AccountComposite
 				if (closingShell) {
 					return;
 				}
-
 				
-
 				getDisplay().asyncExec(new Runnable() {
 
 					@Override
@@ -140,12 +138,16 @@ public abstract class AccountControl<A extends Account> extends AccountComposite
 				        // (the parameters may be null, but fields should always have been set by
 				        // the time control gets focus).
 				        allAccounts = new Vector<A>();
+				       
+				        
 				        addAccounts("", AccountControl.this.getSession().getAccountCollection(), listControl, AccountControl.this.accountClass); //$NON-NLS-1$
 
 //				        shell.setSize(listControl.computeSize(SWT.DEFAULT, listControl.getItemHeight()*10));
 
 		                // Set the currently set account into the list control.
-		    	        listControl.select(allAccounts.indexOf(account));
+		    	        int indexOf = allAccounts.indexOf(account.getValue());
+						listControl.select(indexOf);
+						listControl.setTopIndex(indexOf);
 
 		    	        listControl.addSelectionListener(
 		                		new SelectionAdapter() {
