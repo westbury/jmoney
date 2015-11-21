@@ -44,16 +44,13 @@ import net.sf.jmoney.associations.model.AccountAssociationsExtension;
 import net.sf.jmoney.associations.model.AccountAssociationsInfo;
 import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.importer.matcher.BaseEntryData;
-import net.sf.jmoney.importer.matcher.EntryData;
 import net.sf.jmoney.importer.matcher.IPatternMatcher;
 import net.sf.jmoney.importer.matcher.ImportEntryProperty;
 import net.sf.jmoney.importer.matcher.ImportMatcher;
 import net.sf.jmoney.importer.matcher.PatternMatchingDialog;
 import net.sf.jmoney.importer.model.PatternMatcherAccount;
 import net.sf.jmoney.importer.model.PatternMatcherAccountInfo;
-import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
 import net.sf.jmoney.importer.model.TransactionType;
-import net.sf.jmoney.importer.model.TransactionTypeBasic;
 import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Entry;
@@ -230,6 +227,7 @@ public abstract class CsvImportToAccountWizard<T extends BaseEntryData> extends 
 
 			{
 				add(new ImportEntryProperty<T>("memo", "Memo") {
+					@Override
 					protected String getCurrentValue(BaseEntryData importEntry) {
 						return importEntry.getDefaultMemo();
 					}
@@ -390,6 +388,10 @@ public abstract class CsvImportToAccountWizard<T extends BaseEntryData> extends 
 			Set<Entry> ourEntries = new HashSet<Entry>();
 			for (T entryData: importedEntries) {
 				Entry entry = matcher.process(entryData, transactionManager.getSession(), ourEntries);
+
+				// Should this be here?
+//				ReconciliationEntryInfo.getUniqueIdAccessor().setValue(entry, entryData.uniqueId);
+
 				ourEntries.add(entry);
 			}
 

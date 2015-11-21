@@ -104,6 +104,7 @@ public class QifBankDownloadImportWizard extends Wizard implements IImportWizard
 	 * We will cache window object in order to be able to provide parent shell
 	 * for the message dialog.
 	 */
+	@Override
 	public void init(IWorkbench workbench, IStructuredSelection selection) {
 		this.window = workbench.getActiveWorkbenchWindow();
 
@@ -380,6 +381,7 @@ do just the above.  The following is obsolete.
 
 			{
 				add(new ImportEntryProperty<EntryData>("memo", "Memo") {
+					@Override
 					protected String getCurrentValue(EntryData importEntry) {
 						return importEntry.getMemo();
 					}
