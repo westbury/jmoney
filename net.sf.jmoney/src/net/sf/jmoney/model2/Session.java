@@ -345,4 +345,5 @@ public class Session extends ExtendableObject {
 	public class SeveralAccountsFoundException extends Exception {
 		private static final long serialVersionUID = -6427097946645258873L;
 	}
+
 }

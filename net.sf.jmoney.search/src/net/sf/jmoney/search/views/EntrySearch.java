@@ -1,6 +1,5 @@
 package net.sf.jmoney.search.views;
 
-import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.Date;
 import java.util.List;
@@ -9,12 +8,8 @@ import net.sf.jmoney.JMoneyPlugin;
 import net.sf.jmoney.VerySimpleDateFormat;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.Entry;
-import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.Session;
-import net.sf.jmoney.model2.TransactionInfo;
 import net.sf.jmoney.search.IEntrySearch;
-import net.sf.jmoney.sqldirect.SQLEntriesStatement;
-import net.sf.jmoney.sqldirect.SqlDirectFactory;
 
 import org.eclipse.jface.resource.ImageDescriptor;
 
@@ -129,68 +124,16 @@ public class EntrySearch implements IEntrySearch {
 
 		Session session = JMoneyPlugin.getDefault().getSession();
 		
+		entries = session.getDataManager().getEntries(startDate, endDate, amount, memo);
+		
 		/*
 		 * We should be able to get the package needed for SQL
 		 * direct access.  The datastore plug-in is not compliant
 		 * if we can't.
 		 */
 		try {
-			String entryTableName = EntryInfo.getPropertySet().getId().replace('.', '_');
-			String transactionTableName = TransactionInfo.getPropertySet().getId().replace('.', '_');
-			
-			StringBuffer whereClause = new StringBuffer();
-			String separator = "";
-			
-			if (startDate != null) {
-				whereClause.append(separator);
-				whereClause.append("\"date\" >= ? ");
-				separator = "and ";
-			}
-			
-			if (endDate != null) {
-				whereClause.append(separator);
-				whereClause.append("\"date\" <= ? ");
-				separator = "and ";
-			}
-			
-			if (amount != null) {
-				whereClause.append(separator);
-				whereClause.append("abs(\"amount\") = ? ");
-				separator = "and ";
-			}
-			
-			if (memo != null) {
-				whereClause.append(separator);
-				whereClause.append("UPPER(\"memo\") like UPPER(?) ");
-				separator = "and ";
-			}
-			
-			if (whereClause.length() == 0) {
-				throw new SearchException("Query Failed.  No restriction has been entered.  You must have at least one restriction.", null);
-			}
-			
-			String sql = "SELECT * FROM " + entryTableName +
-				" join " + transactionTableName + " ON net_sf_jmoney_transaction.\"_ID\" = net_sf_jmoney_entry.\"net_sf_jmoney_transaction_entry\"" +
-				" WHERE " + whereClause + "order by \"date\"";
-			
-			SQLEntriesStatement statement = SqlDirectFactory.getEntriesStatement(session, sql);
-
-			int index = 1;
-			if (startDate != null) {
-				statement.setDate(index++, new java.sql.Date(startDate.getTime()));
-			}
-			if (endDate != null) {
-				statement.setDate(index++, new java.sql.Date(endDate.getTime()));
-			}
-			if (amount != null) {
-				statement.setLong(index++, amount);
-			}
-			if (memo != null) {
-				statement.setString(index++, "%" + memo + "%");
-			}
-			
-			entries = statement.execute();
-		} catch (SQLException e) {
+		} catch (RuntimeException e) {
+			// TODO clean this
 			throw new SearchException("An SQL Exception has occured.", e);
 		} catch (NoClassDefFoundError e) {
 			/*

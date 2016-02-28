@@ -42,6 +42,8 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -63,6 +65,7 @@ import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.CurrencyAccount;
 import net.sf.jmoney.model2.Entry;
+import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.IDatastoreManager;
@@ -75,6 +78,7 @@ import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.SessionInfo;
 import net.sf.jmoney.model2.Transaction;
+import net.sf.jmoney.model2.TransactionInfo;
 
 import org.eclipse.ui.IMemento;
 import org.eclipse.ui.IPersistableElement;
@@ -2090,6 +2094,83 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 			} catch (SQLException e2) {
 				throw new RuntimeException("SQL failed and retry cannot fix", e2);
 			}
+		}
+	}
+
+	@Override
+	public List<Entry> getEntries(Date startDate, Date endDate, Long amount, String memo) {
+		String entryTableName = EntryInfo.getPropertySet().getId().replace('.', '_');
+		String transactionTableName = TransactionInfo.getPropertySet().getId().replace('.', '_');
+		
+		StringBuffer whereClause = new StringBuffer();
+		String separator = "";
+		
+		if (startDate != null) {
+			whereClause.append(separator);
+			whereClause.append("\"date\" >= ? ");
+			separator = "and ";
+		}
+		
+		if (endDate != null) {
+			whereClause.append(separator);
+			whereClause.append("\"date\" <= ? ");
+			separator = "and ";
+		}
+		
+		if (amount != null) {
+			whereClause.append(separator);
+			whereClause.append("abs(\"amount\") = ? ");
+			separator = "and ";
+		}
+		
+		if (memo != null) {
+			whereClause.append(separator);
+			whereClause.append("UPPER(\"memo\") like UPPER(?) ");
+			separator = "and ";
+		}
+		
+		if (whereClause.length() == 0) {
+			// TODO change this so we get a good error message.
+			throw new RuntimeException("Query Failed.  No restriction has been entered.  You must have at least one restriction.", null);
+		}
+		
+		String sql = "SELECT * FROM " + entryTableName +
+			" join " + transactionTableName + " ON net_sf_jmoney_transaction.\"_ID\" = net_sf_jmoney_entry.\"net_sf_jmoney_transaction_entry\"" +
+			" WHERE " + whereClause + "order by \"date\"";
+		
+		/* There should only be one plug-in started at a time that implements
+		 * a SQL datastore and that provides this package.  We should therefore
+		 * be able to guarantee that the session is provided by this plug-in.
+		 */
+		try {
+		PreparedStatement statement = getConnection().prepareStatement(sql);
+
+		int index = 1;
+		if (startDate != null) {
+			statement.setDate(index++, new java.sql.Date(startDate.getTime()));
+		}
+		if (endDate != null) {
+			statement.setDate(index++, new java.sql.Date(endDate.getTime()));
+		}
+		if (amount != null) {
+			statement.setLong(index++, amount);
+		}
+		if (memo != null) {
+			statement.setString(index++, "%" + memo + "%");
+		}
+		
+		List<Entry> elements = new ArrayList<Entry>(); 
+
+		ResultSet resultSet = statement.executeQuery();
+
+		Iterator<Entry> iter = new UncachedObjectIterator<Entry>(resultSet, EntryInfo.getPropertySet(), null, this);
+		while (iter.hasNext()) {
+			elements.add(iter.next());
+		}
+
+		return elements;
+		} catch (SQLException e) {
+			throw new RuntimeException(e.getMessage(), e);
 		}
 	}
 }

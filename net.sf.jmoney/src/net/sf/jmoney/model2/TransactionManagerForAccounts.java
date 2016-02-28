@@ -2,7 +2,9 @@ package net.sf.jmoney.model2;
 
 import java.util.AbstractCollection;
 import java.util.Collection;
+import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -175,6 +177,12 @@ public class TransactionManagerForAccounts extends TransactionManager implements
 				}
 			}
 		}
+	}
+
+	@Override
+	public List<Entry> getEntries(Date startDate, Date endDate, Long amount,
+			String memo) {
+		throw new UnsupportedOperationException();
 	}
 
 }

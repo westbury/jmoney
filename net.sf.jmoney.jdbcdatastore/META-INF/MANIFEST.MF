@@ -8,7 +8,6 @@ Bundle-ClassPath: jdbcdatastore.jar,
  jtds-1.2.jar
 Bundle-Activator: net.sf.jmoney.jdbcdatastore.JDBCDatastorePlugin
 Bundle-Localization: plugin
-Export-Package: net.sf.jmoney.sqldirect
 Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
  net.sf.jmoney,

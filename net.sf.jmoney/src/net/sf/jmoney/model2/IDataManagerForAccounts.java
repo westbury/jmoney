@@ -1,6 +1,8 @@
 package net.sf.jmoney.model2;
 
 import java.util.Collection;
+import java.util.Date;
+import java.util.List;
 
 import net.sf.jmoney.isolation.IDataManager;
 
@@ -21,17 +23,34 @@ public interface IDataManagerForAccounts extends IDataManager {
 	 * 
 	 * @return the session object
 	 */
-	public abstract Session getSession();
+	Session getSession();
 	
 	/**
 	 * @param account
 	 * @return
 	 */
-	public abstract boolean hasEntries(Account account);
+	boolean hasEntries(Account account);
 
 	/**
 	 * @param account
 	 * @return
 	 */
-	public abstract Collection<Entry> getEntries(Account account);
+	Collection<Entry> getEntries(Account account);
+	
+	/**
+	 * Gets the entries in an efficient manner.
+	 * 
+	 * This is intended to be efficient.  If objects are not materialized from the datastore
+	 * unless needed then it would be inefficient to materialize every entry during the
+	 * search.  For example, if the datastore is a SQL database then an appropriate SQL statement
+	 * should be executed.  In order to support this the implementation is dependent on the
+	 * datastore.
+	 * @param memo 
+	 * @param amount 
+	 * @param endDate 
+	 * @param startDate 
+	 *  
+	 * @return
+	 */
+	List<Entry> getEntries(Date startDate, Date endDate, Long amount, String memo);
 }

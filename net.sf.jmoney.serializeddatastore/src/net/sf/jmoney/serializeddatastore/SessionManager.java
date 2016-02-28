@@ -27,7 +27,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -389,5 +391,12 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 	@Override
 	public void commitTransaction() {
 		// Nothing to do
+	}
+
+	@Override
+	public List<Entry> getEntries(Date startDate, Date endDate, Long amount,
+			String memo) {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Search not supported for serialized datastores");
 	}
 }
