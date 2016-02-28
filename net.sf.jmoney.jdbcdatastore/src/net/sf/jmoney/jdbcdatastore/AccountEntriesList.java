@@ -105,6 +105,7 @@ public class AccountEntriesList extends AbstractCollection<Entry> {
 	@Override
 	public Iterator<Entry> iterator() {
 		ResultSet rs = sessionManager.runWithReconnect(new IRunnableSql<ResultSet>() {
+			@Override
 			public ResultSet execute(Connection connection) throws SQLException {
 				// TODO: This code will not work if the index is indexing
 				// objects of a derivable property set.  Table joins would

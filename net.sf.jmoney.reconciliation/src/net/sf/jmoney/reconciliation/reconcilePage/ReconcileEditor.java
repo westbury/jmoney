@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Vector;
 
 import net.sf.jmoney.entrytable.CellBlock;
@@ -620,9 +622,11 @@ public class ReconcileEditor extends EditorPart {
 
 				ImportMatcher matcher = new ImportMatcher(accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true), Arrays.asList(statementSource.getImportEntryProperties()), statementSource.getApplicableTransactionTypes());
 
+				Set<Entry> ourEntries = new HashSet<Entry>();
 				for (net.sf.jmoney.importer.matcher.EntryData entryData: importedEntries) {
-					Entry entry = matcher.process(entryData, sessionInTransaction);
+					Entry entry = matcher.process(entryData, sessionInTransaction, ourEntries);
 					ReconciliationEntryInfo.getStatementAccessor().setValue(entry, statement);
+					ourEntries.add(entry);
 				}
 
 				/*

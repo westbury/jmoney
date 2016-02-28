@@ -100,10 +100,12 @@ public class UncachedObjectIterator<E extends IModelObject> implements Iterator<
 		}
 	}
 	
+	@Override
 	public boolean hasNext() {
 		return isAnother;
 	}
 	
+	@Override
 	public E next() {
 		try {
 			/*
@@ -147,6 +149,7 @@ public class UncachedObjectIterator<E extends IModelObject> implements Iterator<
 		}
 	}
 	
+	@Override
 	public void remove() {
 		throw new RuntimeException("unimplemented method");
 	}

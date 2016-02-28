@@ -30,7 +30,9 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.matcher.EntryData;
@@ -300,9 +302,11 @@ do just the above.  The following is obsolete.
 						if (dialog.open() == Dialog.OK) {
 							ImportMatcher matcher = new ImportMatcher(accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true), Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
 
+							Set<Entry> ourEntries = new HashSet<Entry>();
 							for (net.sf.jmoney.importer.matcher.EntryData entryData: importedEntries) {
-								Entry entry = matcher.process(entryData, sessionInTransaction);
+								Entry entry = matcher.process(entryData, sessionInTransaction, ourEntries);
 //								entry.setPropertyValue(ReconciliationEntryInfo.getUniqueIdAccessor(), uniqueId);
+								ourEntries.add(entry);
 							}
 						} else {
 							return;

@@ -30,7 +30,7 @@ public abstract class ImportEntryProperty extends ValueProperty<EntryData,String
 	public IObservableValue<String> observe(Realm realm,
 			EntryData source) {
 		String value = getCurrentValue(source);
-		return new ConstantObservableValue(value, String.class);
+		return new ConstantObservableValue<String>(value, String.class);
 	}
 	
 	/**

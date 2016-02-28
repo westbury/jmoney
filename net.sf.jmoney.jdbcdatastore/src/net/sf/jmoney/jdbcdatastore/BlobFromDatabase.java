@@ -47,6 +47,7 @@ public class BlobFromDatabase implements IBlob {
 		this.propertyAccessor = propertyAccessor;
 	}
 
+	@Override
 	public InputStream createStream() {
 		try {
 			String tableName = ((ExtendablePropertySet<?>)propertySet).getId().replace('.', '_');
@@ -76,6 +77,7 @@ public class BlobFromDatabase implements IBlob {
 		}
 	}
 
+	@Override
 	public void close() {
 		try {
 			stmt.close();

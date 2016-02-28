@@ -1363,7 +1363,7 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 	 * another account (if the account is a sub-account) or may be the
 	 * session.
 	 */
-	<E extends IModelObject> DatabaseListKey<? super E,?> buildParentKey(ResultSet rs, IExtendablePropertySet<E> propertySet) throws SQLException {
+	<E extends IModelObject, E2 extends E, S extends ExtendableObject> DatabaseListKey<E2,S> buildParentKey(ResultSet rs, IExtendablePropertySet<E> propertySet) throws SQLException {
 		/* 
 		 * A column exists in this table for each list which can contain objects
 		 * of this type. Only one of these columns can be non-null so we must
@@ -1400,28 +1400,28 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 			propertySet2 = propertySet2.getBasePropertySet();
 		} while (propertySet2 != null);	
 			
-		DatabaseListKey<? super E,?> listKey;
+		DatabaseListKey<E2,S> listKey;
 
 		if (!nonNullValueFound) {
 			/*
 			 * A database optimization causes no parent column to exist for the
 			 * case where the parent object is the session.
 			 */
-			ListPropertyAccessor<? super E,?> listProperty;
+			ListPropertyAccessor<? super E,S> listProperty;
 			if (Commodity.class.isAssignableFrom(propertySet.getImplementationClass())) {
-				listProperty = (ListPropertyAccessor<? super E,?>)SessionInfo.getCommoditiesAccessor();
+				listProperty = (ListPropertyAccessor<? super E,S>)SessionInfo.getCommoditiesAccessor();
 			} else if (Account.class.isAssignableFrom(propertySet.getImplementationClass())) {
-				listProperty = (ListPropertyAccessor<? super E,?>)SessionInfo.getAccountsAccessor();
+				listProperty = (ListPropertyAccessor<? super E,S>)SessionInfo.getAccountsAccessor();
 			} else if (Transaction.class.isAssignableFrom(propertySet.getImplementationClass())) {
-				listProperty = (ListPropertyAccessor<? super E,?>)SessionInfo.getTransactionsAccessor();
+				listProperty = (ListPropertyAccessor<? super E,S>)SessionInfo.getTransactionsAccessor();
 			} else {
 				throw new RuntimeException("bad case");
 			}
-			listKey = DatabaseListKey.construct(sessionKey, listProperty);
+			listKey = (DatabaseListKey<E2, S>) DatabaseListKey.construct(sessionKey, listProperty);
 		} else {
 			IDatabaseRowKey parentKey = new ObjectKey(parentId, matchingParentList.parentPropertySet, this);
 			ListPropertyAccessor<? super E,?> listProperty = matchingParentList.listProperty;
-			listKey = DatabaseListKey.construct(parentKey, listProperty);
+			listKey = (DatabaseListKey<E2, S>) DatabaseListKey.construct(parentKey, listProperty);
 		}
 		
 		return listKey;

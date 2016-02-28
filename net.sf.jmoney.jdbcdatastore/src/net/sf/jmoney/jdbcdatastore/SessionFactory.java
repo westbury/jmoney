@@ -39,11 +39,11 @@ import org.eclipse.ui.IWorkbenchWindow;
  * the preferences), so the memento is not used.
  */
 public class SessionFactory implements IElementFactory {
-//	private IWorkbenchWindow window;
 
 	/* (non-Javadoc)
 	 * @see org.eclipse.ui.IElementFactory#createElement(org.eclipse.ui.IMemento)
 	 */
+	@Override
 	public IAdaptable createElement(IMemento memento) {
 		// TODO This should probably be a silent method.
 		IWorkbenchWindow window = JMoneyPlugin.getDefault().getWorkbench().getActiveWorkbenchWindow();

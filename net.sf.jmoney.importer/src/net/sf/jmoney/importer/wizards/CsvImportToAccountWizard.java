@@ -30,7 +30,9 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import net.sf.jmoney.associations.model.AccountAssociation;
 import net.sf.jmoney.associations.model.AccountAssociationsExtension;
@@ -191,9 +193,11 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 			if (dialog.open() == Dialog.OK) {
 				ImportMatcher matcher = new ImportMatcher(matcherAccount, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
 
+				Set<Entry> ourEntries = new HashSet<Entry>();
 				for (EntryData entryData: importedEntries) {
-					Entry entry = matcher.process(entryData, accountInsideTransaction.getSession());
+					Entry entry = matcher.process(entryData, accountInsideTransaction.getSession(), ourEntries);
 					//				ReconciliationEntryInfo.getUniqueIdAccessor().setValue(entry, entryData.uniqueId);
+					ourEntries.add(entry);
 				}
 
 				return true;
@@ -402,9 +406,11 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 		if (dialog.open() == Dialog.OK) {
 			ImportMatcher matcher = new ImportMatcher(matcherAccount, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
 
+			Set<Entry> ourEntries = new HashSet<Entry>();
 			for (EntryData entryData: importedEntries) {
-				Entry entry = matcher.process(entryData, transactionManager.getSession());
+				Entry entry = matcher.process(entryData, transactionManager.getSession(), ourEntries);
 				ReconciliationEntryInfo.getUniqueIdAccessor().setValue(entry, entryData.uniqueId);
+				ourEntries.add(entry);
 			}
 
 			/*
