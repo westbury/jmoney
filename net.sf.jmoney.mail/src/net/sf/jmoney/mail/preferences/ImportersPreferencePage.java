@@ -115,7 +115,7 @@ IWorkbenchPreferencePage {
 		IExtensionRegistry registry = Platform.getExtensionRegistry();
 		for (IConfigurationElement element: registry.getConfigurationElementsFor("net.sf.jmoney.mail.mailimporter")) { //$NON-NLS-1$
 			
-			if (element.getName().equals("mail")) { //$NON-NLS-1$
+			if (element.getName().equals("messagetype")) { //$NON-NLS-1$
 				String id = element.getAttribute("id"); //$NON-NLS-1$
 				String name = element.getAttribute("name"); //$NON-NLS-1$
 				if (name == null || name.trim().length() == 0) {

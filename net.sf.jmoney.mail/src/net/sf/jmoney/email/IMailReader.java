@@ -35,7 +35,7 @@ public interface IMailReader {
 	 * data were extracted, for example if this is an e-mail of a type
 	 * that sometimes contains information and sometimes only junk, or it
 	 * may be that even though information was extracted the e-mail still contains
-	 * other information that may be useful to a human readier or to other
+	 * other information that may be useful to a human reader or to other
 	 * plug-ins.
 	 * 
 	 * @return true if the e-mail contains nothing further worth keeping and should
