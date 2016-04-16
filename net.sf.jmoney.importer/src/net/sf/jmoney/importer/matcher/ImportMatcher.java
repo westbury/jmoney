@@ -20,7 +20,7 @@ import net.sf.jmoney.model2.Transaction;
 
 public class ImportMatcher {
 
-	private PatternMatcherAccount account;
+	private IPatternMatcher account;
 
 	private List<MemoPattern> sortedPatterns;
 
@@ -28,8 +28,8 @@ public class ImportMatcher {
 
 	private List<TransactionType> applicableTransactionTypes;
 
-	public ImportMatcher(PatternMatcherAccount account, List<ImportEntryProperty> importEntryProperties, List<TransactionType> applicableTransactionTypes) {
-		this.account = account;
+	public ImportMatcher(IPatternMatcher matcherInsideTransaction, List<ImportEntryProperty> importEntryProperties, List<TransactionType> applicableTransactionTypes) {
+		this.account = matcherInsideTransaction;
 		this.importEntryProperties = importEntryProperties;
 		this.applicableTransactionTypes = applicableTransactionTypes;
 

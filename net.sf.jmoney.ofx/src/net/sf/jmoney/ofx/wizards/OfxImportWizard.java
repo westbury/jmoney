@@ -37,7 +37,7 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchWindow;
 
 /**
- * A wizard to import data from a QIF file.
+ * A wizard to import data from an OFX or QFX file.
  * 
  * Currently this wizard if a single page wizard that asks only for the file.
  * This feature is implemented as a wizard because the Eclipse workbench import

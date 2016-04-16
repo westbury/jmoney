@@ -36,6 +36,7 @@ import net.sf.jmoney.associations.AssociationMetadata;
 import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.matcher.EntryData;
 import net.sf.jmoney.importer.wizards.CsvImportToAccountWizard;
+import net.sf.jmoney.importer.wizards.CsvTransactionReader;
 import net.sf.jmoney.importer.wizards.ImportException;
 import net.sf.jmoney.importer.wizards.MultiRowTransaction;
 import net.sf.jmoney.model2.Account;
@@ -174,7 +175,7 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 	}
 
 	@Override
-	public void importLine(String[] line) throws ImportException {
+	public void importLine(CsvTransactionReader reader) throws ImportException {
 		String rowType = column_type.getText();
 
 		/*

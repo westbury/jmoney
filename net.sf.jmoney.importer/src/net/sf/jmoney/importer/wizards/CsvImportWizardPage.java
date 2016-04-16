@@ -59,7 +59,7 @@ public class CsvImportWizardPage extends WizardPage  {
 	/**
 	 * Create an instance of this class
 	 */
-	protected CsvImportWizardPage(IWorkbenchWindow window, String description) {
+	public CsvImportWizardPage(IWorkbenchWindow window, String description) {
 		super(NAME);
 		this.window = window;
 		this.description = description;

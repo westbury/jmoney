@@ -24,7 +24,6 @@ package net.sf.jmoney.importer.wizards;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -39,6 +38,7 @@ import net.sf.jmoney.associations.model.AccountAssociationsExtension;
 import net.sf.jmoney.associations.model.AccountAssociationsInfo;
 import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.importer.matcher.EntryData;
+import net.sf.jmoney.importer.matcher.IPatternMatcher;
 import net.sf.jmoney.importer.matcher.ImportEntryProperty;
 import net.sf.jmoney.importer.matcher.ImportMatcher;
 import net.sf.jmoney.importer.matcher.PatternMatchingDialog;
@@ -48,6 +48,7 @@ import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
 import net.sf.jmoney.importer.model.TransactionType;
 import net.sf.jmoney.importer.model.TransactionTypeBasic;
 import net.sf.jmoney.model2.Account;
+import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.Session;
@@ -57,8 +58,6 @@ import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.ui.IWorkbenchWindow;
-
-import au.com.bytecode.opencsv.CSVReader;
 
 /**
  * A wizard to import data from a comma-separated file that has been down-loaded
@@ -76,12 +75,6 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 	protected Account accountInsideTransaction;
 
 	protected Collection<EntryData> importedEntries = new ArrayList<EntryData>();
-
-	/*
-	 * Set when column headers are matched to expected columns.  This is the largest column
-	 * index of all the columns that match to an expected column.
-	 */
-	private int maximumColumnIndex = -1;
 
 
 	public CsvImportToAccountWizard() {
@@ -189,9 +182,26 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 //				importedEntries2.add(entryData);
 //			}
 
-			Dialog dialog = new PatternMatchingDialog(window.getShell(), matcherAccount, importedEntries, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
-			if (dialog.open() == Dialog.OK) {
-				ImportMatcher matcher = new ImportMatcher(matcherAccount, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
+			/*
+			 * All changes within this dialog are made within a transaction, so canceling
+			 * is trivial (the transaction is simply not committed).
+			 */
+			// TODO simplify these three lines...
+			TransactionManagerForAccounts transactionManager = new TransactionManagerForAccounts(accountOutsideTransaction.getDataManager());
+			CapitalAccount accountInTransaction = transactionManager.getCopyInTransaction(matcherAccount.getBaseObject());
+			IPatternMatcher patternMatcher = accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
+
+			Dialog dialog = new PatternMatchingDialog(window.getShell(), patternMatcher, importedEntries, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
+			int returnCode = dialog.open();
+			
+			if (returnCode == Dialog.OK || returnCode == PatternMatchingDialog.SAVE_PATTERNS_ONLY) {
+				// All edits are transferred to the model as they are made,
+				// so we just need to commit them.
+				transactionManager.commit("Change Import Options");
+			}
+			
+			if (returnCode == Dialog.OK) {
+				ImportMatcher matcher = new ImportMatcher(patternMatcher, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
 
 				Set<Entry> ourEntries = new HashSet<Entry>();
 				for (EntryData entryData: importedEntries) {
@@ -245,7 +255,7 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 		return false;
 	}
 
-	protected void importLine(String[] line, Collection<EntryData> entryDataList) throws ImportException {
+	protected void importLine(CsvTransactionReader reader, Collection<EntryData> entryDataList) throws ImportException {
 		throw new RuntimeException("but we are not doing this the new way...");
 	}
 
@@ -273,83 +283,16 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 
 			startImport(transactionManager);
 			
-        	reader = new CSVReader(new FileReader(file));
-        	rowNumber = 0;
+			reader = getCsvTransactionReader(file);
         	
-    		/*
-    		 * Get the list of expected columns, validate the header row, and set the column indexes
-    		 * into the column objects.  It would be possible to allow the columns to be in any order or
-    		 * to allow columns to be optional, setting the column indexes here based on the column in
-    		 * which the matching header was found.
-    		 * 
-    		 * At this time, however, there is no known requirement for that, so we simply validate that
-    		 * the first row contains exactly these columns in this order and set the indexes sequentially.
-    		 * 
-    		 * We trim the text in the header.  This is helpful because some banks add spaces.  For example
-    		 * Paypal puts a space before the text in each header cell.
-    		 */
-			String headerRow[] = readHeaderRow();
-			
-    		ImportedColumn[] expectedColumns = getExpectedColumns();
-    		for (int columnIndex = 0; columnIndex < expectedColumns.length; columnIndex++) {
-    			if (expectedColumns[columnIndex] != null) {
-    				int actualColumnIndex = -1;
-    				for (int columnIndex2 = 0; columnIndex2 < headerRow.length; columnIndex2++) {
-    					if (headerRow[columnIndex2].trim().equals(expectedColumns[columnIndex].getName())) {
-    						actualColumnIndex = columnIndex2; 
-    					}
-    				}
-    				if (actualColumnIndex == -1) {
-    					if (!expectedColumns[columnIndex].isOptional()) {
-    						MessageDialog.openError(getShell(), "Unexpected Data", "Expected '" + expectedColumns[columnIndex].getName()
-    								+ "' in row 1, column " + (columnIndex+1) + " but found '" + headerRow[columnIndex] + "'.");
-    						return false;
-    					}
-    				}
-  					expectedColumns[columnIndex].setColumnIndex(actualColumnIndex);
-  					
-  					if (maximumColumnIndex < actualColumnIndex) {
-  						maximumColumnIndex = actualColumnIndex;
-  					}
-  						
-    			}
-    		}
-
 			/*
 			 * Read the data
 			 */
-			
-			currentLine = readNext();
-			while (currentLine != null) {
-				
-				/*
-				 * If it contains a single empty string then we ignore this line but we don't terminate.
-				 * Nationwide Building Society puts such a line after the header.
-				 */
-				if (currentLine.length == 1 && currentLine[0].isEmpty()) {
-					currentLine = readNext();
-					continue;
-				}
-				
-				/*
-				 * There may be extra columns in the file that we ignore, but if there are
-				 * fewer columns than expected then we can't import the row.
-				 */
-				if (currentLine.length <= maximumColumnIndex) {
-					break;
-				}
-				
-				importLine(currentLine, importedEntries);
-		        
-		        currentLine = readNext();
+			while (!reader.isEndOfFile()) {
+				importLine(reader, importedEntries);
+				reader.readNext();
 		    }
 			
-			if (currentLine != null) {
-				// Ameritrade contains this.
-				assert (currentLine.length == 1);
-				assert (currentLine[0].equals("***END OF FILE***"));
-			}
-
 			for (MultiRowTransaction currentMultiRowProcessor : currentMultiRowProcessors) {
 				currentMultiRowProcessor.createTransaction(session);
 			}
@@ -357,10 +300,7 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 			/*
 			 * Import the entries using the matcher dialog
 			 */
-			
 			return doImport(transactionManager, file);
-			
-			
 					
 		} catch (FileNotFoundException e) {
 			// This should not happen because the file dialog only allows selection of existing files.
@@ -401,9 +341,26 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 			return false;
 		}
 
+		/*
+		 * All changes within this dialog are made within a transaction, so canceling
+		 * is trivial (the transaction is simply not committed).
+		 */
+		// TODO simplify these three lines...
+		TransactionManagerForAccounts transactionManager2 = new TransactionManagerForAccounts(accountOutsideTransaction.getDataManager());
+		CapitalAccount accountInTransaction2 = transactionManager2.getCopyInTransaction(matcherAccount.getBaseObject());
+		IPatternMatcher patternMatcher = accountInTransaction2.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
+		
 		List<TransactionType> applicableTransactionTypes = getApplicableTransactionTypes();
-		Dialog dialog = new PatternMatchingDialog(window.getShell(), matcherAccount, importedEntries, Arrays.asList(getImportEntryProperties()), applicableTransactionTypes);
-		if (dialog.open() == Dialog.OK) {
+		Dialog dialog = new PatternMatchingDialog(window.getShell(), patternMatcher, importedEntries, Arrays.asList(getImportEntryProperties()), applicableTransactionTypes);
+		int returnCode = dialog.open();
+		
+		if (returnCode == Dialog.OK || returnCode == PatternMatchingDialog.SAVE_PATTERNS_ONLY) {
+			// All edits are transferred to the model as they are made,
+			// so we just need to commit them.
+			transactionManager2.commit("Change Import Options");
+		}
+		
+		if (returnCode == Dialog.OK) {
 			ImportMatcher matcher = new ImportMatcher(matcherAccount, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
 
 			Set<Entry> ourEntries = new HashSet<Entry>();

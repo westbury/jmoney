@@ -69,8 +69,8 @@ public class PatternMatcherAccountInfo implements IPropertySetInfo {
 	});
 	
 	private static ScalarPropertyAccessor<Boolean,CapitalAccount> reconcilableAccessor = null;
-	private static ReferencePropertyAccessor<IncomeExpenseAccount,CapitalAccount> defaultCategoryAccessor = null;
 	private static ListPropertyAccessor<MemoPattern,CapitalAccount> patternsAccessor = null;
+	private static ReferencePropertyAccessor<IncomeExpenseAccount,CapitalAccount> defaultCategoryAccessor = null;
 	
 	@Override
 	public PropertySet<PatternMatcherAccount,CapitalAccount> registerProperties() {

@@ -34,6 +34,7 @@ import java.util.regex.PatternSyntaxException;
 import net.sf.jmoney.associations.AssociationMetadata;
 import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
 import net.sf.jmoney.importer.wizards.CsvImportToAccountWizard;
+import net.sf.jmoney.importer.wizards.CsvTransactionReader;
 import net.sf.jmoney.importer.wizards.ImportException;
 import net.sf.jmoney.importer.wizards.MultiRowTransaction;
 import net.sf.jmoney.model2.Account;
@@ -187,7 +188,7 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard implements 
 	}
 	
 	@Override
-	public void importLine(String[] line) throws ImportException {
+	public void importLine(CsvTransactionReader reader) throws ImportException {
 		Date date = column_date.getDate();
 		String uniqueId = column_uniqueId.getText();
 		String memo = column_description.getText();

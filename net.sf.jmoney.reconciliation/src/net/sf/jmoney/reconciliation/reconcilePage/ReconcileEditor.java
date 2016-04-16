@@ -19,11 +19,13 @@ import net.sf.jmoney.entrytable.OtherEntriesPropertyBlock;
 import net.sf.jmoney.entrytable.PropertyBlock;
 import net.sf.jmoney.entrytable.RowControl;
 import net.sf.jmoney.entrytable.RowSelectionTracker;
+import net.sf.jmoney.importer.matcher.IPatternMatcher;
 import net.sf.jmoney.importer.matcher.ImportMatcher;
 import net.sf.jmoney.importer.matcher.PatternMatchingDialog;
 import net.sf.jmoney.importer.model.PatternMatcherAccount;
 import net.sf.jmoney.importer.model.PatternMatcherAccountInfo;
 import net.sf.jmoney.isolation.TransactionManager;
+import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.CurrencyAccount;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
@@ -609,8 +611,25 @@ public class ReconcileEditor extends EditorPart {
 			 * rules, seeing how they apply against these imported entries.
 			 */
 			PatternMatcherAccount matcherAccount = account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
-			Dialog dialog = new PatternMatchingDialog(this.getSite().getShell(), matcherAccount, importedEntries, Arrays.asList(statementSource.getImportEntryProperties()), statementSource.getApplicableTransactionTypes());
-			if (dialog.open() == Dialog.OK) {
+			/*
+			 * All changes within this dialog are made within a transaction, so canceling
+			 * is trivial (the transaction is simply not committed).
+			 */
+			// TODO simplify these three lines...
+			TransactionManagerForAccounts transactionManager2 = new TransactionManagerForAccounts(matcherAccount.getDataManager());
+			CapitalAccount accountInTransaction2 = transactionManager2.getCopyInTransaction(matcherAccount.getBaseObject());
+			IPatternMatcher patternMatcher = accountInTransaction2.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
+			
+			Dialog dialog = new PatternMatchingDialog(this.getSite().getShell(), patternMatcher, importedEntries, Arrays.asList(statementSource.getImportEntryProperties()), statementSource.getApplicableTransactionTypes());
+			int returnCode = dialog.open();
+			
+			if (returnCode == Dialog.OK || returnCode == PatternMatchingDialog.SAVE_PATTERNS_ONLY) {
+				// All edits are transferred to the model as they are made,
+				// so we just need to commit them.
+				transactionManager2.commit("Change Import Options");
+			}
+			
+			if (returnCode == Dialog.OK) {
 				/*
 				 * Create a transaction to be used to import the entries.  This allows the entries to
 				 * be more efficiently written to the back-end datastore and it also groups

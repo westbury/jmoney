@@ -24,7 +24,6 @@ package net.sf.jmoney.importer.wizards;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.MessageFormat;
@@ -47,8 +46,6 @@ import org.eclipse.jface.wizard.Wizard;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchWindow;
 
-import au.com.bytecode.opencsv.CSVReader;
-
 /**
  * A wizard to import data from a comma-separated file that has been down-loaded
  * into a file on the local machine.
@@ -61,15 +58,7 @@ public abstract class CsvImportWizard extends Wizard {
 
 	protected CsvImportWizardPage mainPage;
 
-	/**
-	 * The line currently being processed by this wizard, being valid only while the import is
-	 * processing after the 'finish' button is pressed
-	 */
-	protected String [] currentLine;
-
-	protected CSVReader reader;
-
-	protected int rowNumber;
+	protected CsvTransactionReader reader;
 	
 	protected List<MultiRowTransaction> currentMultiRowProcessors = new ArrayList<MultiRowTransaction>();
 
@@ -136,8 +125,7 @@ public abstract class CsvImportWizard extends Wizard {
 
 			startImport(transactionManager);
 
-    		reader = new CSVReader(new FileReader(file));
-        	rowNumber = 0;
+			reader = getCsvTransactionReader(file);
 
         	if (processRows(session)) {
         		/*
@@ -157,17 +145,31 @@ public abstract class CsvImportWizard extends Wizard {
 		} catch (IOException e) {
 			// This is probably not likely to happen so the default error handling is adequate.
 			throw new RuntimeException(e);
-		} catch (ImportException e) {
-			// There are data in the import file that we are unable to process
-			e.printStackTrace();
-			MessageDialog.openError(window.getShell(), "Error in row " + rowNumber, e.getMessage());
-			return false;
+//		} catch (ImportException e) {
+//			// There are data in the import file that we are unable to process
+//			e.printStackTrace();
+//			MessageDialog.openError(window.getShell(), "Error in row " + e.getRowNumber(), e.getMessage());
+//			return false;
 		} catch (Exception e) {
 			// There are data in the import file that we are unable to process
 			e.printStackTrace();
 			MessageDialog.openError(window.getShell(), "Errors in the downloaded file", e.getMessage());
 			return false;
 		}
+	}
+
+	/**
+	 * This method is designed to be overridden if a custom implementation
+	 * of the reader is required.
+	 * 
+	 * @param file
+	 * @return
+	 * @throws IOException
+	 * @throws ImportException
+	 */
+	protected CsvTransactionReader getCsvTransactionReader(File file)
+			throws IOException, ImportException {
+		return new CsvTransactionReader(file, getExpectedColumns());
 	}
 
 	/**
@@ -180,51 +182,7 @@ public abstract class CsvImportWizard extends Wizard {
 	 */
 	protected boolean processRows(Session session)
 			throws IOException, ImportException {
-		/*
-		 * Get the list of expected columns, validate the header row, and set the column indexes
-		 * into the column objects.  It would be possible to allow the columns to be in any order or
-		 * to allow columns to be optional, setting the column indexes here based on the column in
-		 * which the matching header was found.
-		 *
-		 * At this time, however, there is no known requirement for that, so we simply validate that
-		 * the first row contains exactly these columns in this order and set the indexes sequentially.
-		 *
-		 * We trim the text in the header.  This is helpful because some banks add spaces.  For example
-		 * Paypal puts a space before the text in each header cell.
-		 */
-		String headerRow[] = readHeaderRow();
-
-		ImportedColumn[] expectedColumns = getExpectedColumns();
-		for (int columnIndex = 0; columnIndex < expectedColumns.length; columnIndex++) {
-			if (expectedColumns[columnIndex] != null) {
-				if (!headerRow[columnIndex].trim().equals(expectedColumns[columnIndex].getName())) {
-					throw new ImportException("Expected '" + expectedColumns[columnIndex].getName()
-							+ "' in row 1, column " + (columnIndex+1) + " but found '" + headerRow[columnIndex] + "'.");
-				}
-				expectedColumns[columnIndex].setColumnIndex(columnIndex);
-			}
-		}
-
-		currentLine = readNext();
-		while (currentLine != null) {
-
-			/*
-			 * If it contains a single empty string then we ignore this line but we don't terminate.
-			 * Nationwide Building Society puts such a line after the header.
-			 */
-			if (currentLine.length == 1 && currentLine[0].isEmpty()) {
-				currentLine = readNext();
-				continue;
-			}
-
-			/*
-			 * There may be extra columns in the file that we ignore, but if there are
-			 * fewer columns than expected then we can't import the row.
-			 */
-			if (currentLine.length < expectedColumns.length) {
-				break;
-			}
-
+		while (!reader.isEndOfFile()) {
 			/*
 			 * Try each of the current row processors.  If any are 'done' then we
 			 * create their transaction and remove the processor from our list.
@@ -251,16 +209,10 @@ public abstract class CsvImportWizard extends Wizard {
 			}
 
 			if (!processed) {
-				importLine(currentLine);
+				importLine(reader);
 			}
 			
-			currentLine = readNext();
-		}
-
-		if (currentLine != null) {
-			// Ameritrade contains this.
-			assert (currentLine.length == 1);
-			assert (currentLine[0].equals("***END OF FILE***"));
+			reader.readNext();
 		}
 
 		for (MultiRowTransaction currentMultiRowProcessor : currentMultiRowProcessors) {
@@ -268,36 +220,6 @@ public abstract class CsvImportWizard extends Wizard {
 		}
 		
 		return true;
-	}
-
-	/**
-	 * This method reads the header row.
-	 * <P>
-	 * This default implementation will read the first row.  Implementations may override this
-	 * method to fetch the header columns some other way.  For example the column headers
-	 * may not be in the first row.
-	 *
-	 * @param reader
-	 * @return
-	 * @throws IOException
-	 * @throws ImportException
-	 */
-	protected String[] readHeaderRow() throws IOException, ImportException {
-		return readNext();
-	}
-
-	/**
-	 * This method gets the next row.  It is not normally called
-	 * by derived classes because this class reads each row.  However
-	 * it is available in case derived classes do need to advance
-	 * the row for whatever reason.
-	 *
-	 * @return
-	 * @throws IOException
-	 */
-	final protected String[] readNext() throws IOException {
-		rowNumber++;
-		return reader.readNext();
 	}
 
 	public abstract class ImportedColumn {
@@ -338,7 +260,7 @@ public abstract class CsvImportWizard extends Wizard {
 		}
 
 		public String getText() {
-			return currentLine[columnIndex];
+			return reader.getCurrentLine(columnIndex);
 		}
 	}
 
@@ -361,17 +283,17 @@ public abstract class CsvImportWizard extends Wizard {
 		}
 
 		public Date getDate() throws ImportException {
-			if (columnIndex == -1 || currentLine[columnIndex].isEmpty()) {
+			if (columnIndex == -1 || reader.getCurrentLine(columnIndex).isEmpty()) {
 				return null;
 			} else {
 				try {
-					return dateFormat.parse(currentLine[columnIndex]);
+					return dateFormat.parse(reader.getCurrentLine(columnIndex));
 				} catch (ParseException e) {
 					throw new ImportException(
 							MessageFormat.format(
 									"A date in format {0} was expected but {1} was found.",
 									dateFormatString,
-									currentLine[columnIndex]),
+									reader.getCurrentLine(columnIndex)),
 									e);
 				}
 			}
@@ -385,7 +307,7 @@ public abstract class CsvImportWizard extends Wizard {
 		}
 
 		public Long getAmount() throws ImportException {
-			String amountString = currentLine[columnIndex];
+			String amountString = reader.getCurrentLine(columnIndex);
 
 			if (amountString.trim().length() == 0) {
 				// If amount is blank, return null
@@ -426,7 +348,7 @@ public abstract class CsvImportWizard extends Wizard {
 
 				return negate ? -amount : amount;
 			} catch (NumberFormatException e) {
-				throw new ImportException("Unexpected currency amount " + currentLine[columnIndex] + " found.");
+				throw new ImportException("Unexpected currency amount " + reader.getCurrentLine(columnIndex) + " found.");
 			}
 		}
 		
@@ -443,7 +365,7 @@ public abstract class CsvImportWizard extends Wizard {
 		}
 
 		public long getAmount() throws ImportException {
-			String numberString = currentLine[columnIndex];
+			String numberString = reader.getCurrentLine(columnIndex);
 
 			if (numberString.trim().length() == 0) {
 				// Amount cannot be blank
@@ -461,7 +383,7 @@ public abstract class CsvImportWizard extends Wizard {
 
 	protected abstract void startImport(TransactionManagerForAccounts transactionManager) throws ImportException;
 
-	protected abstract void importLine(String[] line) throws ImportException;
+	protected abstract void importLine(CsvTransactionReader reader) throws ImportException;
 
 	protected abstract ImportedColumn[] getExpectedColumns();
 }

@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import net.sf.jmoney.importer.wizards.CsvImportWizard;
+import net.sf.jmoney.importer.wizards.CsvTransactionReader;
 import net.sf.jmoney.importer.wizards.ImportException;
 import net.sf.jmoney.importer.wizards.MultiRowTransaction;
 import net.sf.jmoney.model2.Account;
@@ -106,7 +107,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 	}
 
 	@Override
-	public void importLine(String[] line) throws ImportException {
+	public void importLine(CsvTransactionReader reader) throws ImportException {
 		String orderId = column_orderId.getText();
 		String trackingNumber = column_trackingNumber.getText();
 		Date shipmentDate = column_shipmentDate.getDate();

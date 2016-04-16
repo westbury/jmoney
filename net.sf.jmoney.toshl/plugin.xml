@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+	<extension point="org.eclipse.ui.importWizards">
+		<wizard id="net.sf.jmoney.toshl.ImportWizard"
+			name="%importWizard.name"
+			icon="icons/toshl.png"
+			class="net.sf.jmoney.toshl.ToshlImportWizard">
+			<description>
+				%importWizard.description 
+			</description>
+		</wizard>
+	</extension>
+
+    <extension
+         point="net.sf.jmoney.importer.importdata">
+
+        <import-format
+           id="toshlimport" 
+           label="Toshl Data"
+           class="net.sf.jmoney.toshl.ToshlImportWizard"/>
+
+   </extension>
+
+    <extension
+         point="net.sf.jmoney.fields">
+      <extendable-property-set
+      	id="toshlAccount"
+          info-class="net.sf.jmoney.toshl.ToshlAccountInfo">
+      </extendable-property-set>
+ 
+     <extension-property-set
+      	id="toshlAccounts"
+          info-class="net.sf.jmoney.toshl.ToshlSessionInfo"
+	      extendable-property-set="net.sf.jmoney.session">
+      </extension-property-set>
+   </extension>
+
+ 
+</plugin>

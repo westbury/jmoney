@@ -12,6 +12,7 @@ import java.util.List;
 import net.sf.jmoney.Helper;
 import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.wizards.CsvImportWizard;
+import net.sf.jmoney.importer.wizards.CsvTransactionReader;
 import net.sf.jmoney.importer.wizards.ImportException;
 import net.sf.jmoney.isolation.ReferenceViolationException;
 import net.sf.jmoney.model2.BankAccount;
@@ -94,7 +95,7 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 	}
 
 	@Override
-	public void importLine(String[] line) throws ImportException {
+	public void importLine(CsvTransactionReader reader) throws ImportException {
 		String orderId = column_orderId.getText();
 		String trackingNumber = column_trackingNumber.getText();
 		Date shipmentDate = column_shipmentDate.getDate();

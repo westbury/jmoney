@@ -1,0 +1,21 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Toshl Import Plug-in
+Bundle-SymbolicName: net.sf.jmoney.toshl;singleton:=true
+Bundle-Version: 1.0.0
+Bundle-Activator: net.sf.jmoney.toshl.Activator
+Bundle-ActivationPolicy: lazy
+Bundle-Vendor: JMoney.sf.net
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-Localization: plugin
+Bundle-ClassPath: .
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ net.sf.jmoney,
+ net.sf.jmoney.reconciliation,
+ net.sf.jmoney.importer;bundle-version="1.0.0",
+ org.eclipse.core.databinding.property,
+ org.eclipse.core.databinding.observable;bundle-version="1.5.0",
+ org.eclipse.jface.databinding;bundle-version="1.7.0",
+ org.eclipse.core.databinding;bundle-version="1.5.0",
+ net.sf.jmoney.associations

@@ -22,6 +22,7 @@
 
 package net.sf.jmoney.importer.model;
 
+import net.sf.jmoney.importer.matcher.IPatternMatcher;
 import net.sf.jmoney.isolation.IListManager;
 import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.ObjectCollection;
@@ -36,7 +37,7 @@ import net.sf.jmoney.model2.IncomeExpenseAccount;
  * 
  * @author Nigel Westbury
  */
-public class PatternMatcherAccount extends CapitalAccountExtension {
+public class PatternMatcherAccount extends CapitalAccountExtension implements IPatternMatcher {
 	
 	protected boolean reconcilable = false;
 	

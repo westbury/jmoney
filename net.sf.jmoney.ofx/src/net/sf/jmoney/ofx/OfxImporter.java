@@ -44,6 +44,7 @@ import java.util.regex.PatternSyntaxException;
 import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.matcher.EntryData;
+import net.sf.jmoney.importer.matcher.IPatternMatcher;
 import net.sf.jmoney.importer.matcher.ImportEntryProperty;
 import net.sf.jmoney.importer.matcher.ImportMatcher;
 import net.sf.jmoney.importer.matcher.PatternMatchingDialog;
@@ -54,6 +55,7 @@ import net.sf.jmoney.importer.model.TransactionTypeBasic;
 import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.BankAccount;
+import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
@@ -436,16 +438,29 @@ public class OfxImporter {
 
 		PatternMatcherAccount matcherAccount = account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
 
-		Dialog dialog = new PatternMatchingDialog(window.getShell(), matcherAccount, importedEntries, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
-		if (dialog.open() == Dialog.OK) {
-			ImportMatcher matcher = new ImportMatcher(account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true), Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
+		/*
+		 * All changes within this dialog are made within a transaction, so canceling
+		 * is trivial (the transaction is simply not committed).
+		 */
+		TransactionManagerForAccounts transactionManager2 = new TransactionManagerForAccounts(accountOutsideTransaction.getDataManager());
+		CapitalAccount accountInTransaction2 = transactionManager.getCopyInTransaction(matcherAccount.getBaseObject());
+		IPatternMatcher patternMatcher = accountInTransaction2.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
+		
+
+		Dialog dialog = new PatternMatchingDialog(window.getShell(), patternMatcher, importedEntries, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
+		int returnCode = dialog.open();
+		
+		if (returnCode == Dialog.OK || returnCode == PatternMatchingDialog.SAVE_PATTERNS_ONLY) {
+			// All edits are transferred to the model as they are made,
+			// so we just need to commit them.
+			transactionManager.commit("Change Import Options");
+		}
+		
+		if (returnCode == Dialog.OK) {
+			ImportMatcher matcher = new ImportMatcher(patternMatcher, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
 
 			Set<Entry> ourEntries = new HashSet<Entry>();
 			for (OfxEntryData entryData: importedEntries) {
-				if (Math.abs(entryData.amount) == 14900) {
-					System.out.println("here");
-				}
-				
 				Entry entry = matcher.process(entryData, transactionManager.getSession(), ourEntries);
 				OfxEntryInfo.getFitidAccessor().setValue(entry, entryData.fitid);
 				

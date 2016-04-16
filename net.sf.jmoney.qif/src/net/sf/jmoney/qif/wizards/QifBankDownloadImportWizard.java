@@ -36,6 +36,7 @@ import java.util.Set;
 
 import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.matcher.EntryData;
+import net.sf.jmoney.importer.matcher.IPatternMatcher;
 import net.sf.jmoney.importer.matcher.ImportEntryProperty;
 import net.sf.jmoney.importer.matcher.ImportMatcher;
 import net.sf.jmoney.importer.matcher.PatternMatchingDialog;
@@ -298,9 +299,26 @@ do just the above.  The following is obsolete.
 						
 						PatternMatcherAccount matcherAccount = account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
 						
-						Dialog dialog = new PatternMatchingDialog(window.getShell(), matcherAccount, importedEntries, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
-						if (dialog.open() == Dialog.OK) {
-							ImportMatcher matcher = new ImportMatcher(accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true), Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
+						/*
+						 * All changes within this dialog are made within a transaction, so canceling
+						 * is trivial (the transaction is simply not committed).
+						 */
+						// TODO simplify these three lines...
+						TransactionManagerForAccounts transactionManager2 = new TransactionManagerForAccounts(matcherAccount.getDataManager());
+						CapitalAccount accountInTransaction2 = transactionManager2.getCopyInTransaction(matcherAccount.getBaseObject());
+						IPatternMatcher patternMatcher = accountInTransaction2.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
+						
+						Dialog dialog = new PatternMatchingDialog(window.getShell(), patternMatcher, importedEntries, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
+						int returnCode = dialog.open();
+						
+						if (returnCode == Dialog.OK || returnCode == PatternMatchingDialog.SAVE_PATTERNS_ONLY) {
+							// All edits are transferred to the model as they are made,
+							// so we just need to commit them.
+							transactionManager2.commit("Change Import Options");
+						}
+						
+						if (returnCode == Dialog.OK) {
+							ImportMatcher matcher = new ImportMatcher(patternMatcher, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
 
 							Set<Entry> ourEntries = new HashSet<Entry>();
 							for (net.sf.jmoney.importer.matcher.EntryData entryData: importedEntries) {

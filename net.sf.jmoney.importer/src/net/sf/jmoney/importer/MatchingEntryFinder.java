@@ -5,6 +5,7 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 
+import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Entry;
 
@@ -46,7 +47,7 @@ public abstract class MatchingEntryFinder {
 	 * @param checkNumber
 	 * @return the matching entry if one is found, otherwise null
 	 */
-	public Entry findMatch(CapitalAccount account, long amount, Date startSearchDate, int numberOfDays, String checkNumber) {
+	public Entry findMatch(Account account, long amount, Date startSearchDate, int numberOfDays, String checkNumber) {
 		Collection<Entry> possibleMatches = new ArrayList<Entry>();
 		for (Entry entry : account.getEntries()) {
 			if (!doNotConsiderEntryForMatch(entry)

@@ -41,19 +41,14 @@ import net.sf.jmoney.fields.AccountControl;
 import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.importer.model.MemoPattern;
 import net.sf.jmoney.importer.model.MemoPatternInfo;
-import net.sf.jmoney.importer.model.PatternMatcherAccount;
-import net.sf.jmoney.importer.model.PatternMatcherAccountInfo;
 import net.sf.jmoney.importer.model.TransactionType;
 import net.sf.jmoney.isolation.ObjectCollection;
 import net.sf.jmoney.isolation.ReferenceViolationException;
-import net.sf.jmoney.isolation.TransactionManager;
-import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
-import net.sf.jmoney.model2.TransactionManagerForAccounts;
 
 import org.eclipse.core.databinding.observable.set.ISetChangeListener;
 import org.eclipse.core.databinding.observable.set.SetChangeEvent;
@@ -240,12 +235,15 @@ public class PatternMatchingDialog extends Dialog {
 
 	private static final int SAVE_PATTERNS_ONLY_ID = IDialogConstants.CLIENT_ID + 0;
 
-	private TransactionManager transactionManager;
+	// Any value except Window.OK and Window.CANCEL
+	public static final int SAVE_PATTERNS_ONLY = 2;
+
+//	private TransactionManager transactionManager;
 
 	/**
 	 * The account for which we are configuring, which is in our own transaction.
 	 */
-	final PatternMatcherAccount account;
+	final IPatternMatcher account;
 
 	private DialogMessageArea messageArea;
 
@@ -314,25 +312,21 @@ public class PatternMatchingDialog extends Dialog {
 	 * <p>
 	 * Note that the <code>open</code> method blocks for input dialogs.
 	 * </p>
+		 * All changes within this dialog are made within a transaction, so canceling
+		 * is trivial (the transaction is simply not committed).
 	 *
 	 * @param parentShell
 	 *            the parent shell
 	 * @param importedEntries
 	 */
-	public PatternMatchingDialog(Shell parentShell, PatternMatcherAccount accountOutsideTransaction, Collection<? extends EntryData> sampleEntries, List<ImportEntryProperty> importEntryProperties, List<TransactionType> applicableTransactionTypes) {
+	public PatternMatchingDialog(Shell parentShell, IPatternMatcher matcherInsideTransaction, Collection<? extends EntryData> sampleEntries, List<ImportEntryProperty> importEntryProperties, List<TransactionType> applicableTransactionTypes) {
 		super(parentShell);
 		this.sampleEntries = sampleEntries;
 		this.importEntryProperties = importEntryProperties;
 		this.applicableTransactionTypes = applicableTransactionTypes;
 		
-		/*
-		 * All changes within this dialog are made within a transaction, so canceling
-		 * is trivial (the transaction is simply not committed).
-		 */
-		transactionManager = new TransactionManagerForAccounts(accountOutsideTransaction.getDataManager());
-		CapitalAccount accountInTransaction = transactionManager.getCopyInTransaction(accountOutsideTransaction.getBaseObject());
-		this.account = accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
-
+		this.account = matcherInsideTransaction;
+		
 		sortedPatterns = new ArrayList<MemoPattern>(account.getPatternCollection());
 		Collections.sort(sortedPatterns, new Comparator<MemoPattern>(){
 			@Override
@@ -359,15 +353,14 @@ public class PatternMatchingDialog extends Dialog {
 	protected void buttonPressed(int buttonId) {
 		switch (buttonId) {
 		case IDialogConstants.OK_ID:
-			// All edits are transferred to the model as they are made,
-			// so we just need to commit them.
-			transactionManager.commit("Change Import Options");
+			okPressed();
+			break;
+		case IDialogConstants.CANCEL_ID:
+			cancelPressed();
 			break;
 		case SAVE_PATTERNS_ONLY_ID:
-			// All edits are transferred to the model as they are made,
-			// so we just need to commit them.
-			transactionManager.commit("Change Import Options");
-			cancelPressed();
+			setReturnCode(SAVE_PATTERNS_ONLY);
+			close();
 			break;
 		}
 		super.buttonPressed(buttonId);
@@ -495,7 +488,7 @@ public class PatternMatchingDialog extends Dialog {
 		defaultAccountControl = new AccountControl<IncomeExpenseAccount>(composite, IncomeExpenseAccount.class) {
 			@Override
 			protected Session getSession() {
-				return PatternMatchingDialog.this.account.getSession();
+				return PatternMatchingDialog.this.account.getBaseObject().getSession();
 			}
 		};
 		GridData accountData = new GridData();
@@ -535,7 +528,7 @@ public class PatternMatchingDialog extends Dialog {
 		});
 
 		// TODO don't hard code this.
-		final Currency currency = account.getSession().getCurrencyForCode("GBP");
+		final Currency currency = account.getBaseObject().getSession().getCurrencyForCode("GBP");
 
 		TableViewerColumn column2 = new TableViewerColumn(entriesViewer, SWT.RIGHT);
 		column2.getColumn().setWidth(30);
@@ -1332,7 +1325,7 @@ public class PatternMatchingDialog extends Dialog {
 		 */
 		@Override
 		public Object[] getElements(Object input) {
-			PatternMatcherAccount account = (PatternMatcherAccount)input;
+			IPatternMatcher account = (IPatternMatcher)input;
 			return account.getPatternCollection().toArray(new MemoPattern[0]);
 		}
 
