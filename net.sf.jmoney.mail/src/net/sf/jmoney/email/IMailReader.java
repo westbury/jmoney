@@ -22,8 +22,12 @@ public interface IMailReader {
 	 * @param fromAddresses
 	 * @return
 	 */
-	boolean mayProcessEmail(Set<String> fromAddresses);
+	boolean mayProcessMessage(Set<String> fromAddresses);
 	
+	boolean processPlainTextMessage(Session session, Date date, String content) throws UnexpectedContentException;
+
+	boolean processHtmlMessage(Session session, Date date, String content) throws UnexpectedContentException;
+
 	/**
 	 * Called on a message that may or may not contain
 	 * content that can be extracted.
@@ -41,6 +45,7 @@ public interface IMailReader {
 	 * @return true if the e-mail contains nothing further worth keeping and should
 	 * 		be deleted, false if the e-mail is to be kept and passed on to other
 	 * 		plug-ins
+	 * @throws UnexpectedContentException 
 	 */
-	boolean processEmail(Session session, Date date, String content);
+	boolean processMimeMultipartMessage(Session session, Date date, IContentReader content) throws UnexpectedContentException;
 }

@@ -41,14 +41,24 @@ package net.sf.jmoney.email;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.security.KeyManagementException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
@@ -79,48 +89,11 @@ public class InstallCert {
             return;
         }
 
-        char SEP = File.separatorChar;
-        File dir = new File(System.getProperty("java.home") + SEP
-        		+ "lib" + SEP + "security");
-        File file = new File(dir, "jssecacerts");
-        if (file.isFile() == false) {
-        	file = new File(dir, "cacerts");
-        }
+        File file = getKeyStoreFile();
 
-        System.out.println("Loading KeyStore " + file + "...");
-        InputStream in = new FileInputStream(file);
-        KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-        ks.load(in, passphrase);
-        in.close();
+		KeyStore ks = openKeyStore(file);
 
-        SSLContext context = SSLContext.getInstance("TLS");
-        TrustManagerFactory tmf =
-                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        tmf.init(ks);
-        X509TrustManager defaultTrustManager = (X509TrustManager) tmf.getTrustManagers()[0];
-        SavingTrustManager tm = new SavingTrustManager(defaultTrustManager);
-        context.init(null, new TrustManager[]{tm}, null);
-        SSLSocketFactory factory = context.getSocketFactory();
-
-        System.out.println("Opening connection to " + host + ":" + port + "...");
-        SSLSocket socket = (SSLSocket) factory.createSocket(host, port);
-        socket.setSoTimeout(10000);
-        try {
-            System.out.println("Starting SSL handshake...");
-            socket.startHandshake();
-            socket.close();
-            System.out.println();
-            System.out.println("No errors, certificate is already trusted");
-        } catch (SSLException e) {
-            System.out.println();
-            e.printStackTrace(System.out);
-        }
-
-        X509Certificate[] chain = tm.chain;
-        if (chain == null) {
-            System.out.println("Could not obtain server certificate chain");
-            return;
-        }
+        X509Certificate[] chain = fetchCerts(host, port, ks);
 
         BufferedReader reader =
                 new BufferedReader(new InputStreamReader(System.in));
@@ -152,12 +125,18 @@ public class InstallCert {
             return;
         }
 
-        X509Certificate cert = chain[k];
+        saveCert(host, passphrase, file, ks, chain, k);
+    }
+
+	public static void saveCert(String host, char[] passphrase, File file,
+			KeyStore ks, X509Certificate[] chain, int k)
+			throws KeyStoreException, FileNotFoundException, IOException,
+			NoSuchAlgorithmException, CertificateException {
+		X509Certificate cert = chain[k];
         String alias = host + "-" + (k + 1);
         ks.setCertificateEntry(alias, cert);
 
-        String outputPath = file.getAbsolutePath();
-        OutputStream out = new FileOutputStream(outputPath);
+        OutputStream out = new FileOutputStream(file);
         ks.store(out, passphrase);
         out.close();
 
@@ -167,11 +146,70 @@ public class InstallCert {
         System.out.println
                 ("Added certificate to keystore '" + file.getAbsolutePath() + "' using alias '"
                         + alias + "'");
-    }
+	}
+
+	public static File getKeyStoreFile() {
+		char SEP = File.separatorChar;
+        File dir = new File(System.getProperty("java.home") + SEP
+        		+ "lib" + SEP + "security");
+        File file = new File(dir, "jssecacerts");
+        if (file.isFile() == false) {
+        	file = new File(dir, "cacerts");
+        }
+		return file;
+	}
+
+	public static X509Certificate[] fetchCerts(String host, int port, KeyStore ks) throws NoSuchAlgorithmException, KeyStoreException,
+			KeyManagementException, IOException, UnknownHostException,
+			SocketException, CertificateException {
+		
+		SSLContext context = SSLContext.getInstance("TLS");
+        TrustManagerFactory tmf =
+                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(ks);
+        X509TrustManager defaultTrustManager = (X509TrustManager) tmf.getTrustManagers()[0];
+        SavingTrustManager tm = new SavingTrustManager(defaultTrustManager);
+        context.init(null, new TrustManager[]{tm}, null);
+        SSLSocketFactory factory = context.getSocketFactory();
+
+        System.out.println("Opening connection to " + host + ":" + port + "...");
+        SSLSocket socket = (SSLSocket) factory.createSocket(host, port);
+        socket.setSoTimeout(10000);
+        try {
+            System.out.println("Starting SSL handshake...");
+            socket.startHandshake();
+            socket.close();
+            System.out.println();
+            System.out.println("No errors, certificate is already trusted");
+        } catch (SSLException e) {
+            System.out.println();
+            e.printStackTrace(System.out);
+        }
+
+        X509Certificate[] chain = tm.chain;
+        if (chain == null) {
+            System.out.println("Could not obtain server certificate chain");
+            return null;
+        }
+		return chain;
+	}
+
+	public static KeyStore openKeyStore(File file) throws FileNotFoundException,
+			KeyStoreException, IOException, NoSuchAlgorithmException,
+			CertificateException {
+		String passphrase = "changeit"; // ???
+		
+        System.out.println("Loading KeyStore " + file + "...");
+        InputStream in = new FileInputStream(file);
+        KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+        ks.load(in, passphrase.toCharArray());
+        in.close();
+		return ks;
+	}
 
     private static final char[] HEXDIGITS = "0123456789abcdef".toCharArray();
 
-    private static String toHexString(byte[] bytes) {
+    public static String toHexString(byte[] bytes) {
         StringBuilder sb = new StringBuilder(bytes.length * 3);
         for (int b : bytes) {
             b &= 0xff;
@@ -192,8 +230,12 @@ public class InstallCert {
         }
 
         public X509Certificate[] getAcceptedIssuers() {
-            throw new UnsupportedOperationException();
-        }
+        	List<X509Certificate> result = new ArrayList<>();
+            X509Certificate[] these = tm.getAcceptedIssuers();
+            result.addAll(Arrays.asList(these));
+            result.addAll(Arrays.asList(chain));
+            return result.toArray(new X509Certificate[0]);
+       }
 
         public void checkClientTrusted(X509Certificate[] chain, String authType)
                 throws CertificateException {

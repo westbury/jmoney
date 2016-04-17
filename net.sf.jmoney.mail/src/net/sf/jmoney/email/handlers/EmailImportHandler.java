@@ -1,7 +1,15 @@
 package net.sf.jmoney.email.handlers;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.security.Security;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -13,6 +21,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import javax.mail.Address;
+import javax.mail.Authenticator;
 import javax.mail.BodyPart;
 import javax.mail.FetchProfile;
 import javax.mail.Flags;
@@ -20,15 +29,18 @@ import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
-import javax.mail.Part;
+import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.Store;
-import javax.mail.URLName;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
 import net.sf.jmoney.email.Activator;
+import net.sf.jmoney.email.IContentReader;
 import net.sf.jmoney.email.IMailReader;
+import net.sf.jmoney.email.ITextProcessor;
+import net.sf.jmoney.email.InstallCert;
+import net.sf.jmoney.email.UnexpectedContentException;
 import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.resources.Messages;
@@ -50,8 +62,8 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.handlers.HandlerUtil;
 
-import com.sun.mail.pop3.POP3SSLStore;
 import com.sun.mail.util.BASE64DecoderStream;
+
 /**
  * Reads mail, looking for e-mail messages that have information that
  * can be imported into JMoney.
@@ -61,8 +73,6 @@ public class EmailImportHandler extends AbstractHandler {
 	private static final String MAILBOXES_KEY = "mailboxes";
 
 	private static final String MAIL_IMPORTERS_KEY = "mailimporters";
-
-	private Session mailSession;
 
 	/**
 	 * the command has been executed, so extract extract the needed information
@@ -80,126 +90,179 @@ public class EmailImportHandler extends AbstractHandler {
 					Messages.CloseSessionAction_WarningTitle,
 					Messages.CloseSessionAction_WarningMessage);
 		} else {
-	        IPreferenceStore preferenceStore = Activator.getDefault().getPreferenceStore();
+			IPreferenceStore preferenceStore = Activator.getDefault().getPreferenceStore();
 
-	        Map<String, Mailbox> mailboxes = new HashMap<String, Mailbox>();
-	        String value = preferenceStore.getString(MAILBOXES_KEY);
-	        if (!value.isEmpty()) {
-	        	String mailboxValues [] = value.split("~");
-	        	for (String mailboxValue : mailboxValues) {
-	        		String parts [] = mailboxValue.split(",");
-	        		if (parts.length == 3) {
-	        			mailboxes.put(parts[1], new Mailbox(parts[0], parts[1], parts[2]));
-	        		} else if (parts.length == 2) {
-	        			mailboxes.put(parts[1], new Mailbox(parts[0], parts[1], ""));
-	        		}
-	        	}
-	        }
+			Map<String, Mailbox> mailboxes = new HashMap<String, Mailbox>();
+			String value = preferenceStore.getString(MAILBOXES_KEY);
+			if (!value.isEmpty()) {
+				String mailboxValues [] = value.split("~");
+				for (String mailboxValue : mailboxValues) {
+					String parts [] = mailboxValue.split(",");
+					if (parts.length == 3) {
+						mailboxes.put(parts[1], new Mailbox(parts[0], parts[1], parts[2]));
+					} else if (parts.length == 2) {
+						mailboxes.put(parts[1], new Mailbox(parts[0], parts[1], ""));
+					}
+				}
+			}
 
-			
-	        // Load the extensions
-	        IExtensionRegistry registry = Platform.getExtensionRegistry();
-	        IExtensionPoint extensionPoint = registry.getExtensionPoint("net.sf.jmoney.mail.mailimporter");
-	        IExtension[] extensions = extensionPoint.getExtensions();
 
-	        try {
-	        	for (int i = 0; i < extensions.length; i++) {
-	        		IConfigurationElement[] elements = extensions[i].getConfigurationElements();
-	        		for (int j = 0; j < elements.length; j++) {
-	        			if (elements[j].getName().equals("mail")) {
-	        				String id = elements[j].getAttribute("id");
-	        				String name = elements[j].getAttribute("name");
-	        				String description = "";
-	        				IConfigurationElement[] descriptionElement = elements[j].getChildren("description");
-	        				if (descriptionElement.length == 1) {
-	        					description = descriptionElement[0].getValue();
-	        				}
-	        				IMailReader importer = (IMailReader)elements[j].createExecutableExtension("class");
-	        				
-	        				String qualifiedId = elements[j].getNamespaceIdentifier() + "." + id;
-	        				String address = preferenceStore.getString(MAIL_IMPORTERS_KEY + "." + qualifiedId + ".address");
-	        				if (address != null) {
-	        					Mailbox mailbox = mailboxes.get(address);
-	        					mailbox.addImporter(importer);
-	        				}
-	        			}
-	        		}
-	        	}
+			// Load the extensions
+			IExtensionRegistry registry = Platform.getExtensionRegistry();
+			IExtensionPoint extensionPoint = registry.getExtensionPoint("net.sf.jmoney.mail.mailimporter");
+			IExtension[] extensions = extensionPoint.getExtensions();
 
-	        	/*
-	        	 * Now loop around all mailboxes and import from each one.
-	        	 * We have already grouped the importers by mailbox so each
-	        	 * message need be read only once and passed to all importers
-	        	 * for its mailbox.
-	        	 */
-	        	for (Mailbox mailbox : mailboxes.values()) {
-	        		if (!mailbox.getImporters().isEmpty()) {
-	        			String host = mailbox.host;
-	        			String username = mailbox.address.split("@")[0];
+			try {
+				for (int i = 0; i < extensions.length; i++) {
+					IConfigurationElement[] elements = extensions[i].getConfigurationElements();
+					for (int j = 0; j < elements.length; j++) {
+						if (elements[j].getName().equals("messagetype")) {
+							String id = elements[j].getAttribute("id");
+							String name = elements[j].getAttribute("name");
+							String description = "";
+							IConfigurationElement[] descriptionElement = elements[j].getChildren("description");
+							if (descriptionElement.length == 1) {
+								description = descriptionElement[0].getValue();
+							}
+							IMailReader importer = (IMailReader)elements[j].createExecutableExtension("class");
+
+							String qualifiedId = elements[j].getNamespaceIdentifier() + "." + id;
+							String address = preferenceStore.getString(MAIL_IMPORTERS_KEY + "." + qualifiedId + ".address");
+							if (!address.isEmpty()) {
+								Mailbox mailbox = mailboxes.get(address);
+								mailbox.addImporter(importer);
+							}
+						}
+					}
+				}
+
+				/*
+				 * Now loop around all mailboxes and import from each one.
+				 * We have already grouped the importers by mailbox so each
+				 * message need be read only once and passed to all importers
+				 * for its mailbox.
+				 */
+				for (Mailbox mailbox : mailboxes.values()) {
+					if (!mailbox.getImporters().isEmpty()) {
+						String host = mailbox.host;
+						String username = mailbox.address.split("@")[0];
 
 						/*
 						 * Users may prefer that their passwords are not stored
 						 * in plain text in preferences. So if there is no
 						 * password, prompt the user now.
 						 */
-	        			String password;
-	        			if (mailbox.password.isEmpty()) {
-	        				InputDialog dialog = new InputDialog(shell, "Password Request", "Enter password for " + mailbox.address, "", null);
-	        				if (dialog.open() != Dialog.OK) {
-	        					continue;
-	        				}
-	        				password = dialog.getValue();
-	        			} else {
-	        				password = mailbox.password;
-	        			}
+						String password;
+						if (mailbox.password.isEmpty()) {
+							InputDialog dialog = new InputDialog(shell, "Password Request", "Enter password for " + mailbox.address, "", null);
+							if (dialog.open() != Dialog.OK) {
+								continue;
+							}
+							password = dialog.getValue();
+						} else {
+							password = mailbox.password;
+						}
 
-	        			int port = 995;
+						int port = 993;
 
-	        			Properties properties = new Properties();
-	        			//					properties.setProperty("mail.pop3.host", host);
-	        			properties.setProperty("mail.pop3.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
-	        			properties.setProperty("mail.pop3.socketFactory.fallback", "false");
-	        			properties.setProperty("mail.pop3.port", Integer.toString(port));
-	        			properties.setProperty("mail.pop3.socketFactory.port", Integer.toString(port));
-	        			properties.setProperty("mail.pop3.ssl", "true");
-	        			Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
+						Properties properties = new Properties();
 
-	        			mailSession = Session.getInstance(properties, null);
+						// set this session up to use SSL for IMAP connections
+						properties.setProperty("mail.imap.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+						// don't fallback to normal IMAP connections on failure.
+						properties.setProperty("mail.imap.socketFactory.fallback", "false");
+						// use the simap port for imap/ssl connections.
+						properties.setProperty("mail.imap.socketFactory.port", "993");
 
-	        			URLName urln = new URLName("pop3", host, port, null, username, password);
-	        			Store store = new POP3SSLStore(mailSession, urln);
+						String passphrase = "changeit";
+						try {
+							File file = InstallCert.getKeyStoreFile();
 
-	        			try {
-	        				store.connect(host, username, password);
-	        			} catch (MessagingException ex) {
-	        				MessageDialog.openInformation(
-	        						window.getShell(),
-	        						"Mail client Error",
-	        						" couldn't connect to mail server ,please make sure you entered to right(username,password). Or make sure of your mail client connect configuration under props/config.properties file.");
-	        			}
+							KeyStore ks = InstallCert.openKeyStore(file);
 
-	        			Message[] messages  = readAllMessages(window, store, host);
-	        			transform(sessionManager, messages, mailbox.importers);
-	        		}
-	        	}
-	        } catch (CoreException e) {
-	        	e.printStackTrace();
-	        	throw new RuntimeException(e);
-	        }
+							X509Certificate[] chain = InstallCert.fetchCerts(host, port, ks);
+
+							System.out.println();
+							System.out.println("Server sent " + chain.length + " certificate(s):");
+							System.out.println();
+							MessageDigest sha1 = MessageDigest.getInstance("SHA1");
+							MessageDigest md5 = MessageDigest.getInstance("MD5");
+							for (int i = 0; i < chain.length; i++) {
+								X509Certificate cert = chain[i];
+								System.out.println
+								(" " + (i + 1) + " Subject " + cert.getSubjectDN());
+								System.out.println("   Issuer  " + cert.getIssuerDN());
+								sha1.update(cert.getEncoded());
+								System.out.println("   sha1    " + InstallCert.toHexString(sha1.digest()));
+								md5.update(cert.getEncoded());
+								System.out.println("   md5     " + InstallCert.toHexString(md5.digest()));
+								System.out.println();
+							}
+
+							System.out.println("Enter certificate to add to trusted keystore or 'q' to quit: [1]");
+							int k = 0;
+							InstallCert.saveCert(host, passphrase.toCharArray(), file, ks, chain, k);
+						} catch (FileNotFoundException e) {
+							// "(.*) Access is denied"
+							// if (e.getMessage() )
+							// Turn off Windows Defender 
+							e.printStackTrace();
+						} catch (KeyManagementException
+								| NoSuchAlgorithmException | KeyStoreException
+								| IOException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						} catch (CertificateException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+
+						properties.setProperty("mail.debug", "com.sun.mail.imap.IMAPSSLStore");
+						properties.setProperty("mail.imaps.class", "com.sun.mail.imap.IMAPSSLStore");
+						properties.setProperty("mail.store.protocol", "imaps");
+						properties.setProperty("mail.imap.starttls.enable", "true");
+						try {
+							Session session = Session.getInstance(properties,new Authenticator() {
+								@Override
+								protected PasswordAuthentication getPasswordAuthentication() {
+									return new PasswordAuthentication(username, password);
+								}
+							});
+
+							javax.mail.Store store = session.getStore("imaps");
+							store.connect(host, username, password);
+							javax.mail.Folder[] folders = store.getDefaultFolder().list("*");
+
+							Folder myFolder = null;
+
+							for (javax.mail.Folder folder : folders) {
+								if ((folder.getType() & javax.mail.Folder.HOLDS_MESSAGES) != 0) {
+									System.out.println(folder.getFullName() + " has " + folder.getMessageCount() + " messages");
+									if (folder.getFullName().equals("INBOX")) {
+										myFolder = folder;
+									}
+								}
+							}
+
+							Message[] messages  = readAllMessages(window, store, myFolder, host);
+							transform(sessionManager, messages, mailbox.importers);
+						} catch (MessagingException e) {
+							e.printStackTrace(System.out);
+						}
+					}
+				}
+			} catch (CoreException e) {
+				e.printStackTrace();
+				throw new RuntimeException(e);
+			}
 		}
 
 		return null;
 	}
 
-	public Message[] readAllMessages(IWorkbenchWindow window, Store store, String host) {
+	public Message[] readAllMessages(IWorkbenchWindow window, Store store, Folder folder, String host) {
 
 		try {
-
-			Folder [] personalFolders = store.getPersonalNamespaces();
-			Folder [] sharedFolders = store.getSharedNamespaces();
-			
-			Folder folder = store.getDefaultFolder();
-			folder = folder.getFolder("INBOX");
 			folder.open(Folder.READ_ONLY);
 			System.out.println("Message Count Found " + folder.getMessageCount());
 			System.out.println("New Message Count " + folder.getNewMessageCount());
@@ -232,8 +295,8 @@ public class EmailImportHandler extends AbstractHandler {
 					String x = address.getType();
 					addressesAsString.add(address.toString());
 				}
-				
-				
+
+
 				System.out.println("Receive date :" + messages[i].getSentDate());
 
 				/*
@@ -243,26 +306,25 @@ public class EmailImportHandler extends AbstractHandler {
 				 */
 				TransactionManagerForAccounts transactionManager = new TransactionManagerForAccounts(datastoreManager);
 				net.sf.jmoney.model2.Session sessionInTransaction = transactionManager.getSession();
-				
+
 				boolean anyProcessed = false;
 				for (IMailReader reader : importers) {
-					
-					if (reader.mayProcessEmail(addressesAsString)) {
-						StringBuffer content = new StringBuffer();
-						
-						System.out.println(messages[i].getContentType());
-						if (messages[i].isMimeType("text/plain")) {
-							content.append(messages[i].getContent().toString());
-						} else if (messages[i].isMimeType("text/html")) {
-							content.append(messages[i].getContent().toString());
-						} else {
-							handleMultipart(messages[i], content);
-						}
 
-						
-						if (content.length() != 0) {
-							boolean processed = reader.processEmail(sessionInTransaction, messages[i].getSentDate(), content.toString());
-							anyProcessed |= processed;
+					if (reader.mayProcessMessage(addressesAsString)) {
+						System.out.println(messages[i].getContentType());
+						try {
+							if (messages[i].isMimeType("text/plain")) {
+								anyProcessed |= reader.processPlainTextMessage(sessionInTransaction, messages[i].getSentDate(), messages[i].getContent().toString());
+							} else if (messages[i].isMimeType("text/html")) {
+								anyProcessed |= reader.processHtmlMessage(sessionInTransaction, messages[i].getSentDate(), messages[i].getContent().toString());
+							} else {
+								Multipart mp = (Multipart) messages[i].getContent();
+								IContentReader contentReader = new PartReader(mp);
+								anyProcessed |= reader.processMimeMultipartMessage(sessionInTransaction, messages[i].getSentDate(), contentReader);
+							}
+						} catch (UnexpectedContentException e) {
+							// Do we show this as an error to the user or do we silently ignore this,
+							// without deleting the message?
 						}
 					}
 				}
@@ -290,64 +352,129 @@ public class EmailImportHandler extends AbstractHandler {
 		}
 	}
 
-	public void handleMultipart(Message msg, StringBuffer content) {
-		try {
-			String disposition;
-			BodyPart part;
-			Multipart mp = (Multipart) msg.getContent();
+	private final class PartReader implements IContentReader {
 
-			int mpCount = mp.getCount();
-			for (int m = 0; m < mpCount; m++) {
-				part = mp.getBodyPart(m);
+		Multipart mp;
 
-				disposition = part.getDisposition();
-				Object x = part.getContent();
-				Object y = part.getContentType();
-				if (!(x instanceof String)) {
-					System.out.println("here");
-				}
-				if (x instanceof BASE64DecoderStream) {
-					BASE64DecoderStream stream = (BASE64DecoderStream)x;
-				} else if (x instanceof MimeMessage) {
-					// content type may be "message/rfc822"
-					MimeMessage stream = (MimeMessage)x;
-					Address a = stream.getSender();
-					Object z = stream.getContent();
-					appendContent(z, content);
-				} else if (x instanceof MimeMultipart) {
-					MimeMultipart stream = (MimeMultipart)x;
-					System.out.println(stream.getContentType() + stream.getCount());
-					for (int i = 0; i < stream.getCount(); i++) {
-						BodyPart p = stream.getBodyPart(i);
-						Object z = p.getContent();
-						System.out.println(z);
-					}
-				} else {
-				if (disposition != null && disposition.equals(Part.INLINE)) {
-					content.append(part.getContent());
-				} else {
-					content.append(part.getContent());
-				}
-				}
-			}
-		} catch (IOException ex) {
-			System.out.println("Messages - Parts - Input/output transformation failed :" + ex);
-		} catch (MessagingException ex) {
-			System.out.println("Messages - Parts - transformation failed :" + ex);
+		int m = 0;
+
+		public PartReader(Multipart mp) {
+			this.mp = mp;
 		}
-	}
 
-	private void appendContent(Object z, StringBuffer content) throws IOException, MessagingException {
-		if (z instanceof MimeMultipart) {
-			MimeMultipart stream2 = (MimeMultipart)z;
-			System.out.println(stream2.getContentType() + stream2.getCount());
-			for (int i = 0; i < stream2.getCount(); i++) {
-				BodyPart p = stream2.getBodyPart(i);
-				Object z2 = p.getContent();
-				content.append(z2);
+		@Override
+		public void expectPlainText(ITextProcessor textProcessor) throws UnexpectedContentException {
+			try {
+				if (m >= mp.getCount()) {
+					throw new UnexpectedContentException("Plain text part expected at index " + m + " but only " + mp.getCount() + " parts found.");
+				}
+
+				BodyPart part = mp.getBodyPart(m);
+
+				if (!part.getContentType().equals("text/plain; charset=utf-8")) {
+					throw new UnexpectedContentException("Plain text part expected at index " + m + " but " + part.getContentType() + " found.");
+				}
+
+				textProcessor.processText((String)part.getContent());
+
+				m++;
+			} catch (MessagingException | IOException e) {
+				throw new UnexpectedContentException(e);
 			}
 		}
-		System.out.println("");
+
+		@Override
+		public void expectHtml(ITextProcessor textProcessor) throws UnexpectedContentException {
+			try {
+				if (m >= mp.getCount()) {
+					throw new UnexpectedContentException("HTML part expected at index " + m + " but only " + mp.getCount() + " parts found.");
+				}
+
+				BodyPart part = mp.getBodyPart(m);
+
+				if (!part.getContentType().equals("text/html; charset=utf-8")) {
+					throw new UnexpectedContentException("HTML part expected at index " + m + " but  " + part.getContentType() + " found.");
+				}
+
+				if (textProcessor != null) {
+					textProcessor.processText((String)part.getContent());
+				}
+				m++;
+			} catch (MessagingException | IOException e) {
+				throw new UnexpectedContentException(e);
+			}
+		}
+
+		@Override
+		public void expectBase64() throws UnexpectedContentException {
+			try {
+				if (m >= mp.getCount()) {
+					throw new UnexpectedContentException("Base 64 part expected at index " + m + " but only " + mp.getCount() + " parts found.");
+				}
+
+				BodyPart part = mp.getBodyPart(m);
+
+				if (!(part.getContent() instanceof BASE64DecoderStream)) {
+					throw new UnexpectedContentException("HTML part expected at index " + m + " but  " + part.getContentType() + " found.");
+				}
+
+				// Base64 encoded data is  a text encoding of binary data and is always ignored.
+
+				m++;
+			} catch (MessagingException | IOException e) {
+				throw new UnexpectedContentException(e);
+			}
+		}
+
+		@Override
+		public void expectMimeMessage(ITextProcessor textProcessor) throws UnexpectedContentException {
+			try {
+				if (m >= mp.getCount()) {
+					throw new UnexpectedContentException("MIME message part expected at index " + m + " but only " + mp.getCount() + " parts found.");
+				}
+
+				BodyPart part = mp.getBodyPart(m);
+
+
+
+				if (!part.getContentType().equals("message/rfc822")) {
+					throw new UnexpectedContentException("MIME Message part expected at index " + m + " but  " + part.getContentType() + " found.");
+				}
+
+				MimeMessage mimeMessage = (MimeMessage)part.getContent();
+				// TODO pass other data such as mimeMessage.getSender() ???
+				textProcessor.processText((String)mimeMessage.getContent());
+
+				m++;
+			} catch (MessagingException | IOException e) {
+				throw new UnexpectedContentException(e);
+			}
+		}
+
+		@Override
+		public void expectMimeMultipart(IMultipartProcessor multipartProcessor) throws UnexpectedContentException {
+			try {
+				if (m >= mp.getCount()) {
+					throw new UnexpectedContentException("MIME multi-part expected at index " + m + " but only " + mp.getCount() + " parts found.");
+				}
+
+				BodyPart part = mp.getBodyPart(m);
+
+				System.out.println(part.getContentType());
+				if (!(part.getContent() instanceof MimeMultipart)) {
+					throw new UnexpectedContentException("MIME multi-part expected at index " + m + " but  " + part.getContentType() + " found.");
+				}
+
+				MimeMultipart stream2 = (MimeMultipart)part.getContent();
+				IContentReader contentReader = new PartReader(stream2);
+
+				multipartProcessor.processParts(contentReader);
+
+				m++;
+			} catch (MessagingException | IOException e) {
+				throw new UnexpectedContentException(e);
+			}
+		}
 	}
 
 	static class Mailbox {
