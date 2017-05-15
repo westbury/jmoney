@@ -1,4 +1,4 @@
-package net.sf.jmoney.amazon;
+package net.sf.jmoney.amazon.csv;
 
 import java.text.DateFormat;
 import java.text.MessageFormat;
@@ -10,6 +10,9 @@ import java.util.Iterator;
 import java.util.List;
 
 import net.sf.jmoney.Helper;
+import net.sf.jmoney.amazon.AccountFinder;
+import net.sf.jmoney.amazon.AmazonEntry;
+import net.sf.jmoney.amazon.AmazonEntryInfo;
 import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.wizards.CsvImportWizard;
 import net.sf.jmoney.importer.wizards.CsvTransactionReader;
@@ -150,12 +153,12 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 				throw new ImportException("Last four digits of payment card must be 4 digits or indicate a gift certificate.");
 			}
 
-			BankAccount chargedBankAccount = AmazonItemImportWizard.findChargeAccount(getShell(), session, lastFourDigits);
+			BankAccount chargedBankAccount = AccountFinder.findChargeAccount(getShell(), session, lastFourDigits);
 			thisCurrency = chargedBankAccount.getCurrency();
 			chargedAccount = chargedBankAccount;
 		}
 
-		IncomeExpenseAccount unmatchedAccount = AmazonItemImportWizard.findUnmatchedAccount(session, thisCurrency);
+		IncomeExpenseAccount unmatchedAccount = AccountFinder.findUnmatchedAccount(session, thisCurrency);
 
 		/*
 		 * Look in the unmatched entries account for an entry that matches on order id, tracking number, and shipment date.
@@ -366,7 +369,7 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 		itemEntries.remove(matchedEntryInChargeAccount);
 		distribute(matchedEntryInChargeAccount.getTransaction(), itemEntries);
 
-		AmazonItemImportWizard.assertValid(matchedEntryInChargeAccount.getTransaction());
+		AccountFinder.assertValid(matchedEntryInChargeAccount.getTransaction());
 	}
 
 	/**

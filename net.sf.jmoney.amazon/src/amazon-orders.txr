@@ -1,0 +1,85 @@
+@(collect)
+ORDER PLACED
+@(assert)
+@date
+TOTAL
+£@totalamount
+DISPATCH TO
+Margaret Westbury
+ORDER # @ordernumber
+Order Details  Invoice 
+@  (cases)
+Arriving today
+Out for delivery
+@(bind expecteddate "today")
+@  (or)
+Arriving @expecteddate
+Dispatched
+@  (or)
+Arriving @expecteddate
+Shipping today
+@  (or)
+Arriving @expecteddate
+Preparing for Dispatch
+@  (or)
+Arriving @expecteddate
+Pre-ordered
+@  (or)
+Delivered @deliverydate
+Parcel was left in letterbox
+@  (or)
+Delivered @deliverydate
+Parcel was handed to resident
+@(or)
+Delivered @deliverydate
+Parcel was handed to a receptionist
+@  (or)
+Delivered @deliverydate
+Parcel was delivered as per instructions
+@  (or)
+Expected by @expecteddate
+Dispatched
+@  (or)
+Now expected @expecteddate
+Dispatched
+@  (end)
+Track package
+@  (collect)
+ 
+@description
+@(assert)
+@    (cases)
+Sold by: @soldby
+@    (or)
+@author
+Sold by: @soldby
+@    (end)
+@    (maybe)
+Eligible for return until @returndeadline
+@    (end)
+@    (maybe)
+Return window closed on @returndeadline
+@    (end)
+@    (maybe)
+Add-on Item
+@    (end)
+£@itemamount
+@    (maybe)
+Release date: @releasedate
+@    (end)
+ Submit
+Buy it again
+@  (until)
+@    (cases)
+Request Cancellation
+@    (or)
+Provide delivery instructions
+@    (or)
+Return or Replace Items
+@    (or)
+Hide Order
+@    (or)
+ORDER PLACED
+@    (end)
+@  (end)
+@(end)

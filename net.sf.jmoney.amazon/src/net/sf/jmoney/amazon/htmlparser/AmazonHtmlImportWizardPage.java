@@ -20,7 +20,7 @@
 *
 */
 
-package net.sf.jmoney.amazon;
+package net.sf.jmoney.amazon.htmlparser;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogSettings;

@@ -6,7 +6,7 @@
 		<wizard id="net.sf.jmoney.amazon.ImportItemsWizard"
 			name="Amazon Items"
 			icon="icons/PayPal_mark_37x23.gif"
-			class="net.sf.jmoney.amazon.AmazonItemImportWizard">
+			class="net.sf.jmoney.amazon.csv.AmazonItemImportWizard">
 			<description>
 				Import a CSV file that resulted from an export from Amazon of items. 
 			</description>
@@ -14,7 +14,7 @@
 		<wizard id="net.sf.jmoney.amazon.ImportOrdersWizard"
 			name="Amazon Orders"
 			icon="icons/PayPal_mark_37x23.gif"
-			class="net.sf.jmoney.amazon.AmazonOrderImportWizard">
+			class="net.sf.jmoney.amazon.csv.AmazonOrderImportWizard">
 			<description>
 				Import a CSV file that resulted from an export from Amazon of orders. 
 			</description>
@@ -22,12 +22,21 @@
 		<wizard id="net.sf.jmoney.amazon.AmazonHtmlImportWizard"
 			name="Amazon Orders as HTML"
 			icon="icons/PayPal_mark_37x23.gif"
-			class="net.sf.jmoney.amazon.AmazonHtmlImportWizard">
+			class="net.sf.jmoney.amazon.htmlparser.AmazonHtmlImportWizard">
 			<description>
 				Import the HTML page that contains Amazon order history. 
 			</description>
 		</wizard>
 	</extension>
+
+   <extension 
+   		 point="org.eclipse.ui.views">
+      <view
+            id="net.sf.jmoney.amazon.AmazonImportView"
+            name="Amazon"
+            class="net.sf.jmoney.amazon.copytext.AmazonImportView">
+      </view>
+   </extension>
 
    <extension
          point="net.sf.jmoney.fields">

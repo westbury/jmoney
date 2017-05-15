@@ -1,4 +1,4 @@
-package net.sf.jmoney.amazon;
+package net.sf.jmoney.amazon.htmlparser;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,6 +14,23 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import org.eclipse.jface.dialogs.IDialogSettings;
+import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.jface.wizard.Wizard;
+import org.eclipse.ui.IImportWizard;
+import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.IWorkbenchWindow;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+import net.sf.jmoney.amazon.AccountFinder;
+import net.sf.jmoney.amazon.AmazonEntry;
+import net.sf.jmoney.amazon.AmazonEntryInfo;
+import net.sf.jmoney.amazon.UrlBlob;
+import net.sf.jmoney.amazon.csv.AmazonOrderImportWizard;
 import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.wizards.ImportException;
@@ -26,18 +43,6 @@ import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
-
-import org.eclipse.jface.dialogs.IDialogSettings;
-import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.jface.viewers.IStructuredSelection;
-import org.eclipse.jface.wizard.Wizard;
-import org.eclipse.ui.IImportWizard;
-import org.eclipse.ui.IWorkbench;
-import org.eclipse.ui.IWorkbenchWindow;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
 /**
  * Items are grouped based on order id, tracking number, and shipment date.  A single order may be split into multiple
@@ -965,7 +970,7 @@ public class AmazonHtmlImportWizard extends Wizard implements IImportWizard {
 					AmazonOrderImportWizard.distribute(trans, itemEntries);
 				}
 
-				AmazonItemImportWizard.assertValid(trans);
+				AccountFinder.assertValid(trans);
 			}
 		}
 	}

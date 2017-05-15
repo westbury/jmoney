@@ -1,4 +1,4 @@
-package net.sf.jmoney.amazon;
+package net.sf.jmoney.amazon.csv;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -19,6 +19,12 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import org.eclipse.ui.IImportWizard;
+
+import net.sf.jmoney.amazon.AccountFinder;
+import net.sf.jmoney.amazon.AmazonEntry;
+import net.sf.jmoney.amazon.AmazonEntryInfo;
+import net.sf.jmoney.amazon.UrlBlob;
 import net.sf.jmoney.importer.wizards.CsvImportWizard;
 import net.sf.jmoney.importer.wizards.CsvTransactionReader;
 import net.sf.jmoney.importer.wizards.ImportException;
@@ -32,10 +38,6 @@ import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
-
-import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.swt.widgets.Shell;
-import org.eclipse.ui.IImportWizard;
 
 public class AmazonItemImportWizard extends CsvImportWizard implements IImportWizard {
 
@@ -176,12 +178,12 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 				throw new ImportException("Last four digits of payment card must be 4 digits or indicate a gift certificate.");
 			}
 
-			BankAccount chargedBankAccount = findChargeAccount(getShell(), session, lastFourDigits);
+			BankAccount chargedBankAccount = AccountFinder.findChargeAccount(getShell(), session, lastFourDigits);
 			thisCurrency = chargedBankAccount.getCurrency();
 			chargedAccount = chargedBankAccount;
 		}
 
-		IncomeExpenseAccount unmatchedAccount = findUnmatchedAccount(session, thisCurrency);
+		IncomeExpenseAccount unmatchedAccount = AccountFinder.findUnmatchedAccount(session, thisCurrency);
 
 		/*
 		 * Look in the unmatched entries account for an entry that matches on order id and shipment date.
@@ -192,18 +194,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 		 * Look for an income and expense account that can be used by default for the purchases.
 		 * The currency of this account must match the currency of the charge account.
 		 */
-		IncomeExpenseAccount unknownAmazonPurchaseAccount = null;
-		for (Iterator<IncomeExpenseAccount> iter = session.getIncomeExpenseAccountIterator(); iter.hasNext(); ) {
-			IncomeExpenseAccount eachAccount = iter.next();
-			if (eachAccount.getName().startsWith("Amazon purchase")
-					&& eachAccount.getCurrency() == thisCurrency) {
-				unknownAmazonPurchaseAccount = eachAccount;
-				break;
-			}
-		}
-		if (unknownAmazonPurchaseAccount == null) {
-			throw new ImportException("No account exists with a name that begins 'Amazon purchase' and a currency of " + thisCurrency.getName() + ".");
-		}
+		IncomeExpenseAccount unknownAmazonPurchaseAccount = AccountFinder.findDefaultPurchaseAccount(session, thisCurrency);
 
 		// All rows are processed by this
 		MultiRowTransaction thisMultiRowProcessor;
@@ -254,52 +245,6 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 			}
 		}
 		return matchingEntry;
-	}
-
-	public static IncomeExpenseAccount findUnmatchedAccount(Session session, Currency currency)
-			throws ImportException {
-		/*
-		 * Look for a category account that has a name that starts with "Amazon unmatched"
-		 * and a currency that matches the currency of the charge account.
-		 */
-		IncomeExpenseAccount unmatchedAccount = null;
-		for (Iterator<IncomeExpenseAccount> iter = session.getIncomeExpenseAccountIterator(); iter.hasNext(); ) {
-			IncomeExpenseAccount eachAccount = iter.next();
-			if (eachAccount.getName().startsWith("Amazon unmatched")
-					&& eachAccount.getCurrency() == currency) {
-				unmatchedAccount = eachAccount;
-				break;
-			}
-		}
-		if (unmatchedAccount == null) {
-			throw new ImportException("No account exists with a name that begins 'Amazon unmatched' and a currency of " + currency.getName() + ".");
-		}
-		return unmatchedAccount;
-	}
-
-	public static BankAccount findChargeAccount(Shell shell, Session session, String lastFourDigits)
-			throws ImportException {
-		BankAccount chargedAccount = null;
-		for (Iterator<CapitalAccount> iter = session.getCapitalAccountIterator(); iter.hasNext(); ) {
-			CapitalAccount eachAccount = iter.next();
-			if (eachAccount instanceof BankAccount) {
-				BankAccount eachBankAccount = (BankAccount)eachAccount;
-				String accountNumber = eachBankAccount.getAccountNumber();
-				if (accountNumber != null && accountNumber.endsWith(lastFourDigits)) {
-					chargedAccount = eachBankAccount;
-					break;
-				}
-			}
-		}
-		if (chargedAccount == null) {
-			boolean result = MessageDialog.openQuestion(shell, "Account not Found",
-					"No account exists with an account number ending with " + lastFourDigits + "."
-							+ "  Do you want to skip this one and continue importing the rest?  Press 'No' to cancel the entire import.");
-			if (!result) {
-				throw new ImportException("Import cancelled due to missing account.");
-			}
-		}
-		return chargedAccount;
 	}
 
 	public abstract class ItemsShippedTransaction implements MultiRowTransaction {
@@ -464,7 +409,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 			// the items.
 			trans.deleteEntry(matchingEntry.getBaseObject());
 
-			assertValid(trans);
+			AccountFinder.assertValid(trans);
 		}
 
 	}
@@ -504,20 +449,7 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 
 			addItemsToTransaction(trans);
 
-			assertValid(trans);
-		}
-	}
-
-	static void assertValid(Transaction trans) {
-		long total = 0;
-		System.out.println("" );
-
-		for (Entry entry : trans.getEntryCollection()) {
-			System.out.println("" + entry.getAmount());
-			total += entry.getAmount();
-		}
-		if (total != 0) {
-			throw new RuntimeException("unbalanced");
+			AccountFinder.assertValid(trans);
 		}
 	}
 

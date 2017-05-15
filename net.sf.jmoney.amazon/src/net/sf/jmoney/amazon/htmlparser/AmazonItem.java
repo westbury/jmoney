@@ -1,4 +1,4 @@
-package net.sf.jmoney.amazon;
+package net.sf.jmoney.amazon.htmlparser;
 
 
 public class AmazonItem {

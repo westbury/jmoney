@@ -57,6 +57,8 @@ public class AmazonEntry extends EntryExtension {
 
 	private String asinOrIsbn = null;
 
+	private String imageCode = null;
+
 	/**
 	 * picture of the item in JPEG format
 	 */
@@ -79,12 +81,13 @@ public class AmazonEntry extends EntryExtension {
 	 * This constructor is called by the datastore to construct
 	 * the extension objects when loading data.
 	 */
-	public AmazonEntry(ExtendableObject extendedObject, String orderId, String trackingNumber, Date shipmentDate, String asinOrIsbn, IBlob picture) {
+	public AmazonEntry(ExtendableObject extendedObject, String orderId, String trackingNumber, Date shipmentDate, String asinOrIsbn, String imageCode, IBlob picture) {
 		super(extendedObject);
 		this.orderId = orderId;
 		this.trackingNumber = trackingNumber;
 		this.shipmentDate = shipmentDate;
 		this.asinOrIsbn = asinOrIsbn;
+		this.imageCode = imageCode;
 		this.picture = picture;
 	}
 	
@@ -134,6 +137,18 @@ public class AmazonEntry extends EntryExtension {
 
 		// Notify the change manager.
 		processPropertyChange(AmazonEntryInfo.getAsinOrIsbnAccessor(), oldAsinOrIsbn, asinOrIsbn);
+	}
+
+	public String getImageCode() {
+		return imageCode;
+	}
+	
+	public void setImageCode(String imageCode) {
+		String oldImageCode = this.imageCode;
+		this.imageCode = imageCode;
+
+		// Notify the change manager.
+		processPropertyChange(AmazonEntryInfo.getImageCodeAccessor(), oldImageCode, imageCode);
 	}
 
 	public IBlob getPicture() {

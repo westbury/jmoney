@@ -1,0 +1,81 @@
+@(skip)
+Order Details
+@(assert)
+Ordered on @orderdate  Order # @ordernumber
+Invoice 
+Delivery Address
+Margaret Westbury
+69 Barton Road
+CAMBRIDGE, Cambs CB3 9LG
+United Kingdom
+Payment Method
+Visa/Delta/Electron **** @lastfourdigits
+Order Summary
+Item(s) Subtotal: £@subtotal
+Postage & Packing: £@postageandpackaging
+@(maybe)
+Total Before VAT: £@totalbeforevat
+VAT: £@vat
+@(end)
+Total: £@total
+Grand Total: £@grandtotal
+@(cases)
+Transactions
+Delivered @deliverydate
+Parcel was handed to resident
+Track package
+@(or)
+Transactions
+Delivered @deliverydate
+Parcel was handed to a receptionist
+Track package
+@(or)
+Transactions
+Arriving today
+Out for delivery
+Track package
+@(or)
+Dispatching now
+Delivery estimate: @deliverydate
+@  (or)
+Transactions
+Now expected @expecteddate
+Dispatched
+Track package
+@(end)
+@(collect)
+ 
+@description
+@(assert)
+@  (cases)
+Sold by: @soldby Product question? Ask Seller
+@  (or)
+Sold by: @soldby
+@  (or)
+@author
+Sold by: @soldby
+@  (end)
+@  (maybe)
+Eligible for return until @returndeadline
+@  (end)
+@  (maybe)
+Return window closed on @returndeadline
+@  (end)
+@  (maybe)
+Add-on Item
+@  (end)
+£@itemamount
+Condition: @condition
+ Submit
+Buy it again
+@(until)
+@  (cases)
+Request Cancellation
+@  (or)
+Provide delivery instructions
+@  (or)
+Return or Replace Items
+@  (or)
+Hide Order
+@  (end)
+@(end)

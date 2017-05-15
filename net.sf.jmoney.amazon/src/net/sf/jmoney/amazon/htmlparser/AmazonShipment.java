@@ -1,4 +1,4 @@
-package net.sf.jmoney.amazon;
+package net.sf.jmoney.amazon.htmlparser;
 
 import java.text.DateFormat;
 import java.text.ParseException;

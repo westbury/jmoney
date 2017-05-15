@@ -61,6 +61,7 @@ public class AmazonEntryInfo implements IPropertySetInfo {
 					values.getScalarValue(getTrackingNumberAccessor()),
 					values.getScalarValue(getShipmentDateAccessor()),
 					values.getScalarValue(getAsinOrIsbnAccessor()),
+					values.getScalarValue(getImageCodeAccessor()),
 					values.getScalarValue(getPictureAccessor())
 			);
 		}
@@ -70,6 +71,7 @@ public class AmazonEntryInfo implements IPropertySetInfo {
 	private static ScalarPropertyAccessor<String,Entry> trackingNumberAccessor;
 	private static ScalarPropertyAccessor<Date,Entry> shipmentDateAccessor;
 	private static ScalarPropertyAccessor<String,Entry> asinOrIsbnAccessor;
+	private static ScalarPropertyAccessor<String,Entry> imageCodeAccessor;
 	private static ScalarPropertyAccessor<IBlob,Entry> pictureAccessor;
 		
 	@Override
@@ -89,6 +91,7 @@ public class AmazonEntryInfo implements IPropertySetInfo {
 		trackingNumberAccessor = propertySet.addProperty("trackingNumber", "Amazon Carrier & Tracking Number", String.class, 0, 80, textPropertyControlFactory, null);
 		shipmentDateAccessor = propertySet.addProperty("shipmentDate", "Shipment Date", Date.class, 0, 100, datePropertyControlFactory, null);
 		asinOrIsbnAccessor = propertySet.addProperty("asinOrIsbn", "ASIN/ISBN", String.class, 0, 80, textPropertyControlFactory, null);
+		imageCodeAccessor = propertySet.addProperty("imageCode", "Image Code", String.class, 0, 80, textPropertyControlFactory, null);
 		pictureAccessor = propertySet.addProperty("picture", "Item Image", IBlob.class, 0, 80, imagePropertyControlFactory, x);
 		
 		return propertySet;
@@ -115,6 +118,10 @@ public class AmazonEntryInfo implements IPropertySetInfo {
 
 	public static ScalarPropertyAccessor<String,Entry> getAsinOrIsbnAccessor() {
 		return asinOrIsbnAccessor;
+	}	
+
+	public static ScalarPropertyAccessor<String,Entry> getImageCodeAccessor() {
+		return imageCodeAccessor;
 	}	
 
 	public static ScalarPropertyAccessor<IBlob,Entry> getPictureAccessor() {
