@@ -8,78 +8,81 @@ DISPATCH TO
 Margaret Westbury
 ORDER # @ordernumber
 Order Details  Invoice 
-@  (cases)
+@  (collect :maxgap 2)
+@    (cases)
+Track package
+@      (throw parseError "'Track package' found but prior lines were unmatched.")
+@    (or)
+	Arriving @expecteddate
+Pre-ordered
+@    (or)
 Arriving today
 Out for delivery
 @(bind expecteddate "today")
-@  (or)
+@    (or)
 Arriving @expecteddate
 Dispatched
-@  (or)
+@    (or)
 Arriving @expecteddate
 Shipping today
-@  (or)
+@    (or)
 Arriving @expecteddate
 Preparing for Dispatch
-@  (or)
+@    (or)
 Arriving @expecteddate
 Pre-ordered
-@  (or)
+@    (or)
 Delivered @deliverydate
 Parcel was left in letterbox
-@  (or)
+@    (or)
 Delivered @deliverydate
 Parcel was handed to resident
-@(or)
+@    (or)
 Delivered @deliverydate
 Parcel was handed to a receptionist
-@  (or)
+@    (or)
 Delivered @deliverydate
 Parcel was delivered as per instructions
-@  (or)
+@    (or)
 Expected by @expecteddate
 Dispatched
-@  (or)
+@    (or)
 Now expected @expecteddate
 Dispatched
-@  (end)
+@    (end)
 Track package
-@  (collect)
+@    (collect :maxgap 0)
  
-@description
 @(assert)
-@    (cases)
+@description
+@    (assert)
+@      (cases)
 Sold by: @soldby
-@    (or)
+@      (or)
 @author
 Sold by: @soldby
-@    (end)
-@    (maybe)
+@      (end)
+@      (maybe)
 Eligible for return until @returndeadline
-@    (end)
-@    (maybe)
+@      (end)
+@      (maybe)
 Return window closed on @returndeadline
-@    (end)
-@    (maybe)
+@      (end)
+@      (maybe)
 Add-on Item
-@    (end)
+@      (end)
 £@itemamount
-@    (maybe)
+@      (maybe)
 Release date: @releasedate
-@    (end)
+@      (end)
  Submit
 Buy it again
-@  (until)
-@    (cases)
-Request Cancellation
-@    (or)
-Provide delivery instructions
-@    (or)
-Return or Replace Items
-@    (or)
+@      (until)
 Hide Order
-@    (or)
-ORDER PLACED
 @    (end)
+@    (skip nil 6)
+Hide Order
+@    (until)
+ORDER PLACED
 @  (end)
 @(end)

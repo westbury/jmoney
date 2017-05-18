@@ -118,7 +118,6 @@ import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.handlers.IHandlerService;
 import org.eclipse.ui.part.ViewPart;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -158,10 +157,10 @@ public class AmazonImportView extends ViewPart {
 			preexistingItems = new HashSet<>(items);
 		}
 
-		public AmazonOrderItem get(String asin, String description, long itemAmount) {
+		public AmazonOrderItem get(String asin, String description, long itemAmount, ShipmentObject shipmentObject, Session session) {
 			// Find the matching entry
 			if (preexistingItems.isEmpty()) {
-				AmazonOrderItem item = order.createNewItem(description, itemAmount);
+				AmazonOrderItem item = order.createNewItem(description, itemAmount, shipmentObject, session);
 				if (asin != null) {
 					item.getEntry().setAsinOrIsbn(asin);
 				}
@@ -169,12 +168,31 @@ public class AmazonImportView extends ViewPart {
 			} else {
 				AmazonOrderItem[] matches = preexistingItems.stream().filter(item -> item.getEntry().getAmount() == itemAmount).toArray(AmazonOrderItem[]::new);
 				if (matches.length > 1) {
-					matches = Stream.of(matches).filter(item -> item.getDescription().equals(description)).toArray(AmazonOrderItem[]::new);
+					matches = Stream.of(matches).filter(item -> item.getEntry().getAmazonDescription().equals(description)).toArray(AmazonOrderItem[]::new);
 				}
 				if (matches.length != 1) {
 					throw new RuntimeException("Existing transaction for order does not match up.");
 				}
 				AmazonOrderItem matchingItem = matches[0];
+
+				/*
+				 * Check the shipment splitting is consistent (i.e. has not changed).
+				 * 
+				 */
+				final Transaction transactionOfThisItem = matchingItem.getEntry().getTransaction();
+				if (shipmentObject.shipment != null) {
+					if (shipmentObject.shipment.getTransaction() != transactionOfThisItem) {
+						throw new RuntimeException("Inconsistent shipment");
+					}
+				} else {
+					AmazonShipment[] matchingShipments = order.getShipments().stream().filter(shipment -> shipment.getTransaction() == transactionOfThisItem).toArray(AmazonShipment[]::new);
+					assert(matchingShipments.length == 1);
+					AmazonShipment shipment = matchingShipments[0];
+
+					shipmentObject.shipment = shipment;
+				}
+
+
 
 				preexistingItems.remove(matchingItem);
 				return matchingItem;
@@ -427,8 +445,12 @@ public class AmazonImportView extends ViewPart {
 			}
 
 			private void commitChanges() {
-				validateTransactions();
-
+				try {
+					validateTransactions();
+				} catch (RuntimeException e) {
+					MessageDialog.openError(getViewSite().getShell(), "Cannot Commit", e.getLocalizedMessage());
+					return;
+				}
 				uncommittedSessionManager.commit("Amazon Import from Clipboard");
 
 				orders.clear();
@@ -441,22 +463,41 @@ public class AmazonImportView extends ViewPart {
 
 			private void validateTransactions() {
 				for (AmazonOrder order : orders) {
-					Transaction transaction = order.getChargeEntry().getTransaction();
-					if (transaction.getDate() == null) {
-						throw new RuntimeException("No date set on order " + order.getOrderNumber());
-					}
-					long total = 0;
-					for (Entry entry : transaction.getEntryCollection()) {
-						if (entry.getAmount() == 0) {
-							throw new RuntimeException("Zero amount set on order " + order.getOrderNumber());
+					long totalForOrder = 0;
+					for (AmazonShipment shipment : order.getShipments()) {
+						Transaction transaction = shipment.getChargeEntry().getTransaction();
+
+						// If charge amount is zero, add up the transaction to set it.
+						if (shipment.getChargeEntry().getAmount() == 0) {
+							long total = 0;
+							for (Entry entry : transaction.getEntryCollection()) {
+								total += entry.getAmount();
+							}
+							shipment.getChargeEntry().setAmount(-total);
 						}
-						if (entry.getAccount() == null) {
-							throw new RuntimeException("No account set on order " + order.getOrderNumber());
+
+						totalForOrder -= shipment.getChargeEntry().getAmount();
+
+						if (transaction.getDate() == null) {
+							throw new RuntimeException("No date set on order " + order.getOrderNumber());
 						}
-						total += entry.getAmount();
+						long total = 0;
+						for (Entry entry : transaction.getEntryCollection()) {
+							if (entry.getAmount() == 0) {
+								throw new RuntimeException("Zero amount set on order " + order.getOrderNumber());
+							}
+							if (entry.getAccount() == null) {
+								throw new RuntimeException("No account set on order " + order.getOrderNumber());
+							}
+							total += entry.getAmount();
+						}
+						if (total != 0) {
+							throw new RuntimeException("Unbalanced transaction on order " + order.getOrderNumber());
+						}
 					}
-					if (total != 0) {
-						throw new RuntimeException("Unbalanced transaction on order " + order.getOrderNumber());
+
+					if (totalForOrder != order.getOrderTotal()) {
+						throw new RuntimeException("Order does not add up to order total for order " + order.getOrderNumber());
 					}
 				}
 
@@ -500,19 +541,16 @@ public class AmazonImportView extends ViewPart {
 			throw new RuntimeException("Data in clipboard does not appear to be copied from the orders page.");
 		}
 
+		DateFormat dateFormat = new SimpleDateFormat("d MMM yyyy");
+
 		for (MatchResults orderBindings : bindings.getCollections(0)) {
 			String orderDateAsString = orderBindings.getVariable("date").text;
 			String orderNumber = orderBindings.getVariable("ordernumber").text;
 			String orderTotal = orderBindings.getVariable("totalamount").text;
-			String expectedDateAsString = orderBindings.getVariable("expecteddate").text;
-			String deliveryDateAsString = orderBindings.getVariable("deliverydate").text;
 
-			DateFormat dateFormat = new SimpleDateFormat("d MMM yyyy");
 			Date orderDate;
-			Date deliveryDate;
 			try {
 				orderDate = dateFormat.parse(orderDateAsString);
-				deliveryDate = parsePastDate(deliveryDateAsString);
 			} catch (ParseException e) {
 				// TODO Return as error to TXR when that is supported???
 				e.printStackTrace();
@@ -527,33 +565,67 @@ public class AmazonImportView extends ViewPart {
 			 */
 			AmazonOrder order = getAmazonOrderWrapper(orderNumber, orderDate, session);
 
-			order.setOrderDate(orderDate);
+			order.setOrderDate(orderDate);  // Done here and in above....
 			order.setOrderTotal(orderTotal);
-			order.setExpectedDate(expectedDateAsString);
-			order.setDeliveryDate(deliveryDate);
 
 			ItemBuilder itemBuilder = new ItemBuilder(order, order.getItems());
 
-			for (MatchResults itemBindings : orderBindings.getCollections(0)) {
-				String description = itemBindings.getVariable("description").text;
-				String itemAmountAsString = itemBindings.getVariable("itemamount").text;
-				String soldBy = itemBindings.getVariable("soldby").text;
-				String author = itemBindings.getVariable("author").text;
-				String returnDeadline = itemBindings.getVariable("returndeadline").text;
+			for (MatchResults shipmentBindings : orderBindings.getCollections(0)) {
+				String expectedDateAsString = shipmentBindings.getVariable("expecteddate").text;
+				String deliveryDateAsString = shipmentBindings.getVariable("deliverydate").text;
 
-				long itemAmount = new BigDecimal(itemAmountAsString).scaleByPowerOfTen(2).longValueExact();
+				Date deliveryDate;
+				try {
+					deliveryDate = parsePastDate(deliveryDateAsString);
+				} catch (ParseException e) {
+					// TODO Return as error to TXR when that is supported???
+					e.printStackTrace();
+					throw new RuntimeException("bad date");
+				}
 
-				String asin = null;
+				/*
+				 * If no AmazonShipment exists yet in this view then create one.
+				 * 
+				 * AmazonItem object created from datastore initially have no shipment.
+				 * Only when matched here is a shipment assigned to the item.
+				 * 
+				 * Two types of shipment creators.  One creates a new shipment each time.
+				 * 
+				 * 
+				 * This will be either initially empty if the order does not yet
+				 * exist in the session or it will be a wrapper for the existing order
+				 * found in the session.
+				 */
+				ShipmentObject shipmentObject = new ShipmentObject();
 
-				AmazonOrderItem item = itemBuilder.get(asin, description, itemAmount);
+				for (MatchResults itemBindings : shipmentBindings.getCollections(0)) {
+					String description = itemBindings.getVariable("description").text;
+					String itemAmountAsString = itemBindings.getVariable("itemamount").text;
+					String soldBy = itemBindings.getVariable("soldby").text;
+					String author = itemBindings.getVariable("author").text;
+					String returnDeadline = itemBindings.getVariable("returndeadline").text;
 
-				item.setSoldBy(soldBy);
-				item.setAuthor(author);
-				item.setReturnDeadline(returnDeadline);
-			}
+					long itemAmount = new BigDecimal(itemAmountAsString).scaleByPowerOfTen(2).longValueExact();
 
-			if (!itemBuilder.isEmpty()) {
-				throw new RuntimeException("gone wrong");
+					String asin = null;
+
+					AmazonOrderItem item = itemBuilder.get(asin, description, itemAmount, shipmentObject, session);
+
+					item.setSoldBy(soldBy);
+					item.setAuthor(author);
+					item.setReturnDeadline(returnDeadline);
+				}
+
+				if (!itemBuilder.isEmpty()) {
+					throw new RuntimeException("gone wrong");
+				}
+
+				// Now we have the items in this shipment,
+				// we can access the actual shipment.
+				AmazonShipment shipment = shipmentObject.shipment;
+
+				shipment.setExpectedDate(expectedDateAsString);
+				shipment.setDeliveryDate(deliveryDate);
 			}
 		}
 
@@ -608,12 +680,7 @@ public class AmazonImportView extends ViewPart {
 			return order;
 		} else {
 			Transaction[] transactions = entriesInOrder.stream().map(entry -> entry.getTransaction()).distinct().toArray(Transaction[]::new);
-			if (transactions.length != 1) {
-				throw new RuntimeException("order not in single transaction!");
-			}
-			Transaction transaction = transactions[0];
-
-			AmazonOrder order = new AmazonOrder(orderNumber, transaction);
+			AmazonOrder order = new AmazonOrder(orderNumber, transactions);
 			return order;
 		}
 	}
@@ -684,6 +751,16 @@ public class AmazonImportView extends ViewPart {
 
 	}
 
+	/**
+	 * Given an order number, return all entries that have the given
+	 * order number set.
+	 * 
+	 * @param orderNumber
+	 * @param orderDate the date of the order, being the transaction date,
+	 * 			this parameter being used for performance as the entries are
+	 * 			indexed by date
+	 * @return
+	 */
 	private Set<AmazonEntry> lookupEntriesInOrder(String orderNumber, Date orderDate) {
 		/*
 		 * The getEntries method is not supported in an uncommitted data manager.  Therefore we do
@@ -715,7 +792,7 @@ public class AmazonImportView extends ViewPart {
 		MatchResults orderBindings = doMatchingFromClipboard(detailsMatcher);
 
 		if (orderBindings == null) {
-			throw new RuntimeException("Data in clipboard does not appear to be an order page.");
+			throw new RuntimeException("Data in clipboard does not appear to be a details page.");
 		}
 
 		String orderDateAsString = orderBindings.getVariable("orderdate").text;
@@ -725,15 +802,14 @@ public class AmazonImportView extends ViewPart {
 		String grandTotalAsString = orderBindings.getVariable("grandtotal").text;
 		String lastFourDigits = orderBindings.getVariable("lastfourdigits").text;
 		String postageAndPackagingAsString = orderBindings.getVariable("postageandpackaging").text;
-		String expectedDateAsString = orderBindings.getVariable("expecteddate").text;
-		String deliveryDateAsString = orderBindings.getVariable("deliverydate").text;
+
+		Currency thisCurrency = session.getCurrencyForCode("GBP");
 
 		DateFormat dateFormat = new SimpleDateFormat("d MMM yyyy");
+
 		Date orderDate;
-		Date deliveryDate;
 		try {
 			orderDate = dateFormat.parse(orderDateAsString);
-			deliveryDate = parsePastDate(deliveryDateAsString);
 		} catch (ParseException e) {
 			// TODO Return as error to TXR when that is supported???
 			e.printStackTrace();
@@ -743,8 +819,6 @@ public class AmazonImportView extends ViewPart {
 		long orderTotal = new BigDecimal(orderTotalAsString).scaleByPowerOfTen(2).longValueExact();
 		long postageAndPackaging = new BigDecimal(postageAndPackagingAsString).scaleByPowerOfTen(2).longValueExact();
 
-		Currency thisCurrency = session.getCurrencyForCode("GBP");
-
 		/*
 		 * If no AmazonOrder exists yet in this view then create one.
 		 * This will be either initially empty if the order does not yet
@@ -753,59 +827,84 @@ public class AmazonImportView extends ViewPart {
 		 */
 		AmazonOrder order = getAmazonOrderWrapper(orderNumber, orderDate, session);
 
-		/*
-		 * Find the account which is charged for the purchases.
-		 */
-		CapitalAccount chargeAccount = null;
-		if (lastFourDigits != null) {
-			for (Iterator<CapitalAccount> iter = session.getCapitalAccountIterator(); iter.hasNext(); ) {
-				CapitalAccount eachAccount = iter.next();
-				if (eachAccount.getName().endsWith(lastFourDigits)
-						&& eachAccount instanceof CurrencyAccount
-						&& ((CurrencyAccount)eachAccount).getCurrency() == thisCurrency) {
-					chargeAccount = (CurrencyAccount)eachAccount;
-					break;
-				}
-			}
-			if (chargeAccount == null) {
-				throw new RuntimeException("No account exists with the given last four digits and a currency of " + thisCurrency.getName() + ".");
+		ItemBuilder itemBuilder = new ItemBuilder(order, order.getItems());
+
+		for (MatchResults shipmentBindings : orderBindings.getCollections(0)) {
+			String expectedDateAsString = shipmentBindings.getVariable("expecteddate").text;
+			String deliveryDateAsString = shipmentBindings.getVariable("deliverydate").text;
+
+			Date deliveryDate;
+			try {
+				deliveryDate = parsePastDate(deliveryDateAsString);
+			} catch (ParseException e) {
+				// TODO Return as error to TXR when that is supported???
+				e.printStackTrace();
+				throw new RuntimeException("bad date");
 			}
 
-			order.setChargeAccount(chargeAccount);
+			/*
+			 * Find the account which is charged for the purchases.
+			 */
+			CapitalAccount chargeAccount = null;
+			if (lastFourDigits != null) {
+				for (Iterator<CapitalAccount> iter = session.getCapitalAccountIterator(); iter.hasNext(); ) {
+					CapitalAccount eachAccount = iter.next();
+					if (eachAccount.getName().endsWith(lastFourDigits)
+							&& eachAccount instanceof CurrencyAccount
+							&& ((CurrencyAccount)eachAccount).getCurrency() == thisCurrency) {
+						chargeAccount = (CurrencyAccount)eachAccount;
+						break;
+					}
+				}
+				if (chargeAccount == null) {
+					throw new RuntimeException("No account exists with the given last four digits and a currency of " + thisCurrency.getName() + ".");
+				}
+			}
+
+			order.setOrderDate(orderDate);
+			order.setOrderTotal(orderTotalAsString);
+
+			ShipmentObject shipmentObject = new ShipmentObject();
+
+			for (MatchResults itemBindings : shipmentBindings.getCollections(0)) {
+				String description = itemBindings.getVariable("description").text;
+				String soldBy = itemBindings.getVariable("soldby").text;
+				String author = itemBindings.getVariable("author").text;
+				String itemAmountAsString = itemBindings.getVariable("itemamount").text;
+
+				String asin = null;
+
+				long itemAmount = new BigDecimal(itemAmountAsString).scaleByPowerOfTen(2).longValueExact();
+
+				AmazonOrderItem item = itemBuilder.get(asin, description, itemAmount, shipmentObject, session);
+
+				// TODO any item data to merge here???
+
+				item.setAuthor(author);
+				item.setSoldBy(soldBy);
+			}
+
+			if (!itemBuilder.isEmpty()) {
+				throw new RuntimeException("gone wrong");
+			}
+
+			// Now we have the items in this shipment,
+			// we can access the actual shipment.
+			AmazonShipment shipment = shipmentObject.shipment;
+
+			shipment.setExpectedDate(expectedDateAsString);
+			shipment.setDeliveryDate(deliveryDate);
+			shipment.setChargeAccount(chargeAccount);
 		}
 
 
 		if (postageAndPackaging != 0) {
-			order.setPostageAndPackaging(postageAndPackaging);
-		}
-
-		order.setOrderDate(orderDate);
-		order.setOrderTotal(orderTotalAsString);
-		order.setExpectedDate(expectedDateAsString);
-		order.setDeliveryDate(deliveryDate);
-
-		ItemBuilder itemBuilder = new ItemBuilder(order, order.getItems());
-
-		for (MatchResults itemBindings : orderBindings.getCollections(0)) {
-			String description = itemBindings.getVariable("description").text;
-			String soldBy = itemBindings.getVariable("soldby").text;
-			String author = itemBindings.getVariable("author").text;
-			String itemAmountAsString = itemBindings.getVariable("itemamount").text;
-
-			String asin = null;
-
-			long itemAmount = new BigDecimal(itemAmountAsString).scaleByPowerOfTen(2).longValueExact();
-
-			AmazonOrderItem item = itemBuilder.get(asin, description, itemAmount);
-
-			// TODO any item data to merge here???
-
-			item.setAuthor(author);
-			item.setSoldBy(soldBy);
-		}
-
-		if (!itemBuilder.isEmpty()) {
-			throw new RuntimeException("gone wrong");
+			if (order.getShipments().size() == 1) {
+				AmazonShipment shipment = order.getShipments().get(0); 
+				shipment.setPostageAndPackaging(postageAndPackaging);
+			} else {
+				throw new RuntimeException("p&p but multiple shipments.  We need to see an example of this to decide how to handle this.");
+			}
 		}
 
 		viewer.setInput(orders.toArray(new AmazonOrder[0]));
@@ -946,6 +1045,15 @@ public class AmazonImportView extends ViewPart {
 				if (cell.getElement() instanceof AmazonOrder) {
 					AmazonOrder order = (AmazonOrder)cell.getElement();
 					cell.setText(order.getOrderNumber());
+				} else if (cell.getElement() instanceof AmazonShipment) {
+					AmazonShipment shipment = (AmazonShipment)cell.getElement();
+					if (shipment.getExpectedDate() != null) {
+						cell.setText("Expected: " + shipment.getExpectedDate());
+					} else if (shipment.getDeliveryDate() != null) {
+						DateFormat df = new SimpleDateFormat("dd/MM/yyyy");
+						String deliveryDateAsString = df.format(shipment.getDeliveryDate());
+						cell.setText("Delivered: " + deliveryDateAsString);
+					}
 				} else if (cell.getElement() instanceof AmazonOrderItem) {
 					AmazonOrderItem item = (AmazonOrderItem)cell.getElement();
 					cell.setText(item.getDescription());
@@ -1003,6 +1111,8 @@ public class AmazonImportView extends ViewPart {
 		IObservableValue<Entry> amazonEntry = new WritableValue<Entry>();
 
 		Control orderControls = createOrderControls(stackComposite);
+		Control shipmentControls = createShipmentControls(stackComposite);
+		Control combinedControls = createCombinedOrderAndShipmentControls(stackComposite);
 		Control itemControls = createItemControls(stackComposite, amazonEntry);
 
 
@@ -1011,16 +1121,21 @@ public class AmazonImportView extends ViewPart {
 			public void handleValueChange(ValueChangeEvent<Object> event) {
 				if (selObs.getValue() instanceof AmazonOrder) {
 					AmazonOrder order = (AmazonOrder)selObs.getValue();
-
-					stackLayout.topControl= orderControls;
+					if (order.getShipments().size() == 1) {
+						stackLayout.topControl= combinedControls;
+					} else {
+						stackLayout.topControl= orderControls;
+					}
+				} else if (selObs.getValue() instanceof AmazonShipment) {
+					stackLayout.topControl = shipmentControls;
 				} else if (selObs.getValue() instanceof AmazonOrderItem) {
 					AmazonOrderItem item = (AmazonOrderItem)selObs.getValue();
 
-					stackLayout.topControl= itemControls;
+					stackLayout.topControl = itemControls;
 
 					amazonEntry.setValue(item.getEntry().getBaseObject());
 				} else {
-					stackLayout.topControl= null;
+					stackLayout.topControl = null;
 				}
 
 				stackComposite.layout();
@@ -1044,6 +1159,33 @@ public class AmazonImportView extends ViewPart {
 		DateControl orderDateControl = new DateControl(composite);
 		orderDateControl.setLayoutData(new GridData(200, SWT.DEFAULT));
 
+		Label orderAmountLabel = new Label(composite, 0);
+		orderAmountLabel.setText("Order Total:");
+		Text orderAmountControl = new Text(composite, SWT.NONE);
+		orderAmountControl.setLayoutData(new GridData(200, SWT.DEFAULT));
+
+		selObs.addValueChangeListener(new IValueChangeListener<Object>() {
+			@Override
+			public void handleValueChange(ValueChangeEvent<Object> event) {
+				if (selObs.getValue() instanceof AmazonOrder) {
+					AmazonOrder order = (AmazonOrder)selObs.getValue();
+
+					orderControl.setText(order.getOrderNumber());
+					orderDateControl.setDate(order.getOrderDate());
+
+					Currency currency = session.getCurrencyForCode("GBP");
+					orderAmountControl.setText(currency.format(order.getOrderTotal()));
+				}
+			}
+		});
+
+		return composite;
+	}
+
+	private Control createShipmentControls(Composite parent) {
+		Composite composite = new Composite(parent, SWT.NONE);
+		composite.setLayout(new GridLayout(2, false));
+
 		Label expectedDateLabel = new Label(composite, 0);
 		expectedDateLabel.setText("Expected Date:");
 		Text expectedDateControl = new Text(composite, SWT.NONE);
@@ -1054,16 +1196,91 @@ public class AmazonImportView extends ViewPart {
 		DateControl deliveryDateControl = new DateControl(composite);
 		deliveryDateControl.setLayoutData(new GridData(200, SWT.DEFAULT));
 
+		Label postageAndPackagingLabel = new Label(composite, 0);
+		postageAndPackagingLabel.setText("Postage and Packaging:");
+		Text postageAndPackagingControl = new Text(composite, SWT.NONE);
+		postageAndPackagingControl.setLayoutData(new GridData(200, SWT.DEFAULT));
+
+		selObs.addValueChangeListener(new IValueChangeListener<Object>() {
+			@Override
+			public void handleValueChange(ValueChangeEvent<Object> event) {
+				if (selObs.getValue() instanceof AmazonShipment) {
+					AmazonShipment shipment = (AmazonShipment)selObs.getValue();
+
+					expectedDateControl.setText(shipment.getExpectedDate() == null ? "" : shipment.getExpectedDate());
+					deliveryDateControl.setDate(shipment.getDeliveryDate());
+
+					if (shipment.postageAndPackagingEntry != null) {
+						Currency currency = session.getCurrencyForCode("GBP");
+						postageAndPackagingControl.setText(currency.format(shipment.postageAndPackagingEntry.getAmount()));
+					} else {
+						postageAndPackagingControl.setText("");
+					}
+				}
+			}
+		});
+
+		return composite;
+	}
+
+	private Control createCombinedOrderAndShipmentControls(Composite parent) {
+		Composite composite = new Composite(parent, SWT.NONE);
+		composite.setLayout(new GridLayout(2, false));
+
+		Label orderNumberLabel = new Label(composite, 0);
+		orderNumberLabel.setText("Order Number:");
+		Text orderControl = new Text(composite, SWT.NONE);
+		orderControl.setLayoutData(new GridData(200, SWT.DEFAULT));
+
+		Label orderDateLabel = new Label(composite, 0);
+		orderDateLabel.setText("Order Date:");
+		DateControl orderDateControl = new DateControl(composite);
+		orderDateControl.setLayoutData(new GridData(200, SWT.DEFAULT));
+
+		Label orderAmountLabel = new Label(composite, 0);
+		orderAmountLabel.setText("Order Total:");
+		Text orderAmountControl = new Text(composite, SWT.NONE);
+		orderAmountControl.setLayoutData(new GridData(200, SWT.DEFAULT));
+
+		Label expectedDateLabel = new Label(composite, 0);
+		expectedDateLabel.setText("Expected Date:");
+		Text expectedDateControl = new Text(composite, SWT.NONE);
+		expectedDateControl.setLayoutData(new GridData(200, SWT.DEFAULT));
+
+		Label deliveryDateLabel = new Label(composite, 0);
+		deliveryDateLabel.setText("Delivery Date:");
+		DateControl deliveryDateControl = new DateControl(composite);
+		deliveryDateControl.setLayoutData(new GridData(200, SWT.DEFAULT));
+
+		Label postageAndPackagingLabel = new Label(composite, 0);
+		postageAndPackagingLabel.setText("Postage and Packaging:");
+		Text postageAndPackagingControl = new Text(composite, SWT.NONE);
+		postageAndPackagingControl.setLayoutData(new GridData(200, SWT.DEFAULT));
+
 		selObs.addValueChangeListener(new IValueChangeListener<Object>() {
 			@Override
 			public void handleValueChange(ValueChangeEvent<Object> event) {
 				if (selObs.getValue() instanceof AmazonOrder) {
 					AmazonOrder order = (AmazonOrder)selObs.getValue();
 
-					orderControl.setText(order.getOrderNumber());
-					orderDateControl.setDate(order.getOrderDate());
-					expectedDateControl.setText(order.getExpectedDate() == null ? "" : order.getExpectedDate());
-					deliveryDateControl.setDate(order.getDeliveryDate());
+					if (order.getShipments().size() == 1) {
+						orderControl.setText(order.getOrderNumber());
+						orderDateControl.setDate(order.getOrderDate());
+
+						Currency currency = session.getCurrencyForCode("GBP");
+						orderAmountControl.setText(currency.format(order.getOrderTotal()));
+
+						AmazonShipment shipment = order.getShipments().get(0);
+
+						expectedDateControl.setText(shipment.getExpectedDate() == null ? "" : shipment.getExpectedDate());
+						deliveryDateControl.setDate(shipment.getDeliveryDate());
+
+						if (shipment.postageAndPackagingEntry != null) {
+							postageAndPackagingControl.setText(currency.format(shipment.postageAndPackagingEntry.getAmount()));
+						} else {
+							postageAndPackagingControl.setText("");
+						}
+					}
 				}
 			}
 		});
@@ -1086,6 +1303,7 @@ public class AmazonImportView extends ViewPart {
 		composite.setLayout(new GridLayout(2, false));
 
 		createLabelAndControl(composite, EntryInfo.getMemoAccessor(), amazonEntry);
+		createLabelAndControl(composite, EntryInfo.getAmountAccessor(), amazonEntry);
 		createLabelAndControl(composite, AmazonEntryInfo.getAsinOrIsbnAccessor(), amazonEntry);
 		createLabelAndControl(composite, AmazonEntryInfo.getImageCodeAccessor(), amazonEntry);
 
@@ -1169,7 +1387,7 @@ public class AmazonImportView extends ViewPart {
 			e1.printStackTrace();
 		}
 
-		
+
 		final DropTarget dropTarget = new DropTarget(canvas, DND.DROP_COPY | DND.DROP_MOVE | DND.DROP_LINK);
 
 		// Data is provided using a local reference only (can only drag and drop
@@ -1306,7 +1524,7 @@ public class AmazonImportView extends ViewPart {
 		return canvas;
 	}
 
-	private void createLabelAndControl(Composite parent, ScalarPropertyAccessor<String, Entry> propertyAccessor,
+	private void createLabelAndControl(Composite parent, ScalarPropertyAccessor<?, Entry> propertyAccessor,
 			IObservableValue<Entry> amazonEntry) {
 		Label propertyLabel = new Label(parent, 0);
 		propertyLabel.setText(propertyAccessor.getDisplayName() + ':');

@@ -60,6 +60,7 @@ public class AmazonEntryInfo implements IPropertySetInfo {
 					values.getScalarValue(getOrderIdAccessor()),
 					values.getScalarValue(getTrackingNumberAccessor()),
 					values.getScalarValue(getShipmentDateAccessor()),
+					values.getScalarValue(getAmazonDescriptionAccessor()),
 					values.getScalarValue(getAsinOrIsbnAccessor()),
 					values.getScalarValue(getImageCodeAccessor()),
 					values.getScalarValue(getPictureAccessor())
@@ -70,6 +71,7 @@ public class AmazonEntryInfo implements IPropertySetInfo {
 	private static ScalarPropertyAccessor<String,Entry> orderIdAccessor;
 	private static ScalarPropertyAccessor<String,Entry> trackingNumberAccessor;
 	private static ScalarPropertyAccessor<Date,Entry> shipmentDateAccessor;
+	private static ScalarPropertyAccessor<String,Entry> amazonDescriptionAccessor;
 	private static ScalarPropertyAccessor<String,Entry> asinOrIsbnAccessor;
 	private static ScalarPropertyAccessor<String,Entry> imageCodeAccessor;
 	private static ScalarPropertyAccessor<IBlob,Entry> pictureAccessor;
@@ -90,6 +92,7 @@ public class AmazonEntryInfo implements IPropertySetInfo {
 		orderIdAccessor = propertySet.addProperty("orderId", "Amazon Order Id", String.class, 0, 80, textPropertyControlFactory, null);
 		trackingNumberAccessor = propertySet.addProperty("trackingNumber", "Amazon Carrier & Tracking Number", String.class, 0, 80, textPropertyControlFactory, null);
 		shipmentDateAccessor = propertySet.addProperty("shipmentDate", "Shipment Date", Date.class, 0, 100, datePropertyControlFactory, null);
+		amazonDescriptionAccessor = propertySet.addProperty("amazonDescription", "Original Amazon Description", String.class, 0, 80, textPropertyControlFactory, null);
 		asinOrIsbnAccessor = propertySet.addProperty("asinOrIsbn", "ASIN/ISBN", String.class, 0, 80, textPropertyControlFactory, null);
 		imageCodeAccessor = propertySet.addProperty("imageCode", "Image Code", String.class, 0, 80, textPropertyControlFactory, null);
 		pictureAccessor = propertySet.addProperty("picture", "Item Image", IBlob.class, 0, 80, imagePropertyControlFactory, x);
@@ -118,6 +121,10 @@ public class AmazonEntryInfo implements IPropertySetInfo {
 
 	public static ScalarPropertyAccessor<String,Entry> getAsinOrIsbnAccessor() {
 		return asinOrIsbnAccessor;
+	}	
+
+	public static ScalarPropertyAccessor<String,Entry> getAmazonDescriptionAccessor() {
+		return amazonDescriptionAccessor;
 	}	
 
 	public static ScalarPropertyAccessor<String,Entry> getImageCodeAccessor() {

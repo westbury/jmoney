@@ -22,7 +22,6 @@
 
 package net.sf.jmoney.amazon.copytext;
 
-import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.Viewer;
 
@@ -36,8 +35,16 @@ public class AmazonOrderContentProvider implements ITreeContentProvider {
 		public Object[] getChildren(Object element) {
 			if (element instanceof AmazonOrder) {
 				AmazonOrder order = (AmazonOrder)element;
-				return order.getItems().toArray();
+				if (order.getShipments().size() == 1) {
+					return order.getShipments().get(0).getItems().toArray();
+				} else {
+					return order.getShipments().toArray();
+				}
+			} else if (element instanceof AmazonShipment) {
+				AmazonShipment shipment = (AmazonShipment)element;
+				return shipment.getItems().toArray();
 			}
+
 			return new Object[0];
 		}
 
@@ -62,7 +69,8 @@ public class AmazonOrderContentProvider implements ITreeContentProvider {
 		@Override
 		public boolean hasChildren(Object element) {
 			if (element instanceof AmazonOrder) {
-				AmazonOrder order = (AmazonOrder)element;
+				return true;
+			} else if (element instanceof AmazonShipment) {
 				return true;
 			}
 			return false;

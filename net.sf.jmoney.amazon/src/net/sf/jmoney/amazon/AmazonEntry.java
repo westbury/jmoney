@@ -55,6 +55,8 @@ public class AmazonEntry extends EntryExtension {
 	 */
 	private Date shipmentDate = null;
 
+	private String amazonDescription = null;
+
 	private String asinOrIsbn = null;
 
 	private String imageCode = null;
@@ -81,11 +83,12 @@ public class AmazonEntry extends EntryExtension {
 	 * This constructor is called by the datastore to construct
 	 * the extension objects when loading data.
 	 */
-	public AmazonEntry(ExtendableObject extendedObject, String orderId, String trackingNumber, Date shipmentDate, String asinOrIsbn, String imageCode, IBlob picture) {
+	public AmazonEntry(ExtendableObject extendedObject, String orderId, String trackingNumber, Date shipmentDate, String amazonDescription, String asinOrIsbn, String imageCode, IBlob picture) {
 		super(extendedObject);
 		this.orderId = orderId;
 		this.trackingNumber = trackingNumber;
 		this.shipmentDate = shipmentDate;
+		this.amazonDescription = amazonDescription;
 		this.asinOrIsbn = asinOrIsbn;
 		this.imageCode = imageCode;
 		this.picture = picture;
@@ -125,6 +128,18 @@ public class AmazonEntry extends EntryExtension {
 
 		// Notify the change manager.
 		processPropertyChange(AmazonEntryInfo.getShipmentDateAccessor(), oldShipmentDate, shipmentDate);
+	}
+
+	public String getAmazonDescription() {
+		return amazonDescription;
+	}
+	
+	public void setAmazonDescription(String amazonDescription) {
+		String oldAmazonDescription = this.amazonDescription;
+		this.amazonDescription = amazonDescription;
+
+		// Notify the change manager.
+		processPropertyChange(AmazonEntryInfo.getAmazonDescriptionAccessor(), oldAmazonDescription, amazonDescription);
 	}
 
 	public String getAsinOrIsbn() {

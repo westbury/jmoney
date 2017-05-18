@@ -21,27 +21,11 @@ public class AmazonOrder {
 
 	private String orderNumber;
 
-	private List<AmazonOrderItem> items = new ArrayList<>();
+	private List<AmazonShipment> shipments = new ArrayList<>();
 
 	private Date orderDate;
 	
 	private long orderTotal;
-
-	private String expectedDate;
-
-	private Date deliveryDate;
-
-	/** never null */
-	private Transaction transaction;
-	
-	/** never null */
-	private Entry chargeEntry;
-	
-	/** 
-	 * null only if no p&p entry, never null if the transaction
-	 * has a p&p entry.
-	 */
-	private Entry postageAndPackagingEntry = null;
 
 	/**
 	 * This form is used when no transaction exists in the session for this
@@ -53,19 +37,6 @@ public class AmazonOrder {
 	public AmazonOrder(String orderNumber, Session session) {
 		this.orderNumber = orderNumber;
 		
-		// Create a new transaction to hold these entries.
-		transaction = session.createTransaction();
-		
-		this.chargeEntry = transaction.createEntry();
-		IncomeExpenseAccount unmatchedAccount;
-		try {
-			unmatchedAccount = AccountFinder.findUnmatchedAccount(transaction.getSession(), transaction.getSession().getCurrencyForCode("GBP"));
-		} catch (ImportException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			throw new RuntimeException(e);
-		}
-		chargeEntry.setAccount(unmatchedAccount);
 	}
 	
 	/**
@@ -74,49 +45,36 @@ public class AmazonOrder {
 	 * @param orderNumber
 	 * @param transaction
 	 */
-	public AmazonOrder(String orderNumber, Transaction transaction) {
+	public AmazonOrder(String orderNumber, Transaction[] transactions) {
 		this.orderNumber = orderNumber;
-		this.transaction = transaction;
 		
-		for (Entry entry : transaction.getEntryCollection()) {
-			if (isChargeEntry(entry)) {
-				chargeEntry = entry;
-			} else if (isPostageAndPackagingEntry(entry)) {
-				postageAndPackagingEntry = entry;
-			} else {
-				items.add(new AmazonOrderItem(entry.getExtension(AmazonEntryInfo.getPropertySet(), true)));
-			}
+		assert transactions.length >= 1;
+		
+		for (Transaction transaction : transactions) {
+			AmazonShipment shipment = new AmazonShipment(transaction);
+			shipments.add(shipment);
 		}
 	}
 
-	private boolean isChargeEntry(Entry entry) {
-		return entry.getAccount() instanceof CapitalAccount;
-	}
-
-	private boolean isPostageAndPackagingEntry(Entry entry) {
-		return entry.getAccount().getName().contains("postage");
-//		Stream<Entry> matches = items.filter(item -> item.getAmount() == postageAndPackaging);
-//		if (matches.count() > 1) {
-//			matches = matches.filter(item -> item.getMemo().equals("postage & packaging"));
-//		}
-	}
-
-	public void addItem(AmazonOrderItem item) {
-		items.add(item);
+	public void addShipment(AmazonShipment shipment) {
+		shipments.add(shipment);
 	}
 	
 	public String getOrderNumber() {
 		return orderNumber;
 	}
 
-	public List<AmazonOrderItem> getItems() {
-		return items;
+	public List<AmazonShipment> getShipments() {
+		return shipments;
 	}
 
 	public void setOrderDate(Date orderDate) {
 		// TODO check same if already set
 		this.orderDate = orderDate;
-		transaction.setDate(orderDate);
+		// Is this correct place to do this???
+		for (AmazonShipment shipment : shipments) {
+			shipment.getTransaction().setDate(orderDate);
+		}
 	}
 
 	public Date getOrderDate() {
@@ -126,90 +84,61 @@ public class AmazonOrder {
 	public void setOrderTotal(String orderTotalAsString) {
 		this.orderTotal = new BigDecimal(orderTotalAsString).scaleByPowerOfTen(2).longValueExact();
 		
-		chargeEntry.setAmount(-orderTotal);
+		if (shipments.size() == 1) {
+			shipments.get(0).chargeEntry.setAmount(-orderTotal);
+		} else {
+			// TODO how do we handle this???
+		}
 	}
 
 	public long getOrderTotal() {
 		return orderTotal;
 	}
 
-	public void setExpectedDate(String expectedDate) {
-		this.expectedDate = expectedDate;
-	}
-
-	public String getExpectedDate() {
-		return expectedDate;
-	}
-
-	public void setDeliveryDate(Date deliveryDate) {
-		this.deliveryDate = deliveryDate;
-	}
-
-	public Date getDeliveryDate() {
-		return deliveryDate;
-	}
-
-	public Entry getChargeEntry() {
-		return chargeEntry;
-	}
-
-	public AmazonOrderItem createNewItem(String description, long itemAmount) {
+	/**
+	 * Creates a new item in the datastore
+	 * 
+	 * @param description
+	 * @param itemAmount
+	 * @param shipmentObject
+	 * @return
+	 */
+	public AmazonOrderItem createNewItem(String description, long itemAmount, ShipmentObject shipmentObject, Session session) {
 		IncomeExpenseAccount unmatchedAccount;
 		try {
-			unmatchedAccount = AccountFinder.findDefaultPurchaseAccount(transaction.getSession(), transaction.getSession().getCurrencyForCode("GBP"));
+			unmatchedAccount = AccountFinder.findDefaultPurchaseAccount(session, session.getCurrencyForCode("GBP"));
 		} catch (ImportException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		}
 		
-		Entry entry = transaction.createEntry();
+		if (shipmentObject.shipment == null) {
+			shipmentObject.shipment = new AmazonShipment(session);
+			// Is this correct, or do this in setOrderDate?
+			shipmentObject.shipment.getTransaction().setDate(orderDate);
+		
+			shipments.add(shipmentObject.shipment);
+		}
+		
+		Entry entry = shipmentObject.shipment.getTransaction().createEntry();
 		entry.setAmount(itemAmount);
 		entry.setAccount(unmatchedAccount);
 		AmazonEntry amazonEntry = entry.getExtension(AmazonEntryInfo.getPropertySet(), true);
 		AmazonOrderItem item = new AmazonOrderItem(amazonEntry);
 		item.getEntry().setMemo(description);
+		item.getEntry().setAmazonDescription(description);
 		item.getEntry().setOrderId(orderNumber);
-		items.add(item);
+		shipmentObject.shipment.addItem(item);
 		return item;
 	}
 
-	public void setPostageAndPackaging(long postageAndPackagingAmount) {
-		IncomeExpenseAccount postageAndPackagingAccount;
-		try {
-			postageAndPackagingAccount = AccountFinder.findPostageAndPackagingAccount(transaction.getSession(), transaction.getSession().getCurrencyForCode("GBP"));
-		} catch (ImportException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			throw new RuntimeException(e);
+	public List<AmazonOrderItem> getItems() {
+		List<AmazonOrderItem> result = new ArrayList<>();
+		for (AmazonShipment shipment : shipments) {
+			result.addAll(shipment.getItems());
 		}
-		
-		if (postageAndPackagingEntry != null) {
-			if (postageAndPackagingEntry.getAmount() != postageAndPackagingAmount) {
-				throw new RuntimeException("p&p amounts mismatch");
-			}
-		} else {
-			postageAndPackagingEntry = transaction.createEntry();
-			postageAndPackagingEntry.setAccount(postageAndPackagingAccount);
-			postageAndPackagingEntry.setMemo("Amazon");
-			postageAndPackagingEntry.setAmount(postageAndPackagingAmount);
-		}
-	}
-
-	public void setChargeAccount(CapitalAccount chargeAccount) {
-		IncomeExpenseAccount unmatchedAccount;
-		try {
-			unmatchedAccount = AccountFinder.findUnmatchedAccount(transaction.getSession(), transaction.getSession().getCurrencyForCode("GBP"));
-		} catch (ImportException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			throw new RuntimeException(e);
-		}
-		
-		if (chargeEntry.getAccount() != unmatchedAccount && chargeEntry.getAccount() != chargeAccount) {
-			throw new RuntimeException("charge accounts mismatch");
-		}
-		chargeEntry.setAccount(chargeAccount);
+		return result;
 	}
 
 }
