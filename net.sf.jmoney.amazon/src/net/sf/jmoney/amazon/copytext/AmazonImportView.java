@@ -25,14 +25,11 @@ package net.sf.jmoney.amazon.copytext;
 import java.awt.Toolkit;
 import java.awt.datatransfer.FlavorEvent;
 import java.awt.datatransfer.FlavorListener;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.ParseException;
@@ -40,13 +37,11 @@ import java.text.SimpleDateFormat;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.Scanner;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -66,7 +61,10 @@ import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.databinding.viewers.IViewerObservableValue;
 import org.eclipse.jface.databinding.viewers.ViewersObservables;
 import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.CellLabelProvider;
+import org.eclipse.jface.viewers.ColumnLabelProvider;
+import org.eclipse.jface.viewers.ColumnViewerToolTipSupport;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.jface.viewers.TreeViewerColumn;
@@ -129,6 +127,7 @@ import net.sf.jmoney.amazon.AmazonEntryInfo;
 import net.sf.jmoney.amazon.UrlBlob;
 import net.sf.jmoney.fields.DateControl;
 import net.sf.jmoney.fields.IBlob;
+import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.CurrencyAccount;
@@ -141,8 +140,6 @@ import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import txr.matchers.DocumentMatcher;
 import txr.matchers.MatchResults;
-import txr.parser.AST;
-import txr.parser.Parser;
 
 public class AmazonImportView extends ViewPart {
 
@@ -157,10 +154,10 @@ public class AmazonImportView extends ViewPart {
 			preexistingItems = new HashSet<>(items);
 		}
 
-		public AmazonOrderItem get(String asin, String description, long itemAmount, ShipmentObject shipmentObject, Session session) {
+		public AmazonOrderItem get(String asin, String description, String quantityAsString, long itemAmount, ShipmentObject shipmentObject, Session session) {
 			// Find the matching entry
 			if (preexistingItems.isEmpty()) {
-				AmazonOrderItem item = order.createNewItem(description, itemAmount, shipmentObject, session);
+				AmazonOrderItem item = order.createNewItem(description, quantityAsString, itemAmount, shipmentObject, session);
 				if (asin != null) {
 					item.getEntry().setAsinOrIsbn(asin);
 				}
@@ -220,9 +217,19 @@ public class AmazonImportView extends ViewPart {
 		urlToImagePattern = Pattern.compile("https://images-na.ssl-images-amazon.com/images/I/((\\d|\\w)*).jpg");
 	}
 
-	protected static Pattern urlToImageCodePattern;
+	protected static Pattern urlToImageCodeEuPattern;
 	static {
-		urlToImageCodePattern = Pattern.compile("https://images-eu.ssl-images-amazon.com/images/I/((\\d|\\w)*)\\._SY300_QL70_\\.jpg");
+		// https://images-eu.ssl-images-amazon.com/images/I/((\d|\w|-|%)*)\.(_SX300_QL70_|_SY300_QL70_|_SX395_QL70_)\.jpg
+		urlToImageCodeEuPattern = Pattern.compile("https://images-eu.ssl-images-amazon.com/images/I/((\\d|\\w|-|%)*)\\.(_SX300_QL70_|_SY300_QL70_|_SX395_QL70_|_SX342_QL70_)\\.jpg");
+	}
+	protected static Pattern urlToImageCodeNaPattern;
+	static {
+		// https://images-na.ssl-images-amazon.com/images/I/((\d|\w|-|%)*)\.(_SX258_BO1,204,203,200_)\.jpg
+		urlToImageCodeNaPattern = Pattern.compile("https://images-na.ssl-images-amazon.com/images/I/((\\d|\\w|-|%)*)\\.(_SX258_BO1,204,203,200_)\\.jpg");
+	}
+	protected static Pattern urlToImageCodePatternForBooks;
+	static {
+		urlToImageCodePatternForBooks = Pattern.compile("https://images-na.ssl-images-amazon.com/images/I/((\\d|\\w|-|%)*)\\._SY344_BO1,204,203,200_\\.jpg");
 	}
 
 	public class PasteOrdersAction extends Action {
@@ -237,6 +244,7 @@ public class AmazonImportView extends ViewPart {
 			try {
 				pasteOrders();
 			} catch (Exception e) {
+				e.printStackTrace();
 				MessageDialog.openError(getViewSite().getShell(), "Paste Failed", e.getMessage());
 			}
 		}
@@ -285,9 +293,15 @@ public class AmazonImportView extends ViewPart {
 
 	private IObservableList<AmazonOrder> orders = new WritableList<>();
 
+	private Image errorImage;
+
 	public AmazonImportView() {
 		pasteOrdersAction = new PasteOrdersAction();
 		pasteDetailsAction = new PasteDetailsAction();
+
+		// Load the error indicator
+		URL installURL = Activator.getDefault().getBundle().getEntry("/icons/error.gif");
+		errorImage = ImageDescriptor.createFromURL(installURL).createImage();
 	}
 
 	@Override
@@ -463,44 +477,8 @@ public class AmazonImportView extends ViewPart {
 
 			private void validateTransactions() {
 				for (AmazonOrder order : orders) {
-					long totalForOrder = 0;
-					for (AmazonShipment shipment : order.getShipments()) {
-						Transaction transaction = shipment.getChargeEntry().getTransaction();
-
-						// If charge amount is zero, add up the transaction to set it.
-						if (shipment.getChargeEntry().getAmount() == 0) {
-							long total = 0;
-							for (Entry entry : transaction.getEntryCollection()) {
-								total += entry.getAmount();
-							}
-							shipment.getChargeEntry().setAmount(-total);
-						}
-
-						totalForOrder -= shipment.getChargeEntry().getAmount();
-
-						if (transaction.getDate() == null) {
-							throw new RuntimeException("No date set on order " + order.getOrderNumber());
-						}
-						long total = 0;
-						for (Entry entry : transaction.getEntryCollection()) {
-							if (entry.getAmount() == 0) {
-								throw new RuntimeException("Zero amount set on order " + order.getOrderNumber());
-							}
-							if (entry.getAccount() == null) {
-								throw new RuntimeException("No account set on order " + order.getOrderNumber());
-							}
-							total += entry.getAmount();
-						}
-						if (total != 0) {
-							throw new RuntimeException("Unbalanced transaction on order " + order.getOrderNumber());
-						}
-					}
-
-					if (totalForOrder != order.getOrderTotal()) {
-						throw new RuntimeException("Order does not add up to order total for order " + order.getOrderNumber());
-					}
+					checkOrderValid(order);
 				}
-
 			}
 		});
 
@@ -530,6 +508,46 @@ public class AmazonImportView extends ViewPart {
 		return composite;
 	}
 
+	private void checkOrderValid(AmazonOrder order) {
+		long totalForOrder = 0;
+		for (AmazonShipment shipment : order.getShipments()) {
+			Transaction transaction = shipment.getTransaction();
+
+			if (shipment.getChargeEntry() != null) {
+				totalForOrder -= shipment.getChargeEntry().getAmount();
+			}
+			if (shipment.giftcardEntry != null) {
+				totalForOrder -= shipment.giftcardEntry.getAmount();
+			}
+			// No, because order total on orders page is amount after this discount
+			// has been deducted.  We must get equivalent from details page.
+//			if (shipment.promotionEntry != null) {
+//				totalForOrder -= shipment.promotionEntry.getAmount();
+//			}
+			
+			if (transaction.getDate() == null) {
+				throw new RuntimeException("No date set on order " + order.getOrderNumber());
+			}
+			long total = 0;
+			for (Entry entry : transaction.getEntryCollection()) {
+				if (entry.getAmount() == 0) {
+					throw new RuntimeException("Zero amount set on order " + order.getOrderNumber());
+				}
+				if (entry.getAccount() == null) {
+					throw new RuntimeException("No account set on order " + order.getOrderNumber());
+				}
+				total += entry.getAmount();
+			}
+			if (total != 0) {
+				throw new RuntimeException("Unbalanced transaction on order " + order.getOrderNumber());
+			}
+		}
+
+		if (totalForOrder != order.getOrderTotal()) {
+			throw new RuntimeException("Order does not add up to order total for order " + order.getOrderNumber());
+		}
+	}
+
 	private void pasteOrders() {
 		if (ordersMatcher == null) {
 			ordersMatcher = createMatcherFromResource("amazon-orders.txr");
@@ -546,7 +564,9 @@ public class AmazonImportView extends ViewPart {
 		for (MatchResults orderBindings : bindings.getCollections(0)) {
 			String orderDateAsString = orderBindings.getVariable("date").text;
 			String orderNumber = orderBindings.getVariable("ordernumber").text;
-			String orderTotal = orderBindings.getVariable("totalamount").text;
+			String orderTotalAsString = orderBindings.getVariable("totalamount").text;
+
+			long orderTotal = new BigDecimal(orderTotalAsString).scaleByPowerOfTen(2).longValueExact();
 
 			Date orderDate;
 			try {
@@ -570,7 +590,14 @@ public class AmazonImportView extends ViewPart {
 
 			ItemBuilder itemBuilder = new ItemBuilder(order, order.getItems());
 
+			boolean areAllShipmentsDispatched = true;
+			
 			for (MatchResults shipmentBindings : orderBindings.getCollections(0)) {
+				String movieName = shipmentBindings.getVariable("moviename").text;
+				if (movieName != null) {
+					continue;
+				}
+				
 				String expectedDateAsString = shipmentBindings.getVariable("expecteddate").text;
 				String deliveryDateAsString = shipmentBindings.getVariable("deliverydate").text;
 
@@ -581,6 +608,11 @@ public class AmazonImportView extends ViewPart {
 					// TODO Return as error to TXR when that is supported???
 					e.printStackTrace();
 					throw new RuntimeException("bad date");
+				}
+
+				String shipmentIsNotDispatched = shipmentBindings.getVariable("isnotdispatched").text;
+				if ("true".equals(shipmentIsNotDispatched)) {
+					areAllShipmentsDispatched = false;
 				}
 
 				/*
@@ -600,32 +632,77 @@ public class AmazonImportView extends ViewPart {
 
 				for (MatchResults itemBindings : shipmentBindings.getCollections(0)) {
 					String description = itemBindings.getVariable("description").text;
-					String itemAmountAsString = itemBindings.getVariable("itemamount").text;
+					String unitPriceAsString = itemBindings.getVariable("itemamount").text;
+					String quantityAsString = itemBindings.getVariable("quantity").text;
 					String soldBy = itemBindings.getVariable("soldby").text;
 					String author = itemBindings.getVariable("author").text;
 					String returnDeadline = itemBindings.getVariable("returndeadline").text;
 
-					long itemAmount = new BigDecimal(itemAmountAsString).scaleByPowerOfTen(2).longValueExact();
+					int itemQuantity = 1;
+					if (quantityAsString != null) {
+						itemQuantity = Integer.parseInt(quantityAsString);
+					}
+
+					final long unitPrice = new BigDecimal(unitPriceAsString).scaleByPowerOfTen(2).longValueExact();
+					long itemAmount = unitPrice * itemQuantity;
 
 					String asin = null;
 
-					AmazonOrderItem item = itemBuilder.get(asin, description, itemAmount, shipmentObject, session);
+					AmazonOrderItem item = itemBuilder.get(asin, description, quantityAsString, itemAmount, shipmentObject, session);
 
+					if (itemQuantity != 1) {
+						item.setQuantity(itemQuantity);
+					}
 					item.setSoldBy(soldBy);
 					item.setAuthor(author);
 					item.setReturnDeadline(returnDeadline);
-				}
-
-				if (!itemBuilder.isEmpty()) {
-					throw new RuntimeException("gone wrong");
 				}
 
 				// Now we have the items in this shipment,
 				// we can access the actual shipment.
 				AmazonShipment shipment = shipmentObject.shipment;
 
+				if (shipment == null) {
+					throw new RuntimeException("Shipment with no items in order " + order.getOrderNumber());
+				}
 				shipment.setExpectedDate(expectedDateAsString);
 				shipment.setDeliveryDate(deliveryDate);
+			}
+
+			if (!itemBuilder.isEmpty()) {
+				throw new RuntimeException("The imported items in the order do not match the previous set of imported items in order " + order.getOrderNumber() + ".  This should not happen and the code cannot cope with this situation.");
+			}
+
+			if (!areAllShipmentsDispatched) {
+				// TODO We should probably be able to import the shipments from this
+				// order that have dispatched.  Need to think about this.
+				// (The order total does not include the amount and the charge is not
+				// made until a shipment is dispatch).
+				// For time being, don't import anything in an order until all shipments
+				// have dispatched.
+				
+				// TODO re-factor so such orders are not created in the first place.
+//				orders.remove(order);
+//				continue;
+			}
+			
+			// Set the charge amounts if not already set for each shipment.
+			for (AmazonShipment shipment : order.getShipments()) {
+				// If charge amount is zero, add up the transaction to set it.
+				if (shipment.getChargeAmount() == null) {
+					long total = 0;
+					for (Entry entry : shipment.getTransaction().getEntryCollection()) {
+						total += entry.getAmount();
+					}
+					shipment.setChargeAmount(-total);
+				}
+			}
+			
+			if (order.getShipments().isEmpty() && order.getOrderTotal() == 0) {
+				// Probably just a free movie from Amazon Prime or something.
+				// We're not interested in this order here.
+				// TODO re-factor so this order is not added in the first place.
+				orders.remove(order);
 			}
 		}
 
@@ -799,6 +876,8 @@ public class AmazonImportView extends ViewPart {
 		String orderNumber = orderBindings.getVariable("ordernumber").text;
 		String subTotalAsString = orderBindings.getVariable("subtotal").text;
 		String orderTotalAsString = orderBindings.getVariable("total").text;
+		String giftcardAsString = orderBindings.getVariable("giftcard").text;
+		String promotionAsString = orderBindings.getVariable("promotion").text;
 		String grandTotalAsString = orderBindings.getVariable("grandtotal").text;
 		String lastFourDigits = orderBindings.getVariable("lastfourdigits").text;
 		String postageAndPackagingAsString = orderBindings.getVariable("postageandpackaging").text;
@@ -829,9 +908,16 @@ public class AmazonImportView extends ViewPart {
 
 		ItemBuilder itemBuilder = new ItemBuilder(order, order.getItems());
 
+		boolean areAllShipmentsDispatched = false;
+		
 		for (MatchResults shipmentBindings : orderBindings.getCollections(0)) {
 			String expectedDateAsString = shipmentBindings.getVariable("expecteddate").text;
 			String deliveryDateAsString = shipmentBindings.getVariable("deliverydate").text;
+
+			String shipmentIsNotDispatched = shipmentBindings.getVariable("isnotdispatched").text;
+			if ("true".equals(shipmentIsNotDispatched)) {
+				areAllShipmentsDispatched = false;
+			}
 
 			Date deliveryDate;
 			try {
@@ -862,30 +948,36 @@ public class AmazonImportView extends ViewPart {
 			}
 
 			order.setOrderDate(orderDate);
-			order.setOrderTotal(orderTotalAsString);
+			order.setOrderTotal(orderTotal);
 
 			ShipmentObject shipmentObject = new ShipmentObject();
 
 			for (MatchResults itemBindings : shipmentBindings.getCollections(0)) {
 				String description = itemBindings.getVariable("description").text;
+				String unitPriceAsString = itemBindings.getVariable("itemamount").text;
+				String quantityAsString = itemBindings.getVariable("quantity").text;
 				String soldBy = itemBindings.getVariable("soldby").text;
 				String author = itemBindings.getVariable("author").text;
-				String itemAmountAsString = itemBindings.getVariable("itemamount").text;
+
+				int itemQuantity = 1;
+				if (quantityAsString != null) {
+					itemQuantity = Integer.parseInt(quantityAsString);
+				}
+
+				final long unitPrice = new BigDecimal(unitPriceAsString).scaleByPowerOfTen(2).longValueExact();
+				long itemAmount = unitPrice * itemQuantity;
 
 				String asin = null;
 
-				long itemAmount = new BigDecimal(itemAmountAsString).scaleByPowerOfTen(2).longValueExact();
-
-				AmazonOrderItem item = itemBuilder.get(asin, description, itemAmount, shipmentObject, session);
+				AmazonOrderItem item = itemBuilder.get(asin, description, quantityAsString, itemAmount, shipmentObject, session);
 
 				// TODO any item data to merge here???
 
+				if (itemQuantity != 1) {
+					item.setQuantity(itemQuantity);
+				}
 				item.setAuthor(author);
 				item.setSoldBy(soldBy);
-			}
-
-			if (!itemBuilder.isEmpty()) {
-				throw new RuntimeException("gone wrong");
 			}
 
 			// Now we have the items in this shipment,
@@ -897,6 +989,32 @@ public class AmazonImportView extends ViewPart {
 			shipment.setChargeAccount(chargeAccount);
 		}
 
+		if (!itemBuilder.isEmpty()) {
+			throw new RuntimeException("The imported items in the order do not match the previous set of imported items in order " + order.getOrderNumber() + ".  This should not happen and the code cannot cope with this situation.");
+		}
+
+		if (!areAllShipmentsDispatched) {
+			// Anything to do here?  Or is this a useless check in this case?
+		}
+		
+		// Set the charge amounts if not already set for each shipment.
+//		boolean areAllShipmentsDispatched = true;
+		for (AmazonShipment shipment : order.getShipments()) {
+			// If charge amount is zero, add up the transaction to set it.
+			if (shipment.getChargeAmount() == null) {
+				long total = 0;
+				for (Entry entry : shipment.getTransaction().getEntryCollection()) {
+					total += entry.getAmount();
+				}
+				shipment.setChargeAmount(-total);
+			}
+			
+			//
+//			String shipmentIsNotDispatched = shipmentBindings.getVariable("isnotdispatched").text;
+//			if ("true".equals(shipmentIsNotDispatched)) {
+//				areAllShipmentsDispatched = false;
+//			}
+		}
 
 		if (postageAndPackaging != 0) {
 			if (order.getShipments().size() == 1) {
@@ -907,57 +1025,60 @@ public class AmazonImportView extends ViewPart {
 			}
 		}
 
+		if (giftcardAsString != null) {
+			long giftcard = new BigDecimal(giftcardAsString).scaleByPowerOfTen(2).longValueExact();
+
+			if (order.getShipments().size() == 1) {
+				AmazonShipment shipment = order.getShipments().get(0); 
+				shipment.setGiftcardAmount(giftcard);
+			} else {
+				throw new RuntimeException("giftcard but multiple shipments.  We need to see an example of this to decide how to handle this.");
+			}
+		}
+
+		if (promotionAsString != null) {
+			long promotion = new BigDecimal(promotionAsString).scaleByPowerOfTen(2).longValueExact();
+
+			// The order total set here must match the order total seen on the orders page.
+			// This is the amount after the promotion has been deducted.
+			// (Need to re-check giftcard amounts)
+			// Note we are re-setting the order total which was already set.
+			order.setOrderTotal(orderTotal - promotion);
+
+			/*
+			 * In the only example we have with a promotional discount, the promotion was applied to the first shipment
+			 * in the order.  It is not known if this will always be the case.  If there is a case of the promotion
+			 * being applied to a shipment other than the first then we can really only deal with this by seeing what charges
+			 * are made to the charge account and figuring it out.  The problem with that approach is that it assumes the
+			 * charge account data is imported before the Amazon data, which violates the JMoney principle that all the data
+			 * gets merged and matched up correctly regardless of the order of imports.
+			 */
+			AmazonShipment firstShipment = order.getShipments().get(0); 
+			firstShipment.setPromotionAmount(promotion);
+		}
+
 		viewer.setInput(orders.toArray(new AmazonOrder[0]));
 	}
 
 	private MatchResults doMatchingFromClipboard(DocumentMatcher matcher) {
 		Display display = Display.getCurrent();
 		Clipboard clipboard = new Clipboard(display);
-
 		String plainText = (String)clipboard.getContents(TextTransfer.getInstance());
-		System.out.println("PLAIN: " + plainText);
 		clipboard.dispose();        
 
-		List<String> result2 = new ArrayList<>();
-
-		try (Scanner scanner = new Scanner(plainText)) {
-			while (scanner.hasNextLine()) {
-				String line = scanner.nextLine();
-				result2.add(line);
-			}
-
-		}
-
-		String [] inputText = result2.toArray(new String[0]);
-		MatchResults bindings = matcher.process(inputText);
+		MatchResults bindings = matcher.process(plainText);
 
 		return bindings;
 	}
 
 	private DocumentMatcher createMatcherFromResource(String resourceName) {
-		Parser p = new Parser();
 		ClassLoader classLoader = getClass().getClassLoader();
 		URL resource = classLoader.getResource(resourceName);
-		InputStream txrInputStream;
-		try {
-			txrInputStream = resource.openStream();
-			StringBuilder result = new StringBuilder("");
-
-			try (Scanner scanner = new Scanner(txrInputStream, "UTF-8")) {
-				while (scanner.hasNextLine()) {
-					String line = scanner.nextLine();
-					result.append(line).append("\n");
-				}
-			}
-
-			AST ast = p.parse(result.toString());
-
-			DocumentMatcher matcher = new DocumentMatcher(ast);
-
-			return matcher;
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			throw new RuntimeException(e1);
+		try (InputStream txrInputStream = resource.openStream()) {
+			return new DocumentMatcher(txrInputStream, "UTF-8");
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
 		}
 	}
 
@@ -1023,11 +1144,14 @@ public class AmazonImportView extends ViewPart {
 	}	
 
 
+	
+	
 	private Control createTreeControl(Composite parent) {
 		viewer = new TreeViewer(parent, SWT.H_SCROLL
 				| SWT.V_SCROLL | SWT.FULL_SELECTION | SWT.HIDE_SELECTION);
 		viewer.setContentProvider(new AmazonOrderContentProvider());
-
+		viewer.setAutoExpandLevel(3);
+		
 		selObs = ViewersObservables.observeSingleSelection(viewer);
 
 		Tree tree = viewer.getTree();
@@ -1035,31 +1159,68 @@ public class AmazonImportView extends ViewPart {
 		tree.setHeaderVisible(true);
 		tree.setLinesVisible(true);
 
-		TreeViewerColumn statusColumn = new TreeViewerColumn(viewer, SWT.LEFT);
-		statusColumn.getColumn().setText("Order/Item");
-		statusColumn.getColumn().setWidth(300);
+		ColumnViewerToolTipSupport.enableFor(viewer); 
+		
+		TreeViewerColumn nameColumn = new TreeViewerColumn(viewer, SWT.LEFT);
+		nameColumn.getColumn().setText("Order/Item");
+		nameColumn.getColumn().setWidth(300);
 
-		statusColumn.setLabelProvider(new CellLabelProvider() {
-			@Override
-			public void update(ViewerCell cell) {
-				if (cell.getElement() instanceof AmazonOrder) {
-					AmazonOrder order = (AmazonOrder)cell.getElement();
-					cell.setText(order.getOrderNumber());
-				} else if (cell.getElement() instanceof AmazonShipment) {
-					AmazonShipment shipment = (AmazonShipment)cell.getElement();
-					if (shipment.getExpectedDate() != null) {
-						cell.setText("Expected: " + shipment.getExpectedDate());
-					} else if (shipment.getDeliveryDate() != null) {
-						DateFormat df = new SimpleDateFormat("dd/MM/yyyy");
-						String deliveryDateAsString = df.format(shipment.getDeliveryDate());
-						cell.setText("Delivered: " + deliveryDateAsString);
+		  nameColumn.setLabelProvider(new ColumnLabelProvider() {
+
+				@Override 
+				public String getToolTipText(Object element) {
+					if (element instanceof AmazonOrder) {
+						AmazonOrder order = (AmazonOrder)element;
+					try {	
+						checkOrderValid(order);
+						return null;
+					} catch (Exception e) {
+						return e.getLocalizedMessage();
 					}
-				} else if (cell.getElement() instanceof AmazonOrderItem) {
-					AmazonOrderItem item = (AmazonOrderItem)cell.getElement();
-					cell.setText(item.getDescription());
+					} else {
+						return null;
+					}
 				}
-			}
-		});
+
+				@Override
+				public Image getImage(Object element) {
+					if (element instanceof AmazonOrder) {
+						AmazonOrder order = (AmazonOrder)element;
+						try {	
+							checkOrderValid(order);
+							return null;
+						} catch (Exception e) {
+							return errorImage;
+						}
+					} else {
+						return null;
+					}
+				}
+
+				@Override
+				public String getText(Object element) {
+					if (element instanceof AmazonOrder) {
+						AmazonOrder order = (AmazonOrder)element;
+						return order.getOrderNumber();
+					} else if (element instanceof AmazonShipment) {
+						AmazonShipment shipment = (AmazonShipment)element;
+						if (shipment.getExpectedDate() != null) {
+							return "Expected: " + shipment.getExpectedDate();
+						} else if (shipment.getDeliveryDate() != null) {
+							DateFormat df = new SimpleDateFormat("dd/MM/yyyy");
+							String deliveryDateAsString = df.format(shipment.getDeliveryDate());
+							return "Delivered: " + deliveryDateAsString;
+						} else {
+							return null;
+						}
+					} else if (element instanceof AmazonOrderItem) {
+						AmazonOrderItem item = (AmazonOrderItem)element;
+						return item.getEntry().getAmazonDescription();
+					} else {
+						return null;
+					}
+				}
+		  }); 
 
 		TreeViewerColumn asinColumn = new TreeViewerColumn(viewer, SWT.LEFT);
 		asinColumn.getColumn().setText("ASIN/ISBN");
@@ -1090,7 +1251,7 @@ public class AmazonImportView extends ViewPart {
 				}
 			}
 		});
-
+		
 		// Create the pop-up menu
 		MenuManager menuMgr = new MenuManager();
 		menuMgr.add(new GroupMarker(IWorkbenchActionConstants.MB_ADDITIONS));
@@ -1307,6 +1468,11 @@ public class AmazonImportView extends ViewPart {
 		createLabelAndControl(composite, AmazonEntryInfo.getAsinOrIsbnAccessor(), amazonEntry);
 		createLabelAndControl(composite, AmazonEntryInfo.getImageCodeAccessor(), amazonEntry);
 
+		Label quantityLabel = new Label(composite, 0);
+		quantityLabel.setText("Quantity:");
+		Text quantityControl = new Text(composite, SWT.NONE);
+		quantityControl.setLayoutData(new GridData(200, SWT.DEFAULT));
+
 		Label soldByLabel = new Label(composite, 0);
 		soldByLabel.setText("Sold By:");
 		Text soldByControl = new Text(composite, SWT.NONE);
@@ -1323,6 +1489,7 @@ public class AmazonImportView extends ViewPart {
 				if (selObs.getValue() instanceof AmazonOrderItem) {
 					AmazonOrderItem item = (AmazonOrderItem)selObs.getValue();
 
+					quantityControl.setText(item.getQuantity() == 1 ? "" : Integer.toString(item.getQuantity()));
 					soldByControl.setText(item.getSoldBy() == null ? "" : item.getSoldBy());
 					authorControl.setText(item.getAuthor() == null ? "" : item.getAuthor());
 				}
@@ -1464,27 +1631,27 @@ public class AmazonImportView extends ViewPart {
 
 						parseItemHtml(asin, canvas);
 
-						try {
-							URL url = new URL(selection2);
-							URLConnection x = url.openConnection();
-							InputStream is = x.getInputStream();
-
-							StringBuilder inputStringBuilder = new StringBuilder();
-							BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-							String line = bufferedReader.readLine();
-							while(line != null){
-								System.out.println(line);
-								if (line.contains(".jpg")) {
-									System.out.println("");
-									inputStringBuilder.append(line);inputStringBuilder.append('\n');
-								}
-								line = bufferedReader.readLine();
-							}
-							String xx = inputStringBuilder.toString();
-							System.out.println(inputStringBuilder.toString());
-						} catch (IOException e){
-							System.out.println(e);
-						}
+//						try {
+//							URL url = new URL(selection2);
+//							URLConnection x = url.openConnection();
+//							InputStream is = x.getInputStream();
+//
+//							StringBuilder inputStringBuilder = new StringBuilder();
+//							BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+//							String line = bufferedReader.readLine();
+//							while(line != null){
+//								System.out.println(line);
+//								if (line.contains(".jpg")) {
+//									System.out.println("");
+//									inputStringBuilder.append(line);inputStringBuilder.append('\n');
+//								}
+//								line = bufferedReader.readLine();
+//							}
+//							String xx = inputStringBuilder.toString();
+//							System.out.println(inputStringBuilder.toString());
+//						} catch (IOException e){
+//							System.out.println(e);
+//						}
 
 						//javarevisited.blogspot.com/2012/08/convert-inputstream-to-string-java-example-tutorial.html#ixzz4h2YXpNH3
 
@@ -1589,23 +1756,53 @@ public class AmazonImportView extends ViewPart {
 
 			Element element = doc.getElementById("imgTagWrapperId");			
 
+			if (element == null) {
+				// This seems to work when an ISBN
+				element = doc.getElementById("miniATF_imageColumn");			
+				
+				if (element == null) {
+					MessageDialog.openError(getViewSite().getShell(), "Problematic Data", "Got back content for item but could not find expected elements.");
+				}
+			}
+			
 			Elements orderLevelElements = element.getElementsByTag("img");
 			assert (orderLevelElements.size() == 1);
 			Element orderLevelElement = orderLevelElements.get(0);
 			String srcAttr = orderLevelElement.attr("src");
 
-			Matcher m = urlToImageCodePattern.matcher(srcAttr);
+			Matcher m = urlToImageCodeEuPattern.matcher(srcAttr);
 			if (m.matches()) {
 				String imageCode = m.group(1);
 				setImageCode(imageCode, canvas);
+			} else {
+				m = urlToImageCodeNaPattern.matcher(srcAttr);
+				if (m.matches()) {
+					String imageCode = m.group(1);
+					setImageCode(imageCode, canvas);
+				} else {
+					// This case when a book....
+					m = urlToImageCodePatternForBooks.matcher(srcAttr);
+					if (m.matches()) {
+						String imageCode = m.group(1);
+						setImageCode(imageCode, canvas);
+					} else {
+						MessageDialog.openError(getViewSite().getShell(), "Problematic Data", "Could not extract image code from " + srcAttr);
+					}
+				}
 			}
 
 		} catch (MalformedURLException e) {
-			// TODO Auto-generated catch block
+			MessageDialog.openError(getViewSite().getShell(), "exception", e.getLocalizedMessage());
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			MessageDialog.openError(getViewSite().getShell(), "exception", e.getLocalizedMessage());
 			e.printStackTrace();
 		}
 	}
+	@Override
+	public void dispose() {
+		super.dispose();
+		errorImage.dispose();
+	}
+
 }

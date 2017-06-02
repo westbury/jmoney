@@ -4,11 +4,20 @@ ORDER PLACED
 @date
 TOTAL
 £@totalamount
+@(maybe)
 DISPATCH TO
-Margaret Westbury
+@recipientname
+@(end)
 ORDER # @ordernumber
 Order Details  Invoice 
 @  (collect :maxgap 2)
+@   (cases)
+ 
+@moviename
+Amazon Video
+Sold by: Amazon Instant Video Limited
+Your Video Library
+@   (or)
 @    (cases)
 Track package
 @      (throw parseError "'Track package' found but prior lines were unmatched.")
@@ -19,6 +28,10 @@ Pre-ordered
 Arriving today
 Out for delivery
 @(bind expecteddate "today")
+@    (or)
+Arriving @expecteddate
+Pre-ordered
+@(bind isnotdispatched "true")
 @    (or)
 Arriving @expecteddate
 Dispatched
@@ -36,6 +49,9 @@ Delivered @deliverydate
 Parcel was left in letterbox
 @    (or)
 Delivered @deliverydate
+Parcel was handed directly to a neighbor
+@    (or)
+Delivered @deliverydate
 Parcel was handed to resident
 @    (or)
 Delivered @deliverydate
@@ -44,18 +60,33 @@ Parcel was handed to a receptionist
 Delivered @deliverydate
 Parcel was delivered as per instructions
 @    (or)
+Delivered @deliverydate
+Your parcel was delivered
+@    (or)
 Expected by @expecteddate
 Dispatched
 @    (or)
 Now expected @expecteddate
 Dispatched
+@    (or)
+Not yet dispatched
+Delivery estimate: @expecteddate
+@(bind isnotdispatched "true")
 @    (end)
+@    (maybe)
 Track package
+@    (end)
 @    (collect :maxgap 0)
+@      (cases)
+ @{quantity /\d+/}
+@        (assert)
+@quantity of @description
+@      (or)
  
-@(assert)
+@        (assert)
 @description
-@    (assert)
+@      (end)
+@      (assert)
 @      (cases)
 Sold by: @soldby
 @      (or)
@@ -80,7 +111,8 @@ Buy it again
 @      (until)
 Hide Order
 @    (end)
-@    (skip nil 6)
+@   (end)
+@    (skip 6)
 Hide Order
 @    (until)
 ORDER PLACED

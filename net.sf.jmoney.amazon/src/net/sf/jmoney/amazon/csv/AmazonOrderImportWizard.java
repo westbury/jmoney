@@ -126,28 +126,17 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 		BankAccount chargedAccount;
 		Currency thisCurrency;
 		if (lastFourDigits.equals("Gift Certificate/Card")) {
+
+			// TODO figure out actual currency of gift certificate
+			thisCurrency = session.getCurrencyForCode("USD");
+
 			/*
 			 * Look for an income and expense account that can be used by default for items where
 			 * the 'Payment - Last 4 Digits' column contains 'Gift Certificate/Card'.
 			 */
-			// TODO need to check the currency
-			BankAccount giftCardAccount = null;
-			for (Iterator<CapitalAccount> iter = session.getCapitalAccountIterator(); iter.hasNext(); ) {
-				CapitalAccount eachAccount = iter.next();
-				if (eachAccount.getName().startsWith("Amazon gift")
-						/* && eachAccount.getCurrency() == ???Account.getCurrency() */) {
-					giftCardAccount = (BankAccount)eachAccount;
-					break;
-				}
-			}
-			if (giftCardAccount == null) {
-				throw new ImportException("No account exists with a name that begins 'Amazon gift'.");
-			}
+			BankAccount giftCardAccount = AccountFinder.findGiftcardAccount(session, thisCurrency);
 
 			chargedAccount = giftCardAccount;
-
-			// TODO figure out actual currency of gift certificate
-			thisCurrency = session.getCurrencyForCode("USD");
 		} else {
 			if (lastFourDigits.length() != 4) {
 				throw new ImportException("Last four digits of payment card must be 4 digits or indicate a gift certificate.");

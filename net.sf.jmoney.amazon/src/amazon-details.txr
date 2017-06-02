@@ -4,26 +4,18 @@ Order Details
 Ordered on @orderdate  Order # @ordernumber
 Invoice 
 Delivery Address
-Margaret Westbury
-69 Barton Road
-CAMBRIDGE, Cambs CB3 9LG
+@deliveryname
+@deliveryaddress1
+@deliveryaddress2
 United Kingdom
 @(maybe)
 Change
 @(end)
 Payment Method
 Visa/Delta/Electron **** @lastfourdigits
-@(maybe)
-Change
-@(end)
-@(maybe)
-Apply gift card balance
-
-Enter code
- Submit
-Apply
-@(end)
+@(skip)
 Order Summary
+@(assert)
 Item(s) Subtotal: £@subtotal
 Postage & Packing: £@postageandpackaging
 @(maybe)
@@ -31,40 +23,63 @@ Total Before VAT: £@totalbeforevat
 VAT: £@vat
 @(end)
 Total: £@total
+@(maybe)
+Gift Card Amount: -£@giftcard
+@(end)
+@(maybe)
+Promotion Applied: -£@promotion
+@(end)
 Grand Total: £@grandtotal
-Transactions
-@(collect :maxgap 2)
+@(collect :maxgap 8)
 @  (cases)
 Track package
 @      (throw parseError "'Track package' found but prior lines were unmatched.")
 @  (or)
 Delivered @deliverydate
 Parcel was handed to resident
-Track package
 @  (or)
 Delivered @deliverydate
 Parcel was handed to a receptionist
-Track package
+@  (or)
+Delivered @deliverydate
+Your parcel was delivered
 @  (or)
 Arriving today
 Out for delivery
-Track package
+@  (or)
+Expected by @expecteddate
+Dispatched
 @  (or)
 Arriving @expecteddate
 Pre-ordered
-Track package
+@(bind isnotdispatched "true")
+@  (or)
+Arriving @expecteddate
+Dispatched
 @  (or)
 Dispatching now
 Delivery estimate: @expecteddate
 @  (or)
 Now expected @expecteddate
 Dispatched
+@  (or)
+Not yet dispatched
+Delivery estimate: @expecteddate
+@  (end)
+@  (maybe)
 Track package
 @  (end)
-@  (collect)
+@  (collect :maxgap 0)
+@    (cases)
+ @{quantity /\d+/}
+@      (assert)
+@quantity of @description
+@    (or)
  
+@      (assert)
 @description
-@(assert)
+@    (end)
+@    (assert)
 @    (cases)
 Sold by: @soldby Product question? Ask Seller
 @    (or)
@@ -86,6 +101,8 @@ Add-on Item
 Condition: @condition
 @  (maybe)
 Add gift option
+@  (end)
+@  (maybe)
 Release date: @releasedate
 @  (end)
  Submit

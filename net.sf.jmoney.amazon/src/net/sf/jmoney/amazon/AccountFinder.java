@@ -58,6 +58,40 @@ public class AccountFinder {
 		return postageAndPackagingAccount;
 	}
 
+	public static BankAccount findGiftcardAccount(Session session, Currency currency) throws ImportException {
+		BankAccount giftCardAccount = null;
+		for (Iterator<CapitalAccount> iter = session.getCapitalAccountIterator(); iter.hasNext(); ) {
+			CapitalAccount eachAccount = iter.next();
+			if (eachAccount.getName().startsWith("Amazon gift")
+					&& eachAccount.getCommodity(null) == currency) {
+				giftCardAccount = (BankAccount)eachAccount;
+				break;
+			}
+		}
+		if (giftCardAccount == null) {
+			throw new ImportException("No account exists with a name that begins 'Amazon gift' and has a currency of " + currency.getName() + ".");
+		}
+		
+		return giftCardAccount;
+	}
+
+	public static IncomeExpenseAccount findMiscellaneousAccount(Session session, Currency currency) throws ImportException {
+		IncomeExpenseAccount account = null;
+		for (Iterator<IncomeExpenseAccount> iter = session.getIncomeExpenseAccountIterator(); iter.hasNext(); ) {
+			IncomeExpenseAccount eachAccount = iter.next();
+			if (eachAccount.getName().startsWith("Misc U")
+					&& eachAccount.getCommodity(null) == currency) {
+				account = (IncomeExpenseAccount)eachAccount;
+				break;
+			}
+		}
+		if (account == null) {
+			throw new ImportException("No account exists with a name that begins 'Misc U' and has a currency of " + currency.getName() + ".");
+		}
+		
+		return account;
+	}
+
 	public static BankAccount findChargeAccount(Shell shell, Session session, String lastFourDigits)
 			throws ImportException {
 		BankAccount chargedAccount = null;

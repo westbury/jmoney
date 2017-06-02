@@ -22,6 +22,8 @@ public class AmazonOrderItem {
 	private String author;
 
 	private String returnDeadline;
+
+	int quantity = 1;
 	
 	public AmazonOrderItem(AmazonEntry entry) {
 		this.entry = entry;
@@ -85,6 +87,14 @@ public class AmazonOrderItem {
 
 	public String getReturnDeadline() {
 		return returnDeadline;
+	}
+
+	public void setQuantity(int quantity) {
+		this.quantity = quantity;
+	}
+
+	public int getQuantity() {
+		return quantity;
 	}
 
 }

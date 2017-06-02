@@ -81,14 +81,8 @@ public class AmazonOrder {
 		return orderDate;
 	}
 
-	public void setOrderTotal(String orderTotalAsString) {
-		this.orderTotal = new BigDecimal(orderTotalAsString).scaleByPowerOfTen(2).longValueExact();
-		
-		if (shipments.size() == 1) {
-			shipments.get(0).chargeEntry.setAmount(-orderTotal);
-		} else {
-			// TODO how do we handle this???
-		}
+	public void setOrderTotal(long orderTotal) {
+		this.orderTotal = orderTotal;
 	}
 
 	public long getOrderTotal() {
@@ -103,7 +97,7 @@ public class AmazonOrder {
 	 * @param shipmentObject
 	 * @return
 	 */
-	public AmazonOrderItem createNewItem(String description, long itemAmount, ShipmentObject shipmentObject, Session session) {
+	public AmazonOrderItem createNewItem(String description, String quantityAsString, long itemAmount, ShipmentObject shipmentObject, Session session) {
 		IncomeExpenseAccount unmatchedAccount;
 		try {
 			unmatchedAccount = AccountFinder.findDefaultPurchaseAccount(session, session.getCurrencyForCode("GBP"));
@@ -126,7 +120,11 @@ public class AmazonOrder {
 		entry.setAccount(unmatchedAccount);
 		AmazonEntry amazonEntry = entry.getExtension(AmazonEntryInfo.getPropertySet(), true);
 		AmazonOrderItem item = new AmazonOrderItem(amazonEntry);
-		item.getEntry().setMemo(description);
+		if (quantityAsString == null) {
+			item.getEntry().setMemo(description);
+		} else {
+			item.getEntry().setMemo(description + " x" + quantityAsString);
+		}
 		item.getEntry().setAmazonDescription(description);
 		item.getEntry().setOrderId(orderNumber);
 		shipmentObject.shipment.addItem(item);
