@@ -809,7 +809,7 @@ public class AmazonHtmlImportWizard extends Wizard implements IImportWizard {
 			for (AmazonShipment shipment: order.shipments) {
 				Transaction trans;
 
-				AmazonEntry chargeEntry = null;
+				Entry chargeEntry = null;
 				if (shipment.totalPaidInCash != 0) {
 					/*
 					 * Auto-match the new entry in the charge account the same way that any other
@@ -856,12 +856,12 @@ public class AmazonHtmlImportWizard extends Wizard implements IImportWizard {
 						trans = session.createTransaction();
 						trans.setDate(order.getOrderDate());
 
-						chargeEntry = trans.createEntry().getExtension(AmazonEntryInfo.getPropertySet(), true);
+						chargeEntry = trans.createEntry();
 						chargeEntry.setAccount(chargeAccount);
 						chargeEntry.setAmount(-shipment.totalPaidInCash);
 					} else {
 						trans = matchedEntryInChargeAccount.getTransaction();
-						chargeEntry = matchedEntryInChargeAccount.getExtension(AmazonEntryInfo.getPropertySet(), true);
+						chargeEntry = matchedEntryInChargeAccount;
 
 						Entry otherMatchedEntry = matchedEntryInChargeAccount.getTransaction().getOther(matchedEntryInChargeAccount);
 						// Any checks on the other entry before we delete it?
@@ -953,8 +953,8 @@ public class AmazonHtmlImportWizard extends Wizard implements IImportWizard {
 
 				if (chargeEntry != null) {
 					chargeEntry.setMemo("Amazon - " + sellerText.toString());
-					chargeEntry.setOrderId(order.id);
-					chargeEntry.setShipmentDate(shipment.getDispatchDate());
+//					chargeEntry.setOrderId(order.id);
+//					chargeEntry.setShipmentDate(shipment.getDispatchDate());
 				}
 				if (giftCertificateEntry != null) {
 					giftCertificateEntry.setMemo("Amazon - " + sellerText.toString());

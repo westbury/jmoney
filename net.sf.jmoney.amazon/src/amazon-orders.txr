@@ -30,10 +30,6 @@ Out for delivery
 @(bind expecteddate "today")
 @    (or)
 Arriving @expecteddate
-Pre-ordered
-@(bind isnotdispatched "true")
-@    (or)
-Arriving @expecteddate
 Dispatched
 @    (or)
 Arriving @expecteddate
@@ -71,7 +67,14 @@ Dispatched
 @    (or)
 Not yet dispatched
 Delivery estimate: @expecteddate
-@(bind isnotdispatched "true")
+@    (or)
+Return complete
+Your return is complete. Your refund has been issued. When will I get my refund? 
+@(bind returned "true")
+@    (or)
+Refunded
+Your return is in transit. Your refund has been issued. When will I get my refund? 
+@(bind returned "true")
 @    (end)
 @    (maybe)
 Track package
@@ -105,6 +108,10 @@ Add-on Item
 £@itemamount
 @      (maybe)
 Release date: @releasedate
+@      (end)
+@      (maybe)
+Includes Import Fees Deposit
+@(bind overseas "true")
 @      (end)
  Submit
 Buy it again

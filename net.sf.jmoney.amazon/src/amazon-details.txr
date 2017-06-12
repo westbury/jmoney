@@ -3,6 +3,9 @@ Order Details
 @(assert)
 Ordered on @orderdate  Order # @ordernumber
 Invoice 
+@(maybe)
+ 
+@(end)
 Delivery Address
 @deliveryname
 @deliveryaddress1
@@ -24,12 +27,18 @@ VAT: £@vat
 @(end)
 Total: £@total
 @(maybe)
+Import Fees Deposit: £@importfeesdeposit
+@(end)
+@(maybe)
 Gift Card Amount: -£@giftcard
 @(end)
 @(maybe)
 Promotion Applied: -£@promotion
 @(end)
 Grand Total: £@grandtotal
+@(maybe)
+Refund Total £@refundtotal
+@(end)
 @(collect :maxgap 8)
 @  (cases)
 Track package
@@ -65,6 +74,11 @@ Dispatched
 @  (or)
 Not yet dispatched
 Delivery estimate: @expecteddate
+@  (or)
+Refunded
+Your return is in transit. Your refund has been issued. When will I get my refund? 
+Refund for this return £@refund
+@(bind returned "true")
 @  (end)
 @  (maybe)
 Track package
@@ -98,6 +112,10 @@ Return window closed on @returndeadline
 Add-on Item
 @  (end)
 £@itemamount
+@  (maybe)
+Includes Import Fees Deposit
+@(bind overseas "true")
+@  (end)
 Condition: @condition
 @  (maybe)
 Add gift option

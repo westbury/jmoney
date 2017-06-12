@@ -1,17 +1,13 @@
 package net.sf.jmoney.amazon.copytext;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Stream;
 
 import net.sf.jmoney.amazon.AccountFinder;
 import net.sf.jmoney.amazon.AmazonEntry;
 import net.sf.jmoney.amazon.AmazonEntryInfo;
 import net.sf.jmoney.importer.wizards.ImportException;
-import net.sf.jmoney.model2.Account;
-import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.Session;
@@ -19,6 +15,8 @@ import net.sf.jmoney.model2.Transaction;
 
 public class AmazonOrder {
 
+	private AccountFinder accountFinder;
+	
 	private String orderNumber;
 
 	private List<AmazonShipment> shipments = new ArrayList<>();
@@ -27,16 +25,21 @@ public class AmazonOrder {
 	
 	private long orderTotal;
 
+	private IncomeExpenseAccount unmatchedAccount;
+
 	/**
 	 * This form is used when no transaction exists in the session for this
 	 * order.  A new transaction is created.
 	 * 
 	 * @param orderNumber
 	 * @param transaction
+	 * @throws ImportException 
 	 */
-	public AmazonOrder(String orderNumber, Session session) {
+	public AmazonOrder(String orderNumber, Session session, AccountFinder accountFinder) throws ImportException {
 		this.orderNumber = orderNumber;
-		
+		this.accountFinder = accountFinder;
+
+		unmatchedAccount = accountFinder.findUnmatchedAccount();
 	}
 	
 	/**
@@ -44,14 +47,18 @@ public class AmazonOrder {
 	 * 
 	 * @param orderNumber
 	 * @param transaction
+	 * @throws ImportException 
 	 */
-	public AmazonOrder(String orderNumber, Transaction[] transactions) {
+	public AmazonOrder(String orderNumber, Transaction[] transactions, AccountFinder accountFinder) throws ImportException {
 		this.orderNumber = orderNumber;
+		this.accountFinder = accountFinder;
+
+		unmatchedAccount = accountFinder.findUnmatchedAccount();
 		
 		assert transactions.length >= 1;
 		
 		for (Transaction transaction : transactions) {
-			AmazonShipment shipment = new AmazonShipment(transaction);
+			AmazonShipment shipment = new AmazonShipment(this, transaction, accountFinder);
 			shipments.add(shipment);
 		}
 	}
@@ -96,19 +103,11 @@ public class AmazonOrder {
 	 * @param itemAmount
 	 * @param shipmentObject
 	 * @return
+	 * @throws ImportException 
 	 */
-	public AmazonOrderItem createNewItem(String description, String quantityAsString, long itemAmount, ShipmentObject shipmentObject, Session session) {
-		IncomeExpenseAccount unmatchedAccount;
-		try {
-			unmatchedAccount = AccountFinder.findDefaultPurchaseAccount(session, session.getCurrencyForCode("GBP"));
-		} catch (ImportException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			throw new RuntimeException(e);
-		}
-		
+	public AmazonOrderItem createNewItem(String description, String quantityAsString, long itemAmount, ShipmentObject shipmentObject, Session session) throws ImportException {
 		if (shipmentObject.shipment == null) {
-			shipmentObject.shipment = new AmazonShipment(session);
+			shipmentObject.shipment = new AmazonShipment(this, session, accountFinder);
 			// Is this correct, or do this in setOrderDate?
 			shipmentObject.shipment.getTransaction().setDate(orderDate);
 		

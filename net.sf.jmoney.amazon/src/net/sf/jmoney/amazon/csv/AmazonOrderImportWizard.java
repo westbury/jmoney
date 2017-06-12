@@ -6,8 +6,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
+
+import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.ui.IImportWizard;
 
 import net.sf.jmoney.Helper;
 import net.sf.jmoney.amazon.AccountFinder;
@@ -19,8 +21,6 @@ import net.sf.jmoney.importer.wizards.CsvTransactionReader;
 import net.sf.jmoney.importer.wizards.ImportException;
 import net.sf.jmoney.isolation.ReferenceViolationException;
 import net.sf.jmoney.model2.BankAccount;
-import net.sf.jmoney.model2.CapitalAccount;
-import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
@@ -29,9 +29,6 @@ import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.reconciliation.BankStatement;
 import net.sf.jmoney.reconciliation.ReconciliationEntryInfo;
-
-import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.ui.IImportWizard;
 
 /**
  * Items are grouped based on order id, tracking number, and shipment date.  A single order may be split into multiple
@@ -124,17 +121,17 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 		}
 
 		BankAccount chargedAccount;
-		Currency thisCurrency;
+		AccountFinder accountFinder;
 		if (lastFourDigits.equals("Gift Certificate/Card")) {
 
 			// TODO figure out actual currency of gift certificate
-			thisCurrency = session.getCurrencyForCode("USD");
+			accountFinder = new AccountFinder(session, "USD");
 
 			/*
 			 * Look for an income and expense account that can be used by default for items where
 			 * the 'Payment - Last 4 Digits' column contains 'Gift Certificate/Card'.
 			 */
-			BankAccount giftCardAccount = AccountFinder.findGiftcardAccount(session, thisCurrency);
+			BankAccount giftCardAccount = accountFinder.findGiftcardAccount();
 
 			chargedAccount = giftCardAccount;
 		} else {
@@ -143,11 +140,11 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 			}
 
 			BankAccount chargedBankAccount = AccountFinder.findChargeAccount(getShell(), session, lastFourDigits);
-			thisCurrency = chargedBankAccount.getCurrency();
+			accountFinder = new AccountFinder(session, chargedBankAccount.getCurrency());
 			chargedAccount = chargedBankAccount;
 		}
 
-		IncomeExpenseAccount unmatchedAccount = AccountFinder.findUnmatchedAccount(session, thisCurrency);
+		IncomeExpenseAccount unmatchedAccount = accountFinder.findUnmatchedAccount();
 
 		/*
 		 * Look in the unmatched entries account for an entry that matches on order id, tracking number, and shipment date.

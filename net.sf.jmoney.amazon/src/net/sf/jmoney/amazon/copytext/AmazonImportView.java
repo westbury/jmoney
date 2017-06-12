@@ -37,6 +37,7 @@ import java.text.SimpleDateFormat;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -53,6 +54,7 @@ import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
 import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
 import org.eclipse.core.databinding.observable.value.WritableValue;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.GroupMarker;
 import org.eclipse.jface.action.IMenuManager;
@@ -122,12 +124,18 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import net.sf.jmoney.amazon.AccountFinder;
 import net.sf.jmoney.amazon.AmazonEntry;
 import net.sf.jmoney.amazon.AmazonEntryInfo;
 import net.sf.jmoney.amazon.UrlBlob;
+import net.sf.jmoney.fields.AccountControl;
 import net.sf.jmoney.fields.DateControl;
+import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.fields.IBlob;
 import net.sf.jmoney.importer.Activator;
+import net.sf.jmoney.importer.wizards.ImportException;
+import net.sf.jmoney.model2.Account;
+import net.sf.jmoney.model2.BankAccount;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.CurrencyAccount;
@@ -154,7 +162,7 @@ public class AmazonImportView extends ViewPart {
 			preexistingItems = new HashSet<>(items);
 		}
 
-		public AmazonOrderItem get(String asin, String description, String quantityAsString, long itemAmount, ShipmentObject shipmentObject, Session session) {
+		public AmazonOrderItem get(String asin, String description, String quantityAsString, long itemAmount, ShipmentObject shipmentObject, Session session) throws ImportException {
 			// Find the matching entry
 			if (preexistingItems.isEmpty()) {
 				AmazonOrderItem item = order.createNewItem(description, quantityAsString, itemAmount, shipmentObject, session);
@@ -220,7 +228,7 @@ public class AmazonImportView extends ViewPart {
 	protected static Pattern urlToImageCodeEuPattern;
 	static {
 		// https://images-eu.ssl-images-amazon.com/images/I/((\d|\w|-|%)*)\.(_SX300_QL70_|_SY300_QL70_|_SX395_QL70_)\.jpg
-		urlToImageCodeEuPattern = Pattern.compile("https://images-eu.ssl-images-amazon.com/images/I/((\\d|\\w|-|%)*)\\.(_SX300_QL70_|_SY300_QL70_|_SX395_QL70_|_SX342_QL70_)\\.jpg");
+		urlToImageCodeEuPattern = Pattern.compile("https://images-eu.ssl-images-amazon.com/images/I/((\\d|\\w|-|%)*)\\.(_SX\\d\\d\\d_QL70_|_SY\\d\\d\\d_QL70_)\\.jpg");
 	}
 	protected static Pattern urlToImageCodeNaPattern;
 	static {
@@ -291,9 +299,15 @@ public class AmazonImportView extends ViewPart {
 	// Session, inside transaction
 	private Session session;
 
+	private IAmountFormatter currencyFormatter;
+	
 	private IObservableList<AmazonOrder> orders = new WritableList<>();
 
 	private Image errorImage;
+
+	private IObservableValue<BankAccount> defaultChargeAccount = new WritableValue<>();
+
+	private AccountFinder accountFinder;
 
 	public AmazonImportView() {
 		pasteOrdersAction = new PasteOrdersAction();
@@ -363,6 +377,12 @@ public class AmazonImportView extends ViewPart {
 
 			uncommittedSessionManager = new TransactionManagerForAccounts(sessionManager);
 			session = uncommittedSessionManager.getSession();
+		
+			currencyFormatter = session.getCurrencyForCode("GBP");
+			
+			accountFinder = new AccountFinder(session, "GBP");
+			
+			defaultChargeAccount.setValue((BankAccount)session.getAccountByFullName("Cambridge Visa 1816"));
 		}
 		activePage.addPartListener(new IPartListener2() {
 
@@ -418,11 +438,16 @@ public class AmazonImportView extends ViewPart {
 
 					uncommittedSessionManager = null;
 					session = null;
+					accountFinder = null;
 				} else {
 					stackLayout.topControl = dataComposite;
 
 					uncommittedSessionManager = new TransactionManagerForAccounts(committedSessionManager);
 					session = uncommittedSessionManager.getSession();
+					
+					accountFinder = new AccountFinder(session, "GBP");
+					
+					defaultChargeAccount.setValue((BankAccount)session.getAccountByFullName("Cambridge Visa 1816"));
 				}
 				stackComposite.layout();
 			}
@@ -435,6 +460,7 @@ public class AmazonImportView extends ViewPart {
 		Composite composite = new Composite(parent, SWT.NONE);
 		composite.setLayout(new GridLayout(1, false));
 
+		createDefaultAccountsArea(composite);
 		createVerticallySplitArea(composite);
 		createButtonComposite(composite);
 
@@ -513,14 +539,18 @@ public class AmazonImportView extends ViewPart {
 		for (AmazonShipment shipment : order.getShipments()) {
 			Transaction transaction = shipment.getTransaction();
 
+			// Note that returns do not reduce the order total.
+			if (!shipment.returned) {
 			if (shipment.getChargeEntry() != null) {
 				totalForOrder -= shipment.getChargeEntry().getAmount();
 			}
-			if (shipment.giftcardEntry != null) {
-				totalForOrder -= shipment.giftcardEntry.getAmount();
 			}
+			
 			// No, because order total on orders page is amount after this discount
 			// has been deducted.  We must get equivalent from details page.
+//			if (shipment.giftcardEntry != null) {
+//				totalForOrder -= shipment.giftcardEntry.getAmount();
+//			}
 //			if (shipment.promotionEntry != null) {
 //				totalForOrder -= shipment.promotionEntry.getAmount();
 //			}
@@ -544,11 +574,14 @@ public class AmazonImportView extends ViewPart {
 		}
 
 		if (totalForOrder != order.getOrderTotal()) {
-			throw new RuntimeException("Order does not add up to order total for order " + order.getOrderNumber());
+			throw new RuntimeException(MessageFormat.format("Order shipments for {2} add up to {0} but the order total is given as {1}.  These are expected to match so information from the details page is needed to resolve this.", 
+					currencyFormatter.format(totalForOrder), 
+					currencyFormatter.format(order.getOrderTotal()), 
+					order.getOrderNumber()));
 		}
 	}
 
-	private void pasteOrders() {
+	private void pasteOrders() throws ImportException {
 		if (ordersMatcher == null) {
 			ordersMatcher = createMatcherFromResource("amazon-orders.txr");
 		}
@@ -591,6 +624,7 @@ public class AmazonImportView extends ViewPart {
 			ItemBuilder itemBuilder = new ItemBuilder(order, order.getItems());
 
 			boolean areAllShipmentsDispatched = true;
+			List<AmazonOrderItem> returnedItems = new ArrayList<>();
 			
 			for (MatchResults shipmentBindings : orderBindings.getCollections(0)) {
 				String movieName = shipmentBindings.getVariable("moviename").text;
@@ -615,6 +649,24 @@ public class AmazonImportView extends ViewPart {
 					areAllShipmentsDispatched = false;
 				}
 
+				boolean returned = false;
+				String isReturned = shipmentBindings.getVariable("returned").text;
+				if ("true".equals(isReturned)) {
+					/* The purchase of this item may or may not have
+					 * already been imported.  If it has already been imported
+					 * then we need to match this item to the original shipment,
+					 * then modify that shipment.
+					 * 
+					 * If it has not already been imported then it is even more
+					 * complicated because we have to determine which shipment
+					 * the item was charged to.  This is actually not possible
+					 * (we don't have the information) unless the charge card statement
+					 * has been imported and we can thus look to see what amounts were actually
+					 * charged.
+					 */
+					returned = true;
+				}
+				
 				/*
 				 * If no AmazonShipment exists yet in this view then create one.
 				 * 
@@ -648,8 +700,37 @@ public class AmazonImportView extends ViewPart {
 
 					String asin = null;
 
-					AmazonOrderItem item = itemBuilder.get(asin, description, quantityAsString, itemAmount, shipmentObject, session);
+					/*
+					 * Returns are a little complicated here.  
+					 * 
+					 * 1. It may be we have already processed the order
+					 * before the item was returned.  In that case we will already have a transaction for the original
+					 * sale.  We create a separate transaction for the return.
+					 * 
+					 * 2. It may also be that the order has not been processed at all.  In that case we want to create
+					 * the original order as it would have been without the item.  Then we can create the return the
+					 * same as in case 1.
+					 * 
+					 * Note that when items are returned, we keep both the original transaction with the sale and
+					 * create a second transaction for the return.  In both cases the income/expense category for
+					 * the item is set to a special 'returns' account (a special 'returns' account allows us to keep details of the
+					 * item which we need to maintain the integrity of further imports, but also keep the reports of
+					 * other income/expense accounts clean). 
+					 * 
+					 * We reverse the sign of the amount if a refund.  This ensures the item created matches the refund entry,
+					 * not the original sale entry.
+					 * 
+					 * We add to a list of all refunded items.  This allows us to add, if necessary, the original sale entries
+					 * for all refunded items.  This is done later because we must have all the shipments available so we
+					 * can determine which shipment each returned item originally arrived in.
+					 */
+					long signedItemAmount = returned ? -itemAmount : itemAmount;
+					AmazonOrderItem item = itemBuilder.get(asin, description, quantityAsString, signedItemAmount, shipmentObject, session);
 
+					if (returned) {
+						returnedItems.add(item);
+					}
+					
 					if (itemQuantity != 1) {
 						item.setQuantity(itemQuantity);
 					}
@@ -667,10 +748,8 @@ public class AmazonImportView extends ViewPart {
 				}
 				shipment.setExpectedDate(expectedDateAsString);
 				shipment.setDeliveryDate(deliveryDate);
-			}
-
-			if (!itemBuilder.isEmpty()) {
-				throw new RuntimeException("The imported items in the order do not match the previous set of imported items in order " + order.getOrderNumber() + ".  This should not happen and the code cannot cope with this situation.");
+				shipment.setChargeAccount(defaultChargeAccount.getValue());
+				shipment.setReturned(returned);
 			}
 
 			if (!areAllShipmentsDispatched) {
@@ -686,6 +765,57 @@ public class AmazonImportView extends ViewPart {
 //				continue;
 			}
 			
+			for (AmazonOrderItem returnedItem : returnedItems) {
+				Account returnedItemAccount = accountFinder.findReturnedItemsAccount();
+				
+				/*
+				 * See if the original exists in any shipment.  If it does not, add it
+				 * to the 'not return' shipment.  If there is no 'not return' shipment then
+				 * create a shipment with this item.  If there is more than one 'not return'
+				 * shipment then error for the time being (we will need a real example
+				 * to determine how to resolve this).
+				 */
+				AmazonShipment originalSaleShipment = null;
+				AmazonShipment[] saleShipments = order.getShipments().stream().filter(shipment -> !shipment.returned).toArray(AmazonShipment[]::new);
+				if (saleShipments.length > 1) {
+					throw new RuntimeException("Can't determine which original shipment contained a returned item");
+				} else if (saleShipments.length == 1) {
+					originalSaleShipment = saleShipments[0];
+				} else {
+					// Setting a null shipment will cause a new one to be created.
+					originalSaleShipment = null;
+				}
+				
+				long itemAmount = -returnedItem.getEntry().getAmount();
+				String description = returnedItem.getEntry().getAmazonDescription();
+
+				ShipmentObject myShipmentObject = new ShipmentObject();
+				myShipmentObject.shipment = originalSaleShipment;
+				String quantityAsString = "1"; // TODO
+				AmazonOrderItem saleItem = itemBuilder.get(returnedItem.getEntry().getAsinOrIsbn(), description, quantityAsString, itemAmount, myShipmentObject, session);
+
+				if (originalSaleShipment == null) {
+					/*
+					 * A new shipment was created for the sale. We don't have
+					 * the delivery date available to us once an item is
+					 * returned, so if we didn't import the order from Amazon
+					 * before the item was returned then we have lost the
+					 * information. We put text in the 'expected delivery date'
+					 * field to indicate this.
+					 */
+					myShipmentObject.shipment.setExpectedDate("shipment of items later returned");	
+				}
+				
+				saleItem.getEntry().setAccount(returnedItemAccount);
+				returnedItem.getEntry().setAccount(returnedItemAccount);
+			}
+
+			// Must do this check after returns are processed, because the sale of the return may not otherwise
+			// have been extracted.
+			if (!itemBuilder.isEmpty()) {
+				throw new RuntimeException("The imported items in the order do not match the previous set of imported items in order " + order.getOrderNumber() + ".  This should not happen and the code cannot cope with this situation.");
+			}
+
 			// Set the charge amounts if not already set for each shipment.
 			for (AmazonShipment shipment : order.getShipments()) {
 				// If charge amount is zero, add up the transaction to set it.
@@ -721,8 +851,9 @@ public class AmazonImportView extends ViewPart {
 	 * @param orderDate
 	 * @param session
 	 * @return
+	 * @throws ImportException 
 	 */
-	private AmazonOrder getAmazonOrderWrapper(String orderNumber, Date orderDate, Session session) {
+	private AmazonOrder getAmazonOrderWrapper(String orderNumber, Date orderDate, Session session) throws ImportException {
 		// Look to see if this order is already in the view.
 		Optional<AmazonOrder> order = orders.stream().filter(x -> x.getOrderNumber().equals(orderNumber))
 				.findFirst();
@@ -747,17 +878,18 @@ public class AmazonImportView extends ViewPart {
 	 * 			this is indexed (or at least should be)
 	 * @param session
 	 * @return
+	 * @throws ImportException 
 	 */
-	private AmazonOrder createAmazonOrderWrapper(String orderNumber, Date orderDate, Session session) {
+	private AmazonOrder createAmazonOrderWrapper(String orderNumber, Date orderDate, Session session) throws ImportException {
 		Set<AmazonEntry> entriesInOrder = lookupEntriesInOrder(orderNumber, orderDate);
 
 		if (entriesInOrder.isEmpty()) {
-			AmazonOrder order = new AmazonOrder(orderNumber, session);
+			AmazonOrder order = new AmazonOrder(orderNumber, session, accountFinder);
 			order.setOrderDate(orderDate);
 			return order;
 		} else {
 			Transaction[] transactions = entriesInOrder.stream().map(entry -> entry.getTransaction()).distinct().toArray(Transaction[]::new);
-			AmazonOrder order = new AmazonOrder(orderNumber, transactions);
+			AmazonOrder order = new AmazonOrder(orderNumber, transactions, accountFinder);
 			return order;
 		}
 	}
@@ -861,7 +993,7 @@ public class AmazonImportView extends ViewPart {
 		return entriesInOrder;
 	}
 
-	private void pasteDetails() {
+	private void pasteDetails() throws ImportException {
 		if (detailsMatcher == null) {
 			detailsMatcher = createMatcherFromResource("amazon-details.txr");
 		}
@@ -878,10 +1010,17 @@ public class AmazonImportView extends ViewPart {
 		String orderTotalAsString = orderBindings.getVariable("total").text;
 		String giftcardAsString = orderBindings.getVariable("giftcard").text;
 		String promotionAsString = orderBindings.getVariable("promotion").text;
+		String importFeesDepositAsString = orderBindings.getVariable("importfeesdeposit").text;
 		String grandTotalAsString = orderBindings.getVariable("grandtotal").text;
+		String refundTotalAsString = orderBindings.getVariable("refundtotal").text;
 		String lastFourDigits = orderBindings.getVariable("lastfourdigits").text;
 		String postageAndPackagingAsString = orderBindings.getVariable("postageandpackaging").text;
 
+//		boolean returned = false;
+//		if (refundTotalAsString != null) {
+//			returned = true;
+//		}
+		
 		Currency thisCurrency = session.getCurrencyForCode("GBP");
 
 		DateFormat dateFormat = new SimpleDateFormat("d MMM yyyy");
@@ -895,7 +1034,18 @@ public class AmazonImportView extends ViewPart {
 			throw new RuntimeException("bad date");
 		}
 
+		/** The order total as shown in the orders list page */
 		long orderTotal = new BigDecimal(orderTotalAsString).scaleByPowerOfTen(2).longValueExact();
+		if (importFeesDepositAsString != null) {
+			/*
+			 * The order total (as shown on the orders list page) is the total
+			 * plus 'import Fees Deposit' but not including promotions or
+			 * amounts paid using gift cards.
+			 */
+			long importFeesDeposit = new BigDecimal(importFeesDepositAsString).scaleByPowerOfTen(2).longValueExact();
+			orderTotal += importFeesDeposit;
+		}
+		
 		long postageAndPackaging = new BigDecimal(postageAndPackagingAsString).scaleByPowerOfTen(2).longValueExact();
 
 		/*
@@ -909,10 +1059,20 @@ public class AmazonImportView extends ViewPart {
 		ItemBuilder itemBuilder = new ItemBuilder(order, order.getItems());
 
 		boolean areAllShipmentsDispatched = false;
+
+		List<AmazonOrderItem> returnedItems = new ArrayList<>();
+
+		boolean overseas = (importFeesDepositAsString != null);
+		if (importFeesDepositAsString != null) {
+			System.out.println("overseas");
+		}
 		
 		for (MatchResults shipmentBindings : orderBindings.getCollections(0)) {
 			String expectedDateAsString = shipmentBindings.getVariable("expecteddate").text;
 			String deliveryDateAsString = shipmentBindings.getVariable("deliverydate").text;
+
+			boolean returned = "true".equalsIgnoreCase(shipmentBindings.getVariable("returned").text);
+			String refundAsString = shipmentBindings.getVariable("refund").text;
 
 			String shipmentIsNotDispatched = shipmentBindings.getVariable("isnotdispatched").text;
 			if ("true".equals(shipmentIsNotDispatched)) {
@@ -952,24 +1112,35 @@ public class AmazonImportView extends ViewPart {
 
 			ShipmentObject shipmentObject = new ShipmentObject();
 
+			boolean overseasShipment = false;
+			
 			for (MatchResults itemBindings : shipmentBindings.getCollections(0)) {
 				String description = itemBindings.getVariable("description").text;
 				String unitPriceAsString = itemBindings.getVariable("itemamount").text;
 				String quantityAsString = itemBindings.getVariable("quantity").text;
 				String soldBy = itemBindings.getVariable("soldby").text;
 				String author = itemBindings.getVariable("author").text;
+				boolean overseasItem = "true".equalsIgnoreCase(itemBindings.getVariable("overseas").text);
 
+				overseasShipment |= overseas;
+				
 				int itemQuantity = 1;
 				if (quantityAsString != null) {
 					itemQuantity = Integer.parseInt(quantityAsString);
 				}
 
-				final long unitPrice = new BigDecimal(unitPriceAsString).scaleByPowerOfTen(2).longValueExact();
+			 long unitPrice = new BigDecimal(unitPriceAsString).scaleByPowerOfTen(2).longValueExact();
 				long itemAmount = unitPrice * itemQuantity;
+
+				long signedItemAmount = returned ? -itemAmount : itemAmount;
 
 				String asin = null;
 
-				AmazonOrderItem item = itemBuilder.get(asin, description, quantityAsString, itemAmount, shipmentObject, session);
+				AmazonOrderItem item = itemBuilder.get(asin, description, quantityAsString, signedItemAmount, shipmentObject, session);
+
+				if (returned) {
+					returnedItems.add(item);
+				}
 
 				// TODO any item data to merge here???
 
@@ -987,6 +1158,55 @@ public class AmazonImportView extends ViewPart {
 			shipment.setExpectedDate(expectedDateAsString);
 			shipment.setDeliveryDate(deliveryDate);
 			shipment.setChargeAccount(chargeAccount);
+			shipment.setReturned(returned);
+			shipment.overseas = overseasShipment;
+		}
+
+		for (AmazonOrderItem returnedItem : returnedItems) {
+			Account returnedItemAccount = accountFinder.findReturnedItemsAccount();
+			
+			/*
+			 * See if the original exists in any shipment.  If it does not, add it
+			 * to the 'not return' shipment.  If there is no 'not return' shipment then
+			 * create a shipment with this item.  If there is more than one 'not return'
+			 * shipment then error for the time being (we will need a real example
+			 * to determine how to resolve this).
+			 */
+			AmazonShipment originalSaleShipment = null;
+			AmazonShipment[] saleShipments = order.getShipments().stream().filter(shipment -> !shipment.returned).toArray(AmazonShipment[]::new);
+			if (saleShipments.length > 1) {
+				throw new RuntimeException("Can't determine which original shipment contained a returned item");
+			} else if (saleShipments.length == 1) {
+				originalSaleShipment = saleShipments[0];
+			} else {
+				// Setting a null shipment will cause a new one to be created.
+				originalSaleShipment = null;
+			}
+			
+			long itemAmount = -returnedItem.getEntry().getAmount();
+			String description = returnedItem.getEntry().getAmazonDescription();
+
+			ShipmentObject myShipmentObject = new ShipmentObject();
+			myShipmentObject.shipment = originalSaleShipment;
+			String quantityAsString = "1"; // TODO
+			AmazonOrderItem saleItem = itemBuilder.get(returnedItem.getEntry().getAsinOrIsbn(), description, quantityAsString, itemAmount, myShipmentObject, session);
+
+			if (originalSaleShipment == null) {
+				/*
+				 * A new shipment was created for the sale. We don't have
+				 * the delivery date available to us once an item is
+				 * returned, so if we didn't import the order from Amazon
+				 * before the item was returned then we have lost the
+				 * information. We put text in the 'expected delivery date'
+				 * field to indicate this.
+				 */
+				myShipmentObject.shipment.setExpectedDate("shipment of items later returned");
+				
+				myShipmentObject.shipment.overseas = overseas;
+			}
+			
+			saleItem.getEntry().setAccount(returnedItemAccount);
+			returnedItem.getEntry().setAccount(returnedItemAccount);
 		}
 
 		if (!itemBuilder.isEmpty()) {
@@ -997,28 +1217,10 @@ public class AmazonImportView extends ViewPart {
 			// Anything to do here?  Or is this a useless check in this case?
 		}
 		
-		// Set the charge amounts if not already set for each shipment.
-//		boolean areAllShipmentsDispatched = true;
-		for (AmazonShipment shipment : order.getShipments()) {
-			// If charge amount is zero, add up the transaction to set it.
-			if (shipment.getChargeAmount() == null) {
-				long total = 0;
-				for (Entry entry : shipment.getTransaction().getEntryCollection()) {
-					total += entry.getAmount();
-				}
-				shipment.setChargeAmount(-total);
-			}
-			
-			//
-//			String shipmentIsNotDispatched = shipmentBindings.getVariable("isnotdispatched").text;
-//			if ("true".equals(shipmentIsNotDispatched)) {
-//				areAllShipmentsDispatched = false;
-//			}
-		}
-
 		if (postageAndPackaging != 0) {
-			if (order.getShipments().size() == 1) {
-				AmazonShipment shipment = order.getShipments().get(0); 
+			AmazonShipment[] saleShipments = order.getShipments().stream().filter(shipment -> !shipment.returned).toArray(AmazonShipment[]::new);
+			if (saleShipments.length == 1) {
+				AmazonShipment shipment = saleShipments[0]; 
 				shipment.setPostageAndPackaging(postageAndPackaging);
 			} else {
 				throw new RuntimeException("p&p but multiple shipments.  We need to see an example of this to decide how to handle this.");
@@ -1057,6 +1259,49 @@ public class AmazonImportView extends ViewPart {
 			firstShipment.setPromotionAmount(promotion);
 		}
 
+		// If this is an overseas shipment then we adjust the item price to get the
+		// order total to be correct.
+		// (This fails if there is more than one item in the order)
+		AmazonShipment[] overseasSaleShipments = order.getShipments().stream().filter(shipment -> !shipment.returned && shipment.overseas).toArray(AmazonShipment[]::new);
+		if (overseasSaleShipments.length > 1) {
+			throw new ImportException("Can't cope with this");
+		}
+		if (overseasSaleShipments.length == 1) {
+			AmazonShipment saleShipment = overseasSaleShipments[0];
+			if (saleShipment.getItems().size() != 1) {
+				throw new ImportException("Can't cope with this");
+			}
+			AmazonOrderItem item = saleShipment.getItems().get(0);
+			
+	
+			/* Change the item price to make it all match.
+			We are fudging the numbers here, altering the item price
+			to make the order total match.  This is backwards from the usual process
+			but is necessary because it is the only way we can get overseas transactions to
+			balance.  Amazon seem to switch everything to the buyer's currency at varying
+			rates which mean nothing seems to balance.
+			*/
+			saleShipment.setChargeAmount(-orderTotal);
+			long total = 0;
+			for (Entry entry : saleShipment.getTransaction().getEntryCollection()) {
+				total += entry.getAmount();
+			}
+			item.getEntry().setAmount(item.getEntry().getAmount() - total); 
+		}
+		
+		// Set the charge amounts if not already set for each shipment.
+//		boolean areAllShipmentsDispatched = true;
+		for (AmazonShipment shipment : order.getShipments()) {
+			// If charge amount is zero, add up the transaction to set it.
+			if (shipment.getChargeAmount() == null) {
+				long total = 0;
+				for (Entry entry : shipment.getTransaction().getEntryCollection()) {
+					total += entry.getAmount();
+				}
+				shipment.setChargeAmount(-total);
+			}
+		}
+
 		viewer.setInput(orders.toArray(new AmazonOrder[0]));
 	}
 
@@ -1082,6 +1327,23 @@ public class AmazonImportView extends ViewPart {
 		}
 	}
 
+	private Control createDefaultAccountsArea(Composite parent) {
+		Composite composite = new Composite(parent, SWT.NONE);
+		composite.setLayout(new GridLayout(2, false));
+ 
+		AccountControl<BankAccount> chargeAccountControl = new AccountControl<BankAccount>(composite, BankAccount.class) {
+			@Override
+			protected Session getSession() {
+				return session;
+			}
+		};
+		chargeAccountControl.setLayoutData(new GridData(200, SWT.DEFAULT));
+
+		Bind.twoWay(chargeAccountControl.account).to(defaultChargeAccount);
+		
+		return composite;
+	}
+	
 	private Control createVerticallySplitArea(Composite parent) {
 		Composite containerOfSash = new Composite(parent, SWT.NONE);
 		containerOfSash.setLayout(new FormLayout());
@@ -1204,7 +1466,9 @@ public class AmazonImportView extends ViewPart {
 						return order.getOrderNumber();
 					} else if (element instanceof AmazonShipment) {
 						AmazonShipment shipment = (AmazonShipment)element;
-						if (shipment.getExpectedDate() != null) {
+						if (shipment.returned) {
+							return "Returned item";
+						} else if (shipment.getExpectedDate() != null) {
 							return "Expected: " + shipment.getExpectedDate();
 						} else if (shipment.getDeliveryDate() != null) {
 							DateFormat df = new SimpleDateFormat("dd/MM/yyyy");
