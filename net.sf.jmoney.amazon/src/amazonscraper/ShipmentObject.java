@@ -1,6 +1,4 @@
-package net.sf.jmoney.amazon.copytext;
-
-import net.sf.jmoney.model2.Transaction;
+package amazonscraper;
 
 public class ShipmentObject {
 

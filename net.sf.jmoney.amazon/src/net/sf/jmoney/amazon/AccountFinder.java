@@ -9,6 +9,7 @@ import net.sf.jmoney.importer.wizards.ImportException;
 import net.sf.jmoney.model2.BankAccount;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Currency;
+import net.sf.jmoney.model2.CurrencyAccount;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.Session;
@@ -189,6 +190,30 @@ public class AccountFinder {
 		if (total != 0) {
 			throw new RuntimeException("unbalanced");
 		}
+	}
+
+	public CapitalAccount getAccountGivenLastFourDigits(String lastFourDigits) {
+		CapitalAccount chargeAccount = null;
+		if (lastFourDigits != null) {
+			for (Iterator<CapitalAccount> iter = session.getCapitalAccountIterator(); iter.hasNext(); ) {
+				CapitalAccount eachAccount = iter.next();
+				if (eachAccount.getName().endsWith(lastFourDigits)
+						&& eachAccount instanceof CurrencyAccount
+						&& ((CurrencyAccount)eachAccount).getCurrency() == currency) {
+					chargeAccount = (CurrencyAccount)eachAccount;
+					break;
+				}
+			}
+			if (chargeAccount == null) {
+				throw new RuntimeException("No account exists with the given last four digits and a currency of " + currency.getName() + ".");
+			}
+		}
+
+		
+		
+		
+		
+		return chargeAccount;
 	}
 
 }

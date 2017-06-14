@@ -4,7 +4,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import amazonscraper.AmazonOrder;
+import amazonscraper.IItemUpdater;
+import amazonscraper.IShipmentUpdater;
 import net.sf.jmoney.amazon.AccountFinder;
+import net.sf.jmoney.amazon.AmazonEntry;
 import net.sf.jmoney.amazon.AmazonEntryInfo;
 import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.wizards.ImportException;
@@ -19,18 +23,14 @@ import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
 
-public class AmazonShipment {
-
-	private List<AmazonOrderItem> items = new ArrayList<>();
-
-	private String expectedDate;
-
-	private Date deliveryDate;
+public class ShipmentUpdater implements IShipmentUpdater {
 
 	/** never null */
 	private Transaction transaction;
 	
-	/**
+	private AccountFinder accountFinder;
+	
+	/**333
 	 * null if there is no charge (typically if the order was covered by a gift
 	 * certificate), or if the charge amount has not yet been determined, or if
 	 * the charge entry has been matched to a bank import (so on a statement or
@@ -45,6 +45,14 @@ public class AmazonShipment {
 	 */
 	Entry chargeEntry = null;
 	
+	/**
+	 * The account to which the charge for this shipment is to be made.
+	 * If the data necessary to determine the account has not yet been
+	 * imported then this will be a default 'unmatched' account.  This
+	 * account is never null.
+	 */
+	private Account chargeAccount;
+
 	/** 
 	 * null only if no p&p entry, never null if the transaction
 	 * has a p&p entry.
@@ -66,25 +74,14 @@ public class AmazonShipment {
 
 	private IncomeExpenseAccount unmatchedAccount;
 
+	private IncomeExpenseAccount defaultPurchaseAccount;
+
 	private BankAccount giftcardAccount;
 
 	private IncomeExpenseAccount promotionAccount;
 
-	private boolean chargeAmountToBeDetermined;
+	private List<IItemUpdater> items = new ArrayList<>();
 
-	/**
-	 * The account to which the charge for this shipment is to be made.
-	 * If the data necessary to determine the account has not yet been
-	 * imported then this will be a default 'unmatched' account.  This
-	 * account is never null.
-	 */
-	private Account chargeAccount;
-
-	private AmazonOrder order;
-
-	boolean returned;
-
-	public boolean overseas = false;
 
 	/**
 	 * This form is used when no transaction exists in the session for this
@@ -94,19 +91,20 @@ public class AmazonShipment {
 	 * @param transaction
 	 * @throws ImportException 
 	 */
-	public AmazonShipment(AmazonOrder order, Session session, AccountFinder accountFinder) throws ImportException {
-		this.order = order;
-		
+	// TODO this form is not used.  Should it be?
+	public ShipmentUpdater(Session session, AccountFinder accountFinder, BankAccount defaultChargeAccount) throws ImportException {
 		// Create a new transaction to hold these entries.
-		transaction = session.createTransaction();
+		this.transaction = session.createTransaction();
+
+		this.accountFinder = accountFinder;
+		
+		this.chargeAccount = defaultChargeAccount;
 
 		postageAndPackagingAccount = accountFinder.findPostageAndPackagingAccount();
 		unmatchedAccount = accountFinder.findUnmatchedAccount();
-		chargeAccount = accountFinder.findUnmatchedAccount();
+		defaultPurchaseAccount = accountFinder.findDefaultPurchaseAccount();
 		giftcardAccount = accountFinder.findGiftcardAccount();
 		promotionAccount = accountFinder.findMiscellaneousAccount();
-
-		chargeAmountToBeDetermined = true;
 	}
 	
 	/**
@@ -116,16 +114,23 @@ public class AmazonShipment {
 	 * @param transaction
 	 * @throws ImportException 
 	 */
-	public AmazonShipment(AmazonOrder order, Transaction transaction, AccountFinder accountFinder) throws ImportException {
-		this.order = order;
+	public ShipmentUpdater(Transaction transaction, AccountFinder accountFinder, BankAccount defaultChargeAccount) {
 		this.transaction = transaction;
-
-		postageAndPackagingAccount = accountFinder.findPostageAndPackagingAccount();
-		unmatchedAccount = accountFinder.findUnmatchedAccount();
-		chargeAccount = accountFinder.findUnmatchedAccount();
-		giftcardAccount = accountFinder.findGiftcardAccount();
-		promotionAccount = accountFinder.findMiscellaneousAccount();
 		
+		this.accountFinder = accountFinder;
+
+		this.chargeAccount = defaultChargeAccount;
+
+		try {
+			postageAndPackagingAccount = accountFinder.findPostageAndPackagingAccount();
+			unmatchedAccount = accountFinder.findUnmatchedAccount();
+			defaultPurchaseAccount = accountFinder.findDefaultPurchaseAccount();
+			giftcardAccount = accountFinder.findGiftcardAccount();
+			promotionAccount = accountFinder.findMiscellaneousAccount();
+		} catch (ImportException e) {
+			throw new RuntimeException(e);
+		}
+
 		for (Entry entry : transaction.getEntryCollection()) {
 			if (isChargeEntry(entry)) {
 				chargeEntry = entry;
@@ -136,11 +141,10 @@ public class AmazonShipment {
 			} else if (isPromotionEntry(entry)) {
 				promotionEntry = entry;
 			} else {
-				items.add(new AmazonOrderItem(entry.getExtension(AmazonEntryInfo.getPropertySet(), true)));
+				items.add(new ItemUpdater(entry.getExtension(AmazonEntryInfo.getPropertySet(), true)));
 			}
 		}
 		
-		chargeAmountToBeDetermined = false;
 	}
 
 	private boolean isChargeEntry(Entry entry) {
@@ -164,28 +168,9 @@ public class AmazonShipment {
 		return entry.getAccount() == promotionAccount;
 	}
 
-	public void addItem(AmazonOrderItem item) {
-		items.add(item);
-	}
-	
-	public List<AmazonOrderItem> getItems() {
-		return items;
-	}
-
-	public void setExpectedDate(String expectedDate) {
-		this.expectedDate = expectedDate;
-	}
-
-	public String getExpectedDate() {
-		return expectedDate;
-	}
-
-	public void setDeliveryDate(Date deliveryDate) {
-		this.deliveryDate = deliveryDate;
-	}
-
-	public Date getDeliveryDate() {
-		return deliveryDate;
+	@Override
+	public void setOrderDate(Date orderDate) {
+		transaction.setDate(orderDate);
 	}
 
 	public Entry getChargeEntry() {
@@ -202,11 +187,6 @@ public class AmazonShipment {
 			postageAndPackagingEntry.setAccount(postageAndPackagingAccount);
 			postageAndPackagingEntry.setMemo("Amazon");
 			postageAndPackagingEntry.setAmount(postageAndPackagingAmount);
-			
-			// And don't forget we must keep the transaction balanced.
-			if (!chargeAmountToBeDetermined) {
-				setChargeAmount(getChargeAmount() - postageAndPackagingAmount);
-			}
 		}
 	}
 
@@ -216,16 +196,11 @@ public class AmazonShipment {
 	 * @return the amount charged to the charge account or null if
 	 * 				this has not been determined
 	 */
-	public Long getChargeAmount() {
-		if (chargeAmountToBeDetermined) {
-			assert chargeEntry == null;
-			return null;
-		} else {
-			return (chargeEntry == null) ? 0 : chargeEntry.getAmount();
-		}
+	public long getChargeAmount() {
+		return (chargeEntry == null) ? 0 : chargeEntry.getAmount();
 	}
 
-	void setChargeAmount(long amount) {
+	public void setChargeAmount(long amount) {
 		if (amount == 0) {
 			if (chargeEntry != null) {
 				transaction.deleteEntry(chargeEntry);
@@ -237,11 +212,9 @@ public class AmazonShipment {
 				chargeEntry.setAccount(chargeAccount);
 			}
 			chargeEntry.setAmount(amount);
-			
+
 			matchChargeEntry();
 		}
-		
-		chargeAmountToBeDetermined = false;
 	}
 
 	public void setGiftcardAmount(long giftcardAmount) {
@@ -254,11 +227,6 @@ public class AmazonShipment {
 			giftcardEntry.setAccount(giftcardAccount);
 			giftcardEntry.setMemo("Amazon");
 			giftcardEntry.setAmount(-giftcardAmount);
-			
-			// And don't forget we must keep the transaction balanced.
-			if (!chargeAmountToBeDetermined) {
-				setChargeAmount(getChargeAmount() + giftcardAmount);
-			}
 		}
 	}
 
@@ -272,25 +240,26 @@ public class AmazonShipment {
 			promotionEntry.setAccount(promotionAccount);
 			promotionEntry.setMemo("Amazon promotional discount");
 			promotionEntry.setAmount(-promotionAmount);
-			
-			// And don't forget we must keep the transaction balanced.
-			if (!chargeAmountToBeDetermined) {
-				setChargeAmount(getChargeAmount() + promotionAmount);
-			}
 		}
 	}
 
-	public void setChargeAccount(CapitalAccount chargeAccount) {
+	@Override
+	public void setLastFourDigitsOfAccount(String lastFourDigits) {
+		/*
+		 * Find the account which is charged for the purchases.
+		 */
+		CapitalAccount chargeAccount = accountFinder.getAccountGivenLastFourDigits(lastFourDigits);
+		
 		if (this.chargeAccount != unmatchedAccount 
 				&& this.chargeAccount != chargeAccount 
 				&& (chargeEntry.getExtension(net.sf.jmoney.reconciliation.ReconciliationEntryInfo.getPropertySet(), true).getStatement() != null || chargeEntry.getExtension(net.sf.jmoney.importer.model.ReconciliationEntryInfo.getPropertySet(), true).getUniqueId() != null)) {
 			throw new RuntimeException("charge accounts mismatch, or changing charge account for entry that is reconciled.");
 		}
 		this.chargeAccount = chargeAccount;
-		
+
 		if (chargeEntry != null) {
 			chargeEntry.setAccount(chargeAccount);
-			
+
 			matchChargeEntry();
 		}
 	}
@@ -330,7 +299,7 @@ public class AmazonShipment {
 				return false;
 			}
 		};
-		Entry matchedEntryInUnmatchedAccount = matchFinder.findMatch(unmatchedAccount, -chargeEntry.getAmount(), order.getOrderDate(), 10, null);
+		Entry matchedEntryInUnmatchedAccount = matchFinder.findMatch(unmatchedAccount, -chargeEntry.getAmount(), transaction.getDate(), 10, null);
 
 		/*
 		 * Create an entry for the amount charged to the charge account.
@@ -466,8 +435,43 @@ public class AmazonShipment {
 		return transaction;
 	}
 
-	public void setReturned(boolean returned) {
-		this.returned = returned;
+	@Override
+	public Long getPostageAndPackaging() {
+		if (postageAndPackagingEntry != null) {
+			return postageAndPackagingEntry.getAmount();
+		} else {
+			return null;
+		}
+	}
+
+	@Override
+	public ItemUpdater createNewItemUpdater(long itemAmount) {
+		Entry entry = transaction.createEntry();
+		entry.setAmount(itemAmount);
+		entry.setAccount(defaultPurchaseAccount);
+		AmazonEntry amazonEntry = entry.getExtension(AmazonEntryInfo.getPropertySet(), true);
+		ItemUpdater itemUpdater = new ItemUpdater(amazonEntry);
+		return itemUpdater;
+	}
+
+	public void validateTransaction(AmazonOrder order) {
+		
+		if (transaction.getDate() == null) {
+			throw new RuntimeException("No date set on order " + order.getOrderNumber());
+		}
+		long total = 0;
+		for (Entry entry : transaction.getEntryCollection()) {
+			if (entry.getAmount() == 0) {
+				throw new RuntimeException("Zero amount set on order " + order.getOrderNumber());
+			}
+			if (entry.getAccount() == null) {
+				throw new RuntimeException("No account set on order " + order.getOrderNumber());
+			}
+			total += entry.getAmount();
+		}
+		if (total != 0) {
+			throw new RuntimeException("Unbalanced transaction on order " + order.getOrderNumber());
+		}
 	}
 
 }

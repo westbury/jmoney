@@ -25,6 +25,9 @@ package net.sf.jmoney.amazon.copytext;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.Viewer;
 
+import amazonscraper.AmazonOrder;
+import amazonscraper.AmazonShipment;
+
 public class AmazonOrderContentProvider implements ITreeContentProvider {
 
 		@Override
@@ -50,13 +53,6 @@ public class AmazonOrderContentProvider implements ITreeContentProvider {
 
 		@Override
 		public Object[] getElements(Object element) {
-			/*
-			 * If the input is a single status (not a multi-status)
-			 * then we return that as the element.  It would be more
-			 * consistent if we just returned an empty list, as the
-			 * root status is not normally displayed in the tree,
-			 * but for time being, leave it like this.
-			 */
 			AmazonOrder [] orders = (AmazonOrder [])element;
 			return orders;
 		}

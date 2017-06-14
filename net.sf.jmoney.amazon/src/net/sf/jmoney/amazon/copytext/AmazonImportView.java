@@ -26,7 +26,6 @@ import java.awt.Toolkit;
 import java.awt.datatransfer.FlavorEvent;
 import java.awt.datatransfer.FlavorListener;
 import java.io.IOException;
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -40,7 +39,6 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -74,7 +72,6 @@ import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.jface.viewers.ViewerCell;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StackLayout;
-import org.eclipse.swt.dnd.Clipboard;
 import org.eclipse.swt.dnd.DND;
 import org.eclipse.swt.dnd.DropTarget;
 import org.eclipse.swt.dnd.DropTargetAdapter;
@@ -124,6 +121,13 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import amazonscraper.AmazonOrder;
+import amazonscraper.AmazonOrderItem;
+import amazonscraper.AmazonScraperContext;
+import amazonscraper.AmazonShipment;
+import amazonscraper.IOrderUpdater;
+import amazonscraper.IShipmentUpdater;
+import amazonscraper.ShipmentObject;
 import net.sf.jmoney.amazon.AccountFinder;
 import net.sf.jmoney.amazon.AmazonEntry;
 import net.sf.jmoney.amazon.AmazonEntryInfo;
@@ -136,9 +140,7 @@ import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.importer.wizards.ImportException;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.BankAccount;
-import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Currency;
-import net.sf.jmoney.model2.CurrencyAccount;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.IDatastoreManager;
@@ -146,11 +148,12 @@ import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
-import txr.matchers.DocumentMatcher;
 import txr.matchers.MatchResults;
 
 public class AmazonImportView extends ViewPart {
 
+	public AmazonScraperContext scraperContext = new AmazonScraperContext();
+	
 	public class ItemBuilder {
 
 		AmazonOrder order;
@@ -165,15 +168,15 @@ public class AmazonImportView extends ViewPart {
 		public AmazonOrderItem get(String asin, String description, String quantityAsString, long itemAmount, ShipmentObject shipmentObject, Session session) throws ImportException {
 			// Find the matching entry
 			if (preexistingItems.isEmpty()) {
-				AmazonOrderItem item = order.createNewItem(description, quantityAsString, itemAmount, shipmentObject, session);
+				AmazonOrderItem item = order.createNewItem(description, quantityAsString, itemAmount, shipmentObject);
 				if (asin != null) {
-					item.getEntry().setAsinOrIsbn(asin);
+					item.getUnderlyingItem().setAsinOrIsbn(asin);
 				}
 				return item;
 			} else {
-				AmazonOrderItem[] matches = preexistingItems.stream().filter(item -> item.getEntry().getAmount() == itemAmount).toArray(AmazonOrderItem[]::new);
+				AmazonOrderItem[] matches = preexistingItems.stream().filter(item -> item.getUnderlyingItem().getAmount() == itemAmount).toArray(AmazonOrderItem[]::new);
 				if (matches.length > 1) {
-					matches = Stream.of(matches).filter(item -> item.getEntry().getAmazonDescription().equals(description)).toArray(AmazonOrderItem[]::new);
+					matches = Stream.of(matches).filter(item -> item.getUnderlyingItem().getAmazonDescription().equals(description)).toArray(AmazonOrderItem[]::new);
 				}
 				if (matches.length != 1) {
 					throw new RuntimeException("Existing transaction for order does not match up.");
@@ -184,20 +187,14 @@ public class AmazonImportView extends ViewPart {
 				 * Check the shipment splitting is consistent (i.e. has not changed).
 				 * 
 				 */
-				final Transaction transactionOfThisItem = matchingItem.getEntry().getTransaction();
+				AmazonShipment shipmentOfThisItem = matchingItem.getShipment();
 				if (shipmentObject.shipment != null) {
-					if (shipmentObject.shipment.getTransaction() != transactionOfThisItem) {
+					if (shipmentObject.shipment != shipmentOfThisItem) {
 						throw new RuntimeException("Inconsistent shipment");
 					}
 				} else {
-					AmazonShipment[] matchingShipments = order.getShipments().stream().filter(shipment -> shipment.getTransaction() == transactionOfThisItem).toArray(AmazonShipment[]::new);
-					assert(matchingShipments.length == 1);
-					AmazonShipment shipment = matchingShipments[0];
-
-					shipmentObject.shipment = shipment;
+					shipmentObject.shipment = shipmentOfThisItem;
 				}
-
-
 
 				preexistingItems.remove(matchingItem);
 				return matchingItem;
@@ -287,12 +284,6 @@ public class AmazonImportView extends ViewPart {
 	private PasteOrdersAction pasteOrdersAction;
 
 	private PasteDetailsAction pasteDetailsAction;
-
-	// Lazily created
-	private DocumentMatcher ordersMatcher = null;
-
-	// Lazily created
-	private DocumentMatcher detailsMatcher = null;
 
 	private TransactionManagerForAccounts uncommittedSessionManager;
 
@@ -537,12 +528,12 @@ public class AmazonImportView extends ViewPart {
 	private void checkOrderValid(AmazonOrder order) {
 		long totalForOrder = 0;
 		for (AmazonShipment shipment : order.getShipments()) {
-			Transaction transaction = shipment.getTransaction();
+//			Transaction transaction = shipment.getTransaction();
 
 			// Note that returns do not reduce the order total.
-			if (!shipment.returned) {
-			if (shipment.getChargeEntry() != null) {
-				totalForOrder -= shipment.getChargeEntry().getAmount();
+			if (!shipment.isReturn()) {
+			if (shipment.getChargeAmount() != null) {
+				totalForOrder -= shipment.getChargeAmount();
 			}
 			}
 			
@@ -555,22 +546,8 @@ public class AmazonImportView extends ViewPart {
 //				totalForOrder -= shipment.promotionEntry.getAmount();
 //			}
 			
-			if (transaction.getDate() == null) {
-				throw new RuntimeException("No date set on order " + order.getOrderNumber());
-			}
-			long total = 0;
-			for (Entry entry : transaction.getEntryCollection()) {
-				if (entry.getAmount() == 0) {
-					throw new RuntimeException("Zero amount set on order " + order.getOrderNumber());
-				}
-				if (entry.getAccount() == null) {
-					throw new RuntimeException("No account set on order " + order.getOrderNumber());
-				}
-				total += entry.getAmount();
-			}
-			if (total != 0) {
-				throw new RuntimeException("Unbalanced transaction on order " + order.getOrderNumber());
-			}
+			ShipmentUpdater shipmentUpdaterImpl = (ShipmentUpdater)shipment.getShipmentUpdater();
+			shipmentUpdaterImpl.validateTransaction(order);
 		}
 
 		if (totalForOrder != order.getOrderTotal()) {
@@ -582,15 +559,7 @@ public class AmazonImportView extends ViewPart {
 	}
 
 	private void pasteOrders() throws ImportException {
-		if (ordersMatcher == null) {
-			ordersMatcher = createMatcherFromResource("amazon-orders.txr");
-		}
-
-		MatchResults bindings = doMatchingFromClipboard(ordersMatcher);
-
-		if (bindings == null || bindings.getCollections(0).isEmpty()) {
-			throw new RuntimeException("Data in clipboard does not appear to be copied from the orders page.");
-		}
+		MatchResults bindings = scraperContext.pasteOrdersFromClipboard();
 
 		DateFormat dateFormat = new SimpleDateFormat("d MMM yyyy");
 
@@ -730,7 +699,8 @@ public class AmazonImportView extends ViewPart {
 					if (returned) {
 						returnedItems.add(item);
 					}
-					
+
+					item.setUnitPrice(unitPrice);
 					if (itemQuantity != 1) {
 						item.setQuantity(itemQuantity);
 					}
@@ -748,7 +718,12 @@ public class AmazonImportView extends ViewPart {
 				}
 				shipment.setExpectedDate(expectedDateAsString);
 				shipment.setDeliveryDate(deliveryDate);
-				shipment.setChargeAccount(defaultChargeAccount.getValue());
+				
+				String defaultAccountNumber = defaultChargeAccount.getValue().getAccountNumber();
+				if (defaultAccountNumber == null || defaultAccountNumber.length() < 4) {
+					throw new RuntimeException("default account must have account number (at least last four digits)");
+				}
+				shipment.setLastFourDigitsOfAccount(defaultAccountNumber.substring(defaultAccountNumber.length()-4, defaultAccountNumber.length()));
 				shipment.setReturned(returned);
 			}
 
@@ -776,7 +751,7 @@ public class AmazonImportView extends ViewPart {
 				 * to determine how to resolve this).
 				 */
 				AmazonShipment originalSaleShipment = null;
-				AmazonShipment[] saleShipments = order.getShipments().stream().filter(shipment -> !shipment.returned).toArray(AmazonShipment[]::new);
+				AmazonShipment[] saleShipments = order.getShipments().stream().filter(shipment -> !shipment.isReturn()).toArray(AmazonShipment[]::new);
 				if (saleShipments.length > 1) {
 					throw new RuntimeException("Can't determine which original shipment contained a returned item");
 				} else if (saleShipments.length == 1) {
@@ -786,13 +761,13 @@ public class AmazonImportView extends ViewPart {
 					originalSaleShipment = null;
 				}
 				
-				long itemAmount = -returnedItem.getEntry().getAmount();
-				String description = returnedItem.getEntry().getAmazonDescription();
+				long itemAmount = -returnedItem.getUnderlyingItem().getAmount();
+				String description = returnedItem.getUnderlyingItem().getAmazonDescription();
 
 				ShipmentObject myShipmentObject = new ShipmentObject();
 				myShipmentObject.shipment = originalSaleShipment;
 				String quantityAsString = "1"; // TODO
-				AmazonOrderItem saleItem = itemBuilder.get(returnedItem.getEntry().getAsinOrIsbn(), description, quantityAsString, itemAmount, myShipmentObject, session);
+				AmazonOrderItem saleItem = itemBuilder.get(returnedItem.getUnderlyingItem().getAsinOrIsbn(), description, quantityAsString, itemAmount, myShipmentObject, session);
 
 				if (originalSaleShipment == null) {
 					/*
@@ -806,8 +781,8 @@ public class AmazonImportView extends ViewPart {
 					myShipmentObject.shipment.setExpectedDate("shipment of items later returned");	
 				}
 				
-				saleItem.getEntry().setAccount(returnedItemAccount);
-				returnedItem.getEntry().setAccount(returnedItemAccount);
+				saleItem.getUnderlyingItem().setIntoReturnedItemAccount();
+				returnedItem.getUnderlyingItem().setIntoReturnedItemAccount();
 			}
 
 			// Must do this check after returns are processed, because the sale of the return may not otherwise
@@ -818,13 +793,9 @@ public class AmazonImportView extends ViewPart {
 
 			// Set the charge amounts if not already set for each shipment.
 			for (AmazonShipment shipment : order.getShipments()) {
-				// If charge amount is zero, add up the transaction to set it.
+				// If charge amount is not set, add up the transaction to set it.
 				if (shipment.getChargeAmount() == null) {
-					long total = 0;
-					for (Entry entry : shipment.getTransaction().getEntryCollection()) {
-						total += entry.getAmount();
-					}
-					shipment.setChargeAmount(-total);
+					shipment.setCalculatedChargeAmount();
 				}
 			}
 			
@@ -883,15 +854,18 @@ public class AmazonImportView extends ViewPart {
 	private AmazonOrder createAmazonOrderWrapper(String orderNumber, Date orderDate, Session session) throws ImportException {
 		Set<AmazonEntry> entriesInOrder = lookupEntriesInOrder(orderNumber, orderDate);
 
+		IOrderUpdater orderUpdater = new OrderUpdater(session, accountFinder, defaultChargeAccount.getValue());
+		AmazonOrder order = new AmazonOrder(orderNumber, orderUpdater);
 		if (entriesInOrder.isEmpty()) {
-			AmazonOrder order = new AmazonOrder(orderNumber, session, accountFinder);
 			order.setOrderDate(orderDate);
-			return order;
 		} else {
 			Transaction[] transactions = entriesInOrder.stream().map(entry -> entry.getTransaction()).distinct().toArray(Transaction[]::new);
-			AmazonOrder order = new AmazonOrder(orderNumber, transactions, accountFinder);
-			return order;
+			for (Transaction transaction : transactions) {
+				IShipmentUpdater shipmentUpdater = new ShipmentUpdater(transaction, accountFinder, defaultChargeAccount.getValue());
+				order.addShipment(new AmazonShipment(order, shipmentUpdater));
+			}
 		}
+		return order;
 	}
 
 	private Date parsePastDate(String dateAsString) throws ParseException {
@@ -994,15 +968,7 @@ public class AmazonImportView extends ViewPart {
 	}
 
 	private void pasteDetails() throws ImportException {
-		if (detailsMatcher == null) {
-			detailsMatcher = createMatcherFromResource("amazon-details.txr");
-		}
-
-		MatchResults orderBindings = doMatchingFromClipboard(detailsMatcher);
-
-		if (orderBindings == null) {
-			throw new RuntimeException("Data in clipboard does not appear to be a details page.");
-		}
+		MatchResults orderBindings = scraperContext.pasteDetailsFromClipboard();
 
 		String orderDateAsString = orderBindings.getVariable("orderdate").text;
 		String orderNumber = orderBindings.getVariable("ordernumber").text;
@@ -1021,8 +987,6 @@ public class AmazonImportView extends ViewPart {
 //			returned = true;
 //		}
 		
-		Currency thisCurrency = session.getCurrencyForCode("GBP");
-
 		DateFormat dateFormat = new SimpleDateFormat("d MMM yyyy");
 
 		Date orderDate;
@@ -1088,25 +1052,6 @@ public class AmazonImportView extends ViewPart {
 				throw new RuntimeException("bad date");
 			}
 
-			/*
-			 * Find the account which is charged for the purchases.
-			 */
-			CapitalAccount chargeAccount = null;
-			if (lastFourDigits != null) {
-				for (Iterator<CapitalAccount> iter = session.getCapitalAccountIterator(); iter.hasNext(); ) {
-					CapitalAccount eachAccount = iter.next();
-					if (eachAccount.getName().endsWith(lastFourDigits)
-							&& eachAccount instanceof CurrencyAccount
-							&& ((CurrencyAccount)eachAccount).getCurrency() == thisCurrency) {
-						chargeAccount = (CurrencyAccount)eachAccount;
-						break;
-					}
-				}
-				if (chargeAccount == null) {
-					throw new RuntimeException("No account exists with the given last four digits and a currency of " + thisCurrency.getName() + ".");
-				}
-			}
-
 			order.setOrderDate(orderDate);
 			order.setOrderTotal(orderTotal);
 
@@ -1144,6 +1089,7 @@ public class AmazonImportView extends ViewPart {
 
 				// TODO any item data to merge here???
 
+				item.setUnitPrice(unitPrice);
 				if (itemQuantity != 1) {
 					item.setQuantity(itemQuantity);
 				}
@@ -1157,7 +1103,7 @@ public class AmazonImportView extends ViewPart {
 
 			shipment.setExpectedDate(expectedDateAsString);
 			shipment.setDeliveryDate(deliveryDate);
-			shipment.setChargeAccount(chargeAccount);
+			shipment.setLastFourDigitsOfAccount(lastFourDigits);
 			shipment.setReturned(returned);
 			shipment.overseas = overseasShipment;
 		}
@@ -1173,7 +1119,7 @@ public class AmazonImportView extends ViewPart {
 			 * to determine how to resolve this).
 			 */
 			AmazonShipment originalSaleShipment = null;
-			AmazonShipment[] saleShipments = order.getShipments().stream().filter(shipment -> !shipment.returned).toArray(AmazonShipment[]::new);
+			AmazonShipment[] saleShipments = order.getShipments().stream().filter(shipment -> !shipment.isReturn()).toArray(AmazonShipment[]::new);
 			if (saleShipments.length > 1) {
 				throw new RuntimeException("Can't determine which original shipment contained a returned item");
 			} else if (saleShipments.length == 1) {
@@ -1183,13 +1129,13 @@ public class AmazonImportView extends ViewPart {
 				originalSaleShipment = null;
 			}
 			
-			long itemAmount = -returnedItem.getEntry().getAmount();
-			String description = returnedItem.getEntry().getAmazonDescription();
+			long itemAmount = -returnedItem.getUnderlyingItem().getAmount();
+			String description = returnedItem.getUnderlyingItem().getAmazonDescription();
 
 			ShipmentObject myShipmentObject = new ShipmentObject();
 			myShipmentObject.shipment = originalSaleShipment;
 			String quantityAsString = "1"; // TODO
-			AmazonOrderItem saleItem = itemBuilder.get(returnedItem.getEntry().getAsinOrIsbn(), description, quantityAsString, itemAmount, myShipmentObject, session);
+			AmazonOrderItem saleItem = itemBuilder.get(returnedItem.getUnderlyingItem().getAsinOrIsbn(), description, quantityAsString, itemAmount, myShipmentObject, session);
 
 			if (originalSaleShipment == null) {
 				/*
@@ -1205,8 +1151,8 @@ public class AmazonImportView extends ViewPart {
 				myShipmentObject.shipment.overseas = overseas;
 			}
 			
-			saleItem.getEntry().setAccount(returnedItemAccount);
-			returnedItem.getEntry().setAccount(returnedItemAccount);
+			saleItem.getUnderlyingItem().setIntoReturnedItemAccount();
+			returnedItem.getUnderlyingItem().setIntoReturnedItemAccount();
 		}
 
 		if (!itemBuilder.isEmpty()) {
@@ -1218,7 +1164,7 @@ public class AmazonImportView extends ViewPart {
 		}
 		
 		if (postageAndPackaging != 0) {
-			AmazonShipment[] saleShipments = order.getShipments().stream().filter(shipment -> !shipment.returned).toArray(AmazonShipment[]::new);
+			AmazonShipment[] saleShipments = order.getShipments().stream().filter(shipment -> !shipment.isReturn()).toArray(AmazonShipment[]::new);
 			if (saleShipments.length == 1) {
 				AmazonShipment shipment = saleShipments[0]; 
 				shipment.setPostageAndPackaging(postageAndPackaging);
@@ -1262,7 +1208,7 @@ public class AmazonImportView extends ViewPart {
 		// If this is an overseas shipment then we adjust the item price to get the
 		// order total to be correct.
 		// (This fails if there is more than one item in the order)
-		AmazonShipment[] overseasSaleShipments = order.getShipments().stream().filter(shipment -> !shipment.returned && shipment.overseas).toArray(AmazonShipment[]::new);
+		AmazonShipment[] overseasSaleShipments = order.getShipments().stream().filter(shipment -> !shipment.isReturn() && shipment.overseas).toArray(AmazonShipment[]::new);
 		if (overseasSaleShipments.length > 1) {
 			throw new ImportException("Can't cope with this");
 		}
@@ -1272,7 +1218,9 @@ public class AmazonImportView extends ViewPart {
 				throw new ImportException("Can't cope with this");
 			}
 			AmazonOrderItem item = saleShipment.getItems().get(0);
-			
+			if (item.getQuantity() != 1) {
+				throw new ImportException("Can't cope with quantity in overseas order");
+			}
 	
 			/* Change the item price to make it all match.
 			We are fudging the numbers here, altering the item price
@@ -1282,49 +1230,22 @@ public class AmazonImportView extends ViewPart {
 			rates which mean nothing seems to balance.
 			*/
 			saleShipment.setChargeAmount(-orderTotal);
-			long total = 0;
-			for (Entry entry : saleShipment.getTransaction().getEntryCollection()) {
-				total += entry.getAmount();
-			}
-			item.getEntry().setAmount(item.getEntry().getAmount() - total); 
+			
+			long total = orderTotal - saleShipment.getPostageAndPackaging();
+			
+			item.setUnitPrice(total); 
 		}
 		
 		// Set the charge amounts if not already set for each shipment.
 //		boolean areAllShipmentsDispatched = true;
 		for (AmazonShipment shipment : order.getShipments()) {
-			// If charge amount is zero, add up the transaction to set it.
+			// If charge amount is not set, add up the transaction to set it.
 			if (shipment.getChargeAmount() == null) {
-				long total = 0;
-				for (Entry entry : shipment.getTransaction().getEntryCollection()) {
-					total += entry.getAmount();
-				}
-				shipment.setChargeAmount(-total);
+				shipment.setCalculatedChargeAmount();
 			}
 		}
 
 		viewer.setInput(orders.toArray(new AmazonOrder[0]));
-	}
-
-	private MatchResults doMatchingFromClipboard(DocumentMatcher matcher) {
-		Display display = Display.getCurrent();
-		Clipboard clipboard = new Clipboard(display);
-		String plainText = (String)clipboard.getContents(TextTransfer.getInstance());
-		clipboard.dispose();        
-
-		MatchResults bindings = matcher.process(plainText);
-
-		return bindings;
-	}
-
-	private DocumentMatcher createMatcherFromResource(String resourceName) {
-		ClassLoader classLoader = getClass().getClassLoader();
-		URL resource = classLoader.getResource(resourceName);
-		try (InputStream txrInputStream = resource.openStream()) {
-			return new DocumentMatcher(txrInputStream, "UTF-8");
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new RuntimeException(e);
-		}
 	}
 
 	private Control createDefaultAccountsArea(Composite parent) {
@@ -1466,7 +1387,7 @@ public class AmazonImportView extends ViewPart {
 						return order.getOrderNumber();
 					} else if (element instanceof AmazonShipment) {
 						AmazonShipment shipment = (AmazonShipment)element;
-						if (shipment.returned) {
+						if (shipment.isReturn()) {
 							return "Returned item";
 						} else if (shipment.getExpectedDate() != null) {
 							return "Expected: " + shipment.getExpectedDate();
@@ -1479,7 +1400,7 @@ public class AmazonImportView extends ViewPart {
 						}
 					} else if (element instanceof AmazonOrderItem) {
 						AmazonOrderItem item = (AmazonOrderItem)element;
-						return item.getEntry().getAmazonDescription();
+						return item.getUnderlyingItem().getAmazonDescription();
 					} else {
 						return null;
 					}
@@ -1495,7 +1416,7 @@ public class AmazonImportView extends ViewPart {
 			public void update(ViewerCell cell) {
 				if (cell.getElement() instanceof AmazonOrderItem) {
 					AmazonOrderItem item = (AmazonOrderItem)cell.getElement();
-					String text = item.getEntry().getAsinOrIsbn();
+					String text = item.getUnderlyingItem().getAsinOrIsbn();
 					cell.setText(text);
 				}
 			}
@@ -1510,7 +1431,7 @@ public class AmazonImportView extends ViewPart {
 			public void update(ViewerCell cell) {
 				if (cell.getElement() instanceof AmazonOrderItem) {
 					AmazonOrderItem item = (AmazonOrderItem)cell.getElement();
-					String text = item.getEntry().getImageCode();
+					String text = item.getUnderlyingItem().getImageCode();
 					cell.setText(text);
 				}
 			}
@@ -1555,10 +1476,11 @@ public class AmazonImportView extends ViewPart {
 					stackLayout.topControl = shipmentControls;
 				} else if (selObs.getValue() instanceof AmazonOrderItem) {
 					AmazonOrderItem item = (AmazonOrderItem)selObs.getValue();
-
+					ItemUpdater item2 = (ItemUpdater)item.getUnderlyingItem();
+					
 					stackLayout.topControl = itemControls;
 
-					amazonEntry.setValue(item.getEntry().getBaseObject());
+					amazonEntry.setValue(item2.getEntry().getBaseObject());
 				} else {
 					stackLayout.topControl = null;
 				}
@@ -1598,8 +1520,7 @@ public class AmazonImportView extends ViewPart {
 					orderControl.setText(order.getOrderNumber());
 					orderDateControl.setDate(order.getOrderDate());
 
-					Currency currency = session.getCurrencyForCode("GBP");
-					orderAmountControl.setText(currency.format(order.getOrderTotal()));
+					orderAmountControl.setText(currencyFormatter.format(order.getOrderTotal()));
 				}
 			}
 		});
@@ -1635,9 +1556,8 @@ public class AmazonImportView extends ViewPart {
 					expectedDateControl.setText(shipment.getExpectedDate() == null ? "" : shipment.getExpectedDate());
 					deliveryDateControl.setDate(shipment.getDeliveryDate());
 
-					if (shipment.postageAndPackagingEntry != null) {
-						Currency currency = session.getCurrencyForCode("GBP");
-						postageAndPackagingControl.setText(currency.format(shipment.postageAndPackagingEntry.getAmount()));
+					if (shipment.getPostageAndPackaging() != 0) {
+						postageAndPackagingControl.setText(currencyFormatter.format(shipment.getPostageAndPackaging()));
 					} else {
 						postageAndPackagingControl.setText("");
 					}
@@ -1692,16 +1612,15 @@ public class AmazonImportView extends ViewPart {
 						orderControl.setText(order.getOrderNumber());
 						orderDateControl.setDate(order.getOrderDate());
 
-						Currency currency = session.getCurrencyForCode("GBP");
-						orderAmountControl.setText(currency.format(order.getOrderTotal()));
+						orderAmountControl.setText(currencyFormatter.format(order.getOrderTotal()));
 
 						AmazonShipment shipment = order.getShipments().get(0);
 
 						expectedDateControl.setText(shipment.getExpectedDate() == null ? "" : shipment.getExpectedDate());
 						deliveryDateControl.setDate(shipment.getDeliveryDate());
 
-						if (shipment.postageAndPackagingEntry != null) {
-							postageAndPackagingControl.setText(currency.format(shipment.postageAndPackagingEntry.getAmount()));
+						if (shipment.getPostageAndPackaging() != 0) {
+							postageAndPackagingControl.setText(currencyFormatter.format(shipment.getPostageAndPackaging()));
 						} else {
 							postageAndPackagingControl.setText("");
 						}
@@ -1785,7 +1704,8 @@ public class AmazonImportView extends ViewPart {
 					Object selectedElement = selection.getFirstElement();
 					if (selectedElement instanceof AmazonOrderItem) {
 						AmazonOrderItem selectedItem = (AmazonOrderItem)selectedElement;
-						Image image = selectedItem.getImage(getViewSite().getShell().getDisplay());
+						ItemUpdater selectedItem2 = (ItemUpdater)selectedItem.getUnderlyingItem();
+						Image image = selectedItem2.getImage(getViewSite().getShell().getDisplay());
 						if (image != null) {
 							int width = 90;
 							int height = 90;
@@ -1924,7 +1844,8 @@ public class AmazonImportView extends ViewPart {
 						if (selectedElement instanceof AmazonOrderItem) {
 							AmazonOrderItem selectedItem = (AmazonOrderItem)selectedElement;
 
-							selectedItem.getEntry().setAsinOrIsbn(asin);
+							ItemUpdater selectedItem2 = (ItemUpdater)selectedItem.getUnderlyingItem();
+							selectedItem2.getEntry().setAsinOrIsbn(asin);
 						}
 					}
 
@@ -1974,7 +1895,9 @@ public class AmazonImportView extends ViewPart {
 		if (selectedElement instanceof AmazonOrderItem) {
 			AmazonOrderItem selectedItem = (AmazonOrderItem)selectedElement;
 
-			selectedItem.getEntry().setImageCode(imageCode);
+			ItemUpdater selectedItem2 = (ItemUpdater)selectedItem.getUnderlyingItem();
+
+			selectedItem2.getEntry().setImageCode(imageCode);
 
 			/*
 			 * See http://superuser.com/questions/123911/how-to-get-the-full-
@@ -1997,7 +1920,7 @@ public class AmazonImportView extends ViewPart {
 				// We must go thru the wrapper item, do not set
 				// directly on the entry, because the wrapper caches
 				// the image.
-				selectedItem.setImage(blob);
+				selectedItem2.setImage(blob);
 
 				canvas.redraw();
 
