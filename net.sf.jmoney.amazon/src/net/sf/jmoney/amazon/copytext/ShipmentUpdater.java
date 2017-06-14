@@ -48,7 +48,7 @@ public class ShipmentUpdater implements IShipmentUpdater {
 	/**
 	 * The account to which the charge for this shipment is to be made.
 	 * If the data necessary to determine the account has not yet been
-	 * imported then this will be a default 'unmatched' account.  This
+	 * imported then this will be a default account.  This
 	 * account is never null.
 	 */
 	private Account chargeAccount;

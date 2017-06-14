@@ -28,7 +28,7 @@ public class AmazonOrder {
 	 * @param transaction
 	 * @throws ImportException 
 	 */
-	public AmazonOrder(String orderNumber, IOrderUpdater orderUpdater) throws ImportException {
+	public AmazonOrder(String orderNumber, IOrderUpdater orderUpdater) {
 		this.orderNumber = orderNumber;
 		this.orderUpdater = orderUpdater;
 	}
@@ -75,7 +75,7 @@ public class AmazonOrder {
 	 * @return
 	 * @throws ImportException 
 	 */
-	public AmazonOrderItem createNewItem(String description, String quantityAsString, long itemAmount, ShipmentObject shipmentObject) throws ImportException {
+	public AmazonOrderItem createNewItem(String description, String quantityAsString, long itemAmount, ShipmentObject shipmentObject) {
 		if (shipmentObject.shipment == null) {
 			shipmentObject.shipment = new AmazonShipment(this, orderUpdater.createNewShipmentUpdater());
 			// Is this correct, or do this in setOrderDate?

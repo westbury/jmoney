@@ -55,6 +55,13 @@ public class AmazonShipment {
 
 	public void setPostageAndPackaging(long postageAndPackagingAmount) {
 		updater.setPostageAndPackaging(postageAndPackagingAmount);
+
+		// And don't forget we must keep the transaction balanced.
+	// This assumes no giftcard amount previously was set
+	// TODO this class should be responsible for checking if amount changed....
+		if (!chargeAmountToBeDetermined) {
+			setChargeAmount(getChargeAmount() - postageAndPackagingAmount);
+		}
 	}
 
 	/**
