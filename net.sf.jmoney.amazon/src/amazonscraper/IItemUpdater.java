@@ -20,4 +20,7 @@ public interface IItemUpdater {
 
 	void setQuantity(int quantity);
 
+	/** set if this item is a streamed movie rental or purchase */
+	void setMovie(boolean isMovie);
+
 }

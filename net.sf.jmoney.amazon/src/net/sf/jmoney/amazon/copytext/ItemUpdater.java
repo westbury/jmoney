@@ -30,25 +30,40 @@ public class ItemUpdater implements IItemUpdater {
 	
 	private int quantity;
 
+	private boolean isMovie = false;
+	
 	protected static Pattern descWithQuantityPattern;
 	static {
 		descWithQuantityPattern = Pattern.compile("(.*) x(\\d+)");
 	}
 
-	public ItemUpdater(AmazonEntry entry) {
+	protected static Pattern streamedMoviePattern;
+	static {
+		streamedMoviePattern = Pattern.compile("streamed movie - \"(.*)\"");
+	}
+
+	public ItemUpdater(AmazonEntry entry, AccountFinder accountFinder) {
 		this.entry = entry;
+		this.accountFinder = accountFinder;
 		
 		if (entry.getMemo() == null) {
 			description = "";
 			quantity = 1;
 		} else {
-			Matcher m = descWithQuantityPattern.matcher(entry.getMemo());
+			Matcher m = streamedMoviePattern.matcher(entry.getMemo());
+			if (m.matches()) {
+				description = m.group(1);
+				quantity = 1;
+				isMovie = true;
+			} else {
+			m = descWithQuantityPattern.matcher(entry.getMemo());
 			if (m.matches()) {
 				description = m.group(1);
 				quantity = Integer.parseInt(m.group(2));
 			} else {
 				description = entry.getMemo();
 				quantity = 1;
+			}
 			}
 		}
 	}
@@ -142,8 +157,17 @@ public class ItemUpdater implements IItemUpdater {
 		buildDescription();
 	}
 
+	@Override
+	public void setMovie(boolean isMovie) {
+		this.isMovie = isMovie;
+		buildDescription();
+	}
+
 	private void buildDescription() {
-		if (quantity == 1) {
+		if (isMovie) {
+			assert quantity == 1;
+			entry.setMemo("streamed movie - \"" + description + "\"");
+		} else if (quantity == 1) {
 			entry.setMemo(description);
 		} else {
 			entry.setMemo(description + " x" + quantity);

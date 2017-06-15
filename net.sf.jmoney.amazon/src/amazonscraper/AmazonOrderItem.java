@@ -69,4 +69,8 @@ public class AmazonOrderItem {
 	public AmazonShipment getShipment() {
 		return shipment;
 	}
+
+	public void setMovie(boolean isMovie) {
+		updater.setMovie(isMovie);
+	}
 }

@@ -26,6 +26,13 @@ public class AmazonShipment {
 		this.order = amazonOrder;
 		this.updater = shipmentUpdater;
 
+		/*
+		 * Create items from data that already exists in the accounting database.
+		 */
+		for (IItemUpdater itemUpdater : updater.getItemUpdaters()) {
+			items.add(new AmazonOrderItem(this, itemUpdater));
+		}
+		
 		chargeAmountToBeDetermined = false;
 	}
 

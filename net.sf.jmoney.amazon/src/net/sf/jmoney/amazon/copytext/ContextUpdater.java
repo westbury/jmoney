@@ -71,7 +71,8 @@ public class ContextUpdater implements IContextUpdater {
 			Transaction[] transactions = entriesInOrder.stream().map(entry -> entry.getTransaction()).distinct().toArray(Transaction[]::new);
 			for (Transaction transaction : transactions) {
 				IShipmentUpdater shipmentUpdater = new ShipmentUpdater(transaction, accountFinder, defaultChargeAccount.getValue());
-				order.addShipment(new AmazonShipment(order, shipmentUpdater));
+				final AmazonShipment shipment = new AmazonShipment(order, shipmentUpdater);
+				order.addShipment(shipment);
 			}
 		}
 		return order;

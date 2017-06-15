@@ -1,6 +1,7 @@
 package amazonscraper;
 
 import java.util.Date;
+import java.util.Set;
 
 public interface IShipmentUpdater {
 
@@ -21,5 +22,7 @@ public interface IShipmentUpdater {
 	Long getPostageAndPackaging();
 
 	IItemUpdater createNewItemUpdater(long itemAmount);
+
+	Set<IItemUpdater> getItemUpdaters();
 
 }

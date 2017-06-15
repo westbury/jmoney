@@ -35,6 +35,9 @@ public class AmazonScraperContext {
 	// Lazily created
 	private DocumentMatcher detailsMatcher = null;
 
+	/** Date format used by Amazon on its web pages */
+	private static DateFormat amazonDateFormat = new SimpleDateFormat("d MMM yyyy");
+
 	public IObservableList<AmazonOrder> orders = new WritableList<>();
 
 	public AmazonScraperContext(IContextUpdater contextUpdater) {
@@ -94,8 +97,6 @@ public class AmazonScraperContext {
 	public void pasteOrdersFromClipboard() {
 		MatchResults bindings = fetchOrderBindingsFromClipboard();
 
-		DateFormat dateFormat = new SimpleDateFormat("d MMM yyyy");
-
 		for (MatchResults orderBindings : bindings.getCollections(0)) {
 			String orderDateAsString = orderBindings.getVariable("date").text;
 			String orderNumber = orderBindings.getVariable("ordernumber").text;
@@ -105,7 +106,7 @@ public class AmazonScraperContext {
 
 			Date orderDate;
 			try {
-				orderDate = dateFormat.parse(orderDateAsString);
+				orderDate = amazonDateFormat.parse(orderDateAsString);
 			} catch (ParseException e) {
 				// TODO Return as error to TXR when that is supported???
 				e.printStackTrace();
@@ -130,9 +131,50 @@ public class AmazonScraperContext {
 			
 			for (MatchResults shipmentBindings : orderBindings.getCollections(0)) {
 				String movieName = shipmentBindings.getVariable("moviename").text;
+				boolean isGiftcardPurchase = "true".equals(shipmentBindings.getVariable("giftcardpurchase").text);
+				
 				if (movieName != null) {
-					continue;
-				}
+					// Special case: A movie
+					/*
+					 * All we are given is a movie name, so create a sale with a single
+					 * shipment that has a single item, and set the price to be the
+					 * order total.
+					 */
+					
+					// If the order amount is zero then this is a free movie and we ignore it.
+					// TODO is this correct?  Perhaps a giftcard was used for payment?
+					if (orderTotal == 0) {
+						continue;
+					}
+					
+					ShipmentObject shipmentObject = new ShipmentObject();
+					long signedItemAmount = orderTotal;
+					AmazonOrderItem item = itemBuilder.get(null, movieName, "1", signedItemAmount, shipmentObject);
+					item.setMovie(true);
+					item.setUnitPrice(orderTotal);
+				} else if (isGiftcardPurchase) {
+					// Special case: A purchase of a giftcard
+					// It is unknown if such a purchase can occur with other items in the shipment
+					// or with other shipments for the same order.  Txr assumes giftcard is only
+					// item in the order.
+					/*
+					 * All we are given is a movie name, so create a sale with a single
+					 * shipment that has a single item, and set the price to be the
+					 * order total.
+					 */
+
+					String message = shipmentBindings.getVariable("giftcardmessage").text;
+					String itemAmountAsString = shipmentBindings.getVariable("itemamount").text;
+					String recipientAddress = shipmentBindings.getVariable("recipient").text;
+
+					final long unitPrice = new BigDecimal(itemAmountAsString).scaleByPowerOfTen(2).longValueExact();
+					
+					ShipmentObject shipmentObject = new ShipmentObject();
+					long signedItemAmount = unitPrice;
+					AmazonOrderItem item = itemBuilder.get(null, "gift voucher - " + recipientAddress, "1", signedItemAmount, shipmentObject);
+					item.setUnitPrice(unitPrice);
+				} else {
+					// General purchase
 				
 				String expectedDateAsString = shipmentBindings.getVariable("expecteddate").text;
 				String deliveryDateAsString = shipmentBindings.getVariable("deliverydate").text;
@@ -253,6 +295,7 @@ public class AmazonScraperContext {
 				shipment.setDeliveryDate(deliveryDate);
 				
 				shipment.setReturned(returned);
+				}
 			}
 
 			if (!areAllShipmentsDispatched) {
@@ -417,9 +460,8 @@ public class AmazonScraperContext {
 			return resultDate;
 		}
 
-		DateFormat dateFormat = new SimpleDateFormat("d MMM yyyy");
 		try {
-			return dateFormat.parse(dateAsString);
+			return amazonDateFormat.parse(dateAsString);
 		} catch (ParseException e) {
 			// TODO Return as error to TXR when that is supported???
 			e.printStackTrace();
@@ -448,11 +490,9 @@ public class AmazonScraperContext {
 //			returned = true;
 //		}
 		
-		DateFormat dateFormat = new SimpleDateFormat("d MMM yyyy");
-
 		Date orderDate;
 		try {
-			orderDate = dateFormat.parse(orderDateAsString);
+			orderDate = amazonDateFormat.parse(orderDateAsString);
 		} catch (ParseException e) {
 			// TODO Return as error to TXR when that is supported???
 			e.printStackTrace();

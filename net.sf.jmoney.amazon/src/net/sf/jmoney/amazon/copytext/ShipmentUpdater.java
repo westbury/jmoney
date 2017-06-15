@@ -1,8 +1,8 @@
 package net.sf.jmoney.amazon.copytext;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import amazonscraper.AmazonOrder;
 import amazonscraper.IItemUpdater;
@@ -30,7 +30,7 @@ public class ShipmentUpdater implements IShipmentUpdater {
 	
 	private AccountFinder accountFinder;
 	
-	/**333
+	/**
 	 * null if there is no charge (typically if the order was covered by a gift
 	 * certificate), or if the charge amount has not yet been determined, or if
 	 * the charge entry has been matched to a bank import (so on a statement or
@@ -80,7 +80,7 @@ public class ShipmentUpdater implements IShipmentUpdater {
 
 	private IncomeExpenseAccount promotionAccount;
 
-	private List<IItemUpdater> items = new ArrayList<>();
+	private Set<IItemUpdater> items = new HashSet<>();
 
 
 	/**
@@ -141,7 +141,7 @@ public class ShipmentUpdater implements IShipmentUpdater {
 			} else if (isPromotionEntry(entry)) {
 				promotionEntry = entry;
 			} else {
-				items.add(new ItemUpdater(entry.getExtension(AmazonEntryInfo.getPropertySet(), true)));
+				items.add(new ItemUpdater(entry.getExtension(AmazonEntryInfo.getPropertySet(), true), accountFinder));
 			}
 		}
 		
@@ -450,7 +450,7 @@ public class ShipmentUpdater implements IShipmentUpdater {
 		entry.setAmount(itemAmount);
 		entry.setAccount(defaultPurchaseAccount);
 		AmazonEntry amazonEntry = entry.getExtension(AmazonEntryInfo.getPropertySet(), true);
-		ItemUpdater itemUpdater = new ItemUpdater(amazonEntry);
+		ItemUpdater itemUpdater = new ItemUpdater(amazonEntry, accountFinder);
 		return itemUpdater;
 	}
 
@@ -472,6 +472,11 @@ public class ShipmentUpdater implements IShipmentUpdater {
 		if (total != 0) {
 			throw new RuntimeException("Unbalanced transaction on order " + order.getOrderNumber());
 		}
+	}
+
+	@Override
+	public Set<IItemUpdater> getItemUpdaters() {
+		return items;
 	}
 
 }
