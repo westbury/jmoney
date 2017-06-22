@@ -94,14 +94,14 @@ public class AccountFinder {
 		IncomeExpenseAccount account = null;
 		for (Iterator<IncomeExpenseAccount> iter = session.getIncomeExpenseAccountIterator(); iter.hasNext(); ) {
 			IncomeExpenseAccount eachAccount = iter.next();
-			if (eachAccount.getName().startsWith("Misc U")
+			if (eachAccount.getName().startsWith("Misc Amazon Charges")
 					&& eachAccount.getCommodity(null) == currency) {
 				account = (IncomeExpenseAccount)eachAccount;
 				break;
 			}
 		}
 		if (account == null) {
-			throw new ImportException("No account exists with a name that begins 'Misc U' and has a currency of " + currency.getName() + ".");
+			throw new ImportException("No account exists with a name that begins 'Misc Amazon Charges' and has a currency of " + currency.getName() + ".");
 		}
 		
 		return account;

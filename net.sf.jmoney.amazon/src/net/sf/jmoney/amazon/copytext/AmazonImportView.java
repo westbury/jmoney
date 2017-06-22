@@ -58,6 +58,7 @@ import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.jface.viewers.ViewerCell;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StackLayout;
+import org.eclipse.swt.dnd.Clipboard;
 import org.eclipse.swt.dnd.DND;
 import org.eclipse.swt.dnd.DropTarget;
 import org.eclipse.swt.dnd.DropTargetAdapter;
@@ -112,7 +113,7 @@ import amazonscraper.AmazonOrderItem;
 import amazonscraper.AmazonScraperContext;
 import amazonscraper.AmazonShipment;
 import amazonscraper.IContextUpdater;
-import amazonscraper.UpsupportedImportDataException;
+import amazonscraper.UnsupportedImportDataException;
 import net.sf.jmoney.amazon.AccountFinder;
 import net.sf.jmoney.amazon.AmazonEntryInfo;
 import net.sf.jmoney.amazon.UrlBlob;
@@ -490,18 +491,29 @@ public class AmazonImportView extends ViewPart {
 	}
 
 	private void pasteOrders() throws ImportException {
-		scraperContext.pasteOrdersFromClipboard();
+		String text = getTextFromClipboard();
+		scraperContext.importOrders(text);
 
 		viewer.setInput(scraperContext.orders.toArray(new AmazonOrder[0]));
 	}
 
 	private void pasteDetails() throws ImportException {
 		try {
-			scraperContext.pasteDetailsFromClipboard();
+			String text = getTextFromClipboard();
+			scraperContext.importDetails(text);
 			viewer.setInput(scraperContext.orders.toArray(new AmazonOrder[0]));
-		} catch (UpsupportedImportDataException e) {
+		} catch (UnsupportedImportDataException e) {
 			throw new ImportException("Import of details failed.", e);
 		}
+	}
+
+	private String getTextFromClipboard() {
+		Display display = Display.getCurrent();
+		Clipboard clipboard = new Clipboard(display);
+		String plainText = (String)clipboard.getContents(TextTransfer.getInstance());
+		clipboard.dispose();        
+
+		return plainText;
 	}
 
 	private Control createDefaultAccountsArea(Composite parent) {
@@ -656,7 +668,7 @@ public class AmazonImportView extends ViewPart {
 						}
 					} else if (element instanceof AmazonOrderItem) {
 						AmazonOrderItem item = (AmazonOrderItem)element;
-						return item.getUnderlyingItem().getAmazonDescription();
+						return item.getAmazonDescription();
 					} else {
 						return null;
 					}

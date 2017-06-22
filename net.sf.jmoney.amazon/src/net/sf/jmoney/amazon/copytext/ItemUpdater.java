@@ -106,8 +106,13 @@ public class ItemUpdater implements IItemUpdater {
 	}
 
 	@Override
-	public long getAmount() {
+	public long getNetCost() {
 		return entry.getAmount();
+	}
+
+	@Override
+	public void setNetCost(long itemPrice) {
+		entry.setAmount(itemPrice);
 	}
 
 	@Override

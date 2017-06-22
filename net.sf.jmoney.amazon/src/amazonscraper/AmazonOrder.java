@@ -70,12 +70,12 @@ public class AmazonOrder {
 	 * Creates a new item in the datastore
 	 * 
 	 * @param description
-	 * @param itemAmount
+	 * @param netCost
 	 * @param shipmentObject
 	 * @return
 	 * @throws ImportException 
 	 */
-	public AmazonOrderItem createNewItem(String description, String quantityAsString, long itemAmount, ShipmentObject shipmentObject) {
+	public AmazonOrderItem createNewItem(String description, long netCost, ShipmentObject shipmentObject) {
 		if (shipmentObject.shipment == null) {
 			shipmentObject.shipment = new AmazonShipment(this, orderUpdater.createNewShipmentUpdater());
 			// Is this correct, or do this in setOrderDate?
@@ -85,13 +85,15 @@ public class AmazonOrder {
 			shipments.add(shipmentObject.shipment);
 		}
 		
-		IItemUpdater itemUpdater = shipmentObject.shipment.getShipmentUpdater().createNewItemUpdater(itemAmount);
-		if (quantityAsString != null) {
-			itemUpdater.setQuantity(Integer.parseInt(quantityAsString));
-		}
-		itemUpdater.setDescription(description);
+		IItemUpdater itemUpdater = shipmentObject.shipment.getShipmentUpdater().createNewItemUpdater(netCost);
+		
 		itemUpdater.setOrderNumber(orderNumber);
 		AmazonOrderItem item = new AmazonOrderItem(shipmentObject.shipment, itemUpdater);
+		
+		// Must be set here, not in updater, so we can be more sure we have it even
+		// if the updater does not process it.
+		item.setAmazonDescription(description);
+		
 		shipmentObject.shipment.addItem(item);
 		return item;
 	}

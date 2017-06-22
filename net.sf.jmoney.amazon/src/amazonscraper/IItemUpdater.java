@@ -2,7 +2,17 @@ package amazonscraper;
 
 public interface IItemUpdater {
 
-	long getAmount();
+	/**
+	 * @return the price for the given quantity of the item,
+	 * being the unit price multiplied by the quantity
+	 */
+	long getNetCost();
+
+	/**
+	 * @param itemPrice the price for the given quantity of the item,
+	 * being the unit price multiplied by the quantity
+	 */
+	void setNetCost(long itemPrice);
 
 	String getAmazonDescription();
 

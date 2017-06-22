@@ -11,6 +11,7 @@ import net.sf.jmoney.amazon.AccountFinder;
 import net.sf.jmoney.amazon.AmazonEntry;
 import net.sf.jmoney.amazon.AmazonEntryInfo;
 import net.sf.jmoney.importer.MatchingEntryFinder;
+import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
 import net.sf.jmoney.importer.wizards.ImportException;
 import net.sf.jmoney.isolation.ReferenceViolationException;
 import net.sf.jmoney.model2.Account;
@@ -70,6 +71,12 @@ public class ShipmentUpdater implements IShipmentUpdater {
 	 */
 	Entry promotionEntry = null;
 
+	/** 
+	 * non-null only if an 'import fees deposit' was charged or refunded to
+	 * this shipment
+	 */
+	Entry importFeesDepositEntry = null;
+
 	private IncomeExpenseAccount postageAndPackagingAccount;
 
 	private IncomeExpenseAccount unmatchedAccount;
@@ -79,6 +86,8 @@ public class ShipmentUpdater implements IShipmentUpdater {
 	private BankAccount giftcardAccount;
 
 	private IncomeExpenseAccount promotionAccount;
+
+	private IncomeExpenseAccount importFeesDepositAccount;
 
 	private Set<IItemUpdater> items = new HashSet<>();
 
@@ -105,6 +114,7 @@ public class ShipmentUpdater implements IShipmentUpdater {
 		defaultPurchaseAccount = accountFinder.findDefaultPurchaseAccount();
 		giftcardAccount = accountFinder.findGiftcardAccount();
 		promotionAccount = accountFinder.findMiscellaneousAccount();
+		importFeesDepositAccount = accountFinder.findMiscellaneousAccount();
 	}
 	
 	/**
@@ -127,6 +137,7 @@ public class ShipmentUpdater implements IShipmentUpdater {
 			defaultPurchaseAccount = accountFinder.findDefaultPurchaseAccount();
 			giftcardAccount = accountFinder.findGiftcardAccount();
 			promotionAccount = accountFinder.findMiscellaneousAccount();
+			importFeesDepositAccount = accountFinder.findMiscellaneousAccount();
 		} catch (ImportException e) {
 			throw new RuntimeException(e);
 		}
@@ -140,6 +151,8 @@ public class ShipmentUpdater implements IShipmentUpdater {
 				giftcardEntry = entry;
 			} else if (isPromotionEntry(entry)) {
 				promotionEntry = entry;
+			} else if (isImportFeesDepositEntry(entry)) {
+				importFeesDepositEntry = entry;
 			} else {
 				items.add(new ItemUpdater(entry.getExtension(AmazonEntryInfo.getPropertySet(), true), accountFinder));
 			}
@@ -163,9 +176,13 @@ public class ShipmentUpdater implements IShipmentUpdater {
 	}
 
 	private boolean isPromotionEntry(Entry entry) {
-		// TODO is this test adequate given that we may be using
-		// a general purpose miscellanous account for the promotional discounts?
-		return entry.getAccount() == promotionAccount;
+		return entry.getAccount() == promotionAccount
+				&& entry.getMemo().startsWith("Amazon promotional discount");
+	}
+
+	private boolean isImportFeesDepositEntry(Entry entry) {
+		return entry.getAccount() == importFeesDepositAccount
+				&& entry.getMemo().startsWith("Amazon import fees deposit");
 	}
 
 	@Override
@@ -215,6 +232,16 @@ public class ShipmentUpdater implements IShipmentUpdater {
 
 			matchChargeEntry();
 		}
+	}
+
+	@Override
+	public boolean isChargeAmountFixed() {
+		if (chargeEntry == null) {
+		return false;
+		}
+		
+		return ReconciliationEntryInfo.getUniqueIdAccessor().getValue(chargeEntry) != null
+				|| net.sf.jmoney.reconciliation.ReconciliationEntryInfo.getStatementAccessor().getValue(chargeEntry) != null;
 	}
 
 	public void setGiftcardAmount(long giftcardAmount) {
@@ -436,11 +463,34 @@ public class ShipmentUpdater implements IShipmentUpdater {
 	}
 
 	@Override
-	public Long getPostageAndPackaging() {
+	public long getPostageAndPackaging() {
 		if (postageAndPackagingEntry != null) {
 			return postageAndPackagingEntry.getAmount();
 		} else {
-			return null;
+			return 0;
+		}
+	}
+
+	@Override
+	public long getImportFeesDeposit() {
+		if (importFeesDepositEntry != null) {
+			return importFeesDepositEntry.getAmount();
+		} else {
+			return 0;
+		}
+	}
+
+	@Override
+	public void setImportFeesDeposit(long importFeesDepositAmount) {
+		if (importFeesDepositEntry != null) {
+			if (importFeesDepositEntry.getAmount() != importFeesDepositAmount) {
+				throw new RuntimeException("giftcard amounts mismatch");
+			}
+		} else {
+			importFeesDepositEntry = transaction.createEntry();
+			importFeesDepositEntry.setAccount(importFeesDepositAccount);
+			importFeesDepositEntry.setMemo("Amazon import fees deposit");
+			importFeesDepositEntry.setAmount(importFeesDepositAmount);
 		}
 	}
 

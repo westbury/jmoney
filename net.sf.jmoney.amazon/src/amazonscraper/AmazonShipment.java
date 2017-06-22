@@ -12,7 +12,7 @@ public class AmazonShipment {
 
 	private Date deliveryDate;
 
-	private boolean chargeAmountToBeDetermined;
+	private boolean chargeAmountStale;
 
 	private AmazonOrder order;
 
@@ -22,22 +22,27 @@ public class AmazonShipment {
 
 	private IShipmentUpdater updater;
 
+	private long promotionAmount;
+
+	private long giftcardAmount;
+
 	public AmazonShipment(AmazonOrder amazonOrder, IShipmentUpdater shipmentUpdater) {
 		this.order = amazonOrder;
 		this.updater = shipmentUpdater;
 
+		chargeAmountStale = false;
+		
 		/*
 		 * Create items from data that already exists in the accounting database.
 		 */
 		for (IItemUpdater itemUpdater : updater.getItemUpdaters()) {
 			items.add(new AmazonOrderItem(this, itemUpdater));
 		}
-		
-		chargeAmountToBeDetermined = false;
 	}
 
 	public void addItem(AmazonOrderItem item) {
 		items.add(item);
+		chargeAmountStale = true;
 	}
 	
 	public List<AmazonOrderItem> getItems() {
@@ -62,13 +67,7 @@ public class AmazonShipment {
 
 	public void setPostageAndPackaging(long postageAndPackagingAmount) {
 		updater.setPostageAndPackaging(postageAndPackagingAmount);
-
-		// And don't forget we must keep the transaction balanced.
-	// This assumes no giftcard amount previously was set
-	// TODO this class should be responsible for checking if amount changed....
-		if (!chargeAmountToBeDetermined) {
-			setChargeAmount(getChargeAmount() - postageAndPackagingAmount);
-		}
+		chargeAmountStale = true;
 	}
 
 	/**
@@ -78,7 +77,7 @@ public class AmazonShipment {
 	 * 				this has not been determined
 	 */
 	public Long getChargeAmount() {
-		if (chargeAmountToBeDetermined) {
+		if (chargeAmountStale) {
 			assert updater.getChargeAmount() == 0;
 			return null;
 		} else {
@@ -89,29 +88,19 @@ public class AmazonShipment {
 
 	public void setChargeAmount(long amount) {
 		updater.setChargeAmount(amount);
-		chargeAmountToBeDetermined = false;
+		chargeAmountStale = false;
 	}
 
 	public void setGiftcardAmount(long giftcardAmount) {
+		this.giftcardAmount = giftcardAmount; 
 		updater.setGiftcardAmount(giftcardAmount);
-
-			// And don't forget we must keep the transaction balanced.
-		// This assumes no giftcard amount previously was set
-		// TODO this class should be responsible for checking if amount changed....
-			if (!chargeAmountToBeDetermined) {
-				setChargeAmount(getChargeAmount() + giftcardAmount);
-			}
+		chargeAmountStale = true;
 	}
 
 	public void setPromotionAmount(long promotionAmount) {
+		this.promotionAmount = promotionAmount; 
 		updater.setPromotionAmount(promotionAmount);
-
-			// And don't forget we must keep the transaction balanced.
-		// This assumes no promotion amount previously was set
-		// TODO this class should be responsible for checking if amount changed....
-			if (!chargeAmountToBeDetermined) {
-				setChargeAmount(getChargeAmount() + promotionAmount);
-			}
+		chargeAmountStale = true;
 	}
 
 	public void setLastFourDigitsOfAccount(String lastFourDigits) {
@@ -129,22 +118,60 @@ public class AmazonShipment {
 	}
 
 	public long getPostageAndPackaging() {
-		final Long postageAndPackaging = updater.getPostageAndPackaging();
-		return postageAndPackaging == null ? 0 : postageAndPackaging;
+		return updater.getPostageAndPackaging();
+	}
+
+	public long getImportFeesDeposit() {
+		return updater.getImportFeesDeposit();
+	}
+
+	public long getPromotionAmount() {
+		return promotionAmount;
+	}
+
+	public void setImportFeesDeposit(long importFeesDepositAmount) {
+		updater.setImportFeesDeposit(importFeesDepositAmount);
+		chargeAmountStale = true;
 	}
 
 	public void setCalculatedChargeAmount() {
 		long total = 0;
 		for (AmazonOrderItem item : items) {
-			total += item.getUnitPrice() * item.getQuantity();
+			total += item.getNetCost();
 		}
-		total -= getPostageAndPackaging();
+		total += getPostageAndPackaging();
+		total += getImportFeesDeposit();
+		total -= promotionAmount;
+		total -= giftcardAmount;
+
+		if (updater.isChargeAmountFixed()) {
+			if (-total != updater.getChargeAmount()) {
+				throw new RuntimeException("Can't update the charge amount because it has been matched to other imports (e.g. import from bank).");
+			}
+		} else {
+			setChargeAmount(-total);
+		}
 		
-		setChargeAmount(-total);
+		chargeAmountStale = false;
 	}
 
 	public boolean isReturn() {
 		return returned;
+	}
+
+	/**
+	 * Flushes changes to the underlying datastore.
+	 * <P>
+	 * We need this method because not all changes are immediately reflected in the underlying datastore.
+	 * For example, we don't update the calculated charge amount each time some
+	 * other property's amount changes.  That would prevent us, when the charge amount is fixed, from making changes to
+	 * multiple amounts that together leave the charge amount unchanged.
+	 */
+	public void flush() {
+		// If charge amount is not set, add up the transaction to set it.
+		if (chargeAmountStale) {
+			setCalculatedChargeAmount();
+		}
 	}
 
 }

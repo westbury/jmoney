@@ -60,7 +60,7 @@ public class ContextUpdater implements IContextUpdater {
 	 * @throws ImportException 
 	 */
 	@Override
-	public AmazonOrder createAmazonOrderUpdater(String orderNumber, Date orderDate) {
+	public AmazonOrder createAmazonOrder(String orderNumber, Date orderDate) {
 		Set<AmazonEntry> entriesInOrder = lookupEntriesInOrder(orderNumber, orderDate);
 
 		IOrderUpdater orderUpdater = new OrderUpdater(session, accountFinder, defaultChargeAccount.getValue());

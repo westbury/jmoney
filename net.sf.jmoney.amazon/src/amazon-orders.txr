@@ -77,6 +77,10 @@ Dispatched
 Not yet dispatched
 Delivery estimate: @expecteddate
 @    (or)
+Exchanged
+Your return is complete.
+@(bind exchanged "true")
+@    (or)
 Return complete
 Your return is complete. Your refund has been issued. When will I get my refund? 
 @(bind returned "true")

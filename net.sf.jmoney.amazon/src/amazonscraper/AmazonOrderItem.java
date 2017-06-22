@@ -14,19 +14,38 @@ public class AmazonOrderItem {
 
 	int quantity = 1;
 
-	private long unitPrice;
+	private long netCost;
+
+	private String amazonDescription;
 	
 	public AmazonOrderItem(AmazonShipment shipment, IItemUpdater updater) {
 		this.shipment = shipment;
 		this.updater = updater;
+		
+		this.netCost = updater.getNetCost();
+		this.amazonDescription = updater.getAmazonDescription();
+//???		this.quantity = updater.getQuantity();
 	}
 
-	public void setUnitPrice(long unitPrice) {
-		this.unitPrice = unitPrice;
+	/**
+	 * If the quantity is more than one then this is the
+	 * line item price, ie the unit price times
+	 * the quantity.
+	 */
+	public void setNetCost(long netCost) {
+		this.netCost = netCost;
+		updater.setNetCost(netCost);
 	}
 
-	public long getUnitPrice() {
-		return unitPrice;
+	/**
+	 * If the quantity is more than one then this is the
+	 * line item price, ie the unit price times
+	 * the quantity.
+	 * 
+	 * @return
+	 */
+	public long getNetCost() {
+		return netCost;
 	}
 
 	public void setSoldBy(String soldBy) {
@@ -55,6 +74,7 @@ public class AmazonOrderItem {
 
 	public void setQuantity(int quantity) {
 		this.quantity = quantity;
+		updater.setQuantity(quantity);
 	}
 
 	public int getQuantity() {
@@ -72,5 +92,14 @@ public class AmazonOrderItem {
 
 	public void setMovie(boolean isMovie) {
 		updater.setMovie(isMovie);
+	}
+
+	public String getAmazonDescription() {
+		return amazonDescription;
+	}
+
+	public void setAmazonDescription(String amazonDescription) {
+		this.amazonDescription = amazonDescription;
+		updater.setDescription(amazonDescription);
 	}
 }

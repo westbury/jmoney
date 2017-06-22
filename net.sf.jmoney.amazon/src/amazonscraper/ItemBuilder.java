@@ -16,24 +16,36 @@ class ItemBuilder {
 		preexistingItems = new HashSet<>(items);
 	}
 
-	public AmazonOrderItem get(String asin, String description, String quantityAsString, long itemAmount, ShipmentObject shipmentObject) {
+	public AmazonOrderItem get(String asin, String description, long netCost, ShipmentObject shipmentObject) {
 		// Find the matching entry
 		if (preexistingItems.isEmpty()) {
-			AmazonOrderItem item = order.createNewItem(description, quantityAsString, itemAmount, shipmentObject);
+			AmazonOrderItem item = order.createNewItem(description, netCost, shipmentObject);
 			if (asin != null) {
 				item.getUnderlyingItem().setAsinOrIsbn(asin);
 			}
 			return item;
 		} else {
-			AmazonOrderItem[] matches = preexistingItems.stream().filter(item -> item.getUnderlyingItem().getAmount() == itemAmount).toArray(AmazonOrderItem[]::new);
+			AmazonOrderItem[] matches = preexistingItems.stream().filter(item -> item.getNetCost() == netCost).toArray(AmazonOrderItem[]::new);
 			if (matches.length > 1) {
-				matches = Stream.of(matches).filter(item -> item.getUnderlyingItem().getAmazonDescription().equals(description)).toArray(AmazonOrderItem[]::new);
+				matches = Stream.of(matches).filter(item -> item.getAmazonDescription().equals(description)).toArray(AmazonOrderItem[]::new);
+			} else {
+				/* This may be an overseas order or some other complex order in which we don't
+				 * know the item price.  So try matching on description only.
+				 * We want to match on the sale or return as appropriate so we do check the sign
+				 * of the net cost.   
+				 */
+				if (matches.length == 0) {
+					matches = preexistingItems.stream().filter(item -> item.getAmazonDescription().equals(description) && (item.getNetCost() > 0) == (netCost > 0)).toArray(AmazonOrderItem[]::new);
+				}
 			}
 			if (matches.length != 1) {
 				throw new RuntimeException("Existing transaction for order does not match up.");
 			}
 			AmazonOrderItem matchingItem = matches[0];
 
+			// Need to update item price if overseas processing happened...
+			matchingItem.setNetCost(netCost);
+			
 			/*
 			 * Check the shipment splitting is consistent (i.e. has not changed).
 			 * 

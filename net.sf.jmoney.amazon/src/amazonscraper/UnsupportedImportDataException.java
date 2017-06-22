@@ -30,10 +30,10 @@ package amazonscraper;
  * 
  * @author Nigel
  */
-public class UpsupportedImportDataException extends Exception {
+public class UnsupportedImportDataException extends Exception {
 	private static final long serialVersionUID = 1L;
 
-	public UpsupportedImportDataException(String message) {
+	public UnsupportedImportDataException(String message) {
 		super(message);
 	}
 
