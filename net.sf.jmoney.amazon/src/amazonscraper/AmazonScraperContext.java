@@ -24,7 +24,7 @@ import txr.matchers.MatchResults;
 public class AmazonScraperContext {
 
 	IContextUpdater contextUpdater;
-	
+
 	// Lazily created
 	private DocumentMatcher ordersMatcher = null;
 
@@ -64,7 +64,7 @@ public class AmazonScraperContext {
 		if (orderBindings == null) {
 			throw new RuntimeException("Data does not appear to be a details page.");
 		}
-		
+
 		return orderBindings;
 	}
 
@@ -114,11 +114,11 @@ public class AmazonScraperContext {
 			boolean areAllShipmentsDispatched = true;
 			List<AmazonOrderItem> returnedItems = new ArrayList<>();
 			List<AmazonOrderItem> exchangedItems = new ArrayList<>();
-			
+
 			for (MatchResults shipmentBindings : orderBindings.getCollections(0)) {
 				String movieName = shipmentBindings.getVariable("moviename").text;
 				boolean isGiftcardPurchase = "true".equals(shipmentBindings.getVariable("giftcardpurchase").text);
-				
+
 				if (movieName != null) {
 					// Special case: A movie
 					/*
@@ -126,13 +126,13 @@ public class AmazonScraperContext {
 					 * shipment that has a single item, and set the price to be the
 					 * order total.
 					 */
-					
+
 					// If the order amount is zero then this is a free movie and we ignore it.
 					// TODO is this correct?  Perhaps a giftcard was used for payment?
 					if (orderTotal == 0) {
 						continue;
 					}
-					
+
 					ShipmentObject shipmentObject = new ShipmentObject();
 					long signedItemAmount = orderTotal;
 					AmazonOrderItem item = itemBuilder.get(null, movieName, signedItemAmount, shipmentObject);
@@ -151,7 +151,7 @@ public class AmazonScraperContext {
 					String recipientAddress = shipmentBindings.getVariable("recipient").text;
 
 					long unitPrice = new BigDecimal(itemAmountAsString).scaleByPowerOfTen(2).longValueExact();
-					
+
 					ShipmentObject shipmentObject = new ShipmentObject();
 
 					// TODO what if multiple gift certificates are purchased at one time???
@@ -306,12 +306,12 @@ public class AmazonScraperContext {
 				// made until a shipment is dispatch).
 				// For time being, don't import anything in an order until all shipments
 				// have dispatched.
-				
+
 				// TODO re-factor so such orders are not created in the first place.
-//				orders.remove(order);
-//				continue;
+				//				orders.remove(order);
+				//				continue;
 			}
-			
+
 			for (AmazonOrderItem returnedItem : returnedItems) {
 				/*
 				 * See if the original exists in any shipment.  If it does not, add it
@@ -330,7 +330,7 @@ public class AmazonScraperContext {
 					// Setting a null shipment will cause a new one to be created.
 					originalSaleShipment = null;
 				}
-				
+
 				long itemAmount = -returnedItem.getNetCost();
 				String description = returnedItem.getAmazonDescription();
 
@@ -350,37 +350,122 @@ public class AmazonScraperContext {
 					myShipmentObject.shipment.setExpectedDate("shipment of items later returned");
 					myShipmentObject.shipment.overseas = returnedItem.getShipment().overseas;
 				}
-				
+
 				saleItem.getUnderlyingItem().setIntoReturnedItemAccount();
 				returnedItem.getUnderlyingItem().setIntoReturnedItemAccount();
 			}
 
 			for (AmazonOrderItem exchangedItem : exchangedItems) {
 				/*
-				 * Look for an item that could be the original sale.
+				 * The item marked as 'exchanged' is the original item in the original sale.
+				 * We set the category for this item as 'returned'.
 				 */
-				long itemAmount = -exchangedItem.getNetCost();
+				exchangedItem.getUnderlyingItem().setIntoReturnedItemAccount();
+
+				/*
+				 * We look now for an order in which the replacement item was shipped.
+				 * This order will have an item that matches in price and which also
+				 * has an order total which is too small given the items shipped.
+				 */
+				// TODO really we should only do this if the item was not already
+				// in the returned category. Or perhaps not, as the replacement item
+				// may not have been found the previous time we examined this exchange.
+
+				AmazonOrderItem replacementItem = null;
+
+				long itemAmount = exchangedItem.getNetCost();
 				String soldBy = exchangedItem.getSoldBy();
 
-				ShipmentObject myShipmentObject = new ShipmentObject();
-				AmazonOrderItem originalItemReturn = itemBuilder.get(null, null, itemAmount, myShipmentObject);
-				
-				/*
-				 * If the original item return was just created, we need to find the original item sale
-				 * and copy data across.
-				 */
-				if (originalItemReturn.getUnderlyingItem().getAmazonDescription() == null) {
-					AmazonOrderItem originalItem = contextUpdater.createAmazonItemForMatchingExchange(orderDate, itemAmount, soldBy);
-					if (originalItem != null) {
-						originalItemReturn.setSoldBy(originalItem.getSoldBy());
-						originalItemReturn.setAmazonDescription(originalItem.getAmazonDescription());
-						originalItemReturn.getUnderlyingItem().setAsinOrIsbn(originalItem.getUnderlyingItem().getAsinOrIsbn());
 
-						originalItem.getUnderlyingItem().setIntoReturnedItemAccount();
-					}
+				/* First check orders already in the context for the sale of an item with the
+				same price as this one.  Note that we only look in other orders.
+				 */
+				AmazonOrderItem[] possibleReplacementItems = orders.stream().filter(eachOrder -> (eachOrder != order)).flatMap(eachOrder -> eachOrder.getItems().stream()).filter(eachItem -> eachItem.getNetCost() == itemAmount).toArray(AmazonOrderItem[]::new);
+
+				//				for (AmazonOrder eachOrder : orders) {
+				//					if (eachOrder != order) {
+				//					for (AmazonOrderItem eachItem : eachOrder.getItems()) {
+				//						if (eachItem.getNetCost() == itemAmount) {
+				//							replacementItem = eachItem;
+				//							break;
+				//						}
+				//					}
+				//					}
+				//				}
+
+				// TODO what if there is more than one match????
+
+
+				if (possibleReplacementItems.length == 0) {
+					replacementItem = contextUpdater.createAmazonItemForMatchingExchange(orderDate, itemAmount, soldBy);
+				} else {
+					replacementItem = possibleReplacementItems[0];
 				}
-				
-				originalItemReturn.getUnderlyingItem().setIntoReturnedItemAccount();
+
+				// If we don't find the replacement, no worries.  We simply leave things
+				// as they are.  It should all match if the replacement item order is later
+				// imported because the exchanged item will be in the 'returned items' category.
+				if (replacementItem != null) {
+
+					// Look to see if a 'return' item has already been created in
+					// this shipment.
+
+					AmazonOrderItem[] matchingReturnedItems = replacementItem.getShipment().getItems().stream().filter(item -> item.getNetCost() == -itemAmount).toArray(AmazonOrderItem[]::new);
+					if (matchingReturnedItems.length > 2) {
+						throw new RuntimeException("Messed up transaction");
+					}
+
+					AmazonOrderItem returnOfItem;
+					if (matchingReturnedItems.length == 0) {
+						IItemUpdater returnedItemUpdater = replacementItem.getShipment().getShipmentUpdater().createNewItemUpdater(-itemAmount);
+						returnOfItem = new AmazonOrderItem(replacementItem.getShipment(), returnedItemUpdater);
+						replacementItem.getShipment().addItem(returnOfItem);
+						/*
+						 * As the original item return was just created, we need to find the original item sale
+						 * and copy data across.
+						 */
+
+						//					AmazonOrderItem originalItem = null;
+						//					
+						//					/* First check orders already in the context for the sale of an item with the
+						//					same price as this one.  Note that we only look in other orders.
+						//					*/
+						//					for (AmazonOrder eachOrder : orders) {
+						//						if (eachOrder != order) {
+						//						for (AmazonOrderItem eachItem : eachOrder.getItems()) {
+						//							if (eachItem.getNetCost() == itemAmount) {
+						//								originalItem = eachItem;
+						//								break;
+						//							}
+						//						}
+						//						}
+						//					}
+						//					
+						//					if (originalItem == null) {
+						//						originalItem = contextUpdater.createAmazonItemForMatchingExchange(orderDate, itemAmount, soldBy);
+						//					}
+						//					
+						//					if (originalItem == null) {
+						//						throw new RuntimeException("What do we do now???");
+						//					}
+
+						
+						returnOfItem.setQuantity(-exchangedItem.getQuantity());
+						returnOfItem.setSoldBy(exchangedItem.getSoldBy());
+						returnOfItem.setAmazonDescription(exchangedItem.getAmazonDescription());
+						returnOfItem.getUnderlyingItem().setAsinOrIsbn(exchangedItem.getUnderlyingItem().getAsinOrIsbn());
+						
+						// But order number is the return order
+						returnOfItem.getUnderlyingItem().setOrderNumber(replacementItem.getShipment().getOrder().getOrderNumber());
+					} else {
+						returnOfItem = matchingReturnedItems[0];
+					}
+
+					returnOfItem.getUnderlyingItem().setIntoReturnedItemAccount();
+					
+					// Flush now, because this shipment is not in our order and it may already have been flushed....
+					replacementItem.getShipment().flush();
+				}
 			}
 
 			// Must do this check after returns are processed, because the sale of the return may not otherwise
@@ -388,7 +473,7 @@ public class AmazonScraperContext {
 			if (!itemBuilder.isEmpty()) {
 				throw new RuntimeException("The imported items in the order do not match the previous set of imported items in order " + order.getOrderNumber() + ".  This should not happen and the code cannot cope with this situation.");
 			}
-			
+
 			/*
 			 * Not all changes are immediately reflected in the underlying datastore.
 			 * For example, we don't update the calculated charge amount each time some
@@ -398,7 +483,7 @@ public class AmazonScraperContext {
 			for (AmazonShipment shipment : order.getShipments()) {
 				shipment.flush();
 			}
-			
+
 			if (order.getShipments().isEmpty() && order.getOrderTotal() == 0) {
 				// Probably just a free movie from Amazon Prime or something.
 				// We're not interested in this order here.
@@ -433,12 +518,12 @@ public class AmazonScraperContext {
 		}
 
 		/** The order total as shown in the orders list page */
-//		long orderTotal = new BigDecimal(totalAsString).scaleByPowerOfTen(2).longValueExact();
-		
+		//		long orderTotal = new BigDecimal(totalAsString).scaleByPowerOfTen(2).longValueExact();
+
 		// For foreign orders, must be grand total and not total, because we must add in the
 		// import fees deposit.
 		long orderTotal = new BigDecimal(grandTotalAsString).scaleByPowerOfTen(2).longValueExact();
-		
+
 		long postageAndPackaging = new BigDecimal(postageAndPackagingAsString).scaleByPowerOfTen(2).longValueExact();
 
 		/*
@@ -459,7 +544,7 @@ public class AmazonScraperContext {
 		if (importFeesDepositAsString != null) {
 			System.out.println("overseas");
 		}
-		
+
 		for (MatchResults shipmentBindings : orderBindings.getCollections(0)) {
 			String expectedDateAsString = shipmentBindings.getVariable("expecteddate").text;
 			String deliveryDateAsString = shipmentBindings.getVariable("deliverydate").text;
@@ -480,7 +565,7 @@ public class AmazonScraperContext {
 			ShipmentObject shipmentObject = new ShipmentObject();
 
 			boolean overseasShipment = false;
-			
+
 			for (MatchResults itemBindings : shipmentBindings.getCollections(0)) {
 				String description = itemBindings.getVariable("description").text;
 				String unitPriceAsString = itemBindings.getVariable("itemamount").text;
@@ -490,7 +575,7 @@ public class AmazonScraperContext {
 				boolean overseasItem = "true".equalsIgnoreCase(itemBindings.getVariable("overseas").text);
 
 				overseasShipment |= overseas;
-				
+
 				int itemQuantity = 1;
 				if (quantityAsString != null) {
 					itemQuantity = Integer.parseInt(quantityAsString);
@@ -505,7 +590,7 @@ public class AmazonScraperContext {
 					if (shipmentBindings.getCollections(0).size() > 1) {
 						throw new UnsupportedImportDataException("Can't cope with multiple items in overseas shipment.");
 					}
-					
+
 					long subTotal = new BigDecimal(subTotalAsString).scaleByPowerOfTen(2).longValueExact();
 					itemNetCost = subTotal;
 				}
@@ -567,7 +652,7 @@ public class AmazonScraperContext {
 				// Setting a null shipment will cause a new one to be created.
 				originalSaleShipment = null;
 			}
-			
+
 			long itemAmount = -returnedItem.getNetCost();
 			String description = returnedItem.getAmazonDescription();
 
@@ -586,7 +671,7 @@ public class AmazonScraperContext {
 				 */
 				myShipmentObject.shipment.setExpectedDate("shipment of items later returned");
 				myShipmentObject.shipment.setLastFourDigitsOfAccount(lastFourDigits);
-				
+
 				myShipmentObject.shipment.overseas = overseas;
 			}
 
@@ -601,7 +686,7 @@ public class AmazonScraperContext {
 		if (!areAllShipmentsDispatched) {
 			// Anything to do here?  Or is this a useless check in this case?
 		}
-		
+
 		if (postageAndPackaging != 0) {
 			AmazonShipment[] saleShipments = order.getShipments().stream().filter(shipment -> !shipment.isReturn()).toArray(AmazonShipment[]::new);
 			if (saleShipments.length == 1) {
@@ -665,7 +750,7 @@ public class AmazonScraperContext {
 				throw new UnsupportedImportDataException("Can't cope with this");
 			}
 			AmazonOrderItem item = saleShipment.getItems().get(0);
-	
+
 			/** Total price of all items */
 			long itemTotal = new BigDecimal(subTotalAsString).scaleByPowerOfTen(2).longValueExact();
 
@@ -773,7 +858,7 @@ public class AmazonScraperContext {
 			return amazonDateFormat.parse(dateAsString);
 		} catch (ParseException e) {
 			// TODO we need to decide how to deal with errors like this.
-//			throw new UpsupportedImportDataException("Date given as " + dateAsString + " is not understood.");
+			//			throw new UpsupportedImportDataException("Date given as " + dateAsString + " is not understood.");
 			e.printStackTrace();
 			return null;
 		}

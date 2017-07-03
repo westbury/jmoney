@@ -102,4 +102,8 @@ public class AmazonOrderItem {
 		this.amazonDescription = amazonDescription;
 		updater.setDescription(amazonDescription);
 	}
+
+	public String toString() {
+		return amazonDescription == null ? Long.toString(netCost) : amazonDescription;
+	}
 }

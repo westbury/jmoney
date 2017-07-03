@@ -174,4 +174,8 @@ public class AmazonShipment {
 		}
 	}
 
+	public AmazonOrder getOrder() {
+		return order;
+	}
+
 }

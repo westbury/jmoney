@@ -9,6 +9,7 @@ import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 
 import amazonscraper.AmazonOrder;
+import amazonscraper.AmazonOrderItem;
 import amazonscraper.AmazonShipment;
 import amazonscraper.IContextUpdater;
 import amazonscraper.IOrderUpdater;
@@ -108,6 +109,13 @@ public class ContextUpdater implements IContextUpdater {
 			}
 		}
 		return entriesInOrder;
+	}
+
+	@Override
+	public AmazonOrderItem createAmazonItemForMatchingExchange(Date exchangeDate, long itemAmount, String soldBy) {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException();
+//		return null;
 	}
 
 }
