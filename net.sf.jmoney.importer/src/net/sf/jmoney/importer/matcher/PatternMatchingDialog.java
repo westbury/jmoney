@@ -37,19 +37,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import net.sf.jmoney.fields.AccountControl;
-import net.sf.jmoney.importer.Activator;
-import net.sf.jmoney.importer.model.MemoPattern;
-import net.sf.jmoney.importer.model.MemoPatternInfo;
-import net.sf.jmoney.importer.model.TransactionType;
-import net.sf.jmoney.isolation.ObjectCollection;
-import net.sf.jmoney.isolation.ReferenceViolationException;
-import net.sf.jmoney.model2.Currency;
-import net.sf.jmoney.model2.ExtendablePropertySet;
-import net.sf.jmoney.model2.IncomeExpenseAccount;
-import net.sf.jmoney.model2.ScalarPropertyAccessor;
-import net.sf.jmoney.model2.Session;
-
 import org.eclipse.core.databinding.observable.set.ISetChangeListener;
 import org.eclipse.core.databinding.observable.set.SetChangeEvent;
 import org.eclipse.core.databinding.observable.value.ComputedValue;
@@ -90,6 +77,8 @@ import org.eclipse.jface.viewers.ViewerCell;
 import org.eclipse.jface.viewers.ViewerSorter;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
+import org.eclipse.swt.events.DisposeEvent;
+import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Image;
@@ -106,13 +95,26 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 
+import net.sf.jmoney.fields.AccountControl;
+import net.sf.jmoney.importer.Activator;
+import net.sf.jmoney.importer.model.MemoPattern;
+import net.sf.jmoney.importer.model.MemoPatternInfo;
+import net.sf.jmoney.importer.model.TransactionType;
+import net.sf.jmoney.isolation.ObjectCollection;
+import net.sf.jmoney.isolation.ReferenceViolationException;
+import net.sf.jmoney.model2.Currency;
+import net.sf.jmoney.model2.ExtendablePropertySet;
+import net.sf.jmoney.model2.IncomeExpenseAccount;
+import net.sf.jmoney.model2.ScalarPropertyAccessor;
+import net.sf.jmoney.model2.Session;
+
 /**
  * A dialog that allows the user to see how imported entries will be matched using the account's pattern matching rules.  The user may edit the pattern matching
  * rules in this dialog and see how the matching of the imported entries change.
  *
  * @author Nigel Westbury
  */
-public class PatternMatchingDialog extends Dialog {
+public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 
 	public class ParametersComposite extends UpdatingComposite {
 
@@ -126,7 +128,7 @@ public class PatternMatchingDialog extends Dialog {
 
 		@Override
 		protected void createControls() {
-			MemoPattern pattern = ViewerProperties.<MemoPattern>singleSelection(MemoPattern.class).observe(patternViewer).getValue();
+			MemoPattern pattern = (MemoPattern)ViewerProperties.singleSelection().observe(patternViewer).getValue();
 			String transactionTypeId = MemoPatternInfo.getTransactionTypeIdAccessor().observe(pattern).getValue();
 			
 			TransactionType transType = lookupTransactionType(transactionTypeId);
@@ -136,7 +138,7 @@ public class PatternMatchingDialog extends Dialog {
 
 //			IObservableMap<String, String> transactionParameterValues = pattern.getTransactionParameterValueMap();
 
-			EntryData entryData = ViewerProperties.<EntryData>singleSelection(EntryData.class).observe(entriesViewer).getValue();
+			BaseEntryData entryData = (BaseEntryData)ViewerProperties.<BaseEntryData>singleSelection().observe(entriesViewer).getValue();
 
 			Object [] args = null;
 			
@@ -215,13 +217,13 @@ public class PatternMatchingDialog extends Dialog {
 
 		@Override
 		public Control createControl() {
-			return paramMetadata.createControl(parent, ViewerProperties.<MemoPattern>singleSelection(MemoPattern.class).observe(patternViewer), args);
+			return paramMetadata.createControl(parent, (IObservableValue<MemoPattern>)(Object)ViewerProperties.singleSelection().observe(patternViewer), args);
 		}
 		
 		@Override
 		public boolean equals(Object other) {
-			if (other instanceof TextboxCreator) {
-				return ((TextboxCreator)other).paramMetadata.equals(paramMetadata);
+			if (other instanceof PatternMatchingDialog.TextboxCreator) {
+				return ((PatternMatchingDialog.TextboxCreator)other).paramMetadata.equals(paramMetadata);
 			} else {
 				return false;
 			}
@@ -254,8 +256,8 @@ public class PatternMatchingDialog extends Dialog {
 	public IObservableValue<String[]> args = new ComputedValue<String[]>() {
 		@Override
 		protected String[] calculate() {
-			EntryData entryData = ViewerProperties.<EntryData>singleSelection(EntryData.class).observe(entriesViewer).getValue();
-			MemoPattern pattern = ViewerProperties.<MemoPattern>singleSelection(MemoPattern.class).observe(patternViewer).getValue();
+			BaseEntryData entryData = (BaseEntryData)ViewerProperties.<BaseEntryData>singleSelection().observe(entriesViewer).getValue();
+			MemoPattern pattern = (MemoPattern)ViewerProperties.<MemoPattern>singleSelection().observe(patternViewer).getValue();
 
 			/*
 			 * The pattern may not yet have been entered if the user has just added a new
@@ -263,7 +265,7 @@ public class PatternMatchingDialog extends Dialog {
 			 */
 			if (pattern != null && entryData != null) {
 				Pattern compiledPattern = pattern.getCompiledPattern("memo");
-				Matcher m = compiledPattern.matcher(entryData.getMemo());
+				Matcher m = compiledPattern.matcher(entryData.getTextForRegexMatching());
 				if (m.matches()) {
 					/*
 					 * Group zero is the entire string and the groupCount method
@@ -298,11 +300,11 @@ public class PatternMatchingDialog extends Dialog {
 	 */
 	int nextOrderingIndex;
 
-	private Collection<? extends EntryData> sampleEntries;
+	private Collection<T> sampleEntries;
 
 	private ArrayList<MemoPattern> sortedPatterns;
 
-	private List<ImportEntryProperty> importEntryProperties;
+	private List<ImportEntryProperty<T>> importEntryProperties;
 	
 	private List<TransactionType> applicableTransactionTypes;
 
@@ -319,7 +321,7 @@ public class PatternMatchingDialog extends Dialog {
 	 *            the parent shell
 	 * @param importedEntries
 	 */
-	public PatternMatchingDialog(Shell parentShell, IPatternMatcher matcherInsideTransaction, Collection<? extends EntryData> sampleEntries, List<ImportEntryProperty> importEntryProperties, List<TransactionType> applicableTransactionTypes) {
+	public PatternMatchingDialog(Shell parentShell, IPatternMatcher matcherInsideTransaction, Collection<T> sampleEntries, List<ImportEntryProperty<T>> importEntryProperties, List<TransactionType> applicableTransactionTypes) {
 		super(parentShell);
 		this.sampleEntries = sampleEntries;
 		this.importEntryProperties = importEntryProperties;
@@ -515,31 +517,38 @@ public class PatternMatchingDialog extends Dialog {
 
 		ColumnViewerToolTipSupport.enableFor(entriesViewer);
 
-		// Add the columns
-		TableViewerColumn column1 = new TableViewerColumn(entriesViewer, SWT.LEFT);
-		column1.getColumn().setWidth(40);
-		column1.getColumn().setText("Description");
-		column1.setLabelProvider(new CellLabelProvider() {
-			@Override
-			public void update(ViewerCell cell) {
-				EntryData pattern = (EntryData)cell.getElement();
-				cell.setText(pattern.getDefaultMemo());
-			}
-		});
+		// Add the columns for the input properties that may have patterns
+		for (ImportEntryProperty<T> importEntryProperty : importEntryProperties) {
+			addColumnForExampleInputMatcher(importEntryProperty, "<html>The pattern is a Java regular expression that is matched against the memo in the downloadable file.<br>For each record from the bank, the first row in this table with a matching pattern is used.</html>");
+		}
+		
 
-		// TODO don't hard code this.
-		final Currency currency = account.getBaseObject().getSession().getCurrencyForCode("GBP");
-
-		TableViewerColumn column2 = new TableViewerColumn(entriesViewer, SWT.RIGHT);
-		column2.getColumn().setWidth(30);
-		column2.getColumn().setText("Amount");
-		column2.setLabelProvider(new CellLabelProvider() {
-			@Override
-			public void update(ViewerCell cell) {
-				EntryData pattern = (EntryData)cell.getElement();
-				cell.setText(currency.format(pattern.amount));
-			}
-		});
+		
+		
+//		TableViewerColumn column1 = new TableViewerColumn(entriesViewer, SWT.LEFT);
+//		column1.getColumn().setWidth(40);
+//		column1.getColumn().setText("Description");
+//		column1.setLabelProvider(new CellLabelProvider() {
+//			@Override
+//			public void update(ViewerCell cell) {
+//				BaseEntryData pattern = (BaseEntryData)cell.getElement();
+//				cell.setText(pattern.getDefaultMemo());
+//			}
+//		});
+//
+//		// TODO don't hard code this.
+//		final Currency currency = account.getBaseObject().getSession().getCurrencyForCode("GBP");
+//
+//		TableViewerColumn column2 = new TableViewerColumn(entriesViewer, SWT.RIGHT);
+//		column2.getColumn().setWidth(30);
+//		column2.getColumn().setText("Amount");
+//		column2.setLabelProvider(new CellLabelProvider() {
+//			@Override
+//			public void update(ViewerCell cell) {
+//				BaseEntryData pattern = (BaseEntryData)cell.getElement();
+//				cell.setText(currency.format(pattern.amount));
+//			}
+//		});
 
 		addColumn2(MemoPatternInfo.getOrderingIndexAccessor(), "The pattern index.");
 		addColumn2(MemoPatternInfo.getTransactionTypeIdAccessor(), "The transaction type.");
@@ -594,18 +603,40 @@ public class PatternMatchingDialog extends Dialog {
 			}
 		});
 		for (MemoPattern pattern : account.getPatternCollection()) {
-			pattern.addPropertyChangeListener(new PropertyChangeListener() {
+			final PropertyChangeListener listener = new PropertyChangeListener() {
 				@Override
 				public void propertyChange(PropertyChangeEvent event) {
 					updateSampleEntriesTable();
 					updateErrorMessage();
 				}
+			};
+			entriesViewer.getControl().addDisposeListener(new DisposeListener() {
+				@Override
+				public void widgetDisposed(DisposeEvent e) {
+					pattern.removePropertyChangeListener(listener);
+				}
 			});
+			pattern.addPropertyChangeListener(listener);
 		}
 
 		return table;
 	}
 
+	private void addColumnForExampleInputMatcher(final ImportEntryProperty<T> importEntryProperty, String tooltip) {
+		TableViewerColumn column = new TableViewerColumn(entriesViewer, SWT.LEFT);
+		column.getColumn().setWidth(100);
+		column.getColumn().setText(importEntryProperty.label + " Input");
+		column.getColumn().setToolTipText(tooltip);
+
+		column.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(Object element) {
+				T entryData = (T)element;
+				return importEntryProperty.getCurrentValue(entryData);
+			}
+		});
+	}
+	
 	private Control createPatternMatchingTableControl(Composite parent) {
 		Composite composite = new Composite(parent, SWT.NONE);
 		composite.setLayout(new GridLayout(3, false));
@@ -685,7 +716,7 @@ public class PatternMatchingDialog extends Dialog {
 
 		addColumn(MemoPatternInfo.getOrderingIndexAccessor(), "The pattern index, used in the above imported entries table to indicate the matching pattern.");
 
-		for (ImportEntryProperty importEntryProperty : importEntryProperties) {
+		for (ImportEntryProperty<T> importEntryProperty : importEntryProperties) {
 			addColumn(importEntryProperty, "<html>The pattern is a Java regular expression that is matched against the memo in the downloadable file.<br>For each record from the bank, the first row in this table with a matching pattern is used.</html>");
 		}
 		
@@ -740,8 +771,13 @@ public class PatternMatchingDialog extends Dialog {
 		} catch (PatternSyntaxException e) {
 			return "The regex pattern is not valid: " + e.getDescription();
 		}
+		
+		String typeId = pattern.getTransactionTypeId();
+		if (typeId == null) {
+			return "Transaction type has not been selected";
+		}
 
-		if (pattern.getAccount() == null) {
+		if (typeId.equals("basic") && pattern.getAccount() == null) {
 			return "No account has been entered";
 		}
 
@@ -763,7 +799,7 @@ public class PatternMatchingDialog extends Dialog {
 		column.setLabelProvider(new ColumnLabelProvider() {
 			@Override
 			public String getText(Object element) {
-				EntryData entryData = (EntryData)element;
+				BaseEntryData entryData = (BaseEntryData)element;
 
 				for (MemoPattern pattern: sortedPatterns) {
 					/*
@@ -844,7 +880,7 @@ public class PatternMatchingDialog extends Dialog {
 		column.setLabelProvider(new ColumnLabelProvider() {
 			@Override
 			public String getText(Object element) {
-				EntryData entryData = (EntryData)element;
+				BaseEntryData entryData = (BaseEntryData)element;
 
 				MemoPattern matchingPattern = null;
 				Object [] args = null;

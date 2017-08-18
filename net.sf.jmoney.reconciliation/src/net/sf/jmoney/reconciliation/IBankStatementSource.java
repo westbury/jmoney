@@ -61,7 +61,7 @@ public interface IBankStatementSource {
 	 */
 	Collection<EntryData> importEntries(Shell shell, CurrencyAccount account, Date defaultStartDate, Date defaultEndDate);
 
-	ImportEntryProperty[] getImportEntryProperties();
+	List<ImportEntryProperty<EntryData>> getImportEntryProperties();
 
 	List<TransactionType> getApplicableTransactionTypes();
 }

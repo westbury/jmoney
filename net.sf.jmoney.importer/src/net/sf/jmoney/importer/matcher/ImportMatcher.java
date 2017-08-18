@@ -3,32 +3,28 @@ package net.sf.jmoney.importer.matcher;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.model.MemoPattern;
-import net.sf.jmoney.importer.model.PatternMatcherAccount;
-import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
 import net.sf.jmoney.importer.model.TransactionType;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
 
-public class ImportMatcher {
+public class ImportMatcher<T extends BaseEntryData> {
 
 	private IPatternMatcher account;
 
 	private List<MemoPattern> sortedPatterns;
 
-	private List<ImportEntryProperty> importEntryProperties;
+	private List<ImportEntryProperty<T>> importEntryProperties;
 
 	private List<TransactionType> applicableTransactionTypes;
 
-	public ImportMatcher(IPatternMatcher matcherInsideTransaction, List<ImportEntryProperty> importEntryProperties, List<TransactionType> applicableTransactionTypes) {
+	public ImportMatcher(IPatternMatcher matcherInsideTransaction, List<ImportEntryProperty<T>> importEntryProperties, List<TransactionType> applicableTransactionTypes) {
 		this.account = matcherInsideTransaction;
 		this.importEntryProperties = importEntryProperties;
 		this.applicableTransactionTypes = applicableTransactionTypes;
@@ -58,12 +54,12 @@ public class ImportMatcher {
 	 * @param defaultMemo
 	 * @param defaultDescription
 	 */
-	public void matchAndFill(EntryData entryData, Entry entry1, Entry entry2, String defaultMemo, String defaultDescription) {
+	public void matchAndFill(T entryData, Transaction transaction, Entry entry1, String defaultMemo, String defaultDescription) {
    		for (MemoPattern pattern: sortedPatterns) {
    			
 			boolean unmatchedFound = false;
 			Object [] args = null;
-			for (ImportEntryProperty importEntryProperty : importEntryProperties) {
+			for (ImportEntryProperty<T> importEntryProperty : importEntryProperties) {
 				String importEntryPropertyValue = importEntryProperty.getCurrentValue(entryData);
 				Pattern compiledPattern = pattern.getCompiledPattern(importEntryProperty.id);
 
@@ -104,8 +100,8 @@ public class ImportMatcher {
    						break;
    					}
    				}
-
-   				transactionType.createTransaction(entry1, entry2, pattern, args);
+ 
+   				transactionType.createTransaction(transaction, entry1, entryData, pattern, args);
 
    				break;
    			}
@@ -119,13 +115,20 @@ public class ImportMatcher {
 		 * example, in the Paypal import because the default account depends on
 		 * the currency.
 		 */
-   		if (entry2.getAccount() == null) {
-   			entry2.setAccount(account.getDefaultCategory());
-   			if (entry1 != null) {
-   				entry1.setMemo(defaultMemo == null ? null : convertToMixedCase(defaultMemo));
-   			}
-			entry2.setMemo(defaultDescription == null ? null : convertToMixedCase(defaultDescription));
-   		}
+//   		if (entry2.getAccount() == null) {
+//   			entry2.setAccount(account.getDefaultCategory());
+//   			if (entry1 != null) {
+//   				entry1.setMemo(defaultMemo == null ? null : convertToMixedCase(defaultMemo));
+//   			}
+//			entry2.setMemo(defaultDescription == null ? null : convertToMixedCase(defaultDescription));
+//   		}
+
+		entry1.setMemo(defaultMemo == null ? null : convertToMixedCase(defaultMemo));
+
+		Entry otherEntry = transaction.createEntry();
+		otherEntry.setAccount(account.getDefaultCategory());
+		otherEntry.setMemo(defaultDescription == null ? null : convertToMixedCase(defaultDescription));
+		otherEntry.setAmount(-entryData.amount);
 	}
 
 	/**
@@ -213,7 +216,7 @@ public class ImportMatcher {
 	 * @param ourEntries a set of entries that have been added in this import up to now, being a read-only set
 	 * @return the entry for this transaction.
 	 */
-	public Entry process(net.sf.jmoney.importer.matcher.EntryData entryData, Session session, final Set<Entry> ourEntries) {
+	public Entry process(T entryData, Session session, final Set<Entry> ourEntries) {
 		// Fill the fields from the entry.  This is for convenience
 		// so other places just use the EntryData fields.  This needs
 		// cleaning up.
@@ -227,38 +230,18 @@ public class ImportMatcher {
 		// TODO auto-matching should be done earlier if other processes/imports
 		// are putting entries into the Paypal accounts.
 		if (entryData.entry == null) {
-		/*
-		 * First we try auto-matching.
-		 *
-		 * If we have an auto-match then we don't have to create a new
-		 * transaction at all. We just update a few properties in the
-		 * existing entry.
-		 */
-		Date importedDate = (entryData.valueDate != null)
-		? entryData.valueDate
-				: entryData.clearedDate;
-
-		MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
-			@Override
-			protected boolean doNotConsiderEntryForMatch(Entry entry) {
-				/*
-				 * If this given entry is in our map then it means we have just added it.  That means we have multiple identical
-				 * entries in the import file.  In that case we want to be sure that we keep the multiple entries as they are
-				 * genuine duplicates.
-				 * 
-				 * 'already matched' means don't consider this prior entry when looking for entries that might match this entry.
-				 */
-				return ourEntries.contains(entry) || ReconciliationEntryInfo.getUniqueIdAccessor().getValue(entry) != null;
+			/*
+			 * First we try auto-matching.
+			 *
+			 * If we have an auto-match then we don't have to create a new
+			 * transaction at all. We just update a few properties in the
+			 * existing entry.
+			 */
+			Entry matchedEntry = entryData.findMatch(account.getBaseObject(), 5, ourEntries);	
+			if (matchedEntry != null) {
+				entryData.setDataIntoExistingEntry(matchedEntry);
+				return matchedEntry;
 			}
-		};
-		Entry matchedEntry = matchFinder.findMatch(account.getBaseObject(), entryData.amount, importedDate, 5, entryData.check);
-		if (matchedEntry != null) {
-			matchedEntry.setValuta(importedDate);
-			matchedEntry.setCheck(entryData.check);
-			// TODO is this line correct?
-			ReconciliationEntryInfo.getUniqueIdAccessor().setValue(matchedEntry, entryData.uniqueId);
-			return matchedEntry;
-		}
 		}
 		
 		/*
@@ -271,15 +254,13 @@ public class ImportMatcher {
 		 */
 		Transaction transaction;
 		Entry entry1;
-		Entry entry2;
 		if (entryData.entry == null) {
 			transaction = session.createTransaction();
 			entry1 = transaction.createEntry();
-			entry2 = transaction.createEntry();
 			entry1.setAccount(account.getBaseObject());
 			
 			// Set values that don't depend on matching
-			entryData.assignPropertyValues(transaction, entry1, entry2);
+			entryData.assignPropertyValues(transaction, entry1);
 		} else {
 			transaction = entryData.entry.getTransaction();
 			entry2 = entryData.entry;
@@ -293,7 +274,7 @@ public class ImportMatcher {
    		 * Scan for a match in the patterns.  If a match is found,
    		 * use the values for memo, description etc. from the pattern.
    		 */
-		matchAndFill(entryData, entry1, entry2, entryData.getDefaultMemo(), entryData.getDefaultDescription());
+		matchAndFill(entryData, transaction, entry1, entryData.getDefaultMemo(), entryData.getDefaultDescription());
 
    		return entry1;
 	}

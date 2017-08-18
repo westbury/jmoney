@@ -344,22 +344,26 @@ public class ToshlImportWizard extends CsvImportWizard implements IWorkbenchWiza
 				"If entries have already been imported then this import will not create duplicates.";
 	}
 
-	public ImportEntryProperty[] getImportEntryProperties() {
-		return new ImportEntryProperty [] {
-				new ImportEntryProperty("memo", "Memo") {
+	public List<ImportEntryProperty<EntryData>> getImportEntryProperties() {
+		return new ArrayList<ImportEntryProperty<EntryData>>() {
+			private static final long serialVersionUID = 1L;
+
+			{
+				add(new ImportEntryProperty<EntryData>("memo", "Memo") {
 					protected String getCurrentValue(EntryData importEntry) {
 						return importEntry.getMemo();
 					}
-				},
-				new ImportEntryProperty("amount", "Amount") {
+				});
+				add(new ImportEntryProperty<EntryData>("amount", "Amount") {
 					protected String getCurrentValue(EntryData importEntry) {
-						// As we don't have an account accessible that would give us a currency, just format using USD
+						// As we don't have an account accessible that would give us a currency, just format using GBP
 						// TODO There must be a better way...
 						IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)window.getActivePage().getInput();
-						IAmountFormatter formatter = sessionManager.getSession().getCurrencyForCode("USD");
+						IAmountFormatter formatter = sessionManager.getSession().getCurrencyForCode("GBP");
 						return formatter.format(importEntry.amount);
 					}
-				},
+				});
+			}
 		};
 	}
 

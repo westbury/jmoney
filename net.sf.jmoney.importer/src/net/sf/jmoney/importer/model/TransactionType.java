@@ -2,8 +2,10 @@ package net.sf.jmoney.importer.model;
 
 import java.util.List;
 
+import net.sf.jmoney.importer.matcher.BaseEntryData;
 import net.sf.jmoney.importer.matcher.TransactionParamMetadata;
 import net.sf.jmoney.model2.Entry;
+import net.sf.jmoney.model2.Transaction;
 
 public abstract class TransactionType implements Comparable<TransactionType> {
 
@@ -31,6 +33,6 @@ public abstract class TransactionType implements Comparable<TransactionType> {
 
 	public abstract List<TransactionParamMetadata> getParameters();
 
-	public abstract void createTransaction(Entry entry1, Entry entry2, MemoPattern pattern, Object[] args);
+	public abstract void createTransaction(Transaction transaction, Entry entry1, BaseEntryData entryData, MemoPattern pattern, Object[] args);
 	
 }

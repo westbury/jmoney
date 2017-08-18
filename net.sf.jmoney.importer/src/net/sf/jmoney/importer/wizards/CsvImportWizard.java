@@ -23,8 +23,9 @@
 package net.sf.jmoney.importer.wizards;
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
 import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.ParseException;
@@ -34,17 +35,17 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import net.sf.jmoney.importer.Activator;
-import net.sf.jmoney.model2.IDataManagerForAccounts;
-import net.sf.jmoney.model2.Session;
-import net.sf.jmoney.model2.TransactionManagerForAccounts;
-
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.wizard.Wizard;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchWindow;
+
+import net.sf.jmoney.importer.Activator;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
+import net.sf.jmoney.model2.Session;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 
 /**
  * A wizard to import data from a comma-separated file that has been down-loaded
@@ -125,7 +126,7 @@ public abstract class CsvImportWizard extends Wizard {
 
 			startImport(transactionManager);
 
-			reader = getCsvTransactionReader(file);
+			reader = getCsvTransactionReader(new FileReader(file));
 
         	if (processRows(session)) {
         		/*
@@ -138,10 +139,6 @@ public abstract class CsvImportWizard extends Wizard {
         	} else {
         		return false;
         	}
-			
-		} catch (FileNotFoundException e) {
-			// This should not happen because the file dialog only allows selection of existing files.
-			throw new RuntimeException(e);
 		} catch (IOException e) {
 			// This is probably not likely to happen so the default error handling is adequate.
 			throw new RuntimeException(e);
@@ -167,9 +164,9 @@ public abstract class CsvImportWizard extends Wizard {
 	 * @throws IOException
 	 * @throws ImportException
 	 */
-	protected CsvTransactionReader getCsvTransactionReader(File file)
+	protected CsvTransactionReader getCsvTransactionReader(Reader reader)
 			throws IOException, ImportException {
-		return new CsvTransactionReader(file, getExpectedColumns());
+		return new CsvTransactionReader(reader, getExpectedColumns());
 	}
 
 	/**

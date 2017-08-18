@@ -359,15 +359,18 @@ do just the above.  The following is obsolete.
 			MessageDialog.openError(window.getShell(), "QIF file has an ambiguous date format that cannot be guessed from your locale.", e.getLocalizedMessage());
 		}
 	}
-	
-	private ImportEntryProperty [] getImportEntryProperties() {
-		return new ImportEntryProperty [] {
-				new ImportEntryProperty("memo", "Memo") {
-					@Override
+
+	public List<ImportEntryProperty<EntryData>> getImportEntryProperties() {
+		return new ArrayList<ImportEntryProperty<EntryData>>() {
+			private static final long serialVersionUID = 1L;
+
+			{
+				add(new ImportEntryProperty<EntryData>("memo", "Memo") {
 					protected String getCurrentValue(EntryData importEntry) {
 						return importEntry.getMemo();
 					}
-				},
+				});
+			}
 		};
 	}
 

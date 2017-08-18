@@ -1,11 +1,10 @@
 package net.sf.jmoney.importer.wizards;
 
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
 
-import net.sf.jmoney.importer.wizards.CsvImportWizard.ImportedColumn;
 import au.com.bytecode.opencsv.CSVReader;
+import net.sf.jmoney.importer.wizards.CsvImportWizard.ImportedColumn;
 
 public class CsvTransactionReader {
 
@@ -25,8 +24,8 @@ public class CsvTransactionReader {
 	 */
 	private int maximumColumnIndex = -1;
 
-	public CsvTransactionReader(File file, ImportedColumn[] expectedColumns) throws IOException, ImportException {
-		reader = new CSVReader(new FileReader(file));
+	public CsvTransactionReader(Reader underlyingReader, ImportedColumn[] expectedColumns) throws IOException, ImportException {
+		reader = new CSVReader(underlyingReader);
     	rowNumber = 0;
     	
     	String[] headerRow = readHeaderRow();
@@ -77,6 +76,11 @@ public class CsvTransactionReader {
 		return reader.readNext();
 	}
 	
+	protected String[] readNextLine() throws IOException {
+		rowNumber++;
+		return reader.readNext();
+	}
+
 	/**
 	 * This method gets the next row.  It is not normally called
 	 * by derived classes because this class reads each row.  However
@@ -86,38 +90,37 @@ public class CsvTransactionReader {
 	 * @return
 	 * @throws IOException
 	 */
-	final protected void readNext() throws IOException {
+	protected void readNext() throws IOException {
 		do {
-			currentLine = reader.readNext();
-			rowNumber++;
+			currentLine = readNextLine();
 
 			if (currentLine == null) {
 				return;
 			}
-			
-		/*
-		 * If it contains a single empty string then we ignore this line but we don't terminate.
-		 * Nationwide Building Society puts such a line after the header.
-		 */
-		if (currentLine.length == 1 && currentLine[0].isEmpty()) {
-			continue;
-		}
-		
-		// Ameritrade contains this.
-		if (currentLine.length == 1 && currentLine[0].equals("***END OF FILE***")) {
-			currentLine = null; // Indicates end-of-file
-			currentLine = null;
-		}
 
-		/*
-		 * There may be extra columns in the file that we ignore, but if there are
-		 * fewer columns than expected then we can't import the row.
-		 */
-		if (currentLine.length <= maximumColumnIndex) {
-			continue;
-		}
-		
-		break;
+			/*
+			 * If it contains a single empty string then we ignore this line but we don't terminate.
+			 * Nationwide Building Society puts such a line after the header.
+			 */
+			if (currentLine.length == 1 && currentLine[0].isEmpty()) {
+				continue;
+			}
+
+			// Ameritrade contains this.
+			if (currentLine.length == 1 && currentLine[0].equals("***END OF FILE***")) {
+				currentLine = null; // Indicates end-of-file
+				currentLine = null;
+			}
+
+			/*
+			 * There may be extra columns in the file that we ignore, but if there are
+			 * fewer columns than expected then we can't import the row.
+			 */
+			if (currentLine.length <= maximumColumnIndex) {
+				continue;
+			}
+
+			break;
 		} while (true);
 
 	}

@@ -438,16 +438,7 @@ public class OfxImporter {
 
 		PatternMatcherAccount matcherAccount = account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
 
-		/*
-		 * All changes within this dialog are made within a transaction, so canceling
-		 * is trivial (the transaction is simply not committed).
-		 */
-		TransactionManagerForAccounts transactionManager2 = new TransactionManagerForAccounts(accountOutsideTransaction.getDataManager());
-		CapitalAccount accountInTransaction2 = transactionManager.getCopyInTransaction(matcherAccount.getBaseObject());
-		IPatternMatcher patternMatcher = accountInTransaction2.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
-		
-
-		Dialog dialog = new PatternMatchingDialog(window.getShell(), patternMatcher, importedEntries, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
+		Dialog dialog = new PatternMatchingDialog(window.getShell(), matcherAccount, importedEntries, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
 		int returnCode = dialog.open();
 		
 		if (returnCode == Dialog.OK || returnCode == PatternMatchingDialog.SAVE_PATTERNS_ONLY) {
@@ -457,7 +448,7 @@ public class OfxImporter {
 		}
 		
 		if (returnCode == Dialog.OK) {
-			ImportMatcher matcher = new ImportMatcher(patternMatcher, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
+			ImportMatcher matcher = new ImportMatcher(matcherAccount, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
 
 			Set<Entry> ourEntries = new HashSet<Entry>();
 			for (OfxEntryData entryData: importedEntries) {
@@ -687,9 +678,6 @@ public class OfxImporter {
 				firstEntry.setValuta(postedDate);
 				firstEntry.setAmount(amount);
 
-				Entry otherEntry = transaction.createEntry();
-				otherEntry.setAmount(-amount);
-
 		   		/*
 		   		 * Scan for a match in the patterns.  If a match is found,
 		   		 * use the values for memo, description etc. from the pattern.
@@ -708,7 +696,8 @@ public class OfxImporter {
 
 				EntryData entryData = new EntryData();
 				entryData.setMemo(memo);
-				matcher.matchAndFill(entryData, firstEntry, otherEntry, toTitleCase(memo), defaultDescription);
+				entryData.setAmount(amount);
+				matcher.matchAndFill(entryData, transaction, firstEntry, toTitleCase(memo), defaultDescription);
 			} else {
 				// Assume a stock transaction
 
@@ -1147,14 +1136,17 @@ public class OfxImporter {
 		return stock;
 	}
 
-	public ImportEntryProperty[] getImportEntryProperties() {
-		return new ImportEntryProperty [] {
-				new ImportEntryProperty("memo", "Memo") {
+	public List<ImportEntryProperty<EntryData>> getImportEntryProperties() {
+		return new ArrayList<ImportEntryProperty<EntryData>>() {
+			private static final long serialVersionUID = 1L;
+
+			{
+				add(new ImportEntryProperty<EntryData>("memo", "Memo") {
 					protected String getCurrentValue(EntryData importEntry) {
 						return importEntry.getMemo();
 					}
-				},
-				new ImportEntryProperty("amount", "Amount") {
+				});
+				add(new ImportEntryProperty<EntryData>("amount", "Amount") {
 					protected String getCurrentValue(EntryData importEntry) {
 						// As we don't have an account accessible that would give us a currency, just format using USD
 						// TODO There must be a better way...
@@ -1162,7 +1154,8 @@ public class OfxImporter {
 						IAmountFormatter formatter = sessionManager.getSession().getCurrencyForCode("USD");
 						return formatter.format(importEntry.amount);
 					}
-				},
+				});
+			}
 		};
 	}
 

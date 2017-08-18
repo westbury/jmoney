@@ -24,7 +24,9 @@ package net.sf.jmoney.importer.wizards;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,9 +35,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.jface.dialogs.Dialog;
+import org.eclipse.jface.dialogs.IDialogSettings;
+import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.ui.IWorkbenchWindow;
+
 import net.sf.jmoney.associations.model.AccountAssociation;
 import net.sf.jmoney.associations.model.AccountAssociationsExtension;
 import net.sf.jmoney.associations.model.AccountAssociationsInfo;
+import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.importer.matcher.EntryData;
 import net.sf.jmoney.importer.matcher.IPatternMatcher;
@@ -47,17 +55,12 @@ import net.sf.jmoney.importer.model.PatternMatcherAccountInfo;
 import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
 import net.sf.jmoney.importer.model.TransactionType;
 import net.sf.jmoney.importer.model.TransactionTypeBasic;
+import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Account;
-import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
-
-import org.eclipse.jface.dialogs.Dialog;
-import org.eclipse.jface.dialogs.IDialogSettings;
-import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.ui.IWorkbenchWindow;
 
 /**
  * A wizard to import data from a comma-separated file that has been down-loaded
@@ -187,17 +190,19 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 			 * is trivial (the transaction is simply not committed).
 			 */
 			// TODO simplify these three lines...
-			TransactionManagerForAccounts transactionManager = new TransactionManagerForAccounts(accountOutsideTransaction.getDataManager());
-			CapitalAccount accountInTransaction = transactionManager.getCopyInTransaction(matcherAccount.getBaseObject());
-			IPatternMatcher patternMatcher = accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
+//			TransactionManagerForAccounts transactionManager = new TransactionManagerForAccounts(accountOutsideTransaction.getDataManager());
+//			CapitalAccount accountInTransaction = transactionManager.getCopyInTransaction(matcherAccount.getBaseObject());
+//			IPatternMatcher patternMatcher = accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
 
-			Dialog dialog = new PatternMatchingDialog(window.getShell(), patternMatcher, importedEntries, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
+			IPatternMatcher patternMatcher = matcherAccount;
+			
+			Dialog dialog = new PatternMatchingDialog<EntryData>(window.getShell(), patternMatcher, importedEntries, getImportEntryProperties(), getApplicableTransactionTypes());
 			int returnCode = dialog.open();
 			
 			if (returnCode == Dialog.OK || returnCode == PatternMatchingDialog.SAVE_PATTERNS_ONLY) {
 				// All edits are transferred to the model as they are made,
 				// so we just need to commit them.
-				transactionManager.commit("Change Import Options");
+				((TransactionManager)session.getDataManager()).commit("Change Import Options");
 			}
 			
 			if (returnCode == Dialog.OK) {
@@ -220,13 +225,17 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 		return true;
 	}
 
-	public ImportEntryProperty[] getImportEntryProperties() {
-		return new ImportEntryProperty [] {
-				new ImportEntryProperty("memo", "Memo") {
+	public List<ImportEntryProperty<EntryData>> getImportEntryProperties() {
+		return new ArrayList<ImportEntryProperty<EntryData>>() {
+			private static final long serialVersionUID = 1L;
+
+			{
+				add(new ImportEntryProperty<EntryData>("memo", "Memo") {
 					protected String getCurrentValue(EntryData importEntry) {
 						return importEntry.getMemo();
 					}
-				},
+				});
+			}
 		};
 	}
 
@@ -265,6 +274,20 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 	 * present all the entries to the user in a dialog before any are committed.
 	 */
 	public boolean importFile2(File file) {
+		try {
+			return importFile3(new FileReader(file), file.getName());
+		} catch (FileNotFoundException e) {
+			// This should not happen because the file dialog only allows selection of existing files.
+			throw new RuntimeException(e);
+		}
+	}
+	
+	/**
+	 * This is mostly a copy of the method from the base class.  However it is different
+	 * because it collects all the import entries into an array first.  This allows it to
+	 * present all the entries to the user in a dialog before any are committed.
+	 */
+	public boolean importFile3(Reader file, String nameOfReaderSource) {
 
 		IDataManagerForAccounts datastoreManager = (IDataManagerForAccounts)window.getActivePage().getInput();
 		if (datastoreManager == null) {
@@ -300,7 +323,7 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 			/*
 			 * Import the entries using the matcher dialog
 			 */
-			return doImport(transactionManager, file);
+			return doImport(transactionManager, nameOfReaderSource);
 					
 		} catch (FileNotFoundException e) {
 			// This should not happen because the file dialog only allows selection of existing files.
@@ -329,7 +352,7 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 	 * @param file
 	 * @return
 	 */
-	protected boolean doImport(TransactionManagerForAccounts transactionManager, File file) {
+	protected boolean doImport(TransactionManagerForAccounts transactionManager, String fileName) {
 		PatternMatcherAccount matcherAccount = accountInsideTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
 		
 		/**
@@ -346,18 +369,20 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 		 * is trivial (the transaction is simply not committed).
 		 */
 		// TODO simplify these three lines...
-		TransactionManagerForAccounts transactionManager2 = new TransactionManagerForAccounts(accountOutsideTransaction.getDataManager());
-		CapitalAccount accountInTransaction2 = transactionManager2.getCopyInTransaction(matcherAccount.getBaseObject());
-		IPatternMatcher patternMatcher = accountInTransaction2.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
+//		TransactionManagerForAccounts transactionManager2 = new TransactionManagerForAccounts(accountOutsideTransaction.getDataManager());
+//		CapitalAccount accountInTransaction2 = transactionManager2.getCopyInTransaction(matcherAccount.getBaseObject());
+//		IPatternMatcher patternMatcher = accountInTransaction2.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
 		
+		IPatternMatcher patternMatcher = matcherAccount;
+
 		List<TransactionType> applicableTransactionTypes = getApplicableTransactionTypes();
-		Dialog dialog = new PatternMatchingDialog(window.getShell(), patternMatcher, importedEntries, Arrays.asList(getImportEntryProperties()), applicableTransactionTypes);
+		Dialog dialog = new PatternMatchingDialog<EntryData>(window.getShell(), patternMatcher, importedEntries, getImportEntryProperties(), applicableTransactionTypes);
 		int returnCode = dialog.open();
 		
 		if (returnCode == Dialog.OK || returnCode == PatternMatchingDialog.SAVE_PATTERNS_ONLY) {
 			// All edits are transferred to the model as they are made,
 			// so we just need to commit them.
-			transactionManager2.commit("Change Import Options");
+			transactionManager.commit("Change Import Options");
 		}
 		
 		if (returnCode == Dialog.OK) {
@@ -375,7 +400,7 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 			 * have been set and should be in a valid state, so we
 			 * can now commit the imported entries to the datastore.
 			 */
-			String transactionDescription = MessageFormat.format("Import {0}", file.getName());
+			String transactionDescription = MessageFormat.format("Import {0}", fileName);
 			transactionManager.commit(transactionDescription);									
 
 			return true;

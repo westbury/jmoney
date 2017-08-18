@@ -4,21 +4,17 @@ import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
+import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
+import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.PropertyAccessor;
 import net.sf.jmoney.model2.Transaction;
 
-public class EntryData {
-	/**
-	 * If an entry has already been created, it is set here.
-	 * This is more flexible because an import could have information
-	 * about itemized entries (e.g. a Paypal import) in which case
-	 * creating the transaction from the EntryData will not work.
-	 */
-	public Entry entry = null;
-	
+public class EntryData extends BaseEntryData {
+
 	public Date clearedDate = null;
 	public Date valueDate = null;
 	public String check = null;
@@ -26,7 +22,6 @@ public class EntryData {
 	private String type = null;
 	private String name = null;
 	private String payee = null;
-	public long amount = 0;  // Use getter???
 	public String uniqueId = null;
 	private Map<PropertyAccessor, Object> propertyMap = new HashMap<PropertyAccessor, Object>();
 
@@ -76,7 +71,8 @@ public class EntryData {
 	 * @param entry2 the entry whose description and category is to be determined, typically an entry in an
 	 * 					income and expense account, never null
 	 */
-	public void assignPropertyValues(Transaction transaction, Entry entry1, Entry entry2) {
+	@Override
+	public void assignPropertyValues(Transaction transaction, Entry entry1) {
 		if (valueDate == null) {
 			transaction.setDate(clearedDate);
 			entry1.setValuta(clearedDate);
@@ -89,7 +85,6 @@ public class EntryData {
 		ReconciliationEntryInfo.getUniqueIdAccessor().setValue(entry1, uniqueId);
 
 		entry1.setAmount(amount);
-		entry2.setAmount(-amount);
 	}
 
 	@Override
@@ -140,6 +135,8 @@ public class EntryData {
 		text += "amount=" + myAmount;
 		return text;
 	}
+
+	@Override
 	public void fillFromEntry() {
 		valueDate = entry.getTransaction().getDate();
 		clearedDate = entry.getValuta();
@@ -166,6 +163,7 @@ public class EntryData {
 	/**
 	 * The memo if no patterns match
 	 */
+	@Override
 	public String getDefaultMemo() {
 		return memo==null? (name==null?payee: name):memo;
 	}
@@ -173,6 +171,7 @@ public class EntryData {
 	/**
 	 * The description if no patterns match
 	 */
+	@Override
 	public String getDefaultDescription() {
 		return payee == null?(memo==null?name:memo):payee;
 	}
@@ -183,5 +182,44 @@ public class EntryData {
 	
 	public void setEntry(Entry entry) {
 		this.entry = entry;
+	}
+
+	private Date getImportedDate() {
+		return (valueDate != null)
+		? valueDate
+				: clearedDate;
+	}
+	
+	@Override
+	public String getTextForRegexMatching() {
+		return memo;
+	}
+
+	@Override
+	public void setDataIntoExistingEntry(Entry matchedEntry) {
+		matchedEntry.setValuta(getImportedDate());  // ????
+		matchedEntry.setCheck(check);
+		// TODO is this line correct?
+		ReconciliationEntryInfo.getUniqueIdAccessor().setValue(matchedEntry, uniqueId);
+	}
+	@Override
+	public Entry findMatch(Account account, int numberOfDays, Set<Entry> ourEntries) {
+		
+	Date importedDate = getImportedDate();
+	
+	MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
+		@Override
+		protected boolean doNotConsiderEntryForMatch(Entry entry) {
+			/*
+			 * If this given entry is in our map then it means we have just added it.  That means we have multiple identical
+			 * entries in the import file.  In that case we want to be sure that we keep the multiple entries as they are
+			 * genuine duplicates.
+			 * 
+			 * 'already matched' means don't consider this prior entry when looking for entries that might match this entry.
+			 */
+			return ourEntries.contains(entry) || ReconciliationEntryInfo.getUniqueIdAccessor().getValue(entry) != null;
+		}
+	};
+	return matchFinder.findMatch(account, amount, importedDate, 5, check);
 	}
 }

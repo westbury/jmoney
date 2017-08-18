@@ -111,12 +111,11 @@ public class TransactionTypeControlFactory<P, S extends ExtendableObject> extend
 			}
 
 			@Override
-			public String targetToModel(TransactionType transactionType)
-					throws CoreException {
+			public String targetToModel(TransactionType transactionType) {
 				return transactionType.getId();
 			}
 		})
-        .to(ViewersObservables.observeSingleSelection(viewer, TransactionType.class));
+        .to((IObservableValue<TransactionType>)(Object)ViewersObservables.observeSingleSelection(viewer));
 
 		return propertyControl;
     }

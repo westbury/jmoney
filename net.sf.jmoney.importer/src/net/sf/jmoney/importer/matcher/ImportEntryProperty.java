@@ -5,7 +5,7 @@ import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.property.value.ValueProperty;
 import org.eclipse.core.internal.databinding.observable.ConstantObservableValue;
 
-public abstract class ImportEntryProperty extends ValueProperty<EntryData,String> {
+public abstract class ImportEntryProperty<T extends BaseEntryData> extends ValueProperty<T,String> {
 	final String id;
 	
 	final String label;
@@ -28,7 +28,7 @@ public abstract class ImportEntryProperty extends ValueProperty<EntryData,String
 
 	@Override
 	public IObservableValue<String> observe(Realm realm,
-			EntryData source) {
+			T source) {
 		String value = getCurrentValue(source);
 		return new ConstantObservableValue<String>(value, String.class);
 	}
@@ -39,6 +39,6 @@ public abstract class ImportEntryProperty extends ValueProperty<EntryData,String
 	 * @return string to match against the pattern, which may be
 	 * 			empty but cannot be null
 	 */
-	protected abstract String getCurrentValue(EntryData entryData);
+	protected abstract String getCurrentValue(T entryData);
 }
 

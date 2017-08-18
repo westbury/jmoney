@@ -303,7 +303,15 @@ public final class MemoPattern extends ExtendableObject {
    	 
 		if (transactionParameterValues != null) {
 			for (String pair : transactionParameterValues.split("/n|\n")) {
-				String [] parts = pair.split("=");
+				/*
+				 * The second parameter, '2', serves two purposes.  First it ensures
+				 * we don't split to three or more substrings if the value part contains
+				 * an equals.  However it also ensures that we get a value part even if
+				 * it is the empty string, whereas no limit parameter or a limit parameter
+				 * of zero will strip the trailing empty string and leave us with an array
+				 * of length 1.
+				 */
+				String [] parts = pair.split("=", 2);
 				String paramId = parts[0];
 				String paramValue = parts[1];
 				transactionParameterValueMap.put(paramId, paramValue);
