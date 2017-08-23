@@ -36,6 +36,9 @@ import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
+import org.eclipse.core.internal.databinding.provisional.bind.IBidiWithStatusConverter;
+import org.eclipse.core.internal.databinding.provisional.bind.IValueWithStatus;
+import org.eclipse.core.internal.databinding.provisional.bind.ValueWithStatus;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -43,6 +46,7 @@ import org.eclipse.core.runtime.preferences.ConfigurationScope;
 import org.eclipse.core.runtime.preferences.DefaultScope;
 import org.eclipse.core.runtime.preferences.IScopeContext;
 import org.eclipse.core.runtime.preferences.InstanceScope;
+import org.eclipse.jface.databinding.fieldassist.ControlStatusDecoration;
 import org.eclipse.jface.databinding.preference.PreferenceObservables;
 import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
@@ -98,7 +102,7 @@ public class DateControlFactory<S extends ExtendableObject> implements IProperty
 	private Control createPropertyControlInternal(Composite parent, IObservableValue<Date> modelDateObservable) {
         DateControl propertyControl = new DateControl(parent);
 
-    	IBidiConverter<Date,String> dateToText = new IBidiConverter<Date,String>() {
+    	IBidiWithStatusConverter<Date,String> dateToText = new IBidiWithStatusConverter<Date,String>() {
 			@Override
 			public String modelToTarget(Date date) {
 		    	if (date == null) {
@@ -109,19 +113,22 @@ public class DateControlFactory<S extends ExtendableObject> implements IProperty
 			}
 
 			@Override
-			public Date targetToModel(String text) throws CoreException {
+			public IValueWithStatus<Date> targetToModel(String text) {
 		        try {
-		        	return observeDateFormat().getValue().parse(text);
+		        	Date result = observeDateFormat().getValue().parse(text);
+		        	return ValueWithStatus.ok(result);
 		        } catch (IllegalArgumentException e) {
-					IStatus status = new Status(Status.ERROR, JMoneyPlugin.PLUGIN_ID, "'" + text + "' is not a valid date.");
-					throw new CoreException(status);
+		        	return ValueWithStatus.error("'" + text + "' is not a valid date." + e.getLocalizedMessage());
 		        }
 			}
 		};
 
+		ControlStatusDecoration statusDecoration = new ControlStatusDecoration(
+				propertyControl.textControl, SWT.LEFT | SWT.TOP);
+
 		Bind.twoWay(modelDateObservable)
 		.convertWithTracking(dateToText)
-		.to(SWTObservables.observeText(propertyControl.textControl, SWT.Modify));
+		.to(SWTObservables.observeText(propertyControl.textControl, SWT.Modify), statusDecoration::update);
 
 		Bind.bounceBack(dateToText)
 		.to(SWTObservables.observeText(propertyControl.textControl, SWT.FocusOut));

@@ -2,23 +2,27 @@ package net.sf.jmoney.stocks.pages;
 
 import java.math.BigDecimal;
 
-import net.sf.jmoney.entrytable.CellFocusListener;
-import net.sf.jmoney.entrytable.ICellControl2;
-import net.sf.jmoney.entrytable.IndividualBlock;
-import net.sf.jmoney.entrytable.RowControl;
-import net.sf.jmoney.stocks.model.StockAccount;
-
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.property.value.IValueProperty;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
-import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
+import org.eclipse.core.internal.databinding.provisional.bind.IBidiWithExceptionConverter;
+import org.eclipse.core.internal.databinding.provisional.bind.IBidiWithStatusConverter;
+import org.eclipse.core.internal.databinding.provisional.bind.IValueWithStatus;
+import org.eclipse.core.internal.databinding.provisional.bind.ValueWithStatus;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.jface.databinding.fieldassist.ControlStatusDecoration;
 import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
+
+import net.sf.jmoney.entrytable.CellFocusListener;
+import net.sf.jmoney.entrytable.ICellControl2;
+import net.sf.jmoney.entrytable.IndividualBlock;
+import net.sf.jmoney.entrytable.RowControl;
+import net.sf.jmoney.stocks.model.StockAccount;
 
 public class StockPriceBlock extends
 		IndividualBlock<IObservableValue<StockEntryFacade>> {
@@ -33,7 +37,7 @@ public class StockPriceBlock extends
 	public Control createCellControl(Composite parent, IObservableValue<StockEntryFacade> master, RowControl rowControl) {
 		final Text control = new Text(parent, SWT.RIGHT);
 
-		IBidiConverter<BigDecimal,String> amountToText = new IBidiConverter<BigDecimal,String>() {
+		IBidiWithExceptionConverter<BigDecimal,String> amountToText = new IBidiWithExceptionConverter<BigDecimal,String>() {
 			@Override
 			public String modelToTarget(BigDecimal sharePrice) {
 				if (sharePrice != null) {
@@ -62,9 +66,12 @@ public class StockPriceBlock extends
 			}
 		};
 		
+		ControlStatusDecoration statusDecoration = new ControlStatusDecoration(
+				control, SWT.LEFT | SWT.TOP);
+
 		Bind.twoWay(sharePriceProperty.observeDetail(master))
 		.convertWithTracking(amountToText)
-		.to(SWTObservables.observeText(control, SWT.Modify));
+		.to(SWTObservables.observeText(control, SWT.Modify), statusDecoration::update);
 
 		Bind.bounceBack(amountToText)
 		.to(SWTObservables.observeText(control, SWT.FocusOut));

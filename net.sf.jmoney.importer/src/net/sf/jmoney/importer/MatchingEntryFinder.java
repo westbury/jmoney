@@ -44,7 +44,8 @@ public abstract class MatchingEntryFinder {
 	 * @param numberOfDays the number of days following the given postedDate
 	 * 		to look for the entry (this value is ignored when a check number
 	 * 		is present in which case 20 days are always allowed)
-	 * @param checkNumber
+	 * @param checkNumber the number of the check if this is a check payment
+	 * 			and the check number is known, otherwise null
 	 * @return the matching entry if one is found, otherwise null
 	 */
 	public Entry findMatch(Account account, long amount, Date startSearchDate, int numberOfDays, String checkNumber) {

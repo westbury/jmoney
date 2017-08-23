@@ -35,6 +35,10 @@ import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
+import org.eclipse.core.internal.databinding.provisional.bind.IBidiWithStatusConverter;
+import org.eclipse.core.internal.databinding.provisional.bind.IValueWithStatus;
+import org.eclipse.core.internal.databinding.provisional.bind.ValueWithStatus;
+import org.eclipse.jface.databinding.fieldassist.ControlStatusDecoration;
 import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
@@ -67,27 +71,29 @@ public class UrlControlFactory<S extends ExtendableObject> implements IPropertyC
 			IObservableValue<? extends S> modelObservable) {
         Text control = new Text(parent, SWT.NONE);
 
-    	IBidiConverter<URL,String> integerToStringConverter = new IBidiConverter<URL,String>() {
+    	IBidiWithStatusConverter<URL,String> urlToStringConverter = new IBidiWithStatusConverter<URL,String>() {
 			@Override
 			public String modelToTarget(URL fromValue) {
 	            return (fromValue == null) ? "" : fromValue.toExternalForm();
 			}
 
 			@Override
-			public URL targetToModel(String text) {
+			public IValueWithStatus<URL> targetToModel(String text) {
 				try {
-					return text.trim().isEmpty() ? null : new URL(text);
+					URL url = text.trim().isEmpty() ? null : new URL(text);
+					return ValueWithStatus.ok(url);
 				} catch (MalformedURLException e) {
-					// TODO Throw validation error
-					e.printStackTrace();
-					throw new RuntimeException(e);
+					return ValueWithStatus.error(e.getLocalizedMessage());
 				}
 			}
 		};
 
+		ControlStatusDecoration statusDecoration = new ControlStatusDecoration(
+				control, SWT.LEFT | SWT.TOP);
+
 		Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
-		.convert(integerToStringConverter)
-		.to(SWTObservables.observeText(control, SWT.FocusOut));
+		.convert(urlToStringConverter)
+		.to(SWTObservables.observeText(control, SWT.FocusOut), statusDecoration::update);
 
         return control;
 	}

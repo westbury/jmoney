@@ -22,16 +22,10 @@
 
 package net.sf.jmoney.entrytable;
 
-import net.sf.jmoney.fields.IAmountFormatter;
-import net.sf.jmoney.model2.Commodity;
-import net.sf.jmoney.model2.Currency;
-import net.sf.jmoney.model2.Entry;
-import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.resources.Messages;
-
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
-import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
+import org.eclipse.core.internal.databinding.provisional.bind.IBidiWithStatusConverter;
+import org.eclipse.jface.databinding.fieldassist.ControlStatusDecoration;
 import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusListener;
@@ -40,6 +34,11 @@ import org.eclipse.swt.events.TraverseListener;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
+
+import net.sf.jmoney.fields.IAmountFormatter;
+import net.sf.jmoney.model2.Entry;
+import net.sf.jmoney.model2.EntryInfo;
+import net.sf.jmoney.resources.Messages;
 
 /**
  * Represents a table column that is either the debit or the credit column. Use
@@ -57,11 +56,14 @@ public class DebitAndCreditColumns extends IndividualBlock<IObservableValue<Entr
 
 			IObservableValue<Long> amountObservable = EntryInfo.getAmountAccessor().observeDetail(entryObservable);
 
-			IBidiConverter<Long, String> creditAndDebitSplitConverter = new CreditAndDebitSplitConverter(formatter, isDebit, amountObservable);
+			IBidiWithStatusConverter<Long, String> creditAndDebitSplitConverter = new CreditAndDebitSplitConverter(formatter, isDebit, amountObservable);
 			
+			ControlStatusDecoration statusDecoration = new ControlStatusDecoration(
+					textControl, SWT.LEFT | SWT.TOP);
+
 			Bind.twoWay(amountObservable)
 			.convert(creditAndDebitSplitConverter)
-			.to(SWTObservables.observeText(textControl, SWT.Modify));
+			.to(SWTObservables.observeText(textControl, SWT.Modify), statusDecoration::update);
 			
 			Bind.bounceBack(creditAndDebitSplitConverter)
 			.to(SWTObservables.observeText(textControl, SWT.FocusOut));

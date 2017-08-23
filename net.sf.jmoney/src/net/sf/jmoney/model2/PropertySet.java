@@ -29,6 +29,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.ObjectCollection;
@@ -103,6 +105,11 @@ public abstract class PropertySet<P,S extends ExtendableObject> {
 	 */
 	protected static Map<Class<? extends ExtendableObject>, ExtendablePropertySet> classToPropertySetMap = new HashMap<Class<? extends ExtendableObject>, ExtendablePropertySet>();
 
+	protected static Pattern propertySetIdPattern;
+	static {
+		propertySetIdPattern = Pattern.compile("\\w(\\d|\\w|\\.\\w)*");
+	}
+	
 	protected PropertySet() {
 		// Add to our list of all property sets
 		allPropertySets.add(this);
@@ -120,6 +127,21 @@ public abstract class PropertySet<P,S extends ExtendableObject> {
 	 *
 	 */
 	public void initProperties(String propertySetId) {
+		/*
+		 * Check that the property set id contains only alphanumeric characters with dots
+		 * to separate each component.
+		 * 
+		 * We are strict on what we allow here because the datastore layer may use this id
+		 * to create tables or elements into which data is stored.  We don't know anything
+		 * about the datastore layer or how it stores the JMoney data but we don't want to
+		 * make life difficult for the implementors of that layer by passing ids with strange
+		 * characters.
+		 */
+		Matcher m = propertySetIdPattern.matcher(propertySetId);
+		if (!m.matches()) {
+			throw new MalformedPluginException("Property set has an id of " + propertySetId + " but this contains invalid characters.  Each component, separated by '.', must start with a letter and contain only alphanumeric characters.");
+		}
+
 		/*
 		 * Check that the property set id is unique.
 		 */

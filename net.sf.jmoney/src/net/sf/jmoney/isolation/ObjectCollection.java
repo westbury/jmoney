@@ -97,7 +97,7 @@ public class ObjectCollection<E extends IModelObject> extends JMoneyObservableSe
 			SetDiff<E> diff = new SetDiff<E>() {
 				@Override
 				public Set<E> getAdditions() {
-					return null;
+					return Collections.emptySet();
 				}
 
 				@Override

@@ -138,14 +138,14 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 
 //			IObservableMap<String, String> transactionParameterValues = pattern.getTransactionParameterValueMap();
 
-			BaseEntryData entryData = (BaseEntryData)ViewerProperties.<BaseEntryData>singleSelection().observe(entriesViewer).getValue();
+			T entryData = (T)ViewerProperties.<T>singleSelection().observe(entriesViewer).getValue();
 
 			Object [] args = null;
 			
 			if (entryData != null) {
 
 				boolean unmatchedFound = false;
-				for (ImportEntryProperty importEntryProperty : importEntryProperties) {
+				for (ImportEntryProperty<T> importEntryProperty : importEntryProperties) {
 					String importEntryPropertyValue = importEntryProperty.getCurrentValue(entryData);
 					Pattern compiledPattern = pattern.getCompiledPattern(importEntryProperty.id);
 
@@ -521,8 +521,6 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 		for (ImportEntryProperty<T> importEntryProperty : importEntryProperties) {
 			addColumnForExampleInputMatcher(importEntryProperty, "<html>The pattern is a Java regular expression that is matched against the memo in the downloadable file.<br>For each record from the bank, the first row in this table with a matching pattern is used.</html>");
 		}
-		
-
 		
 		
 //		TableViewerColumn column1 = new TableViewerColumn(entriesViewer, SWT.LEFT);

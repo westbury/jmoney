@@ -386,6 +386,9 @@ public class OfxImporter {
 					} catch (ParseException e) {
 						// Bad date so just ignore it.
 					}
+				} else if (account.getBank() != null && account.getBank().equals("First Tech")) {
+				// First Tech have switched to use "MEMO"
+					memo = stmtTrnElement.getString("MEMO");
 				} else {
 					memo = stmtTrnElement.getString("NAME");
 				}
@@ -438,7 +441,7 @@ public class OfxImporter {
 
 		PatternMatcherAccount matcherAccount = account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
 
-		Dialog dialog = new PatternMatchingDialog(window.getShell(), matcherAccount, importedEntries, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
+		Dialog dialog = new PatternMatchingDialog(window.getShell(), matcherAccount, importedEntries, getImportEntryProperties(), getApplicableTransactionTypes());
 		int returnCode = dialog.open();
 		
 		if (returnCode == Dialog.OK || returnCode == PatternMatchingDialog.SAVE_PATTERNS_ONLY) {
@@ -448,7 +451,7 @@ public class OfxImporter {
 		}
 		
 		if (returnCode == Dialog.OK) {
-			ImportMatcher matcher = new ImportMatcher(matcherAccount, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
+			ImportMatcher matcher = new ImportMatcher(matcherAccount, getImportEntryProperties(), getApplicableTransactionTypes());
 
 			Set<Entry> ourEntries = new HashSet<Entry>();
 			for (OfxEntryData entryData: importedEntries) {
@@ -606,7 +609,7 @@ public class OfxImporter {
 
 		SimpleElement transListElement = statementResultElement.getDescendant("INVTRANLIST");
 
-		ImportMatcher matcher = new ImportMatcher(account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true), Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
+		ImportMatcher matcher = new ImportMatcher(account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true), getImportEntryProperties(), getApplicableTransactionTypes());
 
 		for (SimpleElement transactionElement : transListElement.getChildElements()) {
 			if (transactionElement.getTagName().equals("DTSTART")) {
@@ -741,10 +744,10 @@ public class OfxImporter {
 //					memo = memo.replace(stock.getName().toUpperCase(), "<stock name>");
 				memo = memo.replace(stock.getName().toUpperCase(), "");
 				if (stock.getSymbol() != null) {
-					memo.replace(stock.getSymbol(), "<ticker>");
+					memo = memo.replace(stock.getSymbol(), "<ticker>");
 				}
 				if (stock.getCusip() != null) {
-					memo.replace(stock.getCusip(), "<CUSIP>");
+					memo = memo.replace(stock.getCusip(), "<CUSIP>");
 				}
 
 				transaction.setDate(tradeDate);
@@ -855,8 +858,6 @@ public class OfxImporter {
 						 * value. We defer to the user entered patterns to
 						 * categorize these.
 						 */
-						Entry otherEntry = transaction.createEntry();
-						otherEntry.setAmount(-total);
 
 //						String textToMatch = MessageFormat.format(
 //								"INCOMETYPE={0}\nMEMO={1}",
@@ -867,10 +868,11 @@ public class OfxImporter {
 								incomeType.toLowerCase(),
 								toTitleCase(memo));
 
-						EntryData entryData = new EntryData();
+						OfxStockEntryData entryData = new OfxStockEntryData();
 						entryData.setMemo(memo);
+						entryData.setSecurity(stock);
 
-						matcher.matchAndFill(entryData, firstEntry, otherEntry, toTitleCase(memo), defaultDescription);
+						matcher.matchAndFill(entryData, transaction, firstEntry, toTitleCase(memo), defaultDescription);
 					}
 
 					/*
@@ -918,21 +920,6 @@ public class OfxImporter {
 						throw new RuntimeException("unknown SUBACCTFUND value: " + subAccountFund);
 					}
 
-					/*
-					 * We defer to the user entered patterns to
-					 * categorize these.
-					 */
-					StockEntry otherEntry = transaction.createEntry().getExtension(StockEntryInfo.getPropertySet(), true);
-
-					// The dividend account may not be right, but it is the best we can do.
-					// It may be overwritten by the pattern matcher.
-					otherEntry.setAccount(account.getDividendAccount());
-					otherEntry.setAmount(-total);
-
-					// These types of entries are generally associated with a security,
-					// so set the security.
-					otherEntry.setSecurity(stock);
-
 //					String textToMatch = MessageFormat.format(
 //							"INVEXPENSE\nMEMO={0}",
 //							memo);
@@ -940,10 +927,11 @@ public class OfxImporter {
 							"Investment Expense: {0}",
 							toTitleCase(memo));
 
-					EntryData entryData = new EntryData();
+					OfxStockEntryData entryData = new OfxStockEntryData();
 					entryData.setMemo(memo);
+					entryData.setSecurity(stock);
 
-					matcher.matchAndFill(entryData, firstEntry, otherEntry.getBaseObject(), toTitleCase(memo), defaultDescription);
+					matcher.matchAndFill(entryData, transaction, firstEntry, toTitleCase(memo), defaultDescription);
 				} else if (transactionElement.getTagName().equals("TRANSFER")) {
 					String units = transactionElement.getString("UNITS");
 					Long quantity = stock.parse(units);

@@ -181,7 +181,7 @@ public class ToshlImportWizard extends CsvImportWizard implements IWorkbenchWiza
 			}
 			
 			if (returnCode == Dialog.OK) {
-				ImportMatcher matcher = new ImportMatcher(accountInTransaction, Arrays.asList(getImportEntryProperties()), getApplicableTransactionTypes());
+				ImportMatcher matcher = new ImportMatcher(accountInTransaction, getImportEntryProperties(), getApplicableTransactionTypes());
 
 				Set<Entry> ourEntries = new HashSet<Entry>();
 				for (EntryData entryData: entryDataList) {

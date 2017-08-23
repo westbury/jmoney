@@ -22,22 +22,23 @@
 
 package net.sf.jmoney.fields;
 
-import net.sf.jmoney.model2.Commodity;
-import net.sf.jmoney.model2.ExtendableObject;
-import net.sf.jmoney.model2.PropertyControlFactory;
-import net.sf.jmoney.model2.ScalarPropertyAccessor;
-import net.sf.jmoney.resources.Messages;
-
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.observable.ConstantObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
-import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
+import org.eclipse.core.internal.databinding.provisional.bind.IBidiWithExceptionConverter;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.jface.databinding.fieldassist.ControlStatusDecoration;
 import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
+
+import net.sf.jmoney.model2.Commodity;
+import net.sf.jmoney.model2.ExtendableObject;
+import net.sf.jmoney.model2.PropertyControlFactory;
+import net.sf.jmoney.model2.ScalarPropertyAccessor;
+import net.sf.jmoney.resources.Messages;
 
 /**
  * A control factory to edit an amount of a commodity.
@@ -60,7 +61,7 @@ public abstract class AmountControlFactory<S extends ExtendableObject> extends P
     private Control createPropertyControlInternal(Composite parent, IObservableValue<Long> modelAmountObservable, final IObservableValue<? extends S> parentObservable) {
     	Text propertyControl = new Text(parent, SWT.TRAIL);
 
-    	IBidiConverter<Long,String> amountToText = new IBidiConverter<Long,String>() {
+    	IBidiWithExceptionConverter<Long,String> amountToText = new IBidiWithExceptionConverter<Long,String>() {
 			@Override
 			public String modelToTarget(Long fromObject) {
 				if (fromObject == null) {
@@ -84,14 +85,17 @@ public abstract class AmountControlFactory<S extends ExtendableObject> extends P
 					 */
 		        	return null;
 		        } else {
-		            return commodity.parse(amountString);
+		        	return commodity.parse(amountString);
 		        }
 			}
 		};
 
+		ControlStatusDecoration statusDecoration = new ControlStatusDecoration(
+				propertyControl, SWT.LEFT | SWT.TOP);
+
 		Bind.twoWay(modelAmountObservable)
 		.convertWithTracking(amountToText)
-		.to(SWTObservables.observeText(propertyControl, SWT.Modify));
+		.to(SWTObservables.observeText(propertyControl, SWT.Modify), statusDecoration::update);
 
 		Bind.bounceBack(amountToText)
 		.to(SWTObservables.observeText(propertyControl, SWT.FocusOut));

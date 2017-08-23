@@ -49,8 +49,9 @@ public class ImportMatcher<T extends BaseEntryData> {
 	 * @param text
 	 * @param entry1 the 'other' entry, typically being the charge account,
 	 * 			may be null
-	 * @param entry2 the entry whose description and category is to be determined,
-	 * 			never null
+	 * @param transaction a transaction that contains a single entry being the
+	 * 			entry in the import account, the other entries are created by
+	 * 			this method
 	 * @param defaultMemo
 	 * @param defaultDescription
 	 */
@@ -263,7 +264,6 @@ public class ImportMatcher<T extends BaseEntryData> {
 			entryData.assignPropertyValues(transaction, entry1);
 		} else {
 			transaction = entryData.entry.getTransaction();
-			entry2 = entryData.entry;
 			
 			// If the transaction was already created then we don't update
 			// properties in the other entry.

@@ -1,23 +1,24 @@
 package net.sf.jmoney.stocks.pages;
 
-import net.sf.jmoney.entrytable.CellFocusListener;
-import net.sf.jmoney.entrytable.ICellControl2;
-import net.sf.jmoney.entrytable.IndividualBlock;
-import net.sf.jmoney.entrytable.RowControl;
-import net.sf.jmoney.fields.IAmountFormatter;
-import net.sf.jmoney.model2.EntryInfo;
-
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.property.value.IValueProperty;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
-import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
+import org.eclipse.core.internal.databinding.provisional.bind.IBidiWithExceptionConverter;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.jface.databinding.fieldassist.ControlStatusDecoration;
 import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
+
+import net.sf.jmoney.entrytable.CellFocusListener;
+import net.sf.jmoney.entrytable.ICellControl2;
+import net.sf.jmoney.entrytable.IndividualBlock;
+import net.sf.jmoney.entrytable.RowControl;
+import net.sf.jmoney.fields.IAmountFormatter;
+import net.sf.jmoney.model2.EntryInfo;
 
 /**
  * Class for all blocks that contain an amount that is part of
@@ -43,7 +44,7 @@ public class EntryAmountBlock extends
 	public Control createCellControl(Composite parent, IObservableValue<StockEntryFacade> master, RowControl rowControl) {
 		final Text control = new Text(parent, SWT.RIGHT);
 
-		IBidiConverter<Long,String> amountToText = new IBidiConverter<Long,String>() {
+		IBidiWithExceptionConverter<Long, String> amountToText = new IBidiWithExceptionConverter<Long,String>() {
 			@Override
 			public String modelToTarget(Long amount) {
 				if (amount == null) {
@@ -63,9 +64,12 @@ public class EntryAmountBlock extends
 			}
 		};
 
+		ControlStatusDecoration statusDecoration = new ControlStatusDecoration(
+				control, SWT.LEFT | SWT.TOP);
+
 		Bind.twoWay(amountProperty.observeDetail(master))
 		.convertWithTracking(amountToText)
-		.to(SWTObservables.observeText(control, SWT.Modify));
+		.to(SWTObservables.observeText(control, SWT.Modify), statusDecoration::update);
 
 		Bind.bounceBack(amountToText)
 		.to(SWTObservables.observeText(control, SWT.FocusOut));

@@ -1,5 +1,18 @@
 package net.sf.jmoney.stocks.pages;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.property.value.IValueProperty;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
+import org.eclipse.core.internal.databinding.provisional.bind.IBidiWithExceptionConverter;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.jface.databinding.fieldassist.ControlStatusDecoration;
+import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.FocusListener;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Text;
+
 import net.sf.jmoney.entrytable.CellFocusListener;
 import net.sf.jmoney.entrytable.ICellControl2;
 import net.sf.jmoney.entrytable.IndividualBlock;
@@ -8,19 +21,6 @@ import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
-
-import org.eclipse.core.databinding.observable.value.IObservableValue;
-import org.eclipse.core.databinding.property.value.IValueProperty;
-import org.eclipse.core.internal.databinding.provisional.bind.Bind;
-import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
-import org.eclipse.core.runtime.CoreException;
-import org.eclipse.jface.databinding.swt.SWTObservables;
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.FocusListener;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Text;
-import org.eclipse.ui.statushandlers.StatusManager;
 
 public class ShareQuantityBlock extends
 			IndividualBlock<IObservableValue<StockEntryFacade>> {
@@ -35,7 +35,7 @@ public class ShareQuantityBlock extends
 		public Control createCellControl(Composite parent, final IObservableValue<StockEntryFacade> master, RowControl rowControl) {
 			final Text control = new Text(parent, SWT.RIGHT);
 
-			IBidiConverter<Long,String> amountToText = new IBidiConverter<Long,String>() {
+			IBidiWithExceptionConverter<Long,String> amountToText = new IBidiWithExceptionConverter<Long,String>() {
 				@Override
 				public String modelToTarget(Long quantity) {
 					StockEntryFacade stockEntryFacade = master.getValue();
@@ -60,14 +60,9 @@ public class ShareQuantityBlock extends
 					if (amountString.trim().length() == 0) {
 						return null;
 					} else {
-						try {
 							StockEntryFacade stockEntryFacade = master.getValue();
 							IAmountFormatter formatter = getFormatter(stockEntryFacade);
-							return formatter.parse(amountString);
-						} catch (CoreException e) {
-							StatusManager.getManager().handle(e.getStatus());
-							return null;
-						}
+			        		return formatter.parse(amountString);
 					}
 				}
 
@@ -102,9 +97,12 @@ public class ShareQuantityBlock extends
 				}
 			};
 			
+			ControlStatusDecoration statusDecoration = new ControlStatusDecoration(
+					control, SWT.LEFT | SWT.TOP);
+
 			Bind.twoWay(shareQuantityProperty.observeDetail(master))
 			.convertWithTracking(amountToText)
-			.to(SWTObservables.observeText(control, SWT.Modify));
+			.to(SWTObservables.observeText(control, SWT.Modify), statusDecoration::update);
 
 			Bind.bounceBack(amountToText)
 			.to(SWTObservables.observeText(control, SWT.FocusOut));
