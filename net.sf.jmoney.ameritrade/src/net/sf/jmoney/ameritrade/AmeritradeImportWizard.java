@@ -26,13 +26,18 @@ import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import net.sf.jmoney.associations.AssociationMetadata;
+import net.sf.jmoney.importer.matcher.EntryData;
 import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
+import net.sf.jmoney.importer.model.TransactionType;
+import net.sf.jmoney.importer.model.TransactionTypeBasic;
 import net.sf.jmoney.importer.wizards.CsvImportToAccountWizard;
 import net.sf.jmoney.importer.wizards.CsvTransactionReader;
 import net.sf.jmoney.importer.wizards.ImportException;
@@ -1275,5 +1280,20 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard implements 
 				"an investment account called 'Ameritrade' must exist and the data will be imported into that account. " +
 				"The file must have been downloaded from Ameritrade for this import to work.  To download from Ameritrade, go to Statements, History. " +
 				"If entries have already been imported, this import will not create duplicates.";
+	}
+
+	/**
+	 * Note that this list is not cached, meaning new instances will be created
+	 * for each call to this method.
+	 * 
+	 * @param account
+	 * @return
+	 */
+	public List<TransactionType<EntryData>> getApplicableTransactionTypes() {
+			List<TransactionType<EntryData>> result = new ArrayList<>();
+
+			result.add(new TransactionTypeBasic());
+
+			return result;
 	}
 }

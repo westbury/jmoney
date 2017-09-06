@@ -22,9 +22,9 @@ public class ImportMatcher<T extends BaseEntryData> {
 
 	private List<ImportEntryProperty<T>> importEntryProperties;
 
-	private List<TransactionType> applicableTransactionTypes;
+	private List<TransactionType<T>> applicableTransactionTypes;
 
-	public ImportMatcher(IPatternMatcher matcherInsideTransaction, List<ImportEntryProperty<T>> importEntryProperties, List<TransactionType> applicableTransactionTypes) {
+	public ImportMatcher(IPatternMatcher matcherInsideTransaction, List<ImportEntryProperty<T>> importEntryProperties, List<TransactionType<T>> applicableTransactionTypes) {
 		this.account = matcherInsideTransaction;
 		this.importEntryProperties = importEntryProperties;
 		this.applicableTransactionTypes = applicableTransactionTypes;
@@ -94,17 +94,20 @@ public class ImportMatcher<T extends BaseEntryData> {
 			if (!unmatchedFound) {
    				String transactionId = pattern.getTransactionTypeId();
    				
-   				TransactionType transactionType = null;
-   				for (TransactionType type : applicableTransactionTypes) {
-   					if (type.getId().equals(transactionId)) {
-   						transactionType = type;
-   						break;
-   					}
-   				}
- 
+//   				TransactionType<T> transactionType = null;
+//   				for (TransactionType<T> type : applicableTransactionTypes) {
+//   					if (type.getId().equals(transactionId)) {
+//   						transactionType = type;
+//   						break;
+//   					}
+//   				}
+   				TransactionType<T> transactionType = applicableTransactionTypes.stream()
+   						.filter(type -> type.getId().equals(transactionId))
+   						.findFirst()
+   						.get();
    				transactionType.createTransaction(transaction, entry1, entryData, pattern, args);
 
-   				break;
+   				return;
    			}
    		}
 

@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.io.Reader;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -43,8 +42,8 @@ import org.eclipse.ui.IWorkbenchWindow;
 import net.sf.jmoney.associations.model.AccountAssociation;
 import net.sf.jmoney.associations.model.AccountAssociationsExtension;
 import net.sf.jmoney.associations.model.AccountAssociationsInfo;
-import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.importer.Activator;
+import net.sf.jmoney.importer.matcher.BaseEntryData;
 import net.sf.jmoney.importer.matcher.EntryData;
 import net.sf.jmoney.importer.matcher.IPatternMatcher;
 import net.sf.jmoney.importer.matcher.ImportEntryProperty;
@@ -68,7 +67,7 @@ import net.sf.jmoney.model2.TransactionManagerForAccounts;
  * <P>
  * This wizard is a single page wizard that asks only for the file.
  */
-public abstract class CsvImportToAccountWizard extends CsvImportWizard implements IAccountImportWizard {
+public abstract class CsvImportToAccountWizard<T extends BaseEntryData> extends CsvImportWizard implements IAccountImportWizard<T> {
 
 	private Account accountOutsideTransaction;
 
@@ -77,7 +76,7 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 	 */
 	protected Account accountInsideTransaction;
 
-	protected Collection<EntryData> importedEntries = new ArrayList<EntryData>();
+	protected Collection<T> importedEntries = new ArrayList<>();
 
 
 	public CsvImportToAccountWizard() {
@@ -134,7 +133,7 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 
 	protected abstract void setAccount(Account accountInsideTransaction) throws ImportException;
 
-	protected void addEntryToBeProcessed(EntryData entryData) {
+	protected void addEntryToBeProcessed(T entryData) {
 		importedEntries.add(entryData);
 	}
 	
@@ -196,7 +195,7 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 
 			IPatternMatcher patternMatcher = matcherAccount;
 			
-			Dialog dialog = new PatternMatchingDialog<EntryData>(window.getShell(), patternMatcher, importedEntries, getImportEntryProperties(), getApplicableTransactionTypes());
+			Dialog dialog = new PatternMatchingDialog<T>(window.getShell(), patternMatcher, importedEntries, getImportEntryProperties(), getApplicableTransactionTypes());
 			int returnCode = dialog.open();
 			
 			if (returnCode == Dialog.OK || returnCode == PatternMatchingDialog.SAVE_PATTERNS_ONLY) {
@@ -206,10 +205,10 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 			}
 			
 			if (returnCode == Dialog.OK) {
-				ImportMatcher matcher = new ImportMatcher(patternMatcher, getImportEntryProperties(), getApplicableTransactionTypes());
+				ImportMatcher<T> matcher = new ImportMatcher<T>(patternMatcher, getImportEntryProperties(), getApplicableTransactionTypes());
 
 				Set<Entry> ourEntries = new HashSet<Entry>();
-				for (EntryData entryData: importedEntries) {
+				for (T entryData: importedEntries) {
 					Entry entry = matcher.process(entryData, accountInsideTransaction.getSession(), ourEntries);
 					//				ReconciliationEntryInfo.getUniqueIdAccessor().setValue(entry, entryData.uniqueId);
 					ourEntries.add(entry);
@@ -225,14 +224,14 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 		return true;
 	}
 
-	public List<ImportEntryProperty<EntryData>> getImportEntryProperties() {
-		return new ArrayList<ImportEntryProperty<EntryData>>() {
+	public List<ImportEntryProperty<T>> getImportEntryProperties() {
+		return new ArrayList<ImportEntryProperty<T>>() {
 			private static final long serialVersionUID = 1L;
 
 			{
-				add(new ImportEntryProperty<EntryData>("memo", "Memo") {
-					protected String getCurrentValue(EntryData importEntry) {
-						return importEntry.getMemo();
+				add(new ImportEntryProperty<T>("memo", "Memo") {
+					protected String getCurrentValue(BaseEntryData importEntry) {
+						return importEntry.getDefaultMemo();
 					}
 				});
 			}
@@ -264,7 +263,7 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 		return false;
 	}
 
-	protected void importLine(CsvTransactionReader reader, Collection<EntryData> entryDataList) throws ImportException {
+	protected void importLine(CsvTransactionReader reader, Collection<T> entryDataList) throws ImportException {
 		throw new RuntimeException("but we are not doing this the new way...");
 	}
 
@@ -375,8 +374,8 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 		
 		IPatternMatcher patternMatcher = matcherAccount;
 
-		List<TransactionType> applicableTransactionTypes = getApplicableTransactionTypes();
-		Dialog dialog = new PatternMatchingDialog<EntryData>(window.getShell(), patternMatcher, importedEntries, getImportEntryProperties(), applicableTransactionTypes);
+		List<TransactionType<T>> applicableTransactionTypes = getApplicableTransactionTypes();
+		Dialog dialog = new PatternMatchingDialog<T>(window.getShell(), patternMatcher, importedEntries, getImportEntryProperties(), applicableTransactionTypes);
 		int returnCode = dialog.open();
 		
 		if (returnCode == Dialog.OK || returnCode == PatternMatchingDialog.SAVE_PATTERNS_ONLY) {
@@ -386,12 +385,11 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 		}
 		
 		if (returnCode == Dialog.OK) {
-			ImportMatcher matcher = new ImportMatcher(matcherAccount, getImportEntryProperties(), getApplicableTransactionTypes());
+			ImportMatcher<T> matcher = new ImportMatcher<>(matcherAccount, getImportEntryProperties(), getApplicableTransactionTypes());
 
 			Set<Entry> ourEntries = new HashSet<Entry>();
-			for (EntryData entryData: importedEntries) {
+			for (T entryData: importedEntries) {
 				Entry entry = matcher.process(entryData, transactionManager.getSession(), ourEntries);
-				ReconciliationEntryInfo.getUniqueIdAccessor().setValue(entry, entryData.uniqueId);
 				ourEntries.add(entry);
 			}
 
@@ -407,21 +405,6 @@ public abstract class CsvImportToAccountWizard extends CsvImportWizard implement
 		} else {
 			return false;
 		}
-	}
-
-	/**
-	 * Note that this list is not cached, meaning new instances will be created
-	 * for each call to this method.
-	 * 
-	 * @param account
-	 * @return
-	 */
-	public List<TransactionType> getApplicableTransactionTypes() {
-			List<TransactionType> result = new ArrayList<TransactionType>();
-
-			result.add(new TransactionTypeBasic());
-
-			return result;
 	}
 
 }

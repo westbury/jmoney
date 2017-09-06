@@ -2,9 +2,14 @@ package net.sf.jmoney.stocks.pages;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
+
+import org.eclipse.core.databinding.observable.value.ComputedValue;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.IValueChangeListener;
+import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.core.databinding.observable.value.WritableValue;
+import org.eclipse.core.runtime.Assert;
 
 import net.sf.jmoney.entrytable.EntryFacade;
 import net.sf.jmoney.entrytable.InvalidUserEntryException;
@@ -13,6 +18,7 @@ import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IScalarPropertyAccessor;
 import net.sf.jmoney.isolation.ReferenceViolationException;
 import net.sf.jmoney.isolation.SessionChangeListener;
+import net.sf.jmoney.model2.BankAccount;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.Entry;
@@ -22,13 +28,6 @@ import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.model.StockEntryInfo;
 import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
-
-import org.eclipse.core.databinding.observable.value.ComputedValue;
-import org.eclipse.core.databinding.observable.value.IObservableValue;
-import org.eclipse.core.databinding.observable.value.IValueChangeListener;
-import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
-import org.eclipse.core.databinding.observable.value.WritableValue;
-import org.eclipse.core.runtime.Assert;
 
 /*
  * This class is a wrapper for a transaction in a stock account.  It is created on an as-needed basis, i.e.
@@ -253,11 +252,10 @@ public class StockEntryFacade implements EntryFacade {
 		//				}
 	};
 
-	public StockEntryFacade(Entry netAmountEntry) {
+	public StockEntryFacade(Entry netAmountEntry, StockAccount stockAccount) {
 		this.netAmountEntry = netAmountEntry;
-
-		account = (StockAccount)netAmountEntry.getAccount();
-
+		this.account = stockAccount;
+		
 		analyzeTransaction();
 
 		/*
@@ -553,12 +551,12 @@ public class StockEntryFacade implements EntryFacade {
 		return netAmountEntry;
 	}
 	
-	public void forceTransactionToDividend() {
+	private void forceTransactionToDividend() {
+		assert transactionType.getValue() == TransactionType.Dividend;
+
 		// Get the security from the old transaction, which must be done
 		// before we start messing with this transaction.
 		Security securityValue = security.getValue();
-
-		transactionType.setValue(TransactionType.Dividend);
 
 		/*
 		 * Remove entries that are not appropriate for a 'dividend' transaction.
@@ -592,16 +590,16 @@ public class StockEntryFacade implements EntryFacade {
 		dividendEntry.setAmount(grossDividend);
 	}
 
-	public void forceTransactionToBuy() {
+	private void forceTransactionToBuy() {
 		forceTransactionToBuyOrSell(TransactionType.Buy);
 	}
 
-	public void forceTransactionToSell() {
+	private void forceTransactionToSell() {
 		forceTransactionToBuyOrSell(TransactionType.Sell);
 	}
 
 	private void forceTransactionToBuyOrSell(TransactionType transactionType) {
-		this.transactionType.setValue(transactionType);
+		assert this.transactionType.getValue() == transactionType;
 
 		EntryCollection entries = getMainEntry().getTransaction().getEntryCollection();
 		for (Iterator<Entry> iter = entries.iterator(); iter.hasNext(); ) {
@@ -636,8 +634,8 @@ public class StockEntryFacade implements EntryFacade {
 		//		dividendEntry.setAmount(-mainEntry.getAmount());
 	}
 
-	public void forceTransactionToTransfer() {
-		transactionType.setValue(TransactionType.Transfer);
+	private void forceTransactionToTransfer() {
+		assert transactionType.getValue() == TransactionType.Transfer;
 
 		EntryCollection entries = getMainEntry().getTransaction().getEntryCollection();
 		for (Iterator<Entry> iter = entries.iterator(); iter.hasNext(); ) {
@@ -661,8 +659,8 @@ public class StockEntryFacade implements EntryFacade {
 		transferEntry.setAmount(-getMainEntry().getAmount());
 	}
 
-	public void forceTransactionToCustom() {
-		transactionType.setValue(TransactionType.Other);
+	private void forceTransactionToCustom() {
+		assert transactionType.getValue() == TransactionType.Other;
 
 		/*
 		 * This method is not so much a 'force' as a 'set'.  The other 'force' methods

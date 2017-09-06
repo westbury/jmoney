@@ -25,19 +25,20 @@ package net.sf.jmoney.importer.wizards;
 import java.util.List;
 
 import net.sf.jmoney.associations.AssociationMetadata;
+import net.sf.jmoney.importer.matcher.BaseEntryData;
 import net.sf.jmoney.importer.model.TransactionType;
 import net.sf.jmoney.model2.Account;
 
 import org.eclipse.jface.wizard.IWizard;
 import org.eclipse.ui.IWorkbenchWindow;
 
-public interface IAccountImportWizard extends IWizard {
+public interface IAccountImportWizard<T extends BaseEntryData> extends IWizard {
 
 	void init(IWorkbenchWindow window, Account account);
 
 	AssociationMetadata[] getAssociationMetadata();
 
-	List<TransactionType> getApplicableTransactionTypes();
+	List<TransactionType<T>> getApplicableTransactionTypes();
 
 	/**
 	 * This form is used when in a context where a date range is

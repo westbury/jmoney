@@ -6,7 +6,7 @@ import java.util.List;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.ui.PlatformUI;
 
-import net.sf.jmoney.importer.matcher.BaseEntryData;
+import net.sf.jmoney.importer.matcher.EntryData;
 import net.sf.jmoney.importer.matcher.TransactionParamMetadata;
 import net.sf.jmoney.importer.matcher.TransactionParamMetadataAccount;
 import net.sf.jmoney.importer.matcher.TransactionParamMetadataString;
@@ -15,7 +15,7 @@ import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.Transaction;
 
-public class TransactionTypeBasic extends TransactionType {
+public class TransactionTypeBasic extends TransactionType<EntryData> {
 
 	private TransactionParamMetadataString descriptionParam = new TransactionParamMetadataString("description", "Description");
 	private TransactionParamMetadataString memoParam = new TransactionParamMetadataString("memo", "Memo");
@@ -41,7 +41,7 @@ public class TransactionTypeBasic extends TransactionType {
 	}
 
 	@Override
-	public void createTransaction(Transaction transaction, Entry entry1, BaseEntryData entryData, MemoPattern pattern, Object[] args) {
+	public void createTransaction(Transaction transaction, Entry entry1, EntryData entryData, MemoPattern pattern, Object[] args) {
 
 		Entry entry2 = transaction.createEntry();
 		entry2.setAmount(-entryData.amount);

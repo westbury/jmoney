@@ -4,6 +4,12 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.eclipse.core.databinding.observable.value.ComputedValue;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.WritableValue;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
+import org.eclipse.swt.widgets.Composite;
+
 import net.sf.jmoney.entrytable.BaseEntryRowControl;
 import net.sf.jmoney.entrytable.Block;
 import net.sf.jmoney.entrytable.EntryData;
@@ -15,12 +21,6 @@ import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.stocks.model.RatesTable;
 import net.sf.jmoney.stocks.model.StockAccount;
-
-import org.eclipse.core.databinding.observable.value.ComputedValue;
-import org.eclipse.core.databinding.observable.value.IObservableValue;
-import org.eclipse.core.databinding.observable.value.WritableValue;
-import org.eclipse.core.internal.databinding.provisional.bind.Bind;
-import org.eclipse.swt.widgets.Composite;
 
 /**
  * Default binding only ever applies for a new entry.  The user cannot select away from the new entry without
@@ -106,9 +106,13 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 			StockAccount account = (StockAccount)entryInTransaction.getAccount();
 			entryInTransaction.setCommodity(account.getCurrency());
 		}
-		
+
+		/* Find the stock account, which is this account.
+		*/
+		StockAccount stockAccount = (StockAccount)entryInTransaction.getAccount();
+				
 		// Create the facade
-		StockEntryFacade facade = new StockEntryFacade(uncommittedEntry.getValue());
+		StockEntryFacade facade = new StockEntryFacade(entryInTransaction, stockAccount);
 		stockEntryFacade.setValue(facade);
 		
 		// This must be done before we add the default bindings

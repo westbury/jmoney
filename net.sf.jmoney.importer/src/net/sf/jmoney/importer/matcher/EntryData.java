@@ -57,7 +57,7 @@ public class EntryData extends BaseEntryData {
 	}
 
 	/**
-	 * This method is given a transaction with two entries.
+	 * This method is given a transaction with one entry.
 	 * This method assigns the properties from the bank statement
 	 * import to the properties in the transaction.
 	 * <P>
@@ -66,10 +66,8 @@ public class EntryData extends BaseEntryData {
 	 * is called.
 	 *
 	 * @param transaction
-	 * @param entry1 the 'other' entry, typically being the charge account,
-	 * 			never null
-	 * @param entry2 the entry whose description and category is to be determined, typically an entry in an
-	 * 					income and expense account, never null
+	 * @param entry1 the entry in the charge account (the account to which we are,
+	 * 			importing) never null
 	 */
 	@Override
 	public void assignPropertyValues(Transaction transaction, Entry entry1) {
@@ -199,27 +197,26 @@ public class EntryData extends BaseEntryData {
 	public void setDataIntoExistingEntry(Entry matchedEntry) {
 		matchedEntry.setValuta(getImportedDate());  // ????
 		matchedEntry.setCheck(check);
-		// TODO is this line correct?
 		ReconciliationEntryInfo.getUniqueIdAccessor().setValue(matchedEntry, uniqueId);
 	}
+
 	@Override
 	public Entry findMatch(Account account, int numberOfDays, Set<Entry> ourEntries) {
-		
-	Date importedDate = getImportedDate();
-	
-	MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
-		@Override
-		protected boolean doNotConsiderEntryForMatch(Entry entry) {
-			/*
-			 * If this given entry is in our map then it means we have just added it.  That means we have multiple identical
-			 * entries in the import file.  In that case we want to be sure that we keep the multiple entries as they are
-			 * genuine duplicates.
-			 * 
-			 * 'already matched' means don't consider this prior entry when looking for entries that might match this entry.
-			 */
-			return ourEntries.contains(entry) || ReconciliationEntryInfo.getUniqueIdAccessor().getValue(entry) != null;
-		}
-	};
-	return matchFinder.findMatch(account, amount, importedDate, 5, check);
+		Date importedDate = getImportedDate();
+
+		MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
+			@Override
+			protected boolean doNotConsiderEntryForMatch(Entry entry) {
+				/*
+				 * If this given entry is in our map then it means we have just added it.  That means we have multiple identical
+				 * entries in the import file.  In that case we want to be sure that we keep the multiple entries as they are
+				 * genuine duplicates.
+				 * 
+				 * 'already matched' means don't consider this prior entry when looking for entries that might match this entry.
+				 */
+				return ourEntries.contains(entry) || ReconciliationEntryInfo.getUniqueIdAccessor().getValue(entry) != null;
+			}
+		};
+		return matchFinder.findMatch(account, amount, importedDate, 5, check);
 	}
 }

@@ -102,7 +102,6 @@ import net.sf.jmoney.importer.model.MemoPatternInfo;
 import net.sf.jmoney.importer.model.TransactionType;
 import net.sf.jmoney.isolation.ObjectCollection;
 import net.sf.jmoney.isolation.ReferenceViolationException;
-import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
@@ -131,7 +130,7 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 			MemoPattern pattern = (MemoPattern)ViewerProperties.singleSelection().observe(patternViewer).getValue();
 			String transactionTypeId = MemoPatternInfo.getTransactionTypeIdAccessor().observe(pattern).getValue();
 			
-			TransactionType transType = lookupTransactionType(transactionTypeId);
+			TransactionType<T> transType = lookupTransactionType(transactionTypeId);
 			if (transType == null) {
 				return;
 			}
@@ -306,7 +305,7 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 
 	private List<ImportEntryProperty<T>> importEntryProperties;
 	
-	private List<TransactionType> applicableTransactionTypes;
+	private List<TransactionType<T>> applicableTransactionTypes;
 
 	/**
 	 * Creates an input dialog with OK and Cancel buttons. Note that the dialog
@@ -321,7 +320,7 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 	 *            the parent shell
 	 * @param importedEntries
 	 */
-	public PatternMatchingDialog(Shell parentShell, IPatternMatcher matcherInsideTransaction, Collection<T> sampleEntries, List<ImportEntryProperty<T>> importEntryProperties, List<TransactionType> applicableTransactionTypes) {
+	public PatternMatchingDialog(Shell parentShell, IPatternMatcher matcherInsideTransaction, Collection<T> sampleEntries, List<ImportEntryProperty<T>> importEntryProperties, List<TransactionType<T>> applicableTransactionTypes) {
 		super(parentShell);
 		this.sampleEntries = sampleEntries;
 		this.importEntryProperties = importEntryProperties;
@@ -565,7 +564,7 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 		 * TransactionParamMetadata for the transaction type.
 		 */
 		LinkedHashSet<String> allParams = new LinkedHashSet<String>();
-		for (TransactionType transactionType : applicableTransactionTypes) {
+		for (TransactionType<T> transactionType : applicableTransactionTypes) {
 			for (TransactionParamMetadata paramMetadata : transactionType.getParameters()) {
 				allParams.add(paramMetadata.getName());
 			}
@@ -1328,9 +1327,9 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 		sortedPatterns.add(abovePattern);
 	}
 
-	private TransactionType lookupTransactionType(String transactionTypeId) {
-		TransactionType transType = null;
-		for (TransactionType eachTransType : applicableTransactionTypes) {
+	private TransactionType<T> lookupTransactionType(String transactionTypeId) {
+		TransactionType<T> transType = null;
+		for (TransactionType<T> eachTransType : applicableTransactionTypes) {
 			if (eachTransType.getId().equals(transactionTypeId)) {
 				transType = eachTransType;
 				break;
@@ -1339,7 +1338,7 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 		return transType;
 	}
 
-	private TransactionParamMetadata lookupParamByName(TransactionType transType, String parameterName) {
+	private TransactionParamMetadata lookupParamByName(TransactionType<T> transType, String parameterName) {
 		for (TransactionParamMetadata paramMetadata : transType.getParameters()) {
 			if (paramMetadata.getName().equals(parameterName)) {
 				return paramMetadata;

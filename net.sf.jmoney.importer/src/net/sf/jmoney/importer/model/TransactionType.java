@@ -7,7 +7,7 @@ import net.sf.jmoney.importer.matcher.TransactionParamMetadata;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.Transaction;
 
-public abstract class TransactionType implements Comparable<TransactionType> {
+public abstract class TransactionType<T extends BaseEntryData> implements Comparable<TransactionType<?>> {
 
 	private String id;
 	
@@ -27,12 +27,12 @@ public abstract class TransactionType implements Comparable<TransactionType> {
 	}
 
 	@Override
-	public int compareTo(TransactionType otherType) {
+	public int compareTo(TransactionType<?> otherType) {
 		return label.compareToIgnoreCase(otherType.label);
 	}
 
 	public abstract List<TransactionParamMetadata> getParameters();
 
-	public abstract void createTransaction(Transaction transaction, Entry entry1, BaseEntryData entryData, MemoPattern pattern, Object[] args);
+	public abstract void createTransaction(Transaction transaction, Entry entry1, T entryData, MemoPattern pattern, Object[] args);
 	
 }
