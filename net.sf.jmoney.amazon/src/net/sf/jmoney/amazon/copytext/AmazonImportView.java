@@ -56,6 +56,7 @@ import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.jface.viewers.TreeViewerColumn;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.jface.viewers.ViewerCell;
+import org.eclipse.jface.viewers.ViewerSorter;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.dnd.Clipboard;
@@ -197,8 +198,6 @@ public class AmazonImportView extends ViewPart {
 	}
 
 	public static String ID = "net.sf.jmoney.amazon.AmazonImportView";
-
-	//	private TableSorter sorter = new TableSorter(VISIBLE_FIELDS);
 
 	private TreeViewer viewer;
 
@@ -703,6 +702,19 @@ public class AmazonImportView extends ViewPart {
 					cell.setText(text);
 				}
 			}
+		});
+		
+		viewer.setSorter(new ViewerSorter() {
+		    public int compare(Viewer viewer, Object e1, Object e2) {
+		    	if (e1 instanceof AmazonOrder && e2 instanceof AmazonOrder) {
+		    		AmazonOrder order1 = (AmazonOrder)e1;
+		    		AmazonOrder order2 = (AmazonOrder)e2;
+		    		// Reverse, so most recent is first
+		    		return -order1.getOrderDate().compareTo(order2.getOrderDate());
+		    	}
+		    	return super.compare(viewer, e1, e2);
+		    }
+
 		});
 		
 		// Create the pop-up menu
