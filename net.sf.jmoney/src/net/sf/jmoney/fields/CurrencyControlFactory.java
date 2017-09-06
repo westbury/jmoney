@@ -25,14 +25,6 @@ package net.sf.jmoney.fields;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.sf.jmoney.model2.Commodity;
-import net.sf.jmoney.model2.Currency;
-import net.sf.jmoney.model2.ExtendableObject;
-import net.sf.jmoney.model2.IReferenceControlFactory;
-import net.sf.jmoney.model2.PropertyControlFactory;
-import net.sf.jmoney.model2.ScalarPropertyAccessor;
-import net.sf.jmoney.resources.Messages;
-
 import org.eclipse.core.databinding.observable.list.ComputedList;
 import org.eclipse.core.databinding.observable.list.IObservableList;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
@@ -44,6 +36,14 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+
+import net.sf.jmoney.model2.Commodity;
+import net.sf.jmoney.model2.Currency;
+import net.sf.jmoney.model2.ExtendableObject;
+import net.sf.jmoney.model2.IReferenceControlFactory;
+import net.sf.jmoney.model2.PropertyControlFactory;
+import net.sf.jmoney.model2.ScalarPropertyAccessor;
+import net.sf.jmoney.resources.Messages;
 
 /**
  * A control factory to select a currency.

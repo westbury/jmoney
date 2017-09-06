@@ -3,10 +3,6 @@ package net.sf.jmoney.entrytable;
 
 import java.util.Set;
 
-import net.sf.jmoney.JMoneyPlugin;
-import net.sf.jmoney.model2.Entry;
-import net.sf.jmoney.resources.Messages;
-
 import org.eclipse.core.databinding.observable.set.ComputedSet;
 import org.eclipse.core.databinding.observable.set.IObservableSet;
 import org.eclipse.core.databinding.observable.set.ISetChangeListener;
@@ -15,6 +11,7 @@ import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.SWTException;
 import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -27,6 +24,10 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Layout;
+
+import net.sf.jmoney.JMoneyPlugin;
+import net.sf.jmoney.model2.Entry;
+import net.sf.jmoney.resources.Messages;
 
 /**
  * This control contains the properties that come from other entries in the
@@ -147,7 +148,15 @@ public class OtherEntriesControl extends Composite {
 		otherEntries.addSetChangeListener(new ISetChangeListener<Entry>() {
 			@Override
 			public void handleSetChange(SetChangeEvent<Entry> event) {
+				try {
 				setStackControl(otherEntries);
+				} catch (SWTException e) {
+					/* This is often thrown when editing transactions with lots of splits.
+					 We do not pass it on because that means the entire transaction changes
+					 are lost.
+					 */
+					 e.printStackTrace();
+				}
 			}
 		});
 		

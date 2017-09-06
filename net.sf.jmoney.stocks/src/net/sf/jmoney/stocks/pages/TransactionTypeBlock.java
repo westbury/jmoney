@@ -46,7 +46,7 @@ public class TransactionTypeBlock extends
 			};
 			
 			Bind.twoWay(transactionProperty, master)
-			.to(ViewersObservables.<TransactionType>observeSingleSelection(viewer, TransactionType.class));
+			.to(ViewersObservables.observeSingleSelection(viewer, TransactionType.class));
 			
 //				master.addValueChangeListener(new IValueChangeListener() {
 //
