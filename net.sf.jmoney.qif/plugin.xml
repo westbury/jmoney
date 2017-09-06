@@ -36,6 +36,15 @@
 		</wizard>
 	</extension>
  
+   <extension
+         point="net.sf.jmoney.reconciliation.bankstatements">
+        <statement-source
+           id="qifimport" 
+           description="A Quicken Import File (*.QIF)" 
+           class="net.sf.jmoney.qif.QifImport">
+        </statement-source> 
+   </extension>
+
 	<extension point="net.sf.jmoney.fields">
     	<extension-property-set
       		id="entryProperties"

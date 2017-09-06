@@ -20,7 +20,7 @@
 *
 */
 
-package net.sf.jmoney.reconciliation;
+package net.sf.jmoney.qif;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -39,6 +39,10 @@ import java.util.Locale;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+import org.eclipse.jface.dialogs.Dialog;
+import org.eclipse.swt.widgets.FileDialog;
+import org.eclipse.swt.widgets.Shell;
+
 import net.sf.jmoney.JMoneyPlugin;
 import net.sf.jmoney.importer.matcher.EntryData;
 import net.sf.jmoney.importer.matcher.ImportEntryProperty;
@@ -46,11 +50,8 @@ import net.sf.jmoney.importer.model.TransactionType;
 import net.sf.jmoney.importer.model.TransactionTypeBasic;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.CurrencyAccount;
+import net.sf.jmoney.reconciliation.IBankStatementSource;
 import net.sf.jmoney.reconciliation.reconcilePage.ImportStatementDialog;
-
-import org.eclipse.jface.dialogs.Dialog;
-import org.eclipse.swt.widgets.FileDialog;
-import org.eclipse.swt.widgets.Shell;
 
 /**
  * Provides an implementation of the net.sf.jmoney.reconciliation.bankstatements
@@ -316,6 +317,7 @@ public class QifImport implements IBankStatementSource {
 
 			{
 				add(new ImportEntryProperty<EntryData>("memo", "Memo") {
+					@Override
 					protected String getCurrentValue(EntryData importEntry) {
 						return importEntry.getMemo();
 					}

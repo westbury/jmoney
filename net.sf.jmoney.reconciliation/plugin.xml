@@ -30,15 +30,6 @@
    </extension>
 
    <extension
-         point="net.sf.jmoney.reconciliation.bankstatements">
-        <statement-source
-           id="qifimport" 
-           description="A Quicken Import File (*.QIF)" 
-           class="net.sf.jmoney.reconciliation.QifImport">
-        </statement-source> 
-   </extension>
-
-   <extension
          point="org.eclipse.ui.menus">
       <menuContribution
             locationURI="popup:org.eclipse.ui.popup.any">
