@@ -22,19 +22,8 @@
 
 package net.sf.jmoney.importer.wizards;
 
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
-import java.text.DateFormat;
 import java.text.MessageFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
 
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -62,8 +51,6 @@ public abstract class TxrImportWizard extends Wizard {
 
 	protected IWorkbenchWindow window;
 
-	protected CsvImportWizardPage mainPage;
-
 	/**
 	 * This form of the constructor is used when being called from
 	 * the Eclipse 'import' menu.
@@ -77,12 +64,14 @@ public abstract class TxrImportWizard extends Wizard {
 		setDialogSettings(section);
 	}
 
+	/**
+	 * This form of this method is called when the wizard is initiated from the
+	 * 'import' menu.
+	 */
 	public void init(IWorkbench workbench, IStructuredSelection selection) {
 		this.window = workbench.getActiveWorkbenchWindow();
 
-		mainPage = new CsvImportWizardPage(window, getDescription());
-
-		addPage(mainPage);
+		performFinish();
 	}
 
 	@Override
@@ -90,7 +79,59 @@ public abstract class TxrImportWizard extends Wizard {
 		String text = getTextFromClipboard();
 		
 		if (text != null) {
-			boolean allImported = importFile(text);
+			IDataManagerForAccounts datastoreManager = (IDataManagerForAccounts)window.getActivePage().getInput();
+			if (datastoreManager == null) {
+				MessageDialog.openError(window.getShell(), "Unavailable", "You cannot import data into an accounting session unless you have a session open.  You must first open a session or create a new session.");
+				return false;
+			}
+
+			try {
+				/*
+				 * Create a transaction to be used to import the entries.  This allows the entries to
+				 * be more efficiently written to the back-end datastore and it also groups
+				 * the entire import as a single change for undo/redo purposes.
+				 */
+				TransactionManagerForAccounts transactionManager = new TransactionManagerForAccounts(datastoreManager);
+				Session session = transactionManager.getSession();
+
+	        	if (processRows(session, text)) {
+	        		/*
+	        		 * All entries have been imported so we
+	        		 * can now commit the imported entries to the datastore.
+	        		 */
+	    			if (transactionManager.hasChanges()) {
+	    				String transactionDescription = MessageFormat.format("Import {0}", getDescription());
+	    				transactionManager.commit(transactionDescription);
+
+	    				StringBuffer combined = new StringBuffer()
+	    						.append(getDescription())
+	    						.append(" was successfully imported.");
+	    				MessageDialog.openInformation(window.getShell(), "Data imported", combined.toString());
+	    			} else {
+	    				MessageDialog.openWarning(window.getShell(), "Data not imported",
+	    						MessageFormat.format(
+	    								"{0} was not imported because all the data in it had already been imported.",
+	    								getDescription()));
+	    			}
+	        		
+	        		return true;
+	        	} else {
+	        		return false;
+	        	}
+			} catch (IOException e) {
+				// This is probably not likely to happen so the default error handling is adequate.
+				throw new RuntimeException(e);
+//			} catch (ImportException e) {
+//				// There are data in the import file that we are unable to process
+//				e.printStackTrace();
+//				MessageDialog.openError(window.getShell(), "Error in row " + e.getRowNumber(), e.getMessage());
+//				return false;
+			} catch (Exception e) {
+				// There are data in the import file that we are unable to process
+				e.printStackTrace();
+				MessageDialog.openError(window.getShell(), "Errors in the downloaded file", e.getMessage());
+				return false;
+			}
 		}
 
 		return true;
@@ -103,53 +144,6 @@ public abstract class TxrImportWizard extends Wizard {
 		clipboard.dispose();        
 
 		return plainText;
-	}
-
-
-	public boolean importFile(String text) {
-
-		IDataManagerForAccounts datastoreManager = (IDataManagerForAccounts)window.getActivePage().getInput();
-		if (datastoreManager == null) {
-			MessageDialog.openError(window.getShell(), "Unavailable", "You must open an accounting session before you can create an account.");
-			return false;
-		}
-
-		try {
-			/*
-			 * Create a transaction to be used to import the entries.  This allows the entries to
-			 * be more efficiently written to the back-end datastore and it also groups
-			 * the entire import as a single change for undo/redo purposes.
-			 */
-			TransactionManagerForAccounts transactionManager = new TransactionManagerForAccounts(datastoreManager);
-			Session session = transactionManager.getSession();
-
-			startImport(transactionManager);
-
-        	if (processRows(session, text)) {
-        		/*
-        		 * All entries have been imported so we
-        		 * can now commit the imported entries to the datastore.
-        		 */
-        		String transactionDescription = MessageFormat.format("Import {0}", "text from clipboard");
-        		transactionManager.commit(transactionDescription);									
-        		return true;
-        	} else {
-        		return false;
-        	}
-		} catch (IOException e) {
-			// This is probably not likely to happen so the default error handling is adequate.
-			throw new RuntimeException(e);
-//		} catch (ImportException e) {
-//			// There are data in the import file that we are unable to process
-//			e.printStackTrace();
-//			MessageDialog.openError(window.getShell(), "Error in row " + e.getRowNumber(), e.getMessage());
-//			return false;
-		} catch (Exception e) {
-			// There are data in the import file that we are unable to process
-			e.printStackTrace();
-			MessageDialog.openError(window.getShell(), "Errors in the downloaded file", e.getMessage());
-			return false;
-		}
 	}
 
 	/**
@@ -165,5 +159,4 @@ public abstract class TxrImportWizard extends Wizard {
 
 	protected abstract String getDescription();
 
-	protected abstract void startImport(TransactionManagerForAccounts transactionManager) throws ImportException;
 }
