@@ -176,8 +176,13 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 			protected boolean doNotConsiderEntryForMatch(Entry entry) {
 				return AmazonEntryInfo.getOrderIdAccessor().getValue(entry) != null;
 			}
+
+			@Override
+			protected boolean nearEnoughMatches(Date dateOfExistingTransaction, Date dateInImport, Entry entry) {
+					return isDateInRange(dateInImport, dateOfExistingTransaction, 10);
+			}
 		};
-		Entry matchedEntryInChargeAccount = matchFinder.findMatch(chargedAccount, -totalCharged, shipmentDate, 10, null);
+		Entry matchedEntryInChargeAccount = matchFinder.findMatch(chargedAccount, -totalCharged, shipmentDate);
 
 		/*
 		 * Although Amazon never charge until the order is shipped, other retailers
@@ -185,7 +190,7 @@ public class AmazonOrderImportWizard extends CsvImportWizard implements IImportW
 		 * charge account try again starting at the order date.
 		 */
 		if (matchedEntryInChargeAccount == null) {
-			matchedEntryInChargeAccount = matchFinder.findMatch(chargedAccount, -totalCharged, column_orderDate.getDate(), 10, null);
+			matchedEntryInChargeAccount = matchFinder.findMatch(chargedAccount, -totalCharged, column_orderDate.getDate());
 		}
 
 		if (matchingEntry == null) {

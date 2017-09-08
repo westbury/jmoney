@@ -14,6 +14,7 @@ import net.sf.jmoney.amazon.AccountFinder;
 import net.sf.jmoney.amazon.AmazonEntry;
 import net.sf.jmoney.fields.IBlob;
 import net.sf.jmoney.importer.wizards.ImportException;
+import net.sf.jmoney.model2.BankAccount;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 
 public class ItemUpdater implements IItemUpdater {
@@ -137,6 +138,17 @@ public class ItemUpdater implements IItemUpdater {
 			entry.setAccount(returnedItemAccount);
 		} catch (ImportException e) {
 			// If there is no 'returned item' account then we should error.
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public void setIntoGiftcardAccount() {
+		try {
+			BankAccount giftcardAccount = accountFinder.findGiftcardAccount();
+			entry.setAccount(giftcardAccount);
+		} catch (ImportException e) {
+			// If there is no 'giftcard' account then we should error.
 			throw new RuntimeException(e);
 		}
 	}

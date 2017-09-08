@@ -6,6 +6,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -836,8 +837,13 @@ public class AmazonHtmlImportWizard extends Wizard implements IImportWizard {
 						protected boolean doNotConsiderEntryForMatch(Entry entry) {
 							return AmazonEntryInfo.getOrderIdAccessor().getValue(entry) != null;
 						}
+
+						@Override
+						protected boolean nearEnoughMatches(Date dateOfExistingTransaction, Date dateInImport, Entry entry) {
+								return isDateInRange(dateInImport, dateOfExistingTransaction, 10);
+						}
 					};
-					Entry matchedEntryInChargeAccount = matchFinder.findMatch(chargeAccount, -shipment.totalPaidInCash, order.getOrderDate(), 10, null);
+					Entry matchedEntryInChargeAccount = matchFinder.findMatch(chargeAccount, -shipment.totalPaidInCash, order.getOrderDate());
 
 					/*
 					 * Create an entry for the amount charged to the charge account.

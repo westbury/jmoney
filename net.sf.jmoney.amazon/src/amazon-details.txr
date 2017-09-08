@@ -39,7 +39,8 @@ Grand Total: £@grandtotal
 @(maybe)
 Refund Total £@refundtotal
 @(end)
-@(collect :maxgap 8)
+@(collect :maxgap 8 :mintimes 1)
+@  (maybe)
 @  (cases)
 Track package
 @      (throw parseError "'Track package' found but prior lines were unmatched.")
@@ -82,11 +83,15 @@ Refunded
 Your return is in transit. Your refund has been issued. When will I get my refund? 
 Refund for this return £@refund
 @(bind returned "true")
+@  (or)
+Return started
+Your refund will be processed when we receive your item.
+@(bind returned "true")@  (end)
 @  (end)
 @  (maybe)
 Track package
 @  (end)
-@  (collect :maxgap 0)
+@  (collect :maxgap 0 :mintimes 1)
 @    (cases)
  @{quantity /\d+/}
 @      (assert)

@@ -147,7 +147,7 @@ public class ShipmentUpdater implements IShipmentUpdater {
 				chargeEntry = entry;
 			} else if (isPostageAndPackagingEntry(entry)) {
 				postageAndPackagingEntry = entry;
-			} else if (isGiftcardEntry(entry)) {
+			} else if (isGiftcardEntry_NotAnItem(entry)) {
 				giftcardEntry = entry;
 			} else if (isPromotionEntry(entry)) {
 				promotionEntry = entry;
@@ -162,7 +162,7 @@ public class ShipmentUpdater implements IShipmentUpdater {
 
 	private boolean isChargeEntry(Entry entry) {
 		// TODO use account returned from finder.
-		return (entry.getAccount() instanceof CapitalAccount && !isGiftcardEntry(entry) && !isPromotionEntry(entry))  
+		return (entry.getAccount() instanceof CapitalAccount && !isGiftcardEntry_WhetherItemOrNot(entry) && !isPromotionEntry(entry))  
 				|| entry.getAccount().getName().equals("Amazon unmatched (UK)");
 	}
 
@@ -171,7 +171,40 @@ public class ShipmentUpdater implements IShipmentUpdater {
 		return entry.getAccount().getName().equals("Postage and Packaging (UK)");
 	}
 
-	private boolean isGiftcardEntry(Entry entry) {
+	private boolean isGiftcardEntry_NotAnItem(Entry entry) {
+		/*
+		 * The giftcard account is a capital account with credits
+		 * and debits that should balance out to zero.  When an item
+		 * is exchanged, a credit is made to the giftcard balance by
+		 * Amazon.  So when an item is exchanged, we set the category
+		 * for the item to the giftcard account.  This works is the sense
+		 * that everything balances.  However it means that credits to
+		 * the giftcard account may want to be treated as items.  This allows
+		 * us to keep a record of the original item, so we know what we bought
+		 * even if we did sent it back.  Credits to the giftcard account can
+		 * occur through other means, such as someone sending a giftcard.
+		 * So we look at the Amazon description to see if we want to treat
+		 * this as an item.
+		 */
+		return entry.getAccount() == giftcardAccount
+				&& AmazonEntryInfo.getAmazonDescriptionAccessor().getValue(entry) == null;
+	}
+
+	private boolean isGiftcardEntry_WhetherItemOrNot(Entry entry) {
+		/*
+		 * The giftcard account is a capital account with credits
+		 * and debits that should balance out to zero.  When an item
+		 * is exchanged, a credit is made to the giftcard balance by
+		 * Amazon.  So when an item is exchanged, we set the category
+		 * for the item to the giftcard account.  This works is the sense
+		 * that everything balances.  However it means that credits to
+		 * the giftcard account may want to be treated as items.  This allows
+		 * us to keep a record of the original item, so we know what we bought
+		 * even if we did sent it back.  Credits to the giftcard account can
+		 * occur through other means, such as someone sending a giftcard.
+		 * So we look at the Amazon description to see if we want to treat
+		 * this as an item.
+		 */
 		return entry.getAccount() == giftcardAccount;
 	}
 
@@ -276,18 +309,19 @@ public class ShipmentUpdater implements IShipmentUpdater {
 		 * Find the account which is charged for the purchases.
 		 */
 		CapitalAccount chargeAccount = accountFinder.getAccountGivenLastFourDigits(lastFourDigits);
-		
-		if (this.chargeAccount != unmatchedAccount 
-				&& this.chargeAccount != chargeAccount 
-				&& (chargeEntry.getExtension(net.sf.jmoney.reconciliation.ReconciliationEntryInfo.getPropertySet(), true).getStatement() != null || chargeEntry.getExtension(net.sf.jmoney.importer.model.ReconciliationEntryInfo.getPropertySet(), true).getUniqueId() != null)) {
-			throw new RuntimeException("charge accounts mismatch, or changing charge account for entry that is reconciled.");
-		}
-		this.chargeAccount = chargeAccount;
 
-		if (chargeEntry != null) {
-			chargeEntry.setAccount(chargeAccount);
+		if (this.chargeAccount != chargeAccount) {
+			if (this.chargeAccount != unmatchedAccount 
+					&& (chargeEntry.getExtension(net.sf.jmoney.reconciliation.ReconciliationEntryInfo.getPropertySet(), true).getStatement() != null || chargeEntry.getExtension(net.sf.jmoney.importer.model.ReconciliationEntryInfo.getPropertySet(), true).getUniqueId() != null)) {
+				throw new RuntimeException("charge accounts mismatch, or changing charge account for entry that is reconciled.");
+			}
+			this.chargeAccount = chargeAccount;
 
-			matchChargeEntry();
+			if (chargeEntry != null) {
+				chargeEntry.setAccount(chargeAccount);
+
+				matchChargeEntry();
+			}
 		}
 	}
 
@@ -325,8 +359,13 @@ public class ShipmentUpdater implements IShipmentUpdater {
 			protected boolean doNotConsiderEntryForMatch(Entry entry) {
 				return false;
 			}
+
+			@Override
+			protected boolean nearEnoughMatches(Date dateOfExistingTransaction, Date dateInImport, Entry entry) {
+					return isDateInRange(dateInImport, dateOfExistingTransaction, 10);
+			}
 		};
-		Entry matchedEntryInUnmatchedAccount = matchFinder.findMatch(unmatchedAccount, -chargeEntry.getAmount(), transaction.getDate(), 10, null);
+		Entry matchedEntryInUnmatchedAccount = matchFinder.findMatch(unmatchedAccount, -chargeEntry.getAmount(), transaction.getDate());
 
 		/*
 		 * Create an entry for the amount charged to the charge account.

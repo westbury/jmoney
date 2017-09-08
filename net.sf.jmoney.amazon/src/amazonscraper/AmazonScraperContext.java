@@ -358,9 +358,9 @@ public class AmazonScraperContext {
 			for (AmazonOrderItem exchangedItem : exchangedItems) {
 				/*
 				 * The item marked as 'exchanged' is the original item in the original sale.
-				 * We set the category for this item as 'returned'.
+				 * We set the category for this item as 'giftcard'.
 				 */
-				exchangedItem.getUnderlyingItem().setIntoReturnedItemAccount();
+				exchangedItem.getUnderlyingItem().setIntoGiftcardAccount();
 
 				/*
 				 * We look now for an order in which the replacement item was shipped.
@@ -371,101 +371,65 @@ public class AmazonScraperContext {
 				// in the returned category. Or perhaps not, as the replacement item
 				// may not have been found the previous time we examined this exchange.
 
-				AmazonOrderItem replacementItem = null;
-
-				long itemAmount = exchangedItem.getNetCost();
-				String soldBy = exchangedItem.getSoldBy();
-
-
-				/* First check orders already in the context for the sale of an item with the
-				same price as this one.  Note that we only look in other orders.
-				 */
-				AmazonOrderItem[] possibleReplacementItems = orders.stream().filter(eachOrder -> (eachOrder != order)).flatMap(eachOrder -> eachOrder.getItems().stream()).filter(eachItem -> eachItem.getNetCost() == itemAmount).toArray(AmazonOrderItem[]::new);
-
-				//				for (AmazonOrder eachOrder : orders) {
-				//					if (eachOrder != order) {
-				//					for (AmazonOrderItem eachItem : eachOrder.getItems()) {
-				//						if (eachItem.getNetCost() == itemAmount) {
-				//							replacementItem = eachItem;
-				//							break;
-				//						}
-				//					}
-				//					}
-				//				}
-
-				// TODO what if there is more than one match????
-
-
-				if (possibleReplacementItems.length == 0) {
-					replacementItem = contextUpdater.createAmazonItemForMatchingExchange(orderDate, itemAmount, soldBy);
-				} else {
-					replacementItem = possibleReplacementItems[0];
-				}
-
-				// If we don't find the replacement, no worries.  We simply leave things
-				// as they are.  It should all match if the replacement item order is later
-				// imported because the exchanged item will be in the 'returned items' category.
-				if (replacementItem != null) {
-
-					// Look to see if a 'return' item has already been created in
-					// this shipment.
-
-					AmazonOrderItem[] matchingReturnedItems = replacementItem.getShipment().getItems().stream().filter(item -> item.getNetCost() == -itemAmount).toArray(AmazonOrderItem[]::new);
-					if (matchingReturnedItems.length > 2) {
-						throw new RuntimeException("Messed up transaction");
-					}
-
-					AmazonOrderItem returnOfItem;
-					if (matchingReturnedItems.length == 0) {
-						IItemUpdater returnedItemUpdater = replacementItem.getShipment().getShipmentUpdater().createNewItemUpdater(-itemAmount);
-						returnOfItem = new AmazonOrderItem(replacementItem.getShipment(), returnedItemUpdater);
-						replacementItem.getShipment().addItem(returnOfItem);
-						/*
-						 * As the original item return was just created, we need to find the original item sale
-						 * and copy data across.
-						 */
-
-						//					AmazonOrderItem originalItem = null;
-						//					
-						//					/* First check orders already in the context for the sale of an item with the
-						//					same price as this one.  Note that we only look in other orders.
-						//					*/
-						//					for (AmazonOrder eachOrder : orders) {
-						//						if (eachOrder != order) {
-						//						for (AmazonOrderItem eachItem : eachOrder.getItems()) {
-						//							if (eachItem.getNetCost() == itemAmount) {
-						//								originalItem = eachItem;
-						//								break;
-						//							}
-						//						}
-						//						}
-						//					}
-						//					
-						//					if (originalItem == null) {
-						//						originalItem = contextUpdater.createAmazonItemForMatchingExchange(orderDate, itemAmount, soldBy);
-						//					}
-						//					
-						//					if (originalItem == null) {
-						//						throw new RuntimeException("What do we do now???");
-						//					}
-
-						
-						returnOfItem.setQuantity(-exchangedItem.getQuantity());
-						returnOfItem.setSoldBy(exchangedItem.getSoldBy());
-						returnOfItem.setAmazonDescription(exchangedItem.getAmazonDescription());
-						returnOfItem.getUnderlyingItem().setAsinOrIsbn(exchangedItem.getUnderlyingItem().getAsinOrIsbn());
-						
-						// But order number is the return order
-						returnOfItem.getUnderlyingItem().setOrderNumber(replacementItem.getShipment().getOrder().getOrderNumber());
-					} else {
-						returnOfItem = matchingReturnedItems[0];
-					}
-
-					returnOfItem.getUnderlyingItem().setIntoReturnedItemAccount();
-					
-					// Flush now, because this shipment is not in our order and it may already have been flushed....
-					replacementItem.getShipment().flush();
-				}
+//				AmazonOrderItem replacementItem = null;
+//
+//				long itemAmount = exchangedItem.getNetCost();
+//				String soldBy = exchangedItem.getSoldBy();
+//
+//
+//				/* First check orders already in the context for the sale of an item with the
+//				same price as this one.  Note that we only look in other orders.
+//				 */
+//				AmazonOrderItem[] possibleReplacementItems = orders.stream().filter(eachOrder -> (eachOrder != order)).flatMap(eachOrder -> eachOrder.getItems().stream()).filter(eachItem -> eachItem.getNetCost() == itemAmount).toArray(AmazonOrderItem[]::new);
+//
+//				// TODO what if there is more than one match????
+//
+//
+//				if (possibleReplacementItems.length == 0) {
+//					replacementItem = contextUpdater.createAmazonItemForMatchingExchange(orderDate, itemAmount, soldBy);
+//				} else {
+//					replacementItem = possibleReplacementItems[0];
+//				}
+//
+//				// If we don't find the replacement, no worries.  We simply leave things
+//				// as they are.  It should all match if the replacement item order is later
+//				// imported because the exchanged item will be in the 'returned items' category.
+//				if (replacementItem != null) {
+//
+//					// Look to see if a 'return' item has already been created in
+//					// this shipment.
+//
+//					AmazonOrderItem[] matchingReturnedItems = replacementItem.getShipment().getItems().stream().filter(item -> item.getNetCost() == -itemAmount).toArray(AmazonOrderItem[]::new);
+//					if (matchingReturnedItems.length > 2) {
+//						throw new RuntimeException("Messed up transaction");
+//					}
+//
+//					AmazonOrderItem returnOfItem;
+//					if (matchingReturnedItems.length == 0) {
+//						IItemUpdater returnedItemUpdater = replacementItem.getShipment().getShipmentUpdater().createNewItemUpdater(-itemAmount);
+//						returnOfItem = new AmazonOrderItem(replacementItem.getShipment(), returnedItemUpdater);
+//						replacementItem.getShipment().addItem(returnOfItem);
+//						/*
+//						 * As the original item return was just created, we need to find the original item sale
+//						 * and copy data across.
+//						 */
+//						
+//						returnOfItem.setQuantity(-exchangedItem.getQuantity());
+//						returnOfItem.setSoldBy(exchangedItem.getSoldBy());
+//						returnOfItem.setAmazonDescription(exchangedItem.getAmazonDescription());
+//						returnOfItem.getUnderlyingItem().setAsinOrIsbn(exchangedItem.getUnderlyingItem().getAsinOrIsbn());
+//						
+//						// But order number is the return order
+//						returnOfItem.getUnderlyingItem().setOrderNumber(replacementItem.getShipment().getOrder().getOrderNumber());
+//					} else {
+//						returnOfItem = matchingReturnedItems[0];
+//					}
+//
+//					returnOfItem.getUnderlyingItem().setIntoReturnedItemAccount();
+//					
+//					// Flush now, because this shipment is not in our order and it may already have been flushed....
+//					replacementItem.getShipment().flush();
+//				}
 			}
 
 			// Must do this check after returns are processed, because the sale of the return may not otherwise
@@ -618,7 +582,11 @@ public class AmazonScraperContext {
 			// we can access the actual shipment.
 			AmazonShipment shipment = shipmentObject.shipment;
 
-			shipment.setExpectedDate(expectedDateAsString);
+//			if (expectedDateAsString != null) {
+				shipment.setExpectedDate(expectedDateAsString);
+//			} else {
+//				shipment.setExpectedDate("shipped in prior year");
+//			}
 			shipment.setDeliveryDate(deliveryDate);
 			shipment.setLastFourDigitsOfAccount(lastFourDigits);
 			shipment.setReturned(returned);
@@ -715,7 +683,9 @@ public class AmazonScraperContext {
 			// This is the amount after the promotion has been deducted.
 			// (Need to re-check giftcard amounts)
 			// Note we are re-setting the order total which was already set.
-			order.setOrderTotal(orderTotal - promotion);
+			
+			// NO, grand total already has this deducted.
+//			order.setOrderTotal(orderTotal - promotion);
 
 			/*
 			 * In the only example we have with a promotional discount, the promotion was applied to the first shipment

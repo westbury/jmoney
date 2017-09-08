@@ -18,7 +18,24 @@ public interface IItemUpdater {
 
 	String getAsinOrIsbn();
 
+	/**
+	 * This method is called for items that were returned
+	 * for a cash refund.
+	 */
 	void setIntoReturnedItemAccount();
+
+	/**
+	 * This method is called for items that were returned
+	 * for an exchange item.  
+	 * <P>
+	 * For exchanges, Amazon show the
+	 * shipment of the replacement item as a separate order that
+	 * was paid for using a gift-card.  Therefore, to ensure everything
+	 * balances, we put the returned exchange item also into the gift-card
+	 * account.
+	 * 
+	 */
+	void setIntoGiftcardAccount();
 
 	String getImageCode();
 

@@ -27,6 +27,7 @@ Amount Sent to Status
 £@itemamount @recipient Redeemed
 @(bind giftcardpurchase "true")
 @   (or)
+@    (maybe)
 @    (cases)
 Track package
 @      (throw parseError "'Track package' found but prior lines were unmatched.")
@@ -88,6 +89,11 @@ Your return is complete. Your refund has been issued. When will I get my refund?
 Refunded
 Your return is in transit. Your refund has been issued. When will I get my refund? 
 @(bind returned "true")
+@    (or)
+Return started
+Your refund will be processed when we receive your item.
+@(bind returned "true")
+@    (end)
 @    (end)
 @    (maybe)
 Track package
