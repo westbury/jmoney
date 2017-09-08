@@ -121,14 +121,14 @@ public class BankAccount extends CurrencyAccount {
 	}
 
 	/**
-	 * @param aBank the name of this account.
+	 * @param bank the name of the bank
 	 */
-	public void setBank(String aBank) {
+	public void setBank(String bank) {
         String oldBank = this.bank;
-		this.bank = aBank;
+		this.bank = bank;
 
 		// Notify the change manager.
-		processPropertyChange(BankAccountInfo.getBankAccessor(), oldBank, aBank);
+		processPropertyChange(BankAccountInfo.getBankAccessor(), oldBank, bank);
 	}
 
 	/**
