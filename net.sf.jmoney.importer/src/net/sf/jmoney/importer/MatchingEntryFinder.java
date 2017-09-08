@@ -6,7 +6,6 @@ import java.util.Collection;
 import java.util.Date;
 
 import net.sf.jmoney.model2.Account;
-import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Entry;
 
 public abstract class MatchingEntryFinder {
@@ -48,68 +47,45 @@ public abstract class MatchingEntryFinder {
 	 * 			and the check number is known, otherwise null
 	 * @return the matching entry if one is found, otherwise null
 	 */
-	public Entry findMatch(Account account, long amount, Date startSearchDate, int numberOfDays, String checkNumber) {
+	public Entry findMatch(Account account, long amount, Date startSearchDate) {
 		Collection<Entry> possibleMatches = new ArrayList<Entry>();
 		for (Entry entry : account.getEntries()) {
 			if (!doNotConsiderEntryForMatch(entry)
 					&& entry.getAmount() == amount) {
 				Date date = entry.getTransaction().getDate();
-				if (entry.getCheck() == null) {
-					if (date.equals(startSearchDate)) {
-						possibleMatches.add(entry);
-
-						/*
-						 * Date exactly matched - so we can quit
-						 * searching for other matches. (If user entered
-						 * multiple entries with same check number then
-						 * the user will not be surprised to see an
-						 * arbitrary one being used for the match).
-						 */
-						break;
-					} else {
-						Calendar calendar = Calendar.getInstance();
-						calendar.setTime(startSearchDate);
-						calendar.add(Calendar.DAY_OF_MONTH, numberOfDays);
-						Date endSearchDate = calendar.getTime();
-
-						if ((checkNumber == null || checkNumber.length() == 0) 
-								&& !date.before(startSearchDate)
-										&& !date.after(endSearchDate)) {
-							// Auto-reconcile
-							possibleMatches.add(entry);
-						}
-					}
-				} else {
-					// A check number is present
-					Calendar twentyDaysLater = Calendar.getInstance();
-					twentyDaysLater.setTime(date);
-					twentyDaysLater.add(Calendar.DAY_OF_MONTH, 20);
-
-					if (entry.getCheck().equals(checkNumber)
-							&& (startSearchDate.equals(date)
-									|| startSearchDate.after(date))
-									&& startSearchDate.before(twentyDaysLater.getTime())) {
-						// Auto-reconcile
-						possibleMatches.add(entry);
-
-						/*
-						 * Check number matched - so we can quit
-						 * searching for other matches. (If user entered
-						 * multiple entries with same check number then
-						 * the user will not be surprised to see an
-						 * arbitrary one being used for the match).
-						 */
-						break;
-					}
+				if (nearEnoughMatches(date, startSearchDate, entry)){
+					possibleMatches.add(entry);
 				}
 			}
 		}
 
-		if (possibleMatches.size() == 1) {
-			return possibleMatches.iterator().next();
-		} else {
-			return null;
-		}
+		/*
+		 * Find the earliest. If multiple matches have the same day then we
+		 * pick an arbitrary one. Note that as we generally set an id when
+		 * we match, and that id will stop the transaction being a possible
+		 * match again.
+		 */
+		return possibleMatches.stream()
+			.sorted((entry1, entry2) -> entry1.getTransaction().getDate().compareTo(entry2.getTransaction().getDate()))
+					.findFirst().orElse(null);
+	}
+
+	/**
+	 * 
+	 * @param date
+	 * @param startSearchDate the first date to search
+	 * @param numberOfDays the number of days to search, including
+	 * 			both the first and last day search
+	 * @return
+	 */
+	protected boolean isDateInRange(Date date, Date startSearchDate, int numberOfDays) {
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTime(startSearchDate);
+		calendar.add(Calendar.DAY_OF_MONTH, numberOfDays);
+		Date endSearchDate = calendar.getTime();
+
+		return !date.before(startSearchDate)
+				&& date.before(endSearchDate);
 	}
 
 	/**
@@ -129,4 +105,7 @@ public abstract class MatchingEntryFinder {
 	 *         imported entry using this same importer
 	 */
 	abstract protected boolean doNotConsiderEntryForMatch(Entry entry);
+
+	abstract protected boolean nearEnoughMatches(Date dateOfExistingTransaction, Date dateInImport, Entry entry);
+
 }

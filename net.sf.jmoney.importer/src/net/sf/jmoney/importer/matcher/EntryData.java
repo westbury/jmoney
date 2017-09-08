@@ -16,13 +16,19 @@ import net.sf.jmoney.model2.Transaction;
 public class EntryData extends BaseEntryData {
 
 	public Date clearedDate = null;
+
 	public Date valueDate = null;
-	public String check = null;
+
 	private String memo = null;
+
 	private String type = null;
+
 	private String name = null;
+
 	private String payee = null;
+
 	public String uniqueId = null;
+
 	private Map<PropertyAccessor, Object> propertyMap = new HashMap<PropertyAccessor, Object>();
 
 	public void setClearedDate(Date clearedDate) {
@@ -31,9 +37,7 @@ public class EntryData extends BaseEntryData {
 	public void setValueDate(Date valueDate) {
 		this.valueDate = valueDate;
 	}
-	public void setCheck(String check) {
-		this.check = check;
-	}
+
 	public void setMemo(String memo) {
 		this.memo = memo;
 	}
@@ -79,7 +83,6 @@ public class EntryData extends BaseEntryData {
 			entry1.setValuta(clearedDate);
 		}
 
-		entry1.setCheck(check);
 		ReconciliationEntryInfo.getUniqueIdAccessor().setValue(entry1, uniqueId);
 
 		entry1.setAmount(amount);
@@ -196,7 +199,6 @@ public class EntryData extends BaseEntryData {
 	@Override
 	public void setDataIntoExistingEntry(Entry matchedEntry) {
 		matchedEntry.setValuta(getImportedDate());  // ????
-		matchedEntry.setCheck(check);
 		ReconciliationEntryInfo.getUniqueIdAccessor().setValue(matchedEntry, uniqueId);
 	}
 
@@ -216,7 +218,12 @@ public class EntryData extends BaseEntryData {
 				 */
 				return ourEntries.contains(entry) || ReconciliationEntryInfo.getUniqueIdAccessor().getValue(entry) != null;
 			}
+			@Override
+
+			protected boolean nearEnoughMatches(Date dateOfExistingTransaction, Date dateInImport, Entry entry) {
+				return isDateInRange(dateInImport, dateOfExistingTransaction, 5);
+			}
 		};
-		return matchFinder.findMatch(account, amount, importedDate, 5, check);
+		return matchFinder.findMatch(account, amount, importedDate);
 	}
 }

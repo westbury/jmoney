@@ -34,6 +34,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.jface.dialogs.Dialog;
+import org.eclipse.jface.dialogs.IDialogSettings;
+import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.jface.wizard.Wizard;
+import org.eclipse.ui.IImportWizard;
+import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.IWorkbenchWindow;
+
 import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.matcher.EntryData;
 import net.sf.jmoney.importer.matcher.IPatternMatcher;
@@ -53,6 +62,7 @@ import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.qif.QIFPlugin;
+import net.sf.jmoney.qif.QifEntryData;
 import net.sf.jmoney.qif.parser.AmbiguousDateException;
 import net.sf.jmoney.qif.parser.InvalidQifFileException;
 import net.sf.jmoney.qif.parser.QifDate;
@@ -60,15 +70,6 @@ import net.sf.jmoney.qif.parser.QifDateFormat;
 import net.sf.jmoney.qif.parser.QifFile;
 import net.sf.jmoney.qif.parser.QifImportException;
 import net.sf.jmoney.qif.parser.QifTransaction;
-
-import org.eclipse.jface.dialogs.Dialog;
-import org.eclipse.jface.dialogs.IDialogSettings;
-import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.jface.viewers.IStructuredSelection;
-import org.eclipse.jface.wizard.Wizard;
-import org.eclipse.ui.IImportWizard;
-import org.eclipse.ui.IWorkbench;
-import org.eclipse.ui.IWorkbenchWindow;
 
 /**
  * A wizard to import data from a QIF file.
@@ -195,15 +196,6 @@ public class QifBankDownloadImportWizard extends Wizard implements IImportWizard
 						Currency currency = sessionInTransaction.getDefaultCurrency();
 				
 						int transactionCount = 0;
-						
-						MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
-							@Override
-							protected boolean doNotConsiderEntryForMatch(Entry entry) {
-								return ReconciliationEntryInfo.getUniqueIdAccessor().getValue(entry) != null;
-							}
-						};
-						
-//						ImportMatcher matcher = new ImportMatcher(accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true));
 
 						Collection<EntryData> importedEntries = new ArrayList<EntryData>();
 
@@ -223,14 +215,36 @@ public class QifBankDownloadImportWizard extends Wizard implements IImportWizard
 							String uniqueId = Long.toString(date.getTime())
 									+ '~' + amount;
 							
-							Entry match = matchFinder.findMatch(currencyAccount, amount, date, 5, qifTransaction.getCheckNumber());
+							final String checkNumber = qifTransaction.getCheckNumber();
+							
+							MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
+								@Override
+								protected boolean doNotConsiderEntryForMatch(Entry entry) {
+									return ReconciliationEntryInfo.getUniqueIdAccessor().getValue(entry) != null;
+								}
+
+								@Override
+								protected boolean nearEnoughMatches(Date dateOfExistingTransaction, Date dateInImport, Entry entry) {
+									if (entry.getCheck() == null) {
+										return (checkNumber == null || checkNumber.isEmpty())
+												&& entry.getCheck() == null
+												&& isDateInRange(dateInImport, dateOfExistingTransaction, 5);
+									} else {
+										// A check number is present so search more days
+										return entry.getCheck().equals(checkNumber)
+												&& isDateInRange(dateOfExistingTransaction, dateInImport, 20);
+									}
+								}
+							};
+							
+							Entry match = matchFinder.findMatch(currencyAccount, amount, date);
 							if (match != null) {
 								Entry entryInTrans = transactionManager.getCopyInTransaction(match);
 								entryInTrans.setValuta(date);
 								entryInTrans.setCheck(qifTransaction.getCheckNumber());
 								ReconciliationEntryInfo.getUniqueIdAccessor().setValue(entryInTrans, uniqueId);
 							} else {
-								EntryData entryData = new EntryData();
+								QifEntryData entryData = new QifEntryData();
 								entryData.amount = amount;
 								entryData.check = qifTransaction.getCheckNumber();
 								//							entryData.valueDate = date;

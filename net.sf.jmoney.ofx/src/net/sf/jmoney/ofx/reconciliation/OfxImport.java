@@ -35,19 +35,20 @@ import java.util.Date;
 import java.util.List;
 import java.util.Vector;
 
+import org.eclipse.jface.dialogs.Dialog;
+import org.eclipse.swt.widgets.FileDialog;
+import org.eclipse.swt.widgets.Shell;
+
 import net.sf.jmoney.importer.matcher.EntryData;
 import net.sf.jmoney.importer.matcher.ImportEntryProperty;
 import net.sf.jmoney.importer.model.TransactionType;
 import net.sf.jmoney.importer.model.TransactionTypeBasic;
 import net.sf.jmoney.model2.CurrencyAccount;
+import net.sf.jmoney.ofx.OfxEntryData;
 import net.sf.jmoney.ofx.parser.SimpleDOMParser;
 import net.sf.jmoney.ofx.parser.SimpleElement;
 import net.sf.jmoney.reconciliation.IBankStatementSource;
 import net.sf.jmoney.reconciliation.reconcilePage.ImportStatementDialog;
-
-import org.eclipse.jface.dialogs.Dialog;
-import org.eclipse.swt.widgets.FileDialog;
-import org.eclipse.swt.widgets.Shell;
 
 /**
  * Provides an implementation of the net.sf.jmoney.reconciliation.bankstatements
@@ -140,7 +141,7 @@ public class OfxImport implements IBankStatementSource {
 	}
 
 	private EntryData parseSTMTTRN(SimpleElement foundElement, Currency currency) {
-		EntryData entryData = new EntryData();
+		OfxEntryData entryData = new OfxEntryData();
 
 		SimpleElement tmpElement = foundElement.findElement("DTPOSTED");
 		String data = tmpElement.getTrimmedText();

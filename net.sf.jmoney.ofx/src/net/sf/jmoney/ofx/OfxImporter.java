@@ -31,7 +31,6 @@ import java.text.MessageFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
@@ -41,10 +40,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import org.eclipse.jface.dialogs.Dialog;
+import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.ui.IWorkbenchWindow;
+
 import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.matcher.EntryData;
-import net.sf.jmoney.importer.matcher.IPatternMatcher;
 import net.sf.jmoney.importer.matcher.ImportEntryProperty;
 import net.sf.jmoney.importer.matcher.ImportMatcher;
 import net.sf.jmoney.importer.matcher.PatternMatchingDialog;
@@ -55,7 +58,6 @@ import net.sf.jmoney.importer.model.TransactionTypeBasic;
 import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.BankAccount;
-import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
@@ -76,18 +78,7 @@ import net.sf.jmoney.stocks.model.StockEntry;
 import net.sf.jmoney.stocks.model.StockEntryInfo;
 import net.sf.jmoney.stocks.model.StockInfo;
 
-import org.eclipse.jface.dialogs.Dialog;
-import org.eclipse.jface.dialogs.IDialogConstants;
-import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.ui.IWorkbenchWindow;
-
 public class OfxImporter {
-
-	public static class OfxEntryData extends EntryData {
-
-		public String fitid;
-
-	}
 
 	private IWorkbenchWindow window;
 
@@ -289,18 +280,6 @@ public class OfxImporter {
 
 		Collection<OfxEntryData> importedEntries = new ArrayList<OfxEntryData>();
 
-		/**
-		 * A 'matcher' that will match if an entry has not already been matched
-		 * to an imported entry and if the entry appears to match based on date,
-		 * amount, and check number.
-		 */
-		MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
-			@Override
-			protected boolean doNotConsiderEntryForMatch(Entry entry) {
-				return OfxEntryInfo.getFitidAccessor().getValue(entry) != null;
-			}
-		};
-
 		for (SimpleElement transactionElement : transListElement.getChildElements()) {
 			if (transactionElement.getTagName().equals("DTSTART")) {
 				// ignore
@@ -316,7 +295,6 @@ public class OfxImporter {
 
 				String checkNumber = stmtTrnElement.getString("CHECKNUM");
 				if (checkNumber != null) {
-//						checkNumber = checkNumber.trim(); // Is this needed???
 					// QFX (or at least hsabank.com) sets CHECKNUM to zero even though not a check.
 					// This is probably a bug at HSA Bank, but we ignore check numbers of zero.
 					if (checkNumber.equals("0")) {
@@ -399,6 +377,33 @@ public class OfxImporter {
 					continue;
 				}
 
+				final String finalCheckNumber = checkNumber;
+				
+				/**
+				 * A 'matcher' that will match if an entry has not already been matched
+				 * to an imported entry and if the entry appears to match based on date,
+				 * amount, and check number.
+				 */
+				MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
+					@Override
+					protected boolean doNotConsiderEntryForMatch(Entry entry) {
+						return OfxEntryInfo.getFitidAccessor().getValue(entry) != null;
+					}
+
+					@Override
+					protected boolean nearEnoughMatches(Date dateOfExistingTransaction, Date dateInImport, Entry entry) {
+						if (entry.getCheck() == null) {
+							return (finalCheckNumber == null || finalCheckNumber.isEmpty())
+									&& entry.getCheck() == null
+									&& isDateInRange(dateInImport, dateOfExistingTransaction, 5);
+						} else {
+							// A check number is present so search more days
+							return entry.getCheck().equals(finalCheckNumber)
+									&& isDateInRange(dateOfExistingTransaction, dateInImport, 20);
+						}
+					}
+				};
+
 				/*
 				 * First we try auto-matching.
 				 *
@@ -406,7 +411,7 @@ public class OfxImporter {
 				 * transaction at all. We just update a few properties in the
 				 * existing entry.
 				 */
-				Entry match = matchFinder.findMatch(accountOutsideTransaction, amount, transactionDate, 5, checkNumber);
+				Entry match = matchFinder.findMatch(accountOutsideTransaction, amount, transactionDate);
 				if (match != null) {
 					Entry entryInTrans = transactionManager.getCopyInTransaction(match);
 					entryInTrans.setValuta(postedDate);
@@ -641,7 +646,8 @@ public class OfxImporter {
 					continue;
 				}
 
-
+				final String finalCheckNumber = checkNumber;
+				
 				/*
 				 * First we try auto-matching.
 				 *
@@ -655,8 +661,22 @@ public class OfxImporter {
 					protected boolean doNotConsiderEntryForMatch(Entry entry) {
 						return OfxEntryInfo.getFitidAccessor().getValue(entry) != null;
 					}
+
+					@Override
+					protected boolean nearEnoughMatches(Date dateOfExistingTransaction, Date dateInImport, Entry entry) {
+						if (entry.getCheck() == null) {
+							return (finalCheckNumber == null || finalCheckNumber.isEmpty())
+									&& entry.getCheck() == null
+									&& isDateInRange(dateInImport, dateOfExistingTransaction, 5);
+						} else {
+							// A check number is present so search more days
+							return entry.getCheck().equals(finalCheckNumber)
+									&& isDateInRange(dateOfExistingTransaction, dateInImport, 20);
+						}
+					}
 				};
-				Entry matchedEntryOutsideTransaction = matchFinder.findMatch(accountOutsideTransaction, amount, postedDate, 5, checkNumber);
+
+				Entry matchedEntryOutsideTransaction = matchFinder.findMatch(accountOutsideTransaction, amount, postedDate);
 				if (matchedEntryOutsideTransaction != null) {
 					Entry matchedEntry = transactionManager.getCopyInTransaction(matchedEntryOutsideTransaction);
 					matchedEntry.setValuta(postedDate);

@@ -35,6 +35,8 @@ import java.util.List;
 import net.sf.jmoney.associations.AssociationMetadata;
 import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.matcher.EntryData;
+import net.sf.jmoney.importer.model.TransactionType;
+import net.sf.jmoney.importer.model.TransactionTypeBasic;
 import net.sf.jmoney.importer.wizards.CsvImportToAccountWizard;
 import net.sf.jmoney.importer.wizards.CsvTransactionReader;
 import net.sf.jmoney.importer.wizards.ImportException;
@@ -491,12 +493,12 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 				creditCard = paypalAccount.getTransferCreditCard();
 			} else if (currency.equals("GBP")) {
 				try {
-					paypalAccountForCurrency = (CapitalAccount)session.getAccountByShortName("Paypal (£)");
+					paypalAccountForCurrency = (CapitalAccount)session.getAccountByShortName("Paypal (ï¿½)");
 				} catch (NoAccountFoundException e) {
-					MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "No account exists called 'Paypal (£)'");
+					MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "No account exists called 'Paypal (ï¿½)'");
 					throw new RuntimeException(e); 
 				} catch (SeveralAccountsFoundException e) {
-					MessageDialog.openError(Display.getDefault().getActiveShell(), "Multiple Accounts Set Up", "Multiple accounts exists called 'Paypal (£)'");
+					MessageDialog.openError(Display.getDefault().getActiveShell(), "Multiple Accounts Set Up", "Multiple accounts exists called 'Paypal (ï¿½)'");
 					throw new RuntimeException(e); 
 				}
 
@@ -522,12 +524,12 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 				creditCard = paypalAccount.getTransferCreditCard();
 			} else if (currency.equals("GBP")) {
 				try {
-					paypalAccountForCurrency = (CapitalAccount)session.getAccountByShortName("Paypal (£)");
+					paypalAccountForCurrency = (CapitalAccount)session.getAccountByShortName("Paypal (ï¿½)");
 				} catch (NoAccountFoundException e) {
-					MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "No account exists called 'Paypal (£)'");
+					MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "No account exists called 'Paypal (ï¿½)'");
 					throw new RuntimeException(e); 
 				} catch (SeveralAccountsFoundException e) {
-					MessageDialog.openError(Display.getDefault().getActiveShell(), "Multiple Accounts Set Up", "Multiple accounts exists called 'Paypal (£)'");
+					MessageDialog.openError(Display.getDefault().getActiveShell(), "Multiple Accounts Set Up", "Multiple accounts exists called 'Paypal (ï¿½)'");
 					throw new RuntimeException(e); 
 				}
 
@@ -740,8 +742,13 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 					return false;
 				}
 			}
+
+			@Override
+			protected boolean nearEnoughMatches(Date dateOfExistingTransaction, Date dateInImport, Entry entry) {
+					return isDateInRange(dateInImport, dateOfExistingTransaction, 2);
+			}
 		};
-		Entry matchedEntryInChargeAccount = matchFinder.findMatch(otherAccount, -column_grossAmount.getAmount(), column_date.getDate(), 2, null);
+		Entry matchedEntryInChargeAccount = matchFinder.findMatch(otherAccount, -column_grossAmount.getAmount(), column_date.getDate());
 
 		/*
 		 * Create an entry for the amount charged to the charge account.
@@ -926,12 +933,12 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 					// HACK
 					Account ukAccount;
 					try {
-						ukAccount = session.getAccountByShortName("Paypal (£)");
+						ukAccount = session.getAccountByShortName("Paypal (ï¿½)");
 					} catch (NoAccountFoundException e) {
-						MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "No account exists called 'Paypal (£)'");
+						MessageDialog.openError(Display.getDefault().getActiveShell(), "Account not Set Up", "No account exists called 'Paypal (ï¿½)'");
 						throw new RuntimeException(e); 
 					} catch (SeveralAccountsFoundException e) {
-						MessageDialog.openError(Display.getDefault().getActiveShell(), "Multiple Accounts Set Up", "Multiple accounts exists called 'Paypal (£)'");
+						MessageDialog.openError(Display.getDefault().getActiveShell(), "Multiple Accounts Set Up", "Multiple accounts exists called 'Paypal (ï¿½)'");
 						throw new RuntimeException(e); 
 					}
 
@@ -1381,5 +1388,20 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 				"The file must have been downloaded from Paypal for this import to work.  To download from Paypal, go to 'Download History' on the 'History' menu, choose 'Comma Delimited - All Activity'." +
 				"You should also check the box 'Include shopping cart details' at the bottom to get itemized entries. " +
 				"If entries have already been imported, this import will create duplicates but this needs to be fixed by incorporating this better into the reconciliation plug-in.";
+	}
+
+	/**
+	 * Note that this list is not cached, meaning new instances will be created
+	 * for each call to this method.
+	 * 
+	 * @param account
+	 * @return
+	 */
+	public List<TransactionType<EntryData>> getApplicableTransactionTypes() {
+			List<TransactionType<EntryData>> result = new ArrayList<>();
+
+			result.add(new TransactionTypeBasic());
+
+			return result;
 	}
 }

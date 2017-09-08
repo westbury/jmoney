@@ -124,7 +124,7 @@ public class QifImport implements IBankStatementSource {
 			line = buffer.readLine();
 			// Bank of America outputs empty lines at the end
 			while (line != null && line.length() >= 1) {
-				EntryData entryData = new EntryData();
+				QifEntryData entryData = new QifEntryData();
 
 				do {
 					// Bank of America outputs empty lines at the end

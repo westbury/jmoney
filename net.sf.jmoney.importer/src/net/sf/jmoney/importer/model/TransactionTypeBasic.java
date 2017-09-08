@@ -76,6 +76,24 @@ public class TransactionTypeBasic extends TransactionType<EntryData> {
 			}
 
 			/*
+			 * The basic entry type has a check field but this is set only if the import format has a field specifically
+			 * for a check number.  When BasicEntryType
+			 * is used, check numbers can also be extracted from the memo using patterns set
+			 * up by the user.
+			 */
+			String checkNumber = checkParam.obtainValue(pattern, args);
+			if (entry1 != null && !checkNumber.isEmpty()) {
+				/*
+				 * If there is a check number field in the import format then the
+				 * check number will already have been set.
+				 */
+				if (entry1.getCheck() != null && !entry1.getCheck().equals(checkNumber)) {
+					throw new RuntimeException("mismatched check numbers");
+				}
+				entry1.setCheck(checkNumber);
+			}
+			
+			/*
 			 * Before setting the account, check that if a default
 			 * account was previously set then the currency is the
 			 * same.  The amount will end up being just plain wrong

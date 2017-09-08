@@ -175,26 +175,33 @@ public class OfxStockEntryData extends BaseEntryData {
 		// TODO is this line correct?
 		ReconciliationEntryInfo.getUniqueIdAccessor().setValue(matchedEntry, uniqueId);
 	}
+
 	@Override
 	public Entry findMatch(Account account, int numberOfDays, Set<Entry> ourEntries) {
-		
-	Date importedDate = getImportedDate();
-	
-	MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
-		@Override
-		protected boolean doNotConsiderEntryForMatch(Entry entry) {
-			/*
-			 * If this given entry is in our map then it means we have just added it.  That means we have multiple identical
-			 * entries in the import file.  In that case we want to be sure that we keep the multiple entries as they are
-			 * genuine duplicates.
-			 * 
-			 * 'already matched' means don't consider this prior entry when looking for entries that might match this entry.
-			 */
-			return ourEntries.contains(entry) || ReconciliationEntryInfo.getUniqueIdAccessor().getValue(entry) != null;
-		}
-	};
-	return matchFinder.findMatch(account, amount, importedDate, 5, null);
+
+		Date importedDate = getImportedDate();
+
+		MatchingEntryFinder matchFinder = new MatchingEntryFinder() {
+			@Override
+			protected boolean doNotConsiderEntryForMatch(Entry entry) {
+				/*
+				 * If this given entry is in our map then it means we have just added it.  That means we have multiple identical
+				 * entries in the import file.  In that case we want to be sure that we keep the multiple entries as they are
+				 * genuine duplicates.
+				 * 
+				 * 'already matched' means don't consider this prior entry when looking for entries that might match this entry.
+				 */
+				return ourEntries.contains(entry) || ReconciliationEntryInfo.getUniqueIdAccessor().getValue(entry) != null;
+			}
+
+			@Override
+			protected boolean nearEnoughMatches(Date dateOfExistingTransaction, Date dateInImport, Entry entry) {
+					return isDateInRange(dateInImport, dateOfExistingTransaction, 5);
+			}
+		};
+		return matchFinder.findMatch(account, amount, importedDate);
 	}
+
 	public void setSecurity(Security security) {
 		this.security = security;
 	}
