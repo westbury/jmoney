@@ -4,9 +4,9 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
-import amazonscraper.AmazonOrder;
 import amazonscraper.IItemUpdater;
 import amazonscraper.IShipmentUpdater;
+import analyzer.AmazonOrder;
 import net.sf.jmoney.amazon.AccountFinder;
 import net.sf.jmoney.amazon.AmazonEntry;
 import net.sf.jmoney.amazon.AmazonEntryInfo;

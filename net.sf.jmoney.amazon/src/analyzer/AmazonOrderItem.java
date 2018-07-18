@@ -1,4 +1,6 @@
-package amazonscraper;
+package analyzer;
+
+import amazonscraper.IItemUpdater;
 
 public class AmazonOrderItem {
 

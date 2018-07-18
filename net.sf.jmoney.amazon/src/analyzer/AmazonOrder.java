@@ -1,9 +1,12 @@
-package amazonscraper;
+package analyzer;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import amazonscraper.IItemUpdater;
+import amazonscraper.IOrderUpdater;
+import amazonscraper.IShipmentUpdater;
 import net.sf.jmoney.importer.wizards.ImportException;
 
 public class AmazonOrder {

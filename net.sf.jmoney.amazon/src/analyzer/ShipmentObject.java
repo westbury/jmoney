@@ -1,4 +1,4 @@
-package amazonscraper;
+package analyzer;
 
 public class ShipmentObject {
 

@@ -20,7 +20,7 @@
 *
 */
 
-package amazonscraper;
+package analyzer;
 
 /**
  * Exception thrown when something is found in the input data that

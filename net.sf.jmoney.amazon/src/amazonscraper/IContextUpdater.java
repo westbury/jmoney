@@ -2,6 +2,9 @@ package amazonscraper;
 
 import java.util.Date;
 
+import analyzer.AmazonOrder;
+import analyzer.AmazonOrderItem;
+
 public interface IContextUpdater {
 
 	/**

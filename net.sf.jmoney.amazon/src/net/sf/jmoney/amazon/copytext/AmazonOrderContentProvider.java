@@ -25,8 +25,8 @@ package net.sf.jmoney.amazon.copytext;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.Viewer;
 
-import amazonscraper.AmazonOrder;
-import amazonscraper.AmazonShipment;
+import analyzer.AmazonOrder;
+import analyzer.AmazonShipment;
 
 public class AmazonOrderContentProvider implements ITreeContentProvider {
 

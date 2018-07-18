@@ -1,10 +1,9 @@
-package amazonscraper;
+package analyzer;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BinaryOperator;
 import java.util.stream.Stream;
 
 class ItemBuilder {
@@ -77,11 +76,6 @@ class ItemBuilder {
 	}
 	
 	public String toString() {
-//		Optional<String> items = preexistingItems.stream().map(item -> item.toString()).reduce(new BinaryOperator<String>() {
-//			@Override
-//			public String apply(String arg0, String arg1) {
-//				return arg0 + ", " + arg1;
-//			}}); 
 		Optional<String> items = preexistingItems.stream().map(item -> item.toString()).reduce((arg0, arg1) -> arg0 + ", " + arg1); 
 		return items.isPresent() ? items.get() : "no items";
 	}

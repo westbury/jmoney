@@ -109,12 +109,12 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import amazonscraper.AmazonOrder;
-import amazonscraper.AmazonOrderItem;
 import amazonscraper.AmazonScraperContext;
-import amazonscraper.AmazonShipment;
 import amazonscraper.IContextUpdater;
-import amazonscraper.UnsupportedImportDataException;
+import analyzer.AmazonOrder;
+import analyzer.AmazonOrderItem;
+import analyzer.AmazonShipment;
+import analyzer.UnsupportedImportDataException;
 import net.sf.jmoney.amazon.AccountFinder;
 import net.sf.jmoney.amazon.AmazonEntryInfo;
 import net.sf.jmoney.amazon.UrlBlob;
@@ -201,7 +201,7 @@ public class AmazonImportView extends ViewPart {
 
 	private TreeViewer viewer;
 
-	private IViewerObservableValue<Viewer> selObs;
+	private IViewerObservableValue selObs;
 
 	private PasteOrdersAction pasteOrdersAction;
 
@@ -705,7 +705,8 @@ public class AmazonImportView extends ViewPart {
 		});
 		
 		viewer.setSorter(new ViewerSorter() {
-		    public int compare(Viewer viewer, Object e1, Object e2) {
+		    @Override
+			public int compare(Viewer viewer, Object e1, Object e2) {
 		    	if (e1 instanceof AmazonOrder && e2 instanceof AmazonOrder) {
 		    		AmazonOrder order1 = (AmazonOrder)e1;
 		    		AmazonOrder order2 = (AmazonOrder)e2;
@@ -744,7 +745,7 @@ public class AmazonImportView extends ViewPart {
 
 		selObs.addValueChangeListener(new IValueChangeListener<Object>() {
 			@Override
-			public void handleValueChange(ValueChangeEvent<Object> event) {
+			public void handleValueChange(ValueChangeEvent<? extends Object> event) {
 				if (selObs.getValue() instanceof AmazonOrder) {
 					AmazonOrder order = (AmazonOrder)selObs.getValue();
 					if (order.getShipments().size() == 1) {
@@ -793,7 +794,7 @@ public class AmazonImportView extends ViewPart {
 
 		selObs.addValueChangeListener(new IValueChangeListener<Object>() {
 			@Override
-			public void handleValueChange(ValueChangeEvent<Object> event) {
+			public void handleValueChange(ValueChangeEvent<? extends Object> event) {
 				if (selObs.getValue() instanceof AmazonOrder) {
 					AmazonOrder order = (AmazonOrder)selObs.getValue();
 
@@ -829,7 +830,7 @@ public class AmazonImportView extends ViewPart {
 
 		selObs.addValueChangeListener(new IValueChangeListener<Object>() {
 			@Override
-			public void handleValueChange(ValueChangeEvent<Object> event) {
+			public void handleValueChange(ValueChangeEvent<? extends Object> event) {
 				if (selObs.getValue() instanceof AmazonShipment) {
 					AmazonShipment shipment = (AmazonShipment)selObs.getValue();
 
@@ -884,7 +885,7 @@ public class AmazonImportView extends ViewPart {
 
 		selObs.addValueChangeListener(new IValueChangeListener<Object>() {
 			@Override
-			public void handleValueChange(ValueChangeEvent<Object> event) {
+			public void handleValueChange(ValueChangeEvent<? extends Object> event) {
 				if (selObs.getValue() instanceof AmazonOrder) {
 					AmazonOrder order = (AmazonOrder)selObs.getValue();
 
@@ -948,7 +949,7 @@ public class AmazonImportView extends ViewPart {
 
 		selObs.addValueChangeListener(new IValueChangeListener<Object>() {
 			@Override
-			public void handleValueChange(ValueChangeEvent<Object> event) {
+			public void handleValueChange(ValueChangeEvent<? extends Object> event) {
 				if (selObs.getValue() instanceof AmazonOrderItem) {
 					AmazonOrderItem item = (AmazonOrderItem)selObs.getValue();
 
@@ -970,7 +971,7 @@ public class AmazonImportView extends ViewPart {
 
 		selObs.addValueChangeListener(new IValueChangeListener<Object>() {
 			@Override
-			public void handleValueChange(ValueChangeEvent<Object> event) {
+			public void handleValueChange(ValueChangeEvent<? extends Object> event) {
 				canvas.redraw();
 			}
 		});

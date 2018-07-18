@@ -8,12 +8,12 @@ import java.util.Set;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 
-import amazonscraper.AmazonOrder;
-import amazonscraper.AmazonOrderItem;
-import amazonscraper.AmazonShipment;
 import amazonscraper.IContextUpdater;
 import amazonscraper.IOrderUpdater;
 import amazonscraper.IShipmentUpdater;
+import analyzer.AmazonOrder;
+import analyzer.AmazonOrderItem;
+import analyzer.AmazonShipment;
 import net.sf.jmoney.amazon.AccountFinder;
 import net.sf.jmoney.amazon.AmazonEntry;
 import net.sf.jmoney.amazon.AmazonEntryInfo;
