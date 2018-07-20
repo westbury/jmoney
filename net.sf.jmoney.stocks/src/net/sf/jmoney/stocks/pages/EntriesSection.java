@@ -22,6 +22,20 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.eclipse.core.commands.IHandler;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.IValueChangeListener;
+import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.core.databinding.property.value.IValueProperty;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.ui.forms.SectionPart;
+import org.eclipse.ui.forms.widgets.ExpandableComposite;
+import org.eclipse.ui.forms.widgets.FormToolkit;
+import org.eclipse.ui.handlers.IHandlerService;
+
 import net.sf.jmoney.entrytable.BalanceColumn;
 import net.sf.jmoney.entrytable.Block;
 import net.sf.jmoney.entrytable.CellBlock;
@@ -56,20 +70,6 @@ import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionInfo;
 import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
-
-import org.eclipse.core.commands.IHandler;
-import org.eclipse.core.databinding.observable.value.IObservableValue;
-import org.eclipse.core.databinding.observable.value.IValueChangeListener;
-import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
-import org.eclipse.core.databinding.property.value.IValueProperty;
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.ui.forms.SectionPart;
-import org.eclipse.ui.forms.widgets.ExpandableComposite;
-import org.eclipse.ui.forms.widgets.FormToolkit;
-import org.eclipse.ui.handlers.IHandlerService;
 
 /**
 * TODO: This code is duplicated in StockDetailsEditor.  Remove the duplication
@@ -281,7 +281,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 						transactionProperty.observeDetail(blockInput).addValueChangeListener(new IValueChangeListener<TransactionType>() {
 
 							@Override
-							public void handleValueChange(ValueChangeEvent<TransactionType> event) {
+							public void handleValueChange(ValueChangeEvent<? extends TransactionType> event) {
 								//								todo: queue this code and run asynchronously.  So it runs once only
 								//								when lots of changes are made by the same code???
 

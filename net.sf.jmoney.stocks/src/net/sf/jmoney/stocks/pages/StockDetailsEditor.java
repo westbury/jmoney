@@ -26,6 +26,27 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.eclipse.core.commands.IHandler;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.IValueChangeListener;
+import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.core.databinding.property.value.IValueProperty;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.ui.IEditorInput;
+import org.eclipse.ui.IEditorSite;
+import org.eclipse.ui.PartInitException;
+import org.eclipse.ui.forms.SectionPart;
+import org.eclipse.ui.forms.widgets.ExpandableComposite;
+import org.eclipse.ui.forms.widgets.FormToolkit;
+import org.eclipse.ui.forms.widgets.ScrolledForm;
+import org.eclipse.ui.handlers.IHandlerService;
+import org.eclipse.ui.part.EditorPart;
+
 import net.sf.jmoney.entrytable.BalanceColumn;
 import net.sf.jmoney.entrytable.Block;
 import net.sf.jmoney.entrytable.CutTransactionHandler;
@@ -61,27 +82,6 @@ import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
 import net.sf.jmoney.views.AccountEditorInput;
-
-import org.eclipse.core.commands.IHandler;
-import org.eclipse.core.databinding.observable.value.IObservableValue;
-import org.eclipse.core.databinding.observable.value.IValueChangeListener;
-import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
-import org.eclipse.core.databinding.property.value.IValueProperty;
-import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
-import org.eclipse.ui.IEditorInput;
-import org.eclipse.ui.IEditorSite;
-import org.eclipse.ui.PartInitException;
-import org.eclipse.ui.forms.SectionPart;
-import org.eclipse.ui.forms.widgets.ExpandableComposite;
-import org.eclipse.ui.forms.widgets.FormToolkit;
-import org.eclipse.ui.forms.widgets.ScrolledForm;
-import org.eclipse.ui.handlers.IHandlerService;
-import org.eclipse.ui.part.EditorPart;
 
 public class StockDetailsEditor extends EditorPart {
 
@@ -341,7 +341,7 @@ public class StockDetailsEditor extends EditorPart {
 						transactionProperty.observeDetail(blockInput).addValueChangeListener(new IValueChangeListener<TransactionType>() {
 
 							@Override
-							public void handleValueChange(ValueChangeEvent<TransactionType> event) {
+							public void handleValueChange(ValueChangeEvent<? extends TransactionType> event) {
 								//								todo: queue this code and run asynchronously.  So it runs once only
 								//								when lots of changes are made by the same code???
 
@@ -478,7 +478,7 @@ public class StockDetailsEditor extends EditorPart {
 		fEntriesControl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
 		// Activate the handlers
-		IHandlerService handlerService = (IHandlerService) getSite().getService(IHandlerService.class);
+		IHandlerService handlerService = getSite().getService(IHandlerService.class);
 
 		IHandler handler = new NewTransactionHandler(rowTracker, fEntriesControl);
 		handlerService.activateHandler("net.sf.jmoney.newTransaction", handler);

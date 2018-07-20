@@ -100,11 +100,11 @@ public abstract class CurrencyControlFactory<P, S extends ExtendableObject> exte
         CCombo propertyControl = new CCombo(parent, SWT.NONE);
         ComboViewer viewer = new ComboViewer(propertyControl);
 
-        viewer.setContentProvider(new ObservableListContentProvider<Currency>(Currency.class));
+        viewer.setContentProvider(new ObservableListContentProvider());
         viewer.setInput(currencyList);
 
         Bind.twoWay(modelCurrencyObservable)
-        .to(ViewersObservables.observeSingleSelection(viewer, Currency.class));
+        .to(ViewersObservables.observeSingleSelection(viewer));
 
 		return propertyControl;
     }

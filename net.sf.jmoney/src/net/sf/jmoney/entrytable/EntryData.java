@@ -118,7 +118,7 @@ public class EntryData {
 
 			netAmount.addValueChangeListener(new IValueChangeListener<Long>() {
 				@Override
-				public void handleValueChange(ValueChangeEvent<Long> event) {
+				public void handleValueChange(ValueChangeEvent<? extends Long> event) {
 					if (event.diff.getNewValue() == null) {
 						getEntry().setAmount(0);
 					} else {

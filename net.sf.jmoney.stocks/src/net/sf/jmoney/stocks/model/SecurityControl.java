@@ -27,16 +27,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Vector;
 
-import net.sf.jmoney.model2.Commodity;
-import net.sf.jmoney.model2.ExtendablePropertySet;
-import net.sf.jmoney.model2.Session;
-import net.sf.jmoney.stocks.wizards.NewStockWizard;
-
-import org.eclipse.core.databinding.conversion.Converter;
-import org.eclipse.core.databinding.conversion.IConverter;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
+import org.eclipse.core.internal.databinding.provisional.bind.IConverter;
 import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.jface.window.Window;
 import org.eclipse.jface.wizard.WizardDialog;
@@ -59,6 +53,11 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
+
+import net.sf.jmoney.model2.Commodity;
+import net.sf.jmoney.model2.ExtendablePropertySet;
+import net.sf.jmoney.model2.Session;
+import net.sf.jmoney.stocks.wizards.NewStockWizard;
 
 
 /**
@@ -100,7 +99,7 @@ public abstract class SecurityControl<A extends Security> extends Composite {
 
 		textControl = new Text(this, SWT.LEFT);
 
-		IConverter<A,String> commodityToTextConverter = new Converter<A,String>(Commodity.class, String.class) {
+		IConverter<A,String> commodityToTextConverter = new IConverter<A,String>() {
 			@Override
 			public String convert(A commodity) {
 				return (commodity == null) ? "" : commodity.getName();

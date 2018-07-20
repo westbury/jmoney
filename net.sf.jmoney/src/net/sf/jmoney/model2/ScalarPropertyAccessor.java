@@ -3,8 +3,6 @@ package net.sf.jmoney.model2;
 import java.lang.reflect.Method;
 import java.util.Comparator;
 
-import net.sf.jmoney.isolation.IScalarPropertyAccessor;
-
 import org.eclipse.core.databinding.observable.Realm;
 import org.eclipse.core.databinding.observable.list.IObservableList;
 import org.eclipse.core.databinding.observable.map.IObservableMap;
@@ -18,6 +16,8 @@ import org.eclipse.core.databinding.property.set.ISetProperty;
 import org.eclipse.core.databinding.property.value.IValueProperty;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+
+import net.sf.jmoney.isolation.IScalarPropertyAccessor;
 
 public class ScalarPropertyAccessor<T, S extends ExtendableObject> extends PropertyAccessor<S> implements IScalarPropertyAccessor<T,S> {
 
@@ -554,10 +554,5 @@ public class ScalarPropertyAccessor<T, S extends ExtendableObject> extends Prope
 	public <K, V> IMapProperty<S, K, V> map(
 			IMapProperty<? super T, K, V> detailMap) {
 		return valueProperty.map(detailMap);
-	}
-
-	@Override
-	public Class<T> getValueClass() {
-		return classOfValueObject;
 	}
 }

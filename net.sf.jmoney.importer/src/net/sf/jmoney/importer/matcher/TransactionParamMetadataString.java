@@ -2,9 +2,6 @@ package net.sf.jmoney.importer.matcher;
 
 import java.text.MessageFormat;
 
-import net.sf.jmoney.importer.model.MemoPattern;
-import net.sf.jmoney.importer.model.MemoPatternInfo;
-
 import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
@@ -17,6 +14,9 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
+
+import net.sf.jmoney.importer.model.MemoPattern;
+import net.sf.jmoney.importer.model.MemoPatternInfo;
 
 public class TransactionParamMetadataString extends TransactionParamMetadata {
 
@@ -34,7 +34,7 @@ public class TransactionParamMetadataString extends TransactionParamMetadata {
 		final Label label2 = new Label(composite, SWT.NONE);
 
 		final IObservableValue<String> parameterValueProperty = MemoPatternInfo.getParameterValueProperty(getId()).observeDetail(memoPattern);
-		Bind.twoWay(parameterValueProperty).to(WidgetProperties.textText(new int[] { SWT.Modify }), textbox);
+		Bind.twoWay(parameterValueProperty).to(WidgetProperties.text(new int[] { SWT.Modify }), textbox);
 
 		/*
 		 * We can't use computed values here because we are in a tracked getter, and
@@ -62,7 +62,7 @@ public class TransactionParamMetadataString extends TransactionParamMetadata {
 						}
 					}
 				};
-				Bind.oneWay(value).to(WidgetProperties.textLabel(), label2);
+				Bind.oneWay(value).to(WidgetProperties.text(), label2);
 			}
 		});
 

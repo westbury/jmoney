@@ -24,12 +24,23 @@ package net.sf.jmoney.entrytable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+
+import org.eclipse.core.databinding.observable.list.IObservableList;
+import org.eclipse.core.databinding.observable.list.WritableList;
+import org.eclipse.core.runtime.Assert;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 
 import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IScalarPropertyAccessor;
@@ -40,15 +51,6 @@ import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.pages.entries.EntryRowSelectionListener;
-
-import org.eclipse.core.databinding.observable.list.IObservableList;
-import org.eclipse.core.databinding.observable.list.WritableList;
-import org.eclipse.core.runtime.Assert;
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
 
 /**
  * Class that displays a list of entries in a table. The table contains one row
@@ -580,8 +582,13 @@ public abstract class EntriesTable<R extends BaseEntryRowControl<?,R>> extends C
 		// Note:  We must re-use the same sortedEntries because it is the content
 		// to the upper panel.
 		sortedEntries.clear();
-		sortedEntries.addAll(entries.values());
-		Collections.sort(sortedEntries, rowComparator);
+		
+		// We can't sort an ObservableList (that used to work but it now throws
+		// an UnsupportedOperationException), so copy to another list first.
+		List<EntryData> workingList = new ArrayList<>(entries.values());
+		Collections.sort(workingList, rowComparator);
+
+		sortedEntries.addAll(workingList);
 
 		// Add an empty row at the end so that users can enter new entries.
 		sortedEntries.add(newEntryRow);

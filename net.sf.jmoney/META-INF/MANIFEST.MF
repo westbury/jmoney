@@ -30,7 +30,10 @@ Export-Package: net.sf.jmoney,
  net.sf.jmoney.resources,
  net.sf.jmoney.views,
  net.sf.jmoney.views.feedback,
- net.sf.jmoney.wizards
+ net.sf.jmoney.wizards,
+ org.eclipse.core.internal.databinding.provisional.bind,
+ org.eclipse.jface.databinding.fieldassist,
+ org.eclipse.jface.internal.databinding.provisional.swt
 Bundle-ActivationPolicy: lazy
 Bundle-Vendor: JMoney.sf.net
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8

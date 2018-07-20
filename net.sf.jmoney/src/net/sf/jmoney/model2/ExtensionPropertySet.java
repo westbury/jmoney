@@ -184,15 +184,6 @@ public class ExtensionPropertySet<X extends ExtensionObject,E extends Extendable
 			}
 
 			@Override
-			public Class<V> getValueClass() {
-				/*
-				 * Don't use accessor.getValueType.  That would recursively
-				 * come back to this method! 
-				 */
-				return accessor.getClassOfValueObject();
-			}
-
-			@Override
 			public V doGetValue(E source) {
 				/*
 				 * This implementation is a little more efficient than going through

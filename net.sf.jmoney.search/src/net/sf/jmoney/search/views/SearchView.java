@@ -3,6 +3,26 @@ package net.sf.jmoney.search.views;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.eclipse.core.commands.IHandler;
+import org.eclipse.core.databinding.observable.value.AbstractObservableValue;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.IValueChangeListener;
+import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.core.databinding.observable.value.ValueDiff;
+import org.eclipse.jface.action.IMenuManager;
+import org.eclipse.jface.action.IToolBarManager;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.ScrolledComposite;
+import org.eclipse.swt.custom.StackLayout;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.ui.IActionBars;
+import org.eclipse.ui.handlers.IHandlerService;
+import org.eclipse.ui.part.ViewPart;
+
 import net.sf.jmoney.entrytable.Block;
 import net.sf.jmoney.entrytable.DebitAndCreditColumns;
 import net.sf.jmoney.entrytable.DelegateBlock;
@@ -27,26 +47,6 @@ import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.TransactionInfo;
 import net.sf.jmoney.resources.Messages;
 import net.sf.jmoney.search.IEntrySearch;
-
-import org.eclipse.core.commands.IHandler;
-import org.eclipse.core.databinding.observable.value.AbstractObservableValue;
-import org.eclipse.core.databinding.observable.value.IObservableValue;
-import org.eclipse.core.databinding.observable.value.IValueChangeListener;
-import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
-import org.eclipse.core.databinding.observable.value.ValueDiff;
-import org.eclipse.jface.action.IMenuManager;
-import org.eclipse.jface.action.IToolBarManager;
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.ScrolledComposite;
-import org.eclipse.swt.custom.StackLayout;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.ui.IActionBars;
-import org.eclipse.ui.handlers.IHandlerService;
-import org.eclipse.ui.part.ViewPart;
 
 public class SearchView extends ViewPart {
 	public static String ID = "net.sf.jmoney.search.EntrySearchView";
@@ -125,7 +125,7 @@ public class SearchView extends ViewPart {
 
 							@Override
 							public void handleValueChange(
-									final ValueChangeEvent<EntryFacade> event) {
+									final ValueChangeEvent<? extends EntryFacade> event) {
 								fireValueChange(new ValueDiff<Entry>() {
 									@Override
 									public Entry getOldValue() {
@@ -152,7 +152,7 @@ public class SearchView extends ViewPart {
 						
 						@Override
 						public synchronized void addValueChangeListener(
-								IValueChangeListener<Entry> listener) {
+								IValueChangeListener<? super Entry> listener) {
 							if (!hasListeners()) {
 								blockInput.addValueChangeListener(delegateListener);
 							}
@@ -161,7 +161,7 @@ public class SearchView extends ViewPart {
 
 						@Override
 						public synchronized void removeValueChangeListener(
-								IValueChangeListener<Entry> listener) {
+								IValueChangeListener<? super Entry> listener) {
 							super.removeValueChangeListener(listener);
 							if (!hasListeners()) {
 								blockInput.removeValueChangeListener(delegateListener);
@@ -231,7 +231,7 @@ public class SearchView extends ViewPart {
 			contributeToActionBars();
 
 			// Activate the handlers
-			IHandlerService handlerService = (IHandlerService) getSite().getService(IHandlerService.class);
+			IHandlerService handlerService = getSite().getService(IHandlerService.class);
 
 			IHandler handler = new DeleteTransactionHandler(rowTracker);
 			handlerService.activateHandler("net.sf.jmoney.deleteTransaction", handler);		

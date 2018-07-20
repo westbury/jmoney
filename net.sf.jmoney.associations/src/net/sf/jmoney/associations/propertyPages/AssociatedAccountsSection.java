@@ -6,13 +6,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import net.sf.jmoney.associations.AssociationMetadata;
-import net.sf.jmoney.associations.IAssociatedAccountInfoProvider;
-import net.sf.jmoney.fields.AccountControl;
-import net.sf.jmoney.model2.Account;
-import net.sf.jmoney.model2.CapitalAccount;
-import net.sf.jmoney.model2.Session;
-
 import org.eclipse.core.databinding.observable.set.ComputedSet;
 import org.eclipse.core.databinding.observable.set.IObservableSet;
 import org.eclipse.core.databinding.observable.set.ISetChangeListener;
@@ -38,6 +31,13 @@ import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.views.properties.IPropertySource;
 import org.eclipse.ui.views.properties.tabbed.AbstractPropertySection;
 import org.eclipse.ui.views.properties.tabbed.TabbedPropertySheetPage;
+
+import net.sf.jmoney.associations.AssociationMetadata;
+import net.sf.jmoney.associations.IAssociatedAccountInfoProvider;
+import net.sf.jmoney.fields.AccountControl;
+import net.sf.jmoney.model2.Account;
+import net.sf.jmoney.model2.CapitalAccount;
+import net.sf.jmoney.model2.Session;
 
 public class AssociatedAccountsSection
 extends AbstractPropertySection {
@@ -105,7 +105,7 @@ extends AbstractPropertySection {
 		final ISetChangeListener<IAssociatedAccountInfoProvider> listener = new ISetChangeListener<IAssociatedAccountInfoProvider>() {
 			@Override
 			public void handleSetChange(
-					SetChangeEvent<IAssociatedAccountInfoProvider> event) {
+					SetChangeEvent<? extends IAssociatedAccountInfoProvider> event) {
 				// Dispose all
 				for (Control child : composite.getChildren()) {
 					child.dispose();

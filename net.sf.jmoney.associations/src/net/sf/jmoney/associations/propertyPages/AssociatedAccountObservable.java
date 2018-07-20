@@ -1,5 +1,9 @@
 package net.sf.jmoney.associations.propertyPages;
 
+import org.eclipse.core.databinding.observable.value.AbstractObservableValue;
+import org.eclipse.core.databinding.observable.value.ValueDiff;
+import org.eclipse.core.runtime.Assert;
+
 import net.sf.jmoney.associations.model.AccountAssociation;
 import net.sf.jmoney.associations.model.AccountAssociationInfo;
 import net.sf.jmoney.associations.model.AccountAssociationsInfo;
@@ -13,10 +17,6 @@ import net.sf.jmoney.isolation.SessionChangeListener;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
-
-import org.eclipse.core.databinding.observable.value.AbstractObservableValue;
-import org.eclipse.core.databinding.observable.value.ValueDiff;
-import org.eclipse.core.runtime.Assert;
 
 final class AssociatedAccountObservable extends
 		AbstractObservableValue<Account> {
@@ -46,9 +46,11 @@ final class AssociatedAccountObservable extends
 					if (aa.getParentKey().getObject() == source
 							&& associationId.equals(aa.getId())) {
 						fireValueChange(new ValueDiff<Account>() {
+							@Override
 							public Account getOldValue() {
 								return null;
 							}
+							@Override
 							public Account getNewValue() {
 								return aa.getAccount();
 							}
@@ -64,9 +66,11 @@ final class AssociatedAccountObservable extends
 					if (aa.getParentKey().getObject() == source
 							&& associationId.equals(aa.getId())) {
 						fireValueChange(new ValueDiff<Account>() {
+							@Override
 							public Account getOldValue() {
 								return aa.getAccount();
 							}
+							@Override
 							public Account getNewValue() {
 								return null;
 							}
@@ -89,9 +93,11 @@ final class AssociatedAccountObservable extends
 					if (aa.getParentKey().getObject() == source
 							&& associationId.equals(aa.getId())) {
 						fireValueChange(new ValueDiff<Account>() {
+							@Override
 							public Account getOldValue() {
 								return (Account)oldValue;
 							}
+							@Override
 							public Account getNewValue() {
 								return (Account)newValue;
 							}
@@ -103,8 +109,8 @@ final class AssociatedAccountObservable extends
 			@Override
 			public void objectMoved(IModelObject movedObject,
 					IModelObject originalParent, IModelObject newParent,
-					IListPropertyAccessor originalParentListProperty,
-					IListPropertyAccessor newParentListProperty) {
+					IListPropertyAccessor<?,?> originalParentListProperty,
+					IListPropertyAccessor<?,?> newParentListProperty) {
 				/*
 				 * This does not happen and nor is it likely to happen.  However the plug-in development
 				 * rules would allow someone to write a plug-in that moves an association so technically
@@ -124,11 +130,6 @@ final class AssociatedAccountObservable extends
 	}
 
 	@Override
-	public Class<Account> getValueClass() {
-		return Account.class;
-	}
-
-	@Override
 	protected Account doGetValue() {
 		ObjectCollection<AccountAssociation> associations = AccountAssociationsInfo.getAssociationsAccessor().getElements(source);
 		for (AccountAssociation association : associations) {
@@ -139,6 +140,7 @@ final class AssociatedAccountObservable extends
 		return null;
 	}
 
+	@Override
 	protected void doSetValue(Account account) {
 		ObjectCollection<AccountAssociation> associations = AccountAssociationsInfo.getAssociationsAccessor().getElements(source);
 		AccountAssociation match = null;
@@ -189,6 +191,7 @@ final class AssociatedAccountObservable extends
 	/**
 	 * 
 	 */
+	@Override
 	public synchronized void dispose() {
 		if (!isDisposed()) {
 			source.getDataManager().removeChangeListener(listener);

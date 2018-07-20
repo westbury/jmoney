@@ -1,11 +1,5 @@
 package net.sf.jmoney.stocks.pages;
 
-import net.sf.jmoney.entrytable.CellFocusListener;
-import net.sf.jmoney.entrytable.ICellControl2;
-import net.sf.jmoney.entrytable.IndividualBlock;
-import net.sf.jmoney.entrytable.RowControl;
-import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
-
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.property.value.IValueProperty;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
@@ -18,6 +12,12 @@ import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+
+import net.sf.jmoney.entrytable.CellFocusListener;
+import net.sf.jmoney.entrytable.ICellControl2;
+import net.sf.jmoney.entrytable.IndividualBlock;
+import net.sf.jmoney.entrytable.RowControl;
+import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
 
 public class TransactionTypeBlock extends
 			IndividualBlock<IObservableValue<StockEntryFacade>> {
@@ -46,7 +46,7 @@ public class TransactionTypeBlock extends
 			};
 			
 			Bind.twoWay(transactionProperty, master)
-			.to(ViewersObservables.observeSingleSelection(viewer, TransactionType.class));
+			.to(ViewersObservables.observeSingleSelection(viewer));
 			
 //				master.addValueChangeListener(new IValueChangeListener() {
 //

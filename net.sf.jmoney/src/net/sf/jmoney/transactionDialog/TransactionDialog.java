@@ -513,7 +513,7 @@ public class TransactionDialog extends Dialog {
 
 		observeSize.addValueChangeListener(new IValueChangeListener<Point>() {
 			@Override
-			public void handleValueChange(ValueChangeEvent<Point> event) {
+			public void handleValueChange(ValueChangeEvent<? extends Point> event) {
 				scrolled.setMinSize(observeSize.getValue());
 
 //				Point preferredSize = scrolled.computeSize(SWT.DEFAULT, SWT.DEFAULT, true);

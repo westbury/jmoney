@@ -27,24 +27,6 @@ import java.util.Iterator;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import net.sf.jmoney.fields.AccountControl;
-import net.sf.jmoney.importer.model.MemoPattern;
-import net.sf.jmoney.importer.model.MemoPatternInfo;
-import net.sf.jmoney.importer.model.PatternMatcherAccount;
-import net.sf.jmoney.importer.model.PatternMatcherAccountInfo;
-import net.sf.jmoney.isolation.ObjectCollection;
-import net.sf.jmoney.isolation.ReferenceViolationException;
-import net.sf.jmoney.isolation.TransactionManager;
-import net.sf.jmoney.model2.Account;
-import net.sf.jmoney.model2.AccountCellEditor;
-import net.sf.jmoney.model2.ExtendableObject;
-import net.sf.jmoney.model2.ExtendablePropertySet;
-import net.sf.jmoney.model2.IncomeExpenseAccount;
-import net.sf.jmoney.model2.ScalarPropertyAccessor;
-import net.sf.jmoney.model2.Session;
-import net.sf.jmoney.model2.TransactionManagerForAccounts;
-import net.sf.jmoney.reconciliation.ReconciliationPlugin;
-
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
 import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
 import org.eclipse.jface.dialogs.Dialog;
@@ -86,6 +68,24 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
+
+import net.sf.jmoney.fields.AccountControl;
+import net.sf.jmoney.importer.model.MemoPattern;
+import net.sf.jmoney.importer.model.MemoPatternInfo;
+import net.sf.jmoney.importer.model.PatternMatcherAccount;
+import net.sf.jmoney.importer.model.PatternMatcherAccountInfo;
+import net.sf.jmoney.isolation.ObjectCollection;
+import net.sf.jmoney.isolation.ReferenceViolationException;
+import net.sf.jmoney.isolation.TransactionManager;
+import net.sf.jmoney.model2.Account;
+import net.sf.jmoney.model2.AccountCellEditor;
+import net.sf.jmoney.model2.ExtendableObject;
+import net.sf.jmoney.model2.ExtendablePropertySet;
+import net.sf.jmoney.model2.IncomeExpenseAccount;
+import net.sf.jmoney.model2.ScalarPropertyAccessor;
+import net.sf.jmoney.model2.Session;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
+import net.sf.jmoney.reconciliation.ReconciliationPlugin;
 
 /**
  * An input dialog that allows the user to configure the methods for importing statement data
@@ -265,7 +265,7 @@ public class ImportOptionsDialog extends Dialog {
 
 		defaultAccountControl.account.addValueChangeListener(new IValueChangeListener<IncomeExpenseAccount>() {
 			@Override
-			public void handleValueChange(ValueChangeEvent<IncomeExpenseAccount> event) {
+			public void handleValueChange(ValueChangeEvent<? extends IncomeExpenseAccount> event) {
 				IncomeExpenseAccount defaultCategory = defaultAccountControl.getAccount();
 				account.setDefaultCategory(defaultCategory);
 				updateErrorMessage();

@@ -22,6 +22,15 @@
 
 package net.sf.jmoney.qif;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
+import org.eclipse.core.internal.databinding.provisional.bind.IConverter;
+import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Label;
+
 import net.sf.jmoney.fields.TextControlFactory;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.model2.Entry;
@@ -33,16 +42,6 @@ import net.sf.jmoney.model2.IPropertySetInfo;
 import net.sf.jmoney.model2.PropertyControlFactory;
 import net.sf.jmoney.model2.PropertySet;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
-
-import org.eclipse.core.databinding.conversion.Converter;
-import org.eclipse.core.databinding.conversion.IConverter;
-import org.eclipse.core.databinding.observable.value.IObservableValue;
-import org.eclipse.core.internal.databinding.provisional.bind.Bind;
-import org.eclipse.jface.databinding.swt.SWTObservables;
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Label;
 
 /**
  * Add extra properties to the Entry objects to support QIF import
@@ -104,7 +103,7 @@ public class QIFEntryInfo implements IPropertySetInfo {
 		        final Label control = new Label(parent, SWT.NONE);
 
 		        // TODO remove this converter and use a standard one
-		        IConverter<Character,String> converter = new Converter<Character,String>(Character.class, String.class) {
+		        IConverter<Character,String> converter = new IConverter<Character,String>() {
 					@Override
 					public String convert(Character fromObject) {
 						return fromObject.toString();

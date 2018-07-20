@@ -25,13 +25,6 @@ package net.sf.jmoney.importer.model;
 import java.util.Collections;
 import java.util.List;
 
-import net.sf.jmoney.importer.wizards.IAccountImportWizard;
-import net.sf.jmoney.model2.CapitalAccount;
-import net.sf.jmoney.model2.ExtendableObject;
-import net.sf.jmoney.model2.PropertyControlFactory;
-import net.sf.jmoney.model2.ScalarPropertyAccessor;
-import net.sf.jmoney.resources.Messages;
-
 import org.eclipse.core.databinding.observable.list.ComputedList;
 import org.eclipse.core.databinding.observable.list.IObservableList;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
@@ -48,6 +41,13 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+
+import net.sf.jmoney.importer.wizards.IAccountImportWizard;
+import net.sf.jmoney.model2.CapitalAccount;
+import net.sf.jmoney.model2.ExtendableObject;
+import net.sf.jmoney.model2.PropertyControlFactory;
+import net.sf.jmoney.model2.ScalarPropertyAccessor;
+import net.sf.jmoney.resources.Messages;
 
 /**
  * A control factory to select a transaction type.
@@ -99,7 +99,7 @@ public class TransactionTypeControlFactory<P, S extends ExtendableObject> extend
         CCombo propertyControl = new CCombo(parent, SWT.NONE);
         ComboViewer viewer = new ComboViewer(propertyControl);
 
-        viewer.setContentProvider(new ObservableListContentProvider<TransactionType>(TransactionType.class));
+        viewer.setContentProvider(new ObservableListContentProvider());
         viewer.setInput(transTypeList);
 
         Bind.twoWay(modelTransTypeIdObservable)
@@ -115,7 +115,7 @@ public class TransactionTypeControlFactory<P, S extends ExtendableObject> extend
 				return transactionType.getId();
 			}
 		})
-        .to((IObservableValue<TransactionType>)(Object)ViewersObservables.observeSingleSelection(viewer));
+        .to((IObservableValue<TransactionType>)ViewersObservables.observeSingleSelection(viewer));
 
 		return propertyControl;
     }

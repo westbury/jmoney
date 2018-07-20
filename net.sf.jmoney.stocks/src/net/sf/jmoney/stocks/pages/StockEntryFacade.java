@@ -18,7 +18,6 @@ import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IScalarPropertyAccessor;
 import net.sf.jmoney.isolation.ReferenceViolationException;
 import net.sf.jmoney.isolation.SessionChangeListener;
-import net.sf.jmoney.model2.BankAccount;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.Entry;
@@ -268,8 +267,9 @@ public class StockEntryFacade implements EntryFacade {
 
 			@Override
 			public void handleValueChange(
-					ValueChangeEvent<TransactionType> event) {
-				switch (event.diff.getNewValue()) {
+					ValueChangeEvent<? extends TransactionType> event) {
+				TransactionType transactionType2 = event.diff.getNewValue();
+				switch (transactionType2) {
 				case Buy:
 					forceTransactionToBuy();
 					break;
@@ -293,7 +293,7 @@ public class StockEntryFacade implements EntryFacade {
 
 		quantity.addValueChangeListener(new IValueChangeListener<Long>() {
 			@Override
-			public void handleValueChange(ValueChangeEvent<Long> event) {
+			public void handleValueChange(ValueChangeEvent<? extends Long> event) {
 				assert(event.diff.getNewValue() != null);
 				assert(isPurchaseOrSale());
 				if (getTransactionType() == TransactionType.Buy) {
@@ -306,7 +306,7 @@ public class StockEntryFacade implements EntryFacade {
 
 		commission.addValueChangeListener(new IValueChangeListener<Long>() {
 			@Override
-			public void handleValueChange(ValueChangeEvent<Long> event) {
+			public void handleValueChange(ValueChangeEvent<? extends Long> event) {
 				if (event.diff.getNewValue() == null) {
 					if (commissionEntry != null) {
 						try {
@@ -330,7 +330,7 @@ public class StockEntryFacade implements EntryFacade {
 
 		tax1.addValueChangeListener(new IValueChangeListener<Long>() {
 			@Override
-			public void handleValueChange(ValueChangeEvent<Long> event) {
+			public void handleValueChange(ValueChangeEvent<? extends Long> event) {
 				if (event.diff.getNewValue() == null) {
 					if (tax1Entry != null) {
 						try {
@@ -354,7 +354,7 @@ public class StockEntryFacade implements EntryFacade {
 
 		tax2.addValueChangeListener(new IValueChangeListener<Long>() {
 			@Override
-			public void handleValueChange(ValueChangeEvent<Long> event) {
+			public void handleValueChange(ValueChangeEvent<? extends Long> event) {
 				if (event.diff.getNewValue() == null) {
 					if (tax2Entry != null) {
 						try {
@@ -378,7 +378,7 @@ public class StockEntryFacade implements EntryFacade {
 
 		withholdingTax.addValueChangeListener(new IValueChangeListener<Long>() {
 			@Override
-			public void handleValueChange(ValueChangeEvent<Long> event) {
+			public void handleValueChange(ValueChangeEvent<? extends Long> event) {
 				if (event.diff.getNewValue() == null) {
 					if (withholdingTaxEntry != null) {
 						try {
@@ -403,7 +403,7 @@ public class StockEntryFacade implements EntryFacade {
 
 		dividend.addValueChangeListener(new IValueChangeListener<Long>() {
 			@Override
-			public void handleValueChange(ValueChangeEvent<Long> event) {
+			public void handleValueChange(ValueChangeEvent<? extends Long> event) {
 				if (event.diff.getNewValue() == null) {
 					if (dividendEntry != null) {
 						try {
@@ -426,7 +426,7 @@ public class StockEntryFacade implements EntryFacade {
 
 		security.addValueChangeListener(new IValueChangeListener<Security>() {
 			@Override
-			public void handleValueChange(ValueChangeEvent<Security> event) {
+			public void handleValueChange(ValueChangeEvent<? extends Security> event) {
 				// TODO inline this?
 				setSecurity(event.diff.getNewValue());
 			}

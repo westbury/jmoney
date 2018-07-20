@@ -70,12 +70,12 @@ abstract class PropertyOnObservable<S, V> extends
 			}
 
 			@Override
-			public void addValueChangeListener(IValueChangeListener<V> listener) {
+			public void addValueChangeListener(IValueChangeListener<? super V> listener) {
 				getObservable(source).addValueChangeListener(listener);
 			}
 
 			@Override
-			public void removeValueChangeListener(IValueChangeListener<V> listener) {
+			public void removeValueChangeListener(IValueChangeListener<? super V> listener) {
 				getObservable(source).removeValueChangeListener(listener);
 			}
 

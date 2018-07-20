@@ -24,6 +24,15 @@ package net.sf.jmoney.model2;
 
 import java.util.Date;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
+import org.eclipse.core.internal.databinding.provisional.bind.IConverter;
+import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Label;
+
 import net.sf.jmoney.JMoneyPlugin;
 import net.sf.jmoney.VerySimpleDateFormat;
 import net.sf.jmoney.fields.AccountControlFactory;
@@ -35,16 +44,6 @@ import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ListKey;
 import net.sf.jmoney.resources.Messages;
-
-import org.eclipse.core.databinding.conversion.Converter;
-import org.eclipse.core.databinding.conversion.IConverter;
-import org.eclipse.core.databinding.observable.value.IObservableValue;
-import org.eclipse.core.internal.databinding.provisional.bind.Bind;
-import org.eclipse.jface.databinding.swt.SWTObservables;
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Label;
 
 /**
  * This class is a listener class to the net.sf.jmoney.fields
@@ -208,7 +207,7 @@ public class EntryInfo implements IPropertySetInfo {
 				// This property is not editable
 				final Label control = new Label(parent, SWT.NONE);
 
-		    	IConverter<Long,String> longToStringDateConverter = new Converter<Long,String>(Long.class, String.class) {
+		    	IConverter<Long,String> longToStringDateConverter = new IConverter<Long,String>() {
 					@Override
 					public String convert(Long fromObject) {
 						Date date = new Date(fromObject);

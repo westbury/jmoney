@@ -27,14 +27,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Vector;
 
-import net.sf.jmoney.model2.Account;
-import net.sf.jmoney.model2.Commodity;
-import net.sf.jmoney.model2.Session;
-
-import org.eclipse.core.databinding.conversion.Converter;
-import org.eclipse.core.databinding.conversion.IConverter;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
+import org.eclipse.core.internal.databinding.provisional.bind.IConverter;
 import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.swt.SWT;
@@ -56,6 +51,9 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
+
+import net.sf.jmoney.model2.Account;
+import net.sf.jmoney.model2.Session;
 
 
 /**
@@ -96,7 +94,7 @@ public abstract class AccountControl<A extends Account> extends AccountComposite
 
 		textControl = new Text(this, SWT.LEFT);
 
-		IConverter<A,String> accountToTextConverter = new Converter<A,String>(Commodity.class, String.class) {
+		IConverter<A,String> accountToTextConverter = new IConverter<A,String>() {
 			@Override
 			public String convert(A account) {
 				return (account == null) ? "" : account.getName();

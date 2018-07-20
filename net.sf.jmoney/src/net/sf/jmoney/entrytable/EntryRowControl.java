@@ -22,6 +22,14 @@
 
 package net.sf.jmoney.entrytable;
 
+import org.eclipse.core.databinding.observable.value.ComputedValue;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.IValueChangeListener;
+import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.core.databinding.observable.value.WritableValue;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
+import org.eclipse.swt.widgets.Composite;
+
 import net.sf.jmoney.fields.IBlob;
 import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Account;
@@ -30,14 +38,6 @@ import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.pages.entries.ForeignCurrencyDialog;
-
-import org.eclipse.core.databinding.observable.value.ComputedValue;
-import org.eclipse.core.databinding.observable.value.IObservableValue;
-import org.eclipse.core.databinding.observable.value.IValueChangeListener;
-import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
-import org.eclipse.core.databinding.observable.value.WritableValue;
-import org.eclipse.core.internal.databinding.provisional.bind.Bind;
-import org.eclipse.swt.widgets.Composite;
 
 public class EntryRowControl extends BaseEntryRowControl<EntryRowControl, EntryRowControl> {
 
@@ -127,7 +127,7 @@ public class EntryRowControl extends BaseEntryRowControl<EntryRowControl, EntryR
 				otherEntryObservable.addValueChangeListener(new IValueChangeListener<Entry>() {
 					@Override
 					public void handleValueChange(
-							ValueChangeEvent<Entry> event) {
+							ValueChangeEvent<? extends Entry> event) {
 						if (!target.isDisposed()) {
 							target.dispose();
 						}
@@ -166,6 +166,7 @@ public class EntryRowControl extends BaseEntryRowControl<EntryRowControl, EntryR
 		// the amount of the other entry.
 		if (!uncommittedEntryData.hasSplitEntries()
 				&& uncommittedEntryData.getAmount() != 0
+				&& uncommittedEntryData.getOtherEntry() != null
 				&& uncommittedEntryData.getOtherEntry().getAmount() == 0
 				&& uncommittedEntryData.getOtherEntry().getCommodityInternal() != uncommittedEntryData.getCommodityInternal()) {
 			ForeignCurrencyDialog dialog = new ForeignCurrencyDialog(

@@ -22,6 +22,12 @@
 
 package net.sf.jmoney.importer.model;
 
+import org.eclipse.core.databinding.observable.Realm;
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.property.value.IValueProperty;
+import org.eclipse.core.databinding.property.value.ValueProperty;
+import org.eclipse.osgi.util.NLS;
+
 import net.sf.jmoney.fields.AccountControlFactory;
 import net.sf.jmoney.fields.CurrencyControlFactory;
 import net.sf.jmoney.fields.IntegerControlFactory;
@@ -40,12 +46,6 @@ import net.sf.jmoney.model2.IReferenceControlFactory;
 import net.sf.jmoney.model2.PropertySet;
 import net.sf.jmoney.model2.ReferencePropertyAccessor;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
-
-import org.eclipse.core.databinding.observable.Realm;
-import org.eclipse.core.databinding.observable.value.IObservableValue;
-import org.eclipse.core.databinding.property.value.IValueProperty;
-import org.eclipse.core.databinding.property.value.ValueProperty;
-import org.eclipse.osgi.util.NLS;
 
 /**
  * This class is a listener class to the net.sf.jmoney.fields
@@ -198,11 +198,6 @@ public class MemoPatternInfo implements IPropertySetInfo {
 
 			@Override
 			public Object getValueType() {
-				return String.class;
-			}
-
-			@Override
-			public Class<String> getValueClass() {
 				return String.class;
 			}
 

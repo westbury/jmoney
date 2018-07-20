@@ -24,17 +24,15 @@ package net.sf.jmoney.fields;
 
 import java.util.Comparator;
 
-import net.sf.jmoney.model2.ExtendableObject;
-import net.sf.jmoney.model2.IPropertyControlFactory;
-import net.sf.jmoney.model2.ScalarPropertyAccessor;
-
-import org.eclipse.core.databinding.beans.BeansObservables;
-import org.eclipse.core.databinding.beans.PojoObservables;
 import org.eclipse.core.databinding.beans.PojoProperties;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+
+import net.sf.jmoney.model2.ExtendableObject;
+import net.sf.jmoney.model2.IPropertyControlFactory;
+import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
 /**
  * A control factory to edit images.  Well, we don't allow the users to actually

@@ -5,13 +5,13 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.eclipse.core.databinding.observable.AbstractObservable;
-import org.eclipse.core.databinding.observable.ListenerList;
 import org.eclipse.core.databinding.observable.ObservableTracker;
 import org.eclipse.core.databinding.observable.Realm;
 import org.eclipse.core.databinding.observable.set.IObservableSet;
 import org.eclipse.core.databinding.observable.set.ISetChangeListener;
 import org.eclipse.core.databinding.observable.set.SetChangeEvent;
 import org.eclipse.core.databinding.observable.set.SetDiff;
+import org.eclipse.core.runtime.ListenerList;
 
 /**
  * 
@@ -38,6 +38,7 @@ public abstract class JMoneyObservableSet<E> extends AbstractObservable implemen
 	/**
 	 * @deprecated use getElementClass() instead
 	 */
+	@Deprecated
 	protected Object elementType;
 
 	/**
@@ -54,6 +55,7 @@ public abstract class JMoneyObservableSet<E> extends AbstractObservable implemen
 	 * @deprecated use instead the form of the constructor that takes Class as
 	 *             the parameter type for the element type
 	 */
+	@Deprecated
 	protected JMoneyObservableSet(Set<E> wrappedSet, Object elementType) {
 		this(Realm.getDefault(), wrappedSet, elementType);
 	}
@@ -76,6 +78,7 @@ public abstract class JMoneyObservableSet<E> extends AbstractObservable implemen
 	 * @deprecated use instead the form of the constructor that takes Class as
 	 *             the parameter type for the element type
 	 */
+	@Deprecated
 	protected JMoneyObservableSet(Realm realm, Set<E> wrappedSet, Object elementType) {
 		super(realm);
 		this.wrappedSet = wrappedSet;
@@ -106,15 +109,17 @@ public abstract class JMoneyObservableSet<E> extends AbstractObservable implemen
 	/**
 	 * @param listener
 	 */
-	public synchronized void addSetChangeListener(ISetChangeListener<E> listener) {
+	@Override
+	public synchronized void addSetChangeListener(ISetChangeListener<? super E> listener) {
 		addListener(getSetChangeListenerList(), listener);
 	}
 
 	/**
 	 * @param listener
 	 */
+	@Override
 	public synchronized void removeSetChangeListener(
-			ISetChangeListener<E> listener) {
+			ISetChangeListener<? super E> listener) {
 		if (setChangeListenerList != null) {
 			removeListener(setChangeListenerList, listener);
 		}
@@ -129,8 +134,8 @@ public abstract class JMoneyObservableSet<E> extends AbstractObservable implemen
 
 	@Override
 	protected boolean hasListeners() {
-		return (setChangeListenerList != null && setChangeListenerList
-				.hasListeners()) || super.hasListeners();
+		return (setChangeListenerList != null && !setChangeListenerList
+				.isEmpty()) || super.hasListeners();
 	}
 
 	protected void fireSetChange(SetDiff<? extends E> diff) {
@@ -138,49 +143,59 @@ public abstract class JMoneyObservableSet<E> extends AbstractObservable implemen
 		super.fireChange();
 
 		if (setChangeListenerList != null) {
-			setChangeListenerList.fireEvent(new SetChangeEvent<E>(this, diff));
+			SetChangeEvent<? extends E> event = new SetChangeEvent<E>(this, (SetDiff<E>) diff);
+			setChangeListenerList.forEach(l -> l.handleSetChange(event));
 		}
 	}
 
+	@Override
 	public boolean contains(Object o) {
 		getterCalled();
 		return wrappedSet.contains(o);
 	}
 
+	@Override
 	public boolean containsAll(Collection<?> c) {
 		getterCalled();
 		return wrappedSet.containsAll(c);
 	}
 
+	@Override
 	public boolean equals(Object o) {
 		getterCalled();
 		return o == this || wrappedSet.equals(o);
 	}
 
+	@Override
 	public int hashCode() {
 		getterCalled();
 		return wrappedSet.hashCode();
 	}
 
+	@Override
 	public boolean isEmpty() {
 		getterCalled();
 		return wrappedSet.isEmpty();
 	}
 
+	@Override
 	public Iterator<E> iterator() {
 		getterCalled();
 		final Iterator<E> wrappedIterator = wrappedSet.iterator();
 		return new Iterator<E>() {
 
+			@Override
 			public void remove() {
 				wrappedIterator.remove();
 			}
 
+			@Override
 			public boolean hasNext() {
 				ObservableTracker.getterCalled(JMoneyObservableSet.this);
 				return wrappedIterator.hasNext();
 			}
 
+			@Override
 			public E next() {
 				ObservableTracker.getterCalled(JMoneyObservableSet.this);
 				return wrappedIterator.next();
@@ -188,21 +203,25 @@ public abstract class JMoneyObservableSet<E> extends AbstractObservable implemen
 		};
 	}
 
+	@Override
 	public int size() {
 		getterCalled();
 		return wrappedSet.size();
 	}
 
+	@Override
 	public Object[] toArray() {
 		getterCalled();
 		return wrappedSet.toArray();
 	}
 
+	@Override
 	public <T> T[] toArray(T[] a) {
 		getterCalled();
 		return wrappedSet.toArray(a);
 	}
 
+	@Override
 	public String toString() {
 		getterCalled();
 		return wrappedSet.toString();
@@ -212,26 +231,32 @@ public abstract class JMoneyObservableSet<E> extends AbstractObservable implemen
 		ObservableTracker.getterCalled(this);
 	}
 
+	@Override
 	public boolean add(E o) {
 		throw new UnsupportedOperationException();
 	}
 
+	@Override
 	public boolean addAll(Collection<? extends E> c) {
 		throw new UnsupportedOperationException();
 	}
 
+	@Override
 	public boolean remove(Object o) {
 		throw new UnsupportedOperationException();
 	}
 
+	@Override
 	public boolean removeAll(Collection<?> c) {
 		throw new UnsupportedOperationException();
 	}
 
+	@Override
 	public boolean retainAll(Collection<?> c) {
 		throw new UnsupportedOperationException();
 	}
 
+	@Override
 	public void clear() {
 		throw new UnsupportedOperationException();
 	}
@@ -239,6 +264,7 @@ public abstract class JMoneyObservableSet<E> extends AbstractObservable implemen
 	/**
 	 * @return Returns the stale state.
 	 */
+	@Override
 	public boolean isStale() {
 		getterCalled();
 		return stale;
@@ -267,11 +293,13 @@ public abstract class JMoneyObservableSet<E> extends AbstractObservable implemen
 		this.wrappedSet = wrappedSet;
 	}
 
+	@Override
 	protected void fireChange() {
 		throw new RuntimeException(
 				"fireChange should not be called, use fireSetChange() instead"); //$NON-NLS-1$
 	}
 
+	@Override
 	public synchronized void dispose() {
 		setChangeListenerList = null;
 		super.dispose();
@@ -280,6 +308,8 @@ public abstract class JMoneyObservableSet<E> extends AbstractObservable implemen
 	/**
 	 * @deprecated use getElementClass instead
 	 */
+	@Override
+	@Deprecated
 	public Object getElementType() {
 		return elementType;
 	}

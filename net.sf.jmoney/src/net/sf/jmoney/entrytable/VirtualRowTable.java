@@ -215,14 +215,14 @@ public class VirtualRowTable<T, R extends RowControl<IObservableValue<T>,R,R>> e
 		content.addListChangeListener(new IListChangeListener<T>() {
 
 			@Override
-			public void handleListChange(ListChangeEvent<T> event) {
+			public void handleListChange(ListChangeEvent<? extends T> event) {
 				/*
 				 * We really must process these list changes all in one go because
 				 * the changes are already all reflected in the list, so quite apart
 				 * from performance issues, it will all go horribly wrong if we try
 				 * to process one at a time.
 				 */
-				for (ListDiffEntry<? extends T> diff : event.diff.getDifferencesAsList()) {
+				for (ListDiffEntry<? extends T> diff : event.diff.getDifferences()) {
 					if (diff.isAddition()) {
 						rowCount++;
 					} else {

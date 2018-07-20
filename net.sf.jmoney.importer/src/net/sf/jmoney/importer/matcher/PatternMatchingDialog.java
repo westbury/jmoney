@@ -216,7 +216,7 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 
 		@Override
 		public Control createControl() {
-			return paramMetadata.createControl(parent, (IObservableValue<MemoPattern>)(Object)ViewerProperties.singleSelection().observe(patternViewer), args);
+			return paramMetadata.createControl(parent, ViewerProperties.singleSelection().observe(patternViewer), args);
 		}
 		
 		@Override
@@ -313,8 +313,8 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 	 * <p>
 	 * Note that the <code>open</code> method blocks for input dialogs.
 	 * </p>
-		 * All changes within this dialog are made within a transaction, so canceling
-		 * is trivial (the transaction is simply not committed).
+	 * All changes within this dialog are made within a transaction, so canceling
+	 * is trivial (the transaction is simply not committed).
 	 *
 	 * @param parentShell
 	 *            the parent shell
@@ -445,7 +445,7 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 		defaultAccountControl.account.addValueChangeListener(
 				new IValueChangeListener<IncomeExpenseAccount>() {
 					@Override
-					public void handleValueChange(ValueChangeEvent<IncomeExpenseAccount> event) {
+					public void handleValueChange(ValueChangeEvent<? extends IncomeExpenseAccount> event) {
 						IncomeExpenseAccount defaultCategory = defaultAccountControl.getAccount();
 						account.setDefaultCategory(defaultCategory);
 						updateErrorMessage();
@@ -584,7 +584,7 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 		// Bit of a hack...
 		account.getPatternCollection().addSetChangeListener(new ISetChangeListener<MemoPattern>() {
 			@Override
-			public void handleSetChange(SetChangeEvent<MemoPattern> event) {
+			public void handleSetChange(SetChangeEvent<? extends MemoPattern> event) {
 				updateSampleEntriesTable();
 				updateErrorMessage();
 				
@@ -1125,7 +1125,7 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 		
 		observeSize.addValueChangeListener(new IValueChangeListener<Point>() {
 			@Override
-			public void handleValueChange(ValueChangeEvent<Point> event) {
+			public void handleValueChange(ValueChangeEvent<? extends Point> event) {
 				sc.setMinSize(observeSize.getValue());
 			}
 		});

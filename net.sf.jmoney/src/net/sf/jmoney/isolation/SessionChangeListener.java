@@ -122,7 +122,7 @@ public interface SessionChangeListener extends EventListener {
 	 * The contents of the object, including the contents of any list properties in it, remain
 	 * intact.  References to the object also remain intact.
 	 */
-    void objectMoved(IModelObject movedObject, IModelObject originalParent, IModelObject newParent, IListPropertyAccessor originalParentListProperty, IListPropertyAccessor newParentListProperty);
+    void objectMoved(IModelObject movedObject, IModelObject originalParent, IModelObject newParent, IListPropertyAccessor<?,?> originalParentListProperty, IListPropertyAccessor<?,?> newParentListProperty);
 
 	/**
 	 * This method is called after a transaction has completed firing notifications

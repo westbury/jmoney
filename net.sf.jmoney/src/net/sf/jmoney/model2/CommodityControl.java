@@ -27,11 +27,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Vector;
 
-import org.eclipse.core.databinding.conversion.Converter;
-import org.eclipse.core.databinding.conversion.IConverter;
 import org.eclipse.core.databinding.observable.list.IObservableList;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
+import org.eclipse.core.internal.databinding.provisional.bind.IConverter;
 import org.eclipse.jface.databinding.swt.SWTObservables;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.KeyAdapter;
@@ -94,7 +93,7 @@ public class CommodityControl<A extends Commodity> extends Composite {
 
 		textControl = new Text(this, SWT.LEFT);
 
-		IConverter<A,String> commodityToTextConverter = new Converter<A,String>(Commodity.class, String.class) {
+		IConverter<A,String> commodityToTextConverter = new IConverter<A,String>() {
 			@Override
 			public String convert(A commodity) {
 				return (commodity == null) ? "" : commodity.getName();

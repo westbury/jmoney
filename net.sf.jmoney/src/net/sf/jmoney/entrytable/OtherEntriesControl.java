@@ -147,7 +147,7 @@ public class OtherEntriesControl extends Composite {
 
 		otherEntries.addSetChangeListener(new ISetChangeListener<Entry>() {
 			@Override
-			public void handleSetChange(SetChangeEvent<Entry> event) {
+			public void handleSetChange(SetChangeEvent<? extends Entry> event) {
 				try {
 				setStackControl(otherEntries);
 				} catch (SWTException e) {

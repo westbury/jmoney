@@ -57,8 +57,8 @@ public class SessionChangeAdapter implements SessionChangeListener {
 	public void objectMoved(IModelObject movedObject,
 			IModelObject originalParent, 
 			IModelObject newParent,
-			IListPropertyAccessor originalParentListProperty,
-			IListPropertyAccessor newParentListProperty) {
+			IListPropertyAccessor<?,?> originalParentListProperty,
+			IListPropertyAccessor<?,?> newParentListProperty) {
 	}
 
 	@Override

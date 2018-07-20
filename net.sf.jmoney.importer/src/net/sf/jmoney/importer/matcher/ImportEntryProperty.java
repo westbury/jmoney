@@ -17,11 +17,6 @@ public abstract class ImportEntryProperty<T extends BaseEntryData> extends Value
 	}
 
 	@Override
-	public Class<String> getValueClass() {
-		return String.class;
-	}
-
-	@Override
 	public Object getValueType() {
 		return String.class;
 	}

@@ -29,19 +29,19 @@ import java.util.Map.Entry;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import net.sf.jmoney.isolation.IObjectKey;
-import net.sf.jmoney.isolation.IValues;
-import net.sf.jmoney.isolation.ListKey;
-import net.sf.jmoney.model2.Account;
-import net.sf.jmoney.model2.Currency;
-import net.sf.jmoney.model2.ExtendableObject;
-
 import org.eclipse.core.databinding.observable.map.IMapChangeListener;
 import org.eclipse.core.databinding.observable.map.IObservableMap;
 import org.eclipse.core.databinding.observable.map.MapChangeEvent;
 import org.eclipse.core.databinding.observable.map.WritableMap;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.observable.MapEntryObservableValue;
+
+import net.sf.jmoney.isolation.IObjectKey;
+import net.sf.jmoney.isolation.IValues;
+import net.sf.jmoney.isolation.ListKey;
+import net.sf.jmoney.model2.Account;
+import net.sf.jmoney.model2.Currency;
+import net.sf.jmoney.model2.ExtendableObject;
 
 /**
  * The data model for an entry.
@@ -51,7 +51,7 @@ public final class MemoPattern extends ExtendableObject {
 	private final class ParameterMapChangeListener implements
 			IMapChangeListener<String, String> {
 		@Override
-		public void handleMapChange(MapChangeEvent<String,String> event) {
+		public void handleMapChange(MapChangeEvent<? extends String, ? extends String> event) {
 			StringBuffer buffer = new StringBuffer();
 			String separator = "";
 			for (Entry<String, String> entry : transactionParameterValueMap.entrySet()) {

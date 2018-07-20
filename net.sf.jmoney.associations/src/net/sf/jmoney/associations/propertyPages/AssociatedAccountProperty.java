@@ -1,10 +1,10 @@
 package net.sf.jmoney.associations.propertyPages;
-import net.sf.jmoney.model2.Account;
-import net.sf.jmoney.model2.CapitalAccount;
-
 import org.eclipse.core.databinding.observable.Realm;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.property.value.ValueProperty;
+
+import net.sf.jmoney.model2.Account;
+import net.sf.jmoney.model2.CapitalAccount;
 
 
 public class AssociatedAccountProperty extends ValueProperty<CapitalAccount, Account> {
@@ -17,11 +17,6 @@ public class AssociatedAccountProperty extends ValueProperty<CapitalAccount, Acc
 	
 	@Override
 	public Object getValueType() {
-		return Account.class;
-	}
-
-	@Override
-	public Class<Account> getValueClass() {
 		return Account.class;
 	}
 
