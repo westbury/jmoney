@@ -87,7 +87,7 @@ public abstract class CsvImportToAccountWizard<T extends BaseEntryData> extends 
 
 	/**
 	 * This form of this method is called when the wizard is initiated from JMoney
-	 * code and a Paypal account is available from the context.
+	 * code and an account is available from the context.
 	 * <P>
 	 * We will cache window object in order to be able to provide parent shell
 	 * for the message dialog.
