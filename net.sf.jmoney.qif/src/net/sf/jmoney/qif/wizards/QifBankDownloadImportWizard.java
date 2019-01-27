@@ -333,7 +333,7 @@ do just the above.  The following is obsolete.
 						}
 						
 						if (returnCode == Dialog.OK) {
-							ImportMatcher matcher = new ImportMatcher(patternMatcher, getImportEntryProperties(), getApplicableTransactionTypes());
+							ImportMatcher matcher = new ImportMatcher(patternMatcher, getImportEntryProperties(), getApplicableTransactionTypes(), null);
 
 							Set<Entry> ourEntries = new HashSet<Entry>();
 							for (net.sf.jmoney.importer.matcher.EntryData entryData: importedEntries) {

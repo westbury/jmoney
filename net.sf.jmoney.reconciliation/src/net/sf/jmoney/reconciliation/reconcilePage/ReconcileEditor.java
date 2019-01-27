@@ -8,39 +8,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
 
-import net.sf.jmoney.entrytable.CellBlock;
-import net.sf.jmoney.entrytable.DeleteTransactionHandler;
-import net.sf.jmoney.entrytable.DuplicateTransactionHandler;
-import net.sf.jmoney.entrytable.EntryData;
-import net.sf.jmoney.entrytable.EntryRowControl;
-import net.sf.jmoney.entrytable.NewTransactionHandler;
-import net.sf.jmoney.entrytable.OpenTransactionDialogHandler;
-import net.sf.jmoney.entrytable.OtherEntriesPropertyBlock;
-import net.sf.jmoney.entrytable.PropertyBlock;
-import net.sf.jmoney.entrytable.RowControl;
-import net.sf.jmoney.entrytable.RowSelectionTracker;
-import net.sf.jmoney.importer.matcher.IPatternMatcher;
-import net.sf.jmoney.importer.matcher.ImportMatcher;
-import net.sf.jmoney.importer.matcher.PatternMatchingDialog;
-import net.sf.jmoney.importer.model.PatternMatcherAccount;
-import net.sf.jmoney.importer.model.PatternMatcherAccountInfo;
-import net.sf.jmoney.isolation.TransactionManager;
-import net.sf.jmoney.model2.CapitalAccount;
-import net.sf.jmoney.model2.CurrencyAccount;
-import net.sf.jmoney.model2.Entry;
-import net.sf.jmoney.model2.EntryInfo;
-import net.sf.jmoney.model2.IDataManagerForAccounts;
-import net.sf.jmoney.model2.ScalarPropertyAccessor;
-import net.sf.jmoney.model2.Session;
-import net.sf.jmoney.model2.Transaction;
-import net.sf.jmoney.model2.TransactionInfo;
-import net.sf.jmoney.model2.TransactionManagerForAccounts;
-import net.sf.jmoney.reconciliation.BankStatement;
-import net.sf.jmoney.reconciliation.IBankStatementSource;
-import net.sf.jmoney.reconciliation.ReconciliationEntryInfo;
-import net.sf.jmoney.reconciliation.ReconciliationPlugin;
-import net.sf.jmoney.views.AccountEditorInput;
-
 import org.eclipse.core.commands.IHandler;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
@@ -79,6 +46,37 @@ import org.eclipse.ui.forms.widgets.FormToolkit;
 import org.eclipse.ui.forms.widgets.ScrolledForm;
 import org.eclipse.ui.handlers.IHandlerService;
 import org.eclipse.ui.part.EditorPart;
+
+import net.sf.jmoney.entrytable.CellBlock;
+import net.sf.jmoney.entrytable.DeleteTransactionHandler;
+import net.sf.jmoney.entrytable.DuplicateTransactionHandler;
+import net.sf.jmoney.entrytable.EntryRowControl;
+import net.sf.jmoney.entrytable.NewTransactionHandler;
+import net.sf.jmoney.entrytable.OpenTransactionDialogHandler;
+import net.sf.jmoney.entrytable.OtherEntriesPropertyBlock;
+import net.sf.jmoney.entrytable.PropertyBlock;
+import net.sf.jmoney.entrytable.RowSelectionTracker;
+import net.sf.jmoney.importer.matcher.IPatternMatcher;
+import net.sf.jmoney.importer.matcher.ImportMatcher;
+import net.sf.jmoney.importer.matcher.PatternMatchingDialog;
+import net.sf.jmoney.importer.model.PatternMatcherAccount;
+import net.sf.jmoney.importer.model.PatternMatcherAccountInfo;
+import net.sf.jmoney.isolation.TransactionManager;
+import net.sf.jmoney.model2.CapitalAccount;
+import net.sf.jmoney.model2.CurrencyAccount;
+import net.sf.jmoney.model2.Entry;
+import net.sf.jmoney.model2.EntryInfo;
+import net.sf.jmoney.model2.IDataManagerForAccounts;
+import net.sf.jmoney.model2.ScalarPropertyAccessor;
+import net.sf.jmoney.model2.Session;
+import net.sf.jmoney.model2.Transaction;
+import net.sf.jmoney.model2.TransactionInfo;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
+import net.sf.jmoney.reconciliation.BankStatement;
+import net.sf.jmoney.reconciliation.IBankStatementSource;
+import net.sf.jmoney.reconciliation.ReconciliationEntryInfo;
+import net.sf.jmoney.reconciliation.ReconciliationPlugin;
+import net.sf.jmoney.views.AccountEditorInput;
 
 public class ReconcileEditor extends EditorPart {
 
@@ -394,6 +392,7 @@ public class ReconcileEditor extends EditorPart {
 		final PatternMatcherAccount reconciliationAccount = account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
 
 		importButton.addListener(SWT.Selection, new Listener() {
+			@Override
 			public void handleEvent(Event event) {
 				if (!reconciliationAccount.isReconcilable()) {
 			        MessageBox diag = new MessageBox(getSite().getShell());
@@ -512,7 +511,7 @@ public class ReconcileEditor extends EditorPart {
 		 * is where the new entry is put because no statement is set on the
 		 * entry for a new or duplicated entry.
 		 */
-		IHandlerService handlerService = (IHandlerService) getSite().getService(IHandlerService.class);
+		IHandlerService handlerService = getSite().getService(IHandlerService.class);
 
 		IHandler handler = new NewTransactionHandler(rowTracker, fUnreconciledSection.fUnreconciledEntriesControl);
 		handlerService.activateHandler("net.sf.jmoney.newTransaction", handler);
@@ -639,7 +638,7 @@ public class ReconcileEditor extends EditorPart {
 				CurrencyAccount accountInTransaction = transactionManager.getCopyInTransaction((account));
 				Session sessionInTransaction = accountInTransaction.getSession();
 
-				ImportMatcher matcher = new ImportMatcher(accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true), statementSource.getImportEntryProperties(), statementSource.getApplicableTransactionTypes());
+				ImportMatcher matcher = new ImportMatcher(accountInTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true), statementSource.getImportEntryProperties(), statementSource.getApplicableTransactionTypes(), null);
 
 				Set<Entry> ourEntries = new HashSet<Entry>();
 				for (net.sf.jmoney.importer.matcher.EntryData entryData: importedEntries) {

@@ -3,6 +3,7 @@ package net.sf.jmoney.importer.model;
 import java.util.List;
 
 import net.sf.jmoney.importer.matcher.BaseEntryData;
+import net.sf.jmoney.importer.matcher.PatternMatch;
 import net.sf.jmoney.importer.matcher.TransactionParamMetadata;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.Transaction;
@@ -33,6 +34,6 @@ public abstract class TransactionType<T extends BaseEntryData> implements Compar
 
 	public abstract List<TransactionParamMetadata> getParameters();
 
-	public abstract void createTransaction(Transaction transaction, Entry entry1, T entryData, MemoPattern pattern, Object[] args);
+	public abstract void createTransaction(Transaction transaction, Entry entry1, T entryData, PatternMatch match);
 	
 }

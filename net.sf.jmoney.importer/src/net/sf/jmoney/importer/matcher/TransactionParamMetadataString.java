@@ -69,13 +69,13 @@ public class TransactionParamMetadataString extends TransactionParamMetadata {
 		return composite;
 	}
 
-	public String obtainValue(MemoPattern pattern, Object[] args) {
-		return MessageFormat.format(pattern.getParameterValue(id), args);
+	public String obtainValue(PatternMatch match) {
+		return MessageFormat.format(match.pattern.getParameterValue(id), match.args);
 	}
 
 	@Override
-	public String getResolvedValueAsString(MemoPattern pattern, Object[] args) {
-		return obtainValue(pattern, args);
+	public String getResolvedValueAsString(PatternMatch match) {
+		return obtainValue(match);
 	}
 
 }

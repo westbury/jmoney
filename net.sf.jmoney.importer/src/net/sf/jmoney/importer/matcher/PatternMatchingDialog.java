@@ -26,10 +26,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.net.URL;
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -137,50 +134,10 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 
 //			IObservableMap<String, String> transactionParameterValues = pattern.getTransactionParameterValueMap();
 
-			T entryData = (T)ViewerProperties.<T>singleSelection().observe(entriesViewer).getValue();
-
-			Object [] args = null;
-			
-			if (entryData != null) {
-
-				boolean unmatchedFound = false;
-				for (ImportEntryProperty<T> importEntryProperty : importEntryProperties) {
-					String importEntryPropertyValue = importEntryProperty.getCurrentValue(entryData);
-					Pattern compiledPattern = pattern.getCompiledPattern(importEntryProperty.id);
-
-					if (compiledPattern != null) {
-						Matcher m = compiledPattern.matcher(importEntryPropertyValue);
-						if (!m.matches()) {
-							unmatchedFound = true;
-							break;
-						}
-
-						/*
-						 * Only 'memo' provides arguments.
-						 */
-						if (importEntryProperty.id.equals("memo")) {
-							/*
-							 * Group zero is the entire string and the groupCount method
-							 * does not include that group, so there is really one more group
-							 * than the number given by groupCount.
-							 *
-							 * This code also tidies up the imported text.
-							 */
-							args = new Object[m.groupCount()+1];
-							for (int i = 0; i <= m.groupCount(); i++) {
-								// Not sure why it can be null, but it happened...
-								args[i] = m.group(i) == null ? null : ImportMatcher.convertToMixedCase(m.group(i));
-							}
-						}
-					}
-				}
+//			T entryData = (T)ViewerProperties.<T>singleSelection().observe(entriesViewer).getValue();
+//			if (entryData != null) {
+//				PatternMatch match = matcher.findMatchingPattern(entryData);
 				
-				if (unmatchedFound) {
-					// Set args back to null, because null should be set if any don't match,
-					// even if the memo pattern does match.
-					args = null;
-				}
-			}
 			
 			GridDataFactory textLayoutData = GridDataFactory.fillDefaults().minSize(200, SWT.DEFAULT);
 			
@@ -301,12 +258,12 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 
 	private Collection<T> sampleEntries;
 
-	private ArrayList<MemoPattern> sortedPatterns;
-
 	private List<ImportEntryProperty<T>> importEntryProperties;
 	
 	private List<TransactionType<T>> applicableTransactionTypes;
 
+	private ImportMatcher<T> matcher;
+	
 	/**
 	 * Creates an input dialog with OK and Cancel buttons. Note that the dialog
 	 * will have no visual representation (no widgets) until it is told to open.
@@ -327,15 +284,7 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 		this.applicableTransactionTypes = applicableTransactionTypes;
 		
 		this.account = matcherInsideTransaction;
-		
-		sortedPatterns = new ArrayList<MemoPattern>(account.getPatternCollection());
-		Collections.sort(sortedPatterns, new Comparator<MemoPattern>(){
-			@Override
-			public int compare(MemoPattern pattern1, MemoPattern pattern2) {
-				return pattern1.getOrderingIndex() - pattern2.getOrderingIndex();
-			}
-		});
-
+	
 		// Load the error indicator
 		URL installURL = Activator.getDefault().getBundle().getEntry("/icons/error.gif");
 		errorImage = ImageDescriptor.createFromURL(installURL).createImage();
@@ -506,6 +455,9 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 		// Set up the table
 		final Table table = entriesViewer.getTable();
 
+		// We need a matcher that will keep itself up to date with the patterns for as long as this table exists. 
+		matcher = new ImportMatcher<T>(this.account, importEntryProperties, applicableTransactionTypes, table);
+
 		// Turn on the header and the lines
 		table.setHeaderVisible(true);
 		table.setLinesVisible(true);
@@ -520,7 +472,6 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 		for (ImportEntryProperty<T> importEntryProperty : importEntryProperties) {
 			addColumnForExampleInputMatcher(importEntryProperty, "<html>The pattern is a Java regular expression that is matched against the memo in the downloadable file.<br>For each record from the bank, the first row in this table with a matching pattern is used.</html>");
 		}
-		
 		
 //		TableViewerColumn column1 = new TableViewerColumn(entriesViewer, SWT.LEFT);
 //		column1.getColumn().setWidth(40);
@@ -796,60 +747,20 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 		column.setLabelProvider(new ColumnLabelProvider() {
 			@Override
 			public String getText(Object element) {
-				BaseEntryData entryData = (BaseEntryData)element;
+				T entryData = (T)element;
 
-				for (MemoPattern pattern: sortedPatterns) {
-					/*
-					 * The pattern may not yet have been entered if the user has just added a new
-					 * pattern.
-					 */
-					boolean unmatchedFound = false;
-					Object [] args = null;
-					for (ImportEntryProperty importEntryProperty : importEntryProperties) {
-						String importEntryPropertyValue = importEntryProperty.getCurrentValue(entryData);
-						Pattern compiledPattern = pattern.getCompiledPattern(importEntryProperty.id);
-						
-						if (compiledPattern != null && importEntryPropertyValue != null) {
-							Matcher m = compiledPattern.matcher(importEntryPropertyValue);
-							if (!m.matches()) {
-								unmatchedFound = true;
-								break;
-							}
-
-							/*
-							 * Only 'memo' provides arguments.
-							 */
-							if (importEntryProperty.id.equals("memo")) {
-								/*
-								 * Group zero is the entire string and the groupCount method
-								 * does not include that group, so there is really one more group
-								 * than the number given by groupCount.
-								 *
-								 * This code also tidies up the imported text.
-								 */
-								args = new Object[m.groupCount()+1];
-								for (int i = 0; i <= m.groupCount(); i++) {
-									// Not sure why it can be null, but it happened...
-									args[i] = m.group(i) == null ? null : ImportMatcher.convertToMixedCase(m.group(i));
-								}
-							}
-						}
-					}
-					
-					if (!unmatchedFound) {
-						if (propertyAccessor == MemoPatternInfo.getOrderingIndexAccessor()) {
-							return Integer.toString(pattern.getOrderingIndex());
-						} else if (propertyAccessor == MemoPatternInfo.getTransactionTypeIdAccessor()) {
-							return pattern.getTransactionTypeId() == null
-									? ""
-											: lookupTransactionType(pattern.getTransactionTypeId()).getLabel();
-						}
+				PatternMatch match = matcher.findMatchingPattern(entryData);
+				if (match != null) {
+					if (propertyAccessor == MemoPatternInfo.getOrderingIndexAccessor()) {
+						return Integer.toString(match.pattern.getOrderingIndex());
+					} else if (propertyAccessor == MemoPatternInfo.getTransactionTypeIdAccessor()) {
+						return match.pattern.getTransactionTypeId() == null
+								? ""
+										: lookupTransactionType(match.pattern.getTransactionTypeId()).getLabel();
 					}
 				}
-
 				return "no match";
 			}
-
 		});
 	}
 
@@ -877,67 +788,23 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 		column.setLabelProvider(new ColumnLabelProvider() {
 			@Override
 			public String getText(Object element) {
-				BaseEntryData entryData = (BaseEntryData)element;
+				T entryData = (T)element;
 
-				MemoPattern matchingPattern = null;
-				Object [] args = null;
-				for (MemoPattern pattern: sortedPatterns) {
+				PatternMatch match = matcher.findMatchingPattern(entryData);
+				if (match != null) {
 					/*
-					 * The pattern may not yet have been entered if the user has just added a new
-					 * pattern.
+					 * Now we know the pattern that matches, lookup the transaction type.
+					 * See if there is a parameter in this transaction type that has a name
+					 * that matches the name in this column. 
 					 */
-					boolean unmatchedFound = false;
-					for (ImportEntryProperty importEntryProperty : importEntryProperties) {
-						String importEntryPropertyValue = importEntryProperty.getCurrentValue(entryData);
-						Pattern compiledPattern = pattern.getCompiledPattern(importEntryProperty.id);
-
-						if (compiledPattern != null && importEntryPropertyValue != null) {
-							Matcher m = compiledPattern.matcher(importEntryPropertyValue);
-							if (!m.matches()) {
-								unmatchedFound = true;
-								break;
-							}
-
-							/*
-							 * Only 'memo' provides arguments.
-							 */
-							if (importEntryProperty.id.equals("memo")) {
-								/*
-								 * Group zero is the entire string and the groupCount method
-								 * does not include that group, so there is really one more group
-								 * than the number given by groupCount.
-								 *
-								 * This code also tidies up the imported text.
-								 */
-								args = new Object[m.groupCount()+1];
-								for (int i = 0; i <= m.groupCount(); i++) {
-									// Not sure why it can be null, but it happened...
-									args[i] = m.group(i) == null ? null : ImportMatcher.convertToMixedCase(m.group(i));
-								}
-							}
-						}
-					}
-					
-					if (!unmatchedFound) {
-						matchingPattern = pattern;
-						break;
-					}
-				}
-				
-				/*
-				 * Now we know the pattern that matches, lookup the transaction type.
-				 * See if there is a parameter in this transaction type that has a name
-				 * that matches the name in this column. 
-				 */
-				if (matchingPattern != null) {
-					if (matchingPattern.getTransactionTypeId() == null) {
+					if (match.pattern.getTransactionTypeId() == null) {
 						// User hasn't entered type yet.  It must be a new pattern being entered.
 						return "";
 					} else {
-						TransactionType transType = lookupTransactionType(matchingPattern.getTransactionTypeId());
+						TransactionType transType = lookupTransactionType(match.pattern.getTransactionTypeId());
 						TransactionParamMetadata paramMetadata = lookupParamByName(transType, parameterName);
 						if (paramMetadata != null) {
-							return paramMetadata.getResolvedValueAsString(matchingPattern, args);
+							return paramMetadata.getResolvedValueAsString(match);
 						} else {
 							return "N/A";
 						}
@@ -1148,9 +1015,7 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 			public void widgetSelected(SelectionEvent e) {
 				ObjectCollection<MemoPattern> patterns = account.getPatternCollection();
 				MemoPattern newPattern = patterns.createNewElement(MemoPatternInfo.getPropertySet());
-
 				newPattern.setOrderingIndex(nextOrderingIndex++);
-				sortedPatterns.add(newPattern);
 
 				/*
 				 * Add the new pattern to the end of the table.
@@ -1306,25 +1171,11 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 
 	void swapOrderOfPatterns(MemoPattern thisPattern,
 			MemoPattern abovePattern) {
-		/*
-		 * First we remove both patterns from the sorted collection.
-		 * This is because we break the integrity of the collection
-		 * if we change a property that affects the sort order.
-		 */
-		sortedPatterns.remove(thisPattern);
-		sortedPatterns.remove(abovePattern);
-
 		// Swap the ordering indexes
 		int thisIndex = thisPattern.getOrderingIndex();
 		int aboveIndex = abovePattern.getOrderingIndex();
 		abovePattern.setOrderingIndex(thisIndex);
 		thisPattern.setOrderingIndex(aboveIndex);
-
-		/*
-		 * Now add them back to the sorted collection.
-		 */
-		sortedPatterns.add(thisPattern);
-		sortedPatterns.add(abovePattern);
 	}
 
 	private TransactionType<T> lookupTransactionType(String transactionTypeId) {

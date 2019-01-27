@@ -8,8 +8,14 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.eclipse.swt.widgets.Control;
+
 import net.sf.jmoney.importer.model.MemoPattern;
+import net.sf.jmoney.importer.model.MemoPatternInfo;
 import net.sf.jmoney.importer.model.TransactionType;
+import net.sf.jmoney.isolation.IModelObject;
+import net.sf.jmoney.isolation.IScalarPropertyAccessor;
+import net.sf.jmoney.isolation.SessionChangeAdapter;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
@@ -24,7 +30,17 @@ public class ImportMatcher<T extends BaseEntryData> {
 
 	private List<TransactionType<T>> applicableTransactionTypes;
 
-	public ImportMatcher(IPatternMatcher matcherInsideTransaction, List<ImportEntryProperty<T>> importEntryProperties, List<TransactionType<T>> applicableTransactionTypes) {
+	/**
+	 * 
+	 * @param matcherInsideTransaction
+	 * @param importEntryProperties
+	 * @param applicableTransactionTypes
+	 * @param control
+	 * 			used to define when this class can stop listening for pattern changes (this class stops listening for
+	 * 			changes when the given control is disposed), thus preventing leaks, or null if this object does not
+	 * 			need to listen for pattern changes (because it's not being used in an interactive situation)
+	 */
+	public ImportMatcher(IPatternMatcher matcherInsideTransaction, List<ImportEntryProperty<T>> importEntryProperties, List<TransactionType<T>> applicableTransactionTypes, Control control) {
 		this.account = matcherInsideTransaction;
 		this.importEntryProperties = importEntryProperties;
 		this.applicableTransactionTypes = applicableTransactionTypes;
@@ -35,13 +51,47 @@ public class ImportMatcher<T extends BaseEntryData> {
 		 * pattern.
 		 */
 		sortedPatterns = new ArrayList<MemoPattern>(account.getPatternCollection());
-		Collections.sort(sortedPatterns, new Comparator<MemoPattern>(){
+		Collections.sort(sortedPatterns, new Comparator<MemoPattern>() {
 			@Override
 			public int compare(MemoPattern pattern1, MemoPattern pattern2) {
 				return pattern1.getOrderingIndex() - pattern2.getOrderingIndex();
 			}
 		});
 
+		/*
+		 * Now let's keep this sorted array up to date.  This is necessary if this class is being used
+		 * by an interactive dialog. 
+		 */
+		if (control != null) {
+			account.getBaseObject().getDataManager().addChangeListener(new SessionChangeAdapter() {
+				@Override
+				public void objectInserted(IModelObject newObject) {
+					if (newObject instanceof MemoPattern
+							&& newObject.getParentListKey().getParentKey().equals(account.getBaseObject().getObjectKey())) {
+						sortedPatterns.add((MemoPattern)newObject);
+					}
+				}
+
+				@Override
+				public void objectRemoved(IModelObject deletedObject) {
+					if (deletedObject instanceof MemoPattern
+							&& deletedObject.getParentListKey().getParentKey().equals(account.getBaseObject().getObjectKey())) {
+						sortedPatterns.remove(deletedObject);
+					}
+				}
+
+				@Override
+				public void objectChanged(IModelObject changedObject, IScalarPropertyAccessor changedProperty, Object oldValue, Object newValue) {
+					if (changedObject instanceof MemoPattern
+							&& changedProperty == MemoPatternInfo.getOrderingIndexAccessor()
+							&& changedObject.getParentListKey().getParentKey().equals(account.getBaseObject().getObjectKey())) {
+						sortedPatterns.remove(changedObject);
+						sortedPatterns.add((MemoPattern)changedObject);
+					}
+				}
+
+			}, control);
+		}
 	}
 
 	/**
@@ -56,6 +106,58 @@ public class ImportMatcher<T extends BaseEntryData> {
 	 * @param defaultDescription
 	 */
 	public void matchAndFill(T entryData, Transaction transaction, Entry entry1, String defaultMemo, String defaultDescription) {
+		PatternMatch match = findMatchingPattern(entryData);
+
+		if (match != null) {
+			String transactionId = match.pattern.getTransactionTypeId();
+   				
+//				TransactionType<T> transactionType = null;
+//				for (TransactionType<T> type : applicableTransactionTypes) {
+//					if (type.getId().equals(transactionId)) {
+//						transactionType = type;
+//						break;
+//					}
+//				}
+			TransactionType<T> transactionType = applicableTransactionTypes.stream()
+					.filter(type -> type.getId().equals(transactionId))
+					.findFirst()
+					.get();
+			transactionType.createTransaction(transaction, entry1, entryData, match);
+
+			return;
+		}
+		
+		/*
+		 * If nothing matched, set the default account, the memo, and the
+		 * description (the memo in the other account) but no other property.
+		 * 
+		 * The account may already have been set.  That will be the case, for
+		 * example, in the Paypal import because the default account depends on
+		 * the currency.
+		 */
+//   		if (entry2.getAccount() == null) {
+//   			entry2.setAccount(account.getDefaultCategory());
+//   			if (entry1 != null) {
+//   				entry1.setMemo(defaultMemo == null ? null : convertToMixedCase(defaultMemo));
+//   			}
+//			entry2.setMemo(defaultDescription == null ? null : convertToMixedCase(defaultDescription));
+//   		}
+
+		entry1.setMemo(defaultMemo == null ? null : convertToMixedCase(defaultMemo));
+
+		Entry otherEntry = transaction.createEntry();
+		otherEntry.setAccount(account.getDefaultCategory());
+		otherEntry.setMemo(defaultDescription == null ? null : convertToMixedCase(defaultDescription));
+		otherEntry.setAmount(-entryData.amount);
+	}
+
+	/**
+	 * 
+	 * @param entryData
+	 * @return the first pattern that matches entryData or null if no pattern matches (which
+	 * 			means the caller should create a default transaction using the default category)
+	 */
+	public PatternMatch findMatchingPattern(T entryData) {
    		for (MemoPattern pattern: sortedPatterns) {
    			
 			boolean unmatchedFound = false;
@@ -92,49 +194,12 @@ public class ImportMatcher<T extends BaseEntryData> {
 			}
 			
 			if (!unmatchedFound) {
-   				String transactionId = pattern.getTransactionTypeId();
-   				
-//   				TransactionType<T> transactionType = null;
-//   				for (TransactionType<T> type : applicableTransactionTypes) {
-//   					if (type.getId().equals(transactionId)) {
-//   						transactionType = type;
-//   						break;
-//   					}
-//   				}
-   				TransactionType<T> transactionType = applicableTransactionTypes.stream()
-   						.filter(type -> type.getId().equals(transactionId))
-   						.findFirst()
-   						.get();
-   				transactionType.createTransaction(transaction, entry1, entryData, pattern, args);
-
-   				return;
+				return new PatternMatch(pattern, args);
    			}
    		}
-
-		/*
-		 * If nothing matched, set the default account, the memo, and the
-		 * description (the memo in the other account) but no other property.
-		 * 
-		 * The account may already have been set.  That will be the case, for
-		 * example, in the Paypal import because the default account depends on
-		 * the currency.
-		 */
-//   		if (entry2.getAccount() == null) {
-//   			entry2.setAccount(account.getDefaultCategory());
-//   			if (entry1 != null) {
-//   				entry1.setMemo(defaultMemo == null ? null : convertToMixedCase(defaultMemo));
-//   			}
-//			entry2.setMemo(defaultDescription == null ? null : convertToMixedCase(defaultDescription));
-//   		}
-
-		entry1.setMemo(defaultMemo == null ? null : convertToMixedCase(defaultMemo));
-
-		Entry otherEntry = transaction.createEntry();
-		otherEntry.setAccount(account.getDefaultCategory());
-		otherEntry.setMemo(defaultDescription == null ? null : convertToMixedCase(defaultDescription));
-		otherEntry.setAmount(-entryData.amount);
+		return null;
 	}
-
+	
 	/**
 	 * This method tidies up the imported text.
 	 * <P>
@@ -221,57 +286,28 @@ public class ImportMatcher<T extends BaseEntryData> {
 	 * @return the entry for this transaction.
 	 */
 	public Entry process(T entryData, Session session, final Set<Entry> ourEntries) {
-		// Fill the fields from the entry.  This is for convenience
-		// so other places just use the EntryData fields.  This needs
-		// cleaning up.
-		if (entryData.entry != null) {
-			entryData.fillFromEntry();
-		}
-
-		
-		// No auto-matching if the transaction has already been created.
-		// It will just find itself!
-		// TODO auto-matching should be done earlier if other processes/imports
-		// are putting entries into the Paypal accounts.
-		if (entryData.entry == null) {
-			/*
-			 * First we try auto-matching.
-			 *
-			 * If we have an auto-match then we don't have to create a new
-			 * transaction at all. We just update a few properties in the
-			 * existing entry.
-			 */
-			Entry matchedEntry = entryData.findMatch(account.getBaseObject(), 5, ourEntries);	
-			if (matchedEntry != null) {
-				entryData.setDataIntoExistingEntry(matchedEntry);
-				return matchedEntry;
-			}
+		/*
+		 * First we try auto-matching.
+		 *
+		 * If we have an auto-match then we don't have to create a new
+		 * transaction at all. We just update a few properties in the
+		 * existing entry.
+		 */
+		Entry matchedEntry = entryData.findMatch(account.getBaseObject(), 5, ourEntries);	
+		if (matchedEntry != null) {
+			entryData.setDataIntoExistingEntry(matchedEntry);
+			return matchedEntry;
 		}
 		
 		/*
-		 * Two possibilities here.  If there is an 'entry' then the
-		 * transaction has already been created and we should use it.
-		 * If no 'entry' then we must create a transaction.
-		 * 
-		 * TODO tidy this up by always creating the transaction before
-		 * calling this method.
+		 * We need to create the transaction.
 		 */
-		Transaction transaction;
-		Entry entry1;
-		if (entryData.entry == null) {
-			transaction = session.createTransaction();
-			entry1 = transaction.createEntry();
-			entry1.setAccount(account.getBaseObject());
-			
-			// Set values that don't depend on matching
-			entryData.assignPropertyValues(transaction, entry1);
-		} else {
-			transaction = entryData.entry.getTransaction();
-			
-			// If the transaction was already created then we don't update
-			// properties in the other entry.
-			entry1 = null;
-		}
+		Transaction transaction = session.createTransaction();
+		Entry entry1 = transaction.createEntry();
+		entry1.setAccount(account.getBaseObject());
+
+		// Set values that don't depend on matching
+		entryData.assignPropertyValues(transaction, entry1);
 
    		/*
    		 * Scan for a match in the patterns.  If a match is found,

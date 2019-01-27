@@ -1,10 +1,10 @@
 package net.sf.jmoney.importer.matcher;
 
-import net.sf.jmoney.importer.model.MemoPattern;
-
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.jface.internal.databinding.provisional.swt.UpdatingComposite;
 import org.eclipse.swt.widgets.Control;
+
+import net.sf.jmoney.importer.model.MemoPattern;
 
 public abstract class TransactionParamMetadata {
 
@@ -27,6 +27,6 @@ public abstract class TransactionParamMetadata {
 
 	public abstract Control createControl(UpdatingComposite parent, IObservableValue<MemoPattern> memoPattern, IObservableValue<String[]> args);
 
-	public abstract String getResolvedValueAsString(MemoPattern pattern, Object[] args);
+	public abstract String getResolvedValueAsString(PatternMatch match);
 
 }

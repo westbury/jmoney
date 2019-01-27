@@ -1,4 +1,4 @@
-package net.sf.jmoney.importer.model;
+package net.sf.jmoney.paypal;
 
 import java.util.Arrays;
 import java.util.List;
@@ -6,22 +6,21 @@ import java.util.List;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.ui.PlatformUI;
 
-import net.sf.jmoney.importer.matcher.EntryData;
 import net.sf.jmoney.importer.matcher.PatternMatch;
 import net.sf.jmoney.importer.matcher.TransactionParamMetadata;
 import net.sf.jmoney.importer.matcher.TransactionParamMetadataAccount;
 import net.sf.jmoney.importer.matcher.TransactionParamMetadataString;
+import net.sf.jmoney.importer.model.TransactionType;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.Transaction;
 
-public class TransactionTypeBasic extends TransactionType<EntryData> {
+public class TransactionTypeBasic extends TransactionType<PaypalEntryData> {
 
 	private TransactionParamMetadataString descriptionParam = new TransactionParamMetadataString("description", "Description");
 	private TransactionParamMetadataString memoParam = new TransactionParamMetadataString("memo", "Memo");
 	private TransactionParamMetadataAccount accountParam = new TransactionParamMetadataAccount("account", "Category", Account.class);
-	private TransactionParamMetadataString checkParam = new TransactionParamMetadataString("check", "Check");
 	private TransactionParamMetadataString transDateParam = new TransactionParamMetadataString("transDate", "Transaction Date");
 	private TransactionParamMetadataString valueDateParam = new TransactionParamMetadataString("valueDate", "Value Date");
 
@@ -35,14 +34,13 @@ public class TransactionTypeBasic extends TransactionType<EntryData> {
 				descriptionParam,
 				memoParam,
 				accountParam,
-				checkParam,
 				transDateParam,
 				valueDateParam
 		});
 	}
 
 	@Override
-	public void createTransaction(Transaction transaction, Entry entry1, EntryData entryData, PatternMatch match) {
+	public void createTransaction(Transaction transaction, Entry entry1, PaypalEntryData entryData, PatternMatch match) {
 
 		Entry entry2 = transaction.createEntry();
 		entry2.setAmount(-entryData.amount);
@@ -76,24 +74,6 @@ public class TransactionTypeBasic extends TransactionType<EntryData> {
 				entry2.setMemo(description);
 			}
 
-			/*
-			 * The basic entry type has a check field but this is set only if the import format has a field specifically
-			 * for a check number.  When BasicEntryType
-			 * is used, check numbers can also be extracted from the memo using patterns set
-			 * up by the user.
-			 */
-			String checkNumber = checkParam.obtainValue(match);
-			if (entry1 != null && !checkNumber.isEmpty()) {
-				/*
-				 * If there is a check number field in the import format then the
-				 * check number will already have been set.
-				 */
-				if (entry1.getCheck() != null && !entry1.getCheck().equals(checkNumber)) {
-					throw new RuntimeException("mismatched check numbers");
-				}
-				entry1.setCheck(checkNumber);
-			}
-			
 			/*
 			 * Before setting the account, check that if a default
 			 * account was previously set then the currency is the

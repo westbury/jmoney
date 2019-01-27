@@ -34,6 +34,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.jface.dialogs.Dialog;
+import org.eclipse.jface.dialogs.IDialogSettings;
+import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.IWorkbenchWizard;
+
 import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.importer.matcher.EntryData;
 import net.sf.jmoney.importer.matcher.ImportEntryProperty;
@@ -56,13 +63,6 @@ import net.sf.jmoney.model2.Session.SeveralAccountsFoundException;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
 import net.sf.jmoney.reconciliation.ReconciliationEntryInfo;
-
-import org.eclipse.jface.dialogs.Dialog;
-import org.eclipse.jface.dialogs.IDialogSettings;
-import org.eclipse.jface.viewers.IStructuredSelection;
-import org.eclipse.ui.IWorkbench;
-import org.eclipse.ui.IWorkbenchWindow;
-import org.eclipse.ui.IWorkbenchWizard;
 
 /**
  * A wizard to import data from a comma-separated file that has been downloaded
@@ -114,6 +114,7 @@ public class ToshlImportWizard extends CsvImportWizard implements IWorkbenchWiza
 	 * the import does not act on a target account.  The target accounts are
 	 * determined from the import file and the Toshl import options.
 	 */
+	@Override
 	public void init(IWorkbench workbench, IStructuredSelection selection) {
 		IWorkbenchWindow window = workbench.getActiveWorkbenchWindow();
 
@@ -181,7 +182,7 @@ public class ToshlImportWizard extends CsvImportWizard implements IWorkbenchWiza
 			}
 			
 			if (returnCode == Dialog.OK) {
-				ImportMatcher matcher = new ImportMatcher(accountInTransaction, getImportEntryProperties(), getApplicableTransactionTypes());
+				ImportMatcher matcher = new ImportMatcher(accountInTransaction, getImportEntryProperties(), getApplicableTransactionTypes(), null);
 
 				Set<Entry> ourEntries = new HashSet<Entry>();
 				for (EntryData entryData: entryDataList) {
@@ -350,11 +351,13 @@ public class ToshlImportWizard extends CsvImportWizard implements IWorkbenchWiza
 
 			{
 				add(new ImportEntryProperty<EntryData>("memo", "Memo") {
+					@Override
 					protected String getCurrentValue(EntryData importEntry) {
 						return importEntry.getMemo();
 					}
 				});
 				add(new ImportEntryProperty<EntryData>("amount", "Amount") {
+					@Override
 					protected String getCurrentValue(EntryData importEntry) {
 						// As we don't have an account accessible that would give us a currency, just format using GBP
 						// TODO There must be a better way...

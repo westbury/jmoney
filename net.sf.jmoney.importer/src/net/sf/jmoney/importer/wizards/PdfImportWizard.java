@@ -33,9 +33,6 @@ import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.wizard.Wizard;
-import org.eclipse.swt.dnd.Clipboard;
-import org.eclipse.swt.dnd.TextTransfer;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchWindow;
 
@@ -202,7 +199,7 @@ public abstract class PdfImportWizard<T extends BaseEntryData> extends Wizard {
 				return false;
 			}
 
-			ImportMatcher<T> matcher = new ImportMatcher<>(matcherAccount, getImportEntryProperties(), getApplicableTransactionTypes());
+			ImportMatcher<T> matcher = new ImportMatcher<>(matcherAccount, getImportEntryProperties(), getApplicableTransactionTypes(), null);
 
 			Set<Entry> ourEntries = new HashSet<Entry>();
 			for (T entryData: entryDataList) {

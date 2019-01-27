@@ -456,7 +456,7 @@ public class OfxImporter {
 		}
 		
 		if (returnCode == Dialog.OK) {
-			ImportMatcher matcher = new ImportMatcher(matcherAccount, getImportEntryProperties(), getApplicableTransactionTypes());
+			ImportMatcher matcher = new ImportMatcher(matcherAccount, getImportEntryProperties(), getApplicableTransactionTypes(), null);
 
 			Set<Entry> ourEntries = new HashSet<Entry>();
 			for (OfxEntryData entryData: importedEntries) {
@@ -614,7 +614,7 @@ public class OfxImporter {
 
 		SimpleElement transListElement = statementResultElement.getDescendant("INVTRANLIST");
 
-		ImportMatcher matcher = new ImportMatcher(account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true), getImportEntryProperties(), getApplicableTransactionTypes());
+		ImportMatcher matcher = new ImportMatcher(account.getExtension(PatternMatcherAccountInfo.getPropertySet(), true), getImportEntryProperties(), getApplicableTransactionTypes(), null);
 
 		for (SimpleElement transactionElement : transListElement.getChildElements()) {
 			if (transactionElement.getTagName().equals("DTSTART")) {
@@ -1150,11 +1150,13 @@ public class OfxImporter {
 
 			{
 				add(new ImportEntryProperty<EntryData>("memo", "Memo") {
+					@Override
 					protected String getCurrentValue(EntryData importEntry) {
 						return importEntry.getMemo();
 					}
 				});
 				add(new ImportEntryProperty<EntryData>("amount", "Amount") {
+					@Override
 					protected String getCurrentValue(EntryData importEntry) {
 						// As we don't have an account accessible that would give us a currency, just format using USD
 						// TODO There must be a better way...

@@ -202,7 +202,7 @@ public abstract class CsvImportToAccountWizard<T extends BaseEntryData> extends 
 			}
 			
 			if (returnCode == Dialog.OK) {
-				ImportMatcher<T> matcher = new ImportMatcher<T>(patternMatcher, getImportEntryProperties(), getApplicableTransactionTypes());
+				ImportMatcher<T> matcher = new ImportMatcher<T>(patternMatcher, getImportEntryProperties(), getApplicableTransactionTypes(), null);
 
 				Set<Entry> ourEntries = new HashSet<Entry>();
 				for (T entryData: importedEntries) {
@@ -383,7 +383,7 @@ public abstract class CsvImportToAccountWizard<T extends BaseEntryData> extends 
 		}
 		
 		if (returnCode == Dialog.OK) {
-			ImportMatcher<T> matcher = new ImportMatcher<>(matcherAccount, getImportEntryProperties(), getApplicableTransactionTypes());
+			ImportMatcher<T> matcher = new ImportMatcher<>(matcherAccount, getImportEntryProperties(), getApplicableTransactionTypes(), null);
 
 			Set<Entry> ourEntries = new HashSet<Entry>();
 			for (T entryData: importedEntries) {

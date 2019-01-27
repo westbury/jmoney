@@ -1,15 +1,15 @@
 package net.sf.jmoney.importer.matcher;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.internal.databinding.provisional.bind.Bind;
+import org.eclipse.jface.internal.databinding.provisional.swt.UpdatingComposite;
+import org.eclipse.swt.widgets.Control;
+
 import net.sf.jmoney.fields.AccountControl;
 import net.sf.jmoney.importer.model.MemoPattern;
 import net.sf.jmoney.importer.model.MemoPatternInfo;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Session;
-
-import org.eclipse.core.databinding.observable.value.IObservableValue;
-import org.eclipse.core.internal.databinding.provisional.bind.Bind;
-import org.eclipse.jface.internal.databinding.provisional.swt.UpdatingComposite;
-import org.eclipse.swt.widgets.Control;
 
 public class TransactionParamMetadataAccount extends TransactionParamMetadata {
 
@@ -47,8 +47,8 @@ public class TransactionParamMetadataAccount extends TransactionParamMetadata {
 	}
 
 	@Override
-	public String getResolvedValueAsString(MemoPattern pattern, Object[] args) {
-		Account account = obtainAccount(pattern);
+	public String getResolvedValueAsString(PatternMatch match) {
+		Account account = obtainAccount(match.pattern);
 		return account == null ? "" : account.getName();
 	}
 }

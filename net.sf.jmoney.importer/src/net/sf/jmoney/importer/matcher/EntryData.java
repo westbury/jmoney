@@ -101,12 +101,6 @@ public class EntryData extends BaseEntryData {
 	 * @return the text which may be empty but must never be null
 	 */
 	public String getTextToMatch() {
-		// Get values at this time.  We can't get them earlier because
-		// they may not have been set.
-		if (entry != null) {
-			fillFromEntry();
-		}
-		
 		String text = "";
 		if (memo != null) {
 			text += "memo=" + memo;
@@ -135,15 +129,6 @@ public class EntryData extends BaseEntryData {
 		BigDecimal myAmount = new BigDecimal(amount).scaleByPowerOfTen(-2);
 		text += "amount=" + myAmount;
 		return text;
-	}
-
-	@Override
-	public void fillFromEntry() {
-		valueDate = entry.getTransaction().getDate();
-		clearedDate = entry.getValuta();
-		setMemo(entry.getMemo());
-		setAmount(entry.getAmount());
-		setUniqueId(ReconciliationEntryInfo.getUniqueIdAccessor().getValue(entry));
 	}
 
 	public String getName() {
@@ -181,10 +166,6 @@ public class EntryData extends BaseEntryData {
 		return clearedDate;
 	}
 	
-	public void setEntry(Entry entry) {
-		this.entry = entry;
-	}
-
 	private Date getImportedDate() {
 		return (valueDate != null)
 		? valueDate

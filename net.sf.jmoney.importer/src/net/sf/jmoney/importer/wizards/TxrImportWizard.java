@@ -223,7 +223,7 @@ public abstract class TxrImportWizard<T extends BaseEntryData> extends Wizard {
 				return false;
 			}
 
-			ImportMatcher<T> matcher = new ImportMatcher<>(matcherAccount, getImportEntryProperties(), getApplicableTransactionTypes());
+			ImportMatcher<T> matcher = new ImportMatcher<>(matcherAccount, getImportEntryProperties(), getApplicableTransactionTypes(), null);
 
 			Set<Entry> ourEntries = new HashSet<Entry>();
 			for (T entryData: entryDataList) {

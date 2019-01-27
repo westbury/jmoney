@@ -27,17 +27,7 @@ import net.sf.jmoney.model2.Transaction;
  */
 public abstract class BaseEntryData {
 
-	/**
-	 * If an entry has already been created, it is set here.
-	 * This is more flexible because an import could have information
-	 * about itemized entries (e.g. a Paypal import) in which case
-	 * creating the transaction from the EntryData will not work.
-	 */
-	public Entry entry = null;
-
 	public long amount = 0;  // Use getter???
-
-	public abstract void fillFromEntry();
 
 	public abstract String getTextForRegexMatching();
 

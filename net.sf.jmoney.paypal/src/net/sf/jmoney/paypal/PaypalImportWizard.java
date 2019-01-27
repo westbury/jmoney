@@ -32,11 +32,17 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
+import org.eclipse.jface.dialogs.IDialogSettings;
+import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.IWorkbenchWizard;
+
 import net.sf.jmoney.associations.AssociationMetadata;
 import net.sf.jmoney.importer.MatchingEntryFinder;
-import net.sf.jmoney.importer.matcher.EntryData;
 import net.sf.jmoney.importer.model.TransactionType;
-import net.sf.jmoney.importer.model.TransactionTypeBasic;
 import net.sf.jmoney.importer.wizards.CsvImportToAccountWizard;
 import net.sf.jmoney.importer.wizards.CsvTransactionReader;
 import net.sf.jmoney.importer.wizards.ImportException;
@@ -53,14 +59,6 @@ import net.sf.jmoney.model2.Session.NoAccountFoundException;
 import net.sf.jmoney.model2.Session.SeveralAccountsFoundException;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.reconciliation.ReconciliationEntryInfo;
-
-import org.eclipse.jface.dialogs.IDialogSettings;
-import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.jface.viewers.IStructuredSelection;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.ui.IWorkbench;
-import org.eclipse.ui.IWorkbenchWindow;
-import org.eclipse.ui.IWorkbenchWizard;
 
 /**
  * A wizard to import data from a comma-separated file that has been downloaded
@@ -123,6 +121,7 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 	 * be better to add a page that prompts the user for the Paypal account to
 	 * use, or perhaps try to identify the account from the imported file).
 	 */
+	@Override
 	public void init(IWorkbench workbench, IStructuredSelection selection) {
 		IWorkbenchWindow window = workbench.getActiveWorkbenchWindow();
 		Account account;
@@ -587,8 +586,7 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 		 */
 		lineItemEntry.setAccount(account);
 		
-		EntryData entryData = new EntryData();
-		entryData.setEntry(lineItemEntry.getBaseObject());
+		PaypalEntryData entryData = new PaypalEntryData();
 		addEntryToBeProcessed(entryData);
 		
 		lineItemEntry.setAmount(amount);
@@ -1397,8 +1395,9 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 	 * @param account
 	 * @return
 	 */
-	public List<TransactionType<EntryData>> getApplicableTransactionTypes() {
-			List<TransactionType<EntryData>> result = new ArrayList<>();
+	@Override
+	public List<TransactionType<PaypalEntryData>> getApplicableTransactionTypes() {
+			List<TransactionType<PaypalEntryData>> result = new ArrayList<>();
 
 			result.add(new TransactionTypeBasic());
 
