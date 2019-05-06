@@ -115,7 +115,7 @@ public abstract class CsvImportWizard extends Wizard {
 			return false;
 		}
 
-		try {
+		try (FileReader fileReader = new FileReader(file)) {
 			/*
 			 * Create a transaction to be used to import the entries.  This allows the entries to
 			 * be more efficiently written to the back-end datastore and it also groups
@@ -126,7 +126,7 @@ public abstract class CsvImportWizard extends Wizard {
 
 			startImport(transactionManager);
 
-			reader = getCsvTransactionReader(new FileReader(file));
+			reader = getCsvTransactionReader(fileReader);
 
         	if (processRows(session)) {
         		/*

@@ -105,50 +105,30 @@ public class ImportMatcher<T extends BaseEntryData> {
 	 * @param defaultMemo
 	 * @param defaultDescription
 	 */
+	// This is used by OFX only.  TODO change OFX to use same API and remove this method.
 	public void matchAndFill(T entryData, Transaction transaction, Entry entry1, String defaultMemo, String defaultDescription) {
 		PatternMatch match = findMatchingPattern(entryData);
 
 		if (match != null) {
 			String transactionId = match.pattern.getTransactionTypeId();
    				
-//				TransactionType<T> transactionType = null;
-//				for (TransactionType<T> type : applicableTransactionTypes) {
-//					if (type.getId().equals(transactionId)) {
-//						transactionType = type;
-//						break;
-//					}
-//				}
 			TransactionType<T> transactionType = applicableTransactionTypes.stream()
 					.filter(type -> type.getId().equals(transactionId))
 					.findFirst()
 					.get();
 			transactionType.createTransaction(transaction, entry1, entryData, match);
+		} else {
+			/*
+			 * If nothing matched, set the default account, the memo, and the
+			 * description (the memo in the other account) but no other property.
+			 */
+			entry1.setMemo(defaultMemo == null ? null : convertToMixedCase(defaultMemo));
 
-			return;
+			Entry otherEntry = transaction.createEntry();
+			otherEntry.setAccount(account.getDefaultCategory());
+			otherEntry.setMemo(defaultDescription == null ? null : convertToMixedCase(defaultDescription));
+			otherEntry.setAmount(-entryData.amount);
 		}
-		
-		/*
-		 * If nothing matched, set the default account, the memo, and the
-		 * description (the memo in the other account) but no other property.
-		 * 
-		 * The account may already have been set.  That will be the case, for
-		 * example, in the Paypal import because the default account depends on
-		 * the currency.
-		 */
-//   		if (entry2.getAccount() == null) {
-//   			entry2.setAccount(account.getDefaultCategory());
-//   			if (entry1 != null) {
-//   				entry1.setMemo(defaultMemo == null ? null : convertToMixedCase(defaultMemo));
-//   			}
-//			entry2.setMemo(defaultDescription == null ? null : convertToMixedCase(defaultDescription));
-//   		}
-
-		entry1.setMemo(defaultMemo == null ? null : convertToMixedCase(defaultMemo));
-
-		Entry otherEntry = transaction.createEntry();
-		otherEntry.setAccount(account.getDefaultCategory());
-		otherEntry.setMemo(defaultDescription == null ? null : convertToMixedCase(defaultDescription));
-		otherEntry.setAmount(-entryData.amount);
 	}
 
 	/**
@@ -286,35 +266,90 @@ public class ImportMatcher<T extends BaseEntryData> {
 	 * @return the entry for this transaction.
 	 */
 	public Entry process(T entryData, Session session, final Set<Entry> ourEntries) {
-		/*
-		 * First we try auto-matching.
-		 *
-		 * If we have an auto-match then we don't have to create a new
-		 * transaction at all. We just update a few properties in the
-		 * existing entry.
-		 */
-		Entry matchedEntry = entryData.findMatch(account.getBaseObject(), 5, ourEntries);	
-		if (matchedEntry != null) {
-			entryData.setDataIntoExistingEntry(matchedEntry);
-			return matchedEntry;
-		}
-		
-		/*
-		 * We need to create the transaction.
-		 */
-		Transaction transaction = session.createTransaction();
-		Entry entry1 = transaction.createEntry();
-		entry1.setAccount(account.getBaseObject());
-
-		// Set values that don't depend on matching
-		entryData.assignPropertyValues(transaction, entry1);
-
    		/*
    		 * Scan for a match in the patterns.  If a match is found,
    		 * use the values for memo, description etc. from the pattern.
    		 */
-		matchAndFill(entryData, transaction, entry1, entryData.getDefaultMemo(), entryData.getDefaultDescription());
+		PatternMatch match = findMatchingPattern(entryData);
+		
+		if (match != null) {
+			String transactionId = match.pattern.getTransactionTypeId();
+				
+			TransactionType<T> transactionType = applicableTransactionTypes.stream()
+					.filter(type -> type.getId().equals(transactionId))
+					.findFirst()
+					.get();
 
-   		return entry1;
+			/*
+			 * First we try auto-matching.
+			 *
+			 * If we have an auto-match then we don't have to create a new
+			 * transaction at all. We just update a few properties in the
+			 * existing entry.
+			 */
+			Entry entry1 = transactionType.findMatch(entryData, account.getBaseObject(), 5, ourEntries);	
+			if (entry1 == null) {
+				/*
+				 * We need to create the transaction.
+				 */
+				Transaction transaction = session.createTransaction();
+				entry1 = transaction.createEntry();
+				entry1.setAccount(account.getBaseObject());
+			}
+			
+			Transaction transaction = entry1.getTransaction();
+			
+//			entryData.setDataIntoExistingEntry(matchedEntry);
+
+			// Set values that don't depend on matching
+			entryData.assignPropertyValues(transaction, entry1);
+			
+			
+			transactionType.createTransaction(transaction, entry1, entryData, match);
+			
+			return entry1;
+		} else {
+			
+			/* 
+			 * It matched no patterns.
+			 * 
+			 * First we try auto-matching.
+			 *
+			 * If we have an auto-match then we don't have to create a new
+			 * transaction at all. We just update a few properties in the
+			 * existing entry.
+			 */
+			Entry matchedEntry = entryData.findMatch(account.getBaseObject(), 5, ourEntries);	
+			if (matchedEntry != null) {
+				entryData.setDataIntoExistingEntry(matchedEntry);
+				return matchedEntry;
+			}
+
+			/*
+			 * We need to create the transaction.
+			 */
+			Transaction transaction = session.createTransaction();
+			Entry entry1 = transaction.createEntry();
+			entry1.setAccount(account.getBaseObject());
+
+			// Set values that don't depend on matching
+			entryData.assignPropertyValues(transaction, entry1);
+
+			/*
+			 * If nothing matched, set the default account, the memo, and the
+			 * description (the memo in the other account) but no other property.
+			 */
+			String defaultMemo = entryData.getDefaultMemo();
+			String defaultDescription = entryData.getDefaultDescription();
+
+			entry1.setMemo(defaultMemo == null ? null : convertToMixedCase(defaultMemo));
+
+			Entry otherEntry = transaction.createEntry();
+			otherEntry.setAccount(account.getDefaultCategory());
+			otherEntry.setMemo(defaultDescription == null ? null : convertToMixedCase(defaultDescription));
+			otherEntry.setAmount(-entryData.amount);
+
+	   		return entry1;
+		}
 	}
 }

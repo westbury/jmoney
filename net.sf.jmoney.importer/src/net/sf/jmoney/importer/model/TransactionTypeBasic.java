@@ -2,6 +2,7 @@ package net.sf.jmoney.importer.model;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.ui.PlatformUI;
@@ -114,4 +115,10 @@ public class TransactionTypeBasic extends TransactionType<EntryData> {
 
 	}
 
+	@Override
+	public Entry findMatch(EntryData entryData, Account account, int numberOfDays, Set<Entry> ourEntries) {
+		// By default we delegate to the implementation in the EntryData.  This method can be overridden
+		// if matching is to be done based on the transaction type as determined from the input data.
+		return entryData.findMatch(account, numberOfDays, ourEntries);
+	}
 }
