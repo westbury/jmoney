@@ -54,19 +54,23 @@ public class CsvTransactionReader {
 				}
 				if (actualColumnIndex == -1) {
 					if (!expectedColumns[columnIndex].isOptional()) {
+						String found;
+						if (columnIndex < headerRow.length) {
+							found = "'" + headerRow[columnIndex] + "'";
+						} else {
+							found = "an empty column";
+						}
 						throw new ImportException("Expected '" + expectedColumns[columnIndex].getName()
-								+ "' in row 1, column " + (columnIndex+1) + " but found '" + headerRow[columnIndex] + "'.");
+								+ "' in row 1, column " + (columnIndex+1) + " but found " + found + ".");
 					}
 				}
-					expectedColumns[columnIndex].setColumnIndex(actualColumnIndex);
-					
-					if (maximumColumnIndex < actualColumnIndex) {
-						maximumColumnIndex = actualColumnIndex;
-					}
-						
+				expectedColumns[columnIndex].setColumnIndex(actualColumnIndex);
+
+				if (maximumColumnIndex < actualColumnIndex) {
+					maximumColumnIndex = actualColumnIndex;
+				}
 			}
 		}
-
 
     	// The constructor should position the cursor on the first row
 		readNext();

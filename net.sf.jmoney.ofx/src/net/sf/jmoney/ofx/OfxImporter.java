@@ -367,6 +367,11 @@ public class OfxImporter {
 				} else if (account.getBank() != null && account.getBank().equals("First Tech")) {
 				// First Tech have switched to use "MEMO"
 					memo = stmtTrnElement.getString("MEMO");
+					if (memo.startsWith("Ext Credit Card Debit ")) {
+						memo = memo.substring("Ext Credit Card Debit ".length());
+					} else if (memo.startsWith("Ext Credit Card Credit ")) {
+						memo = memo.substring("Ext Credit Card Credit ".length());
+					}
 				} else {
 					memo = stmtTrnElement.getString("NAME");
 				}
