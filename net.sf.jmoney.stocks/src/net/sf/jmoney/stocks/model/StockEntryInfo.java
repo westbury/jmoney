@@ -24,9 +24,12 @@ package net.sf.jmoney.stocks.model;
 
 import java.util.Date;
 
+import net.sf.jmoney.fields.AmountControlFactory;
 import net.sf.jmoney.fields.DateControlFactory;
+import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.IValues;
+import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.ExtensionPropertySet;
@@ -72,12 +75,14 @@ public class StockEntryInfo implements IPropertySetInfo {
 			return new StockEntry(
 					extendedObject,
 					values.getReferencedObjectKey(getSecurityAccessor()),
+					values.getScalarValue(getQuantityAccessor()),
 					values.getScalarValue(getBargainDateAccessor())
 			);
 		}
 	});
 
 	private static ReferencePropertyAccessor<Security,Entry> securityAccessor;
+	private static ScalarPropertyAccessor<Long,Entry> quantityAccessor;
 	private static ScalarPropertyAccessor<Date,Entry> bargainDateAccessor;
 
 	@Override
@@ -91,7 +96,29 @@ public class StockEntryInfo implements IPropertySetInfo {
 
 		IPropertyControlFactory<Entry,Date> datePropertyControlFactory = new DateControlFactory<Entry>();
 
+        IPropertyControlFactory<Entry,Long> quantityControlFactory = new AmountControlFactory<Entry>() {
+        	/**
+        	 * @trackedGetter
+        	 */
+		    @Override
+			protected IAmountFormatter getCommodity(Entry object) {
+				// If not enough information has yet been set to determine
+				// the commodity of the amount in this entry, return
+				// the default currency.
+	    	    Commodity commodity = StockEntryInfo.securityAccessor.getValue(object);
+	    	    if (commodity == null) {
+	    	    	// TODO we should really use StockAccount.getQuantityFormatter().
+	    	    	// However it is messy to get an instance of a StockAccount from here,
+	    	    	// and it may be in practice there is always a security set in this object.
+	    	    	commodity = object.getSession().getDefaultCurrency();
+	    	    }
+	    	    return commodity;
+		    }
+        };
+
+
 		securityAccessor = propertySet.addProperty("security", "Security", Security.class, 2, 20, securityPropertyControlFactory, null);
+		quantityAccessor = propertySet.addProperty("quantity", "Quantity on which Dividend Paid", Long.class, 0, 20, quantityControlFactory, null);
 		bargainDateAccessor = propertySet.addProperty("bargainDate", "Bargain Date", Date.class, 0, 20, datePropertyControlFactory, null);
 
 		return propertySet;
@@ -109,6 +136,13 @@ public class StockEntryInfo implements IPropertySetInfo {
 	 */
 	public static ReferencePropertyAccessor<Security,Entry> getSecurityAccessor() {
 		return securityAccessor;
+	}
+
+	/**
+	 * @return
+	 */
+	public static ScalarPropertyAccessor<Long, Entry> getQuantityAccessor() {
+		return quantityAccessor;
 	}
 
 	/**

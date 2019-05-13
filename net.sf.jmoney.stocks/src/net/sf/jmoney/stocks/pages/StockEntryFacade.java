@@ -296,10 +296,18 @@ public class StockEntryFacade implements EntryFacade {
 			public void handleValueChange(ValueChangeEvent<? extends Long> event) {
 				assert(event.diff.getNewValue() != null);
 				assert(isPurchaseOrSale());
-				if (getTransactionType() == TransactionType.Buy) {
+				switch (getTransactionType()) {
+				case Buy:
 					purchaseOrSaleEntry.setAmount(event.diff.getNewValue());
-				} else {
+					break;
+				case Sell:
 					purchaseOrSaleEntry.setAmount(-event.diff.getNewValue());
+					break;
+				case Dividend:
+					StockEntryInfo.getQuantityAccessor().setValue(dividendEntry, event.diff.getNewValue());
+					break;
+				default:
+					throw new RuntimeException("Quantity can be set only for buy, sell, and dividends");
 				}
 			}
 		});

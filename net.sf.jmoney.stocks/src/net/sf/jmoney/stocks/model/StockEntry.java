@@ -46,6 +46,15 @@ public class StockEntry extends EntryExtension {
 	protected IObjectKey securityKey = null;
 	
 	/**
+	 * The quantity of the stock involved in this entry.
+	 * <P>
+	 * This property is used for entries such as dividend payments, where no
+	 * change the amount of the security is involved but we do want to associate
+	 * the cash amount with a security and, if available, the quantity of that security.
+	 */
+	private long quantity = 0;
+	
+	/**
 	 * The date on which the deal was made. On most stock exchanges this is
 	 * different from the settlement date on which the money and stock is paid
 	 * or received.
@@ -73,9 +82,10 @@ public class StockEntry extends EntryExtension {
 	 * This constructor is called by the datastore to construct
 	 * the extension objects when loading data.
 	 */
-	public StockEntry(ExtendableObject extendedObject, IObjectKey securityKey, Date bargainDate) {
+	public StockEntry(ExtendableObject extendedObject, IObjectKey securityKey, long quantity, Date bargainDate) {
 		super(extendedObject);
 		this.securityKey = securityKey;
+		this.quantity = quantity;
 		this.bargainDate = bargainDate;
 	}
 	
@@ -110,6 +120,22 @@ public class StockEntry extends EntryExtension {
 
 		// Notify the change manager.
 		processPropertyChange(StockEntryInfo.getSecurityAccessor(), oldSecurity, security);
+	}
+
+	/**
+	 * @return The quantity of the security that paid the dividend
+	 */
+	public long getQuantity() {
+		return quantity;
+	}
+	
+	/**
+	 * @param quantity The quantity of the security that paid the dividend
+	 */
+	public void setQuantity(long quantity) {
+		long oldQuantity = this.quantity;
+		this.quantity = quantity;
+		processPropertyChange(StockEntryInfo.getQuantityAccessor(), oldQuantity, quantity);
 	}
 
 	/**

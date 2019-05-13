@@ -126,9 +126,8 @@ public abstract class TxrImportWizard<T extends BaseEntryData> extends Wizard {
 				 * the entire import as a single change for undo/redo purposes.
 				 */
 				TransactionManagerForAccounts transactionManager = new TransactionManagerForAccounts(datastoreManager);
-				Session session = transactionManager.getSession();
 
-	        	if (processRows(session, text)) {
+	        	if (processRows(transactionManager, text)) {
 	        		/*
 	        		 * All entries have been imported so we
 	        		 * can now commit the imported entries to the datastore.
@@ -188,8 +187,10 @@ public abstract class TxrImportWizard<T extends BaseEntryData> extends Wizard {
 	 * @throws IOException
 	 * @throws ImportException
 	 */
-	protected boolean processRows(Session session, String inputText) throws IOException, ImportException {
+	protected boolean processRows(TransactionManagerForAccounts transactionManager, String inputText) throws IOException, ImportException {
 		
+		Session session = transactionManager.getSession();
+
 		// Set from abstract method, but should be set in import because that
 		// allows the description to depend on the data.  importDescription may be
 		// overwritten in buildEntryDataList.
@@ -206,8 +207,8 @@ public abstract class TxrImportWizard<T extends BaseEntryData> extends Wizard {
 			/*
 			 * Import the entries using the matcher dialog
 			 */
-
-			PatternMatcherAccount matcherAccount = cashAccount.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
+			BankAccount cashAccountInsideTransaction = transactionManager.getCopyInTransaction(cashAccount);
+			PatternMatcherAccount matcherAccount = cashAccountInsideTransaction.getExtension(PatternMatcherAccountInfo.getPropertySet(), true);
 
 			Dialog dialog = new PatternMatchingDialog<T>(window.getShell(), matcherAccount, entryDataList, getImportEntryProperties(), getApplicableTransactionTypes());
 			int returnCode = dialog.open();
