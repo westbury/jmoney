@@ -27,13 +27,13 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Set;
 
+import org.eclipse.core.databinding.observable.set.IObservableSet;
+import org.eclipse.core.databinding.observable.set.WritableSet;
+
 import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ListKey;
 import net.sf.jmoney.resources.Messages;
-
-import org.eclipse.core.databinding.observable.set.IObservableSet;
-import org.eclipse.core.databinding.observable.set.WritableSet;
 
 /**
  * The data model for an entry.
@@ -63,6 +63,8 @@ public final class Entry extends ExtendableObject {
 	protected IObjectKey commodityKey = null;
 
 	protected String memo = null;
+
+	protected String type = null;
 
 	/**
 	 * Applicable only if the account is an IncomeExpenseAccount
@@ -97,6 +99,7 @@ public final class Entry extends ExtendableObject {
     		Date       valuta,
     		String     memo,
     		long       amount,
+    		String     type,
     		IObjectKey commodityKey,
     		long       creation,
     		IObjectKey incomeExpenseCurrencyKey,
@@ -398,6 +401,24 @@ public final class Entry extends ExtendableObject {
 	
 	// Helper methods
 	
+	/**
+	 * Returns the entry type.
+	 */
+	public String getType() {
+		return type;
+	}
+
+	/**
+	 * See @ for a description of entry types.
+	 */
+	public void setType(String type) {
+		String oldType = this.type;
+		this.type = (type != null && type.length() == 0) ? null : type;
+
+		// Notify the change manager.
+		processPropertyChange(EntryInfo.getTypeAccessor(), oldType, type);
+	}
+
 	/**
 	 * A transaction with split entries is a transaction that
 	 * has entries in three or more accounts (where each account

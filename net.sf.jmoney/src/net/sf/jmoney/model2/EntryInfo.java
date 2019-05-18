@@ -105,6 +105,7 @@ public class EntryInfo implements IPropertySetInfo {
 					values.getScalarValue(EntryInfo.getValutaAccessor()),
 					values.getScalarValue(EntryInfo.getMemoAccessor()),
 					values.getScalarValue(EntryInfo.getAmountAccessor()),
+					values.getScalarValue(EntryInfo.getTypeAccessor()),
 					values.getReferencedObjectKey(EntryInfo.getCommodityAccessor()),
 					values.getScalarValue(EntryInfo.getCreationAccessor()),
 					values.getReferencedObjectKey(EntryInfo.getIncomeExpenseCurrencyAccessor()),
@@ -119,6 +120,7 @@ public class EntryInfo implements IPropertySetInfo {
 	private static ScalarPropertyAccessor<Date,Entry> valutaAccessor = null;
 	private static ScalarPropertyAccessor<String,Entry> memoAccessor = null;
 	private static ScalarPropertyAccessor<Long,Entry> amountAccessor = null;
+	private static ScalarPropertyAccessor<String,Entry> typeAccessor = null;
 	private static ReferencePropertyAccessor<Commodity,Entry> commodityAccessor = null;
 	private static ScalarPropertyAccessor<Long,Entry> creationAccessor = null;
 	private static ReferencePropertyAccessor<Currency,Entry> incomeExpenseCurrencyAccessor = null;
@@ -264,6 +266,7 @@ public class EntryInfo implements IPropertySetInfo {
 		valutaAccessor      = propertySet.addProperty("valuta",Messages.EntryInfo_Valuta,Date.class, 0, 74,  dateControlFactory, onlyIfCurrencyAccount); //$NON-NLS-1$
 		memoAccessor        = propertySet.addProperty("memo",Messages.EntryInfo_Memo,String.class, 5, 100, textControlFactory, null); //$NON-NLS-1$
 		amountAccessor      = propertySet.addProperty("amount",Messages.EntryInfo_Amount,Long.class, 2, 70,  amountControlFactory, null); //$NON-NLS-1$
+		typeAccessor        = propertySet.addProperty("type",Messages.EntryInfo_Type,String.class, 5, 100, textControlFactory, null); //$NON-NLS-1$
 		commodityAccessor   = propertySet.addProperty("commodity","Commodity",Commodity.class, 2, 70, commodityControlFactory, null); //$NON-NLS-1$
 		creationAccessor    = propertySet.addProperty("creation",Messages.EntryInfo_Creation,Long.class, 0, 70,  creationControlFactory, null); //$NON-NLS-1$
 		incomeExpenseCurrencyAccessor = propertySet.addProperty("incomeExpenseCurrency",Messages.EntryInfo_Currency,Currency.class, 2, 70, currencyControlFactory, onlyIfIncomeExpenseAccount); //$NON-NLS-1$
@@ -311,6 +314,13 @@ public class EntryInfo implements IPropertySetInfo {
 	 */
 	public static ScalarPropertyAccessor<Long,Entry> getAmountAccessor() {
 		return amountAccessor;
+	}
+
+	/**
+	 * @return
+	 */
+	public static ScalarPropertyAccessor<String,Entry> getTypeAccessor() {
+		return typeAccessor;
 	}
 
 	/**
