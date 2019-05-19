@@ -34,11 +34,26 @@ import net.sf.jmoney.stocks.model.StockAccount;
 public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEntryRowControl> {
 
 	public enum TransactionType {
-		Buy,
-		Sell,
-		Dividend,
-		Transfer,
-		Other
+		Buy("stocks.buy"),
+		Sell("stocks.sell"),
+		Dividend("stocks.dividend"),
+		Transfer("stocks.transfer"),
+		Other(null);
+
+		private String id;
+		
+		TransactionType(String id) {
+			this.id = id;
+		}
+		
+		/**
+		 * This is the first part of each triple in the entry type.
+		 * 
+		 * @return
+		 */
+		public String getId() {
+			return id;
+		}
 	}
 
 	/**

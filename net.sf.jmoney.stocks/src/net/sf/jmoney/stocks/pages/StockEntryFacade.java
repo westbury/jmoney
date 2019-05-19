@@ -328,6 +328,7 @@ public class StockEntryFacade implements EntryFacade {
 				} else {
 					if (commissionEntry == null) {
 						commissionEntry = getMainEntry().getTransaction().createEntry();
+						commissionEntry.setType(transactionType.getValue().getId() + ":", "commission");
 						commissionEntry.setAccount(account.getCommissionAccount());
 						StockEntryInfo.getSecurityAccessor().setValue(commissionEntry, (Security)purchaseOrSaleEntry.getCommodity());
 					}
@@ -352,6 +353,7 @@ public class StockEntryFacade implements EntryFacade {
 				} else {
 					if (tax1Entry == null) {
 						tax1Entry = getMainEntry().getTransaction().createEntry();
+						tax1Entry.setType(transactionType.getValue().getId() + ":", "tax1");
 						tax1Entry.setAccount(account.getTax1Account());
 						StockEntryInfo.getSecurityAccessor().setValue(tax1Entry, (Security)purchaseOrSaleEntry.getCommodity());
 					}
@@ -376,6 +378,7 @@ public class StockEntryFacade implements EntryFacade {
 				} else {
 					if (tax2Entry == null) {
 						tax2Entry = getMainEntry().getTransaction().createEntry();
+						tax2Entry.setType(transactionType.getValue().getId() + ":", "tax2");
 						tax2Entry.setAccount(account.getTax2Account());
 						StockEntryInfo.getSecurityAccessor().setValue(tax2Entry, (Security)purchaseOrSaleEntry.getCommodity());
 					}
@@ -400,6 +403,7 @@ public class StockEntryFacade implements EntryFacade {
 				} else {
 					if (withholdingTaxEntry == null) {
 						withholdingTaxEntry = getMainEntry().getTransaction().createEntry();
+						withholdingTaxEntry.setType(transactionType.getValue().getId() + ":", "withholding-tax");
 						withholdingTaxEntry.setAccount(account.getWithholdingTaxAccount());
 						// Why did we have this line?
 						//							StockEntryInfo.getSecurityAccessor().setValue(withholdingTaxEntry, (Security)purchaseOrSaleEntry.getCommodity());
@@ -425,6 +429,7 @@ public class StockEntryFacade implements EntryFacade {
 				} else {
 					if (dividendEntry == null) {
 						dividendEntry = getMainEntry().getTransaction().createEntry();
+						dividendEntry.setType(transactionType.getValue().getId() + ":", "dividend");
 						dividendEntry.setAccount(account.getDividendAccount());
 					}
 					dividendEntry.setAmount(event.diff.getNewValue());
@@ -525,6 +530,10 @@ public class StockEntryFacade implements EntryFacade {
 					&& purchaseOrSaleEntry == null
 					&& transferEntry == null) {
 				transactionType.setValue(TransactionType.Dividend);
+				dividendEntry.setType(transactionType.getValue().getId() + ":", "dividend");
+				if (withholdingTaxEntry != null) {
+					withholdingTaxEntry.setType(transactionType.getValue().getId() + ":", "withholding-tax");
+				}
 				security.setValue(StockEntryInfo.getSecurityAccessor().getValue(dividendEntry));
 			} else if (dividendEntry == null
 					&& withholdingTaxEntry == null
@@ -537,6 +546,16 @@ public class StockEntryFacade implements EntryFacade {
 					transactionType.setValue(TransactionType.Sell);
 					quantity.setValue(-purchaseOrSaleEntry.getAmount());
 				}
+				purchaseOrSaleEntry.setType(transactionType.getValue().getId() + ":", "acquisition-or-disposal");
+				if (commissionEntry != null) {
+					commissionEntry.setType(transactionType.getValue().getId() + ":", "commission");
+				}
+				if (tax1Entry != null) {
+					tax1Entry.setType(transactionType.getValue().getId() + ":", "tax1");
+				}
+				if (tax2Entry != null) {
+					tax2Entry.setType(transactionType.getValue().getId() + ":", "tax2");
+				}
 				security.setValue((Security)purchaseOrSaleEntry.getCommodityInternal());
 			} else if (dividendEntry == null
 					&& withholdingTaxEntry == null
@@ -546,6 +565,7 @@ public class StockEntryFacade implements EntryFacade {
 					&& purchaseOrSaleEntry == null
 					&& transferEntry != null) {
 				transactionType.setValue(TransactionType.Transfer);
+				transferEntry.setType(transactionType.getValue().getId() + ":", "transfer");
 				security.setValue(null);
 			} else {
 				transactionType.setValue(TransactionType.Other);
@@ -587,6 +607,7 @@ public class StockEntryFacade implements EntryFacade {
 
 		if (dividendEntry == null) {
 			dividendEntry = entries.createEntry();
+			dividendEntry.setType(transactionType.getValue().getId() + ":", "dividend");
 			dividendEntry.setAccount(account.getDividendAccount());
 			StockEntryInfo.getSecurityAccessor().setValue(dividendEntry, securityValue);
 		}
@@ -627,6 +648,7 @@ public class StockEntryFacade implements EntryFacade {
 
 		if (purchaseOrSaleEntry == null) {
 			purchaseOrSaleEntry = entries.createEntry();
+			purchaseOrSaleEntry.setType(transactionType.getId() + ":", "acquisition-or-disposal");
 			purchaseOrSaleEntry.setAccount(account);
 			purchaseOrSaleEntry.setCommodity(security.getValue());
 		}
@@ -663,6 +685,7 @@ public class StockEntryFacade implements EntryFacade {
 
 		if (transferEntry == null) {
 			transferEntry = entries.createEntry();
+			transferEntry.setType(TransactionType.Transfer.getId() + ":", "other-account");
 		}
 		transferEntry.setAmount(-getMainEntry().getAmount());
 	}
