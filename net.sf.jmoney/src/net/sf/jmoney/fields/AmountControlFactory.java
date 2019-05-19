@@ -34,7 +34,6 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
 
-import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.PropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
@@ -67,14 +66,14 @@ public abstract class AmountControlFactory<S extends ExtendableObject> extends P
 				if (fromObject == null) {
 					return null;
 				} else {
-					Commodity commodity = getCommodity(parentObservable.getValue());
+					IAmountFormatter commodity = getCommodity(parentObservable.getValue());
 					return commodity.format(fromObject.longValue());
 				}
 			}
 
 			@Override
 			public Long targetToModel(String amountString) throws CoreException {
-				Commodity commodity = getCommodity(parentObservable.getValue());
+				IAmountFormatter commodity = getCommodity(parentObservable.getValue());
 		        if (amountString.trim().length() == 0) {
 					/*
 					 * The text box is empty so this maps to null. The property
@@ -122,7 +121,7 @@ public abstract class AmountControlFactory<S extends ExtendableObject> extends P
         	// TODO: clean this up when we have a plan for incomplete data.
         	// For time being, use the default currency for formatting if the user
         	// has not set the currency for the account.
-        	Commodity commodity = getCommodity(extendableObject);
+        	IAmountFormatter commodity = getCommodity(extendableObject);
         	if (commodity == null) {
         		commodity = extendableObject.getSession().getDefaultCurrency();
         	}
@@ -140,5 +139,5 @@ public abstract class AmountControlFactory<S extends ExtendableObject> extends P
 		return true;
 	}
 
-	protected abstract Commodity getCommodity(S object);
+	protected abstract IAmountFormatter getCommodity(S object);
 }
