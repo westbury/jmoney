@@ -481,6 +481,19 @@ public final class Entry extends ExtendableObject {
 		processPropertyChange(EntryInfo.getTypeAccessor(), oldType, type);
 	}
 
+	public String getType(String transactionType) {
+		if (this.type != null) {
+			String[] values = this.type.split(",");
+			for (String value : values) {
+				String[] parts = value.split(":");
+				if (transactionType == parts[0] + ":" + parts[1]) {
+					return parts[2];
+				}
+			}
+		}
+		return null;
+	}
+
 	/**
 	 * A transaction with split entries is a transaction that
 	 * has entries in three or more accounts (where each account
