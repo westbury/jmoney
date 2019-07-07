@@ -2,7 +2,9 @@ package net.sf.jmoney.stocks.pages;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
@@ -34,20 +36,116 @@ import net.sf.jmoney.stocks.model.StockAccount;
 public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEntryRowControl> {
 
 	public enum TransactionType {
-		Buy("stocks.buy"),
-		Sell("stocks.sell"),
-		Dividend("stocks.dividend"),
-		Transfer("stocks.transfer"),
-		Other(null);
+		Buy("stocks.buy", BuyOrSellEntryType.getEntryTypes()),
+		Sell("stocks.sell", BuyOrSellEntryType.getEntryTypes()),
+		Dividend("stocks.dividend", DividendEntryType.getEntryTypes()),
+		Takeover("stocks.takeover", TakeoverEntryType.getEntryTypes()),
+		Transfer("stocks.transfer", new HashSet<String>()),   // remove this type????
+		Other(null, null);   // and remove this type????
+
+		private String id;
+		private Set<String> entryTypes;
+		
+		TransactionType(String id, Set<String> entryTypes) {
+			this.id = id;
+			this.entryTypes = entryTypes;
+		}
+
+		public Set<String> getEntryTypes() {
+			return this.entryTypes;
+		}
+
+		/**
+		 * This is the first part of each triple in the entry type.
+		 * 
+		 * @return
+		 */
+		public String getId() {
+			return id;
+		}
+	}
+
+	public enum BuyOrSellEntryType {
+		Cash("main"),
+		AquisitionOrDisposal("acquisition-or-disposal"),
+		Commission("commission"),
+		Tax1("tax1"),
+		Tax2("tax2");
 
 		private String id;
 		
-		TransactionType(String id) {
+		BuyOrSellEntryType(String id) {
 			this.id = id;
 		}
 		
+		static public Set<String> getEntryTypes() {
+			Set<String> entryTypes = new HashSet<>();
+			for (BuyOrSellEntryType entryType : BuyOrSellEntryType.values()) {
+				entryTypes.add(entryType.getId());
+			}
+			return entryTypes;
+		}
+
 		/**
-		 * This is the first part of each triple in the entry type.
+		 * This is the last part of each triple in the entry type.
+		 * 
+		 * @return
+		 */
+		public String getId() {
+			return id;
+		}
+	}
+
+	public enum DividendEntryType {
+		Cash("main"),
+		Dividend("dividend"),
+		WithholdingTax("withholding-tax");
+
+		private String id;
+		
+		DividendEntryType(String id) {
+			this.id = id;
+		}
+		
+		static public Set<String> getEntryTypes() {
+			Set<String> entryTypes = new HashSet<>();
+			for (DividendEntryType entryType : DividendEntryType.values()) {
+				entryTypes.add(entryType.getId());
+			}
+			return entryTypes;
+		}
+
+		/**
+		 * This is the last part of each triple in the entry type.
+		 * 
+		 * @return
+		 */
+		public String getId() {
+			return id;
+		}
+	}
+
+	public enum TakeoverEntryType {
+		Cash("main"),
+		TakenOver("takenOver"),
+		TakingOver("takenOver");
+
+		private String id;
+		
+		TakeoverEntryType(String id) {
+			this.id = id;
+		}
+		
+		static public Set<String> getEntryTypes() {
+			Set<String> entryTypes = new HashSet<>();
+			for (TakeoverEntryType entryType : TakeoverEntryType.values()) {
+				entryTypes.add(entryType.getId());
+			}
+			return entryTypes;
+		}
+
+		/**
+		 * This is the last part of each triple in the entry type.
 		 * 
 		 * @return
 		 */

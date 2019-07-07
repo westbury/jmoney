@@ -117,6 +117,7 @@ public final class Entry extends ExtendableObject {
 		this.valuta = valuta;
 		this.accountKey = accountKey;
 		this.amount = amount;
+		this.type = type;
 		this.commodityKey = commodityKey;
 		this.memo = memo;
 		this.incomeExpenseCurrencyKey = incomeExpenseCurrencyKey;
@@ -149,6 +150,7 @@ public final class Entry extends ExtendableObject {
 		this.valuta = null;
 		this.accountKey = null;
 		this.amount = 0;
+		this.type = null;
 		this.commodityKey = null;
 		this.memo = null;
 		this.incomeExpenseCurrencyKey = null;
@@ -444,11 +446,11 @@ public final class Entry extends ExtendableObject {
 			boolean entryFound = false;
 			for (String value : values) {
 				String[] parts = value.split(":");
-				if (transactionType == parts[0] + ":" + parts[1]) {
+				if (transactionType.equals(parts[0] + ":" + parts[1])) {
 					if (entryType == null) {
 						// Explicitly clearing an entry type is fine.
 					} else {
-						if (entryType != parts[2]) {
+						if (!entryType.equals(parts[2])) {
 							// We're forcing the entry type to another type.
 							// I'm not sure this is a good idea so throw an error for time being.
 							throw new RuntimeException("Forcing entry type not allowed for time being");
@@ -474,6 +476,7 @@ public final class Entry extends ExtendableObject {
 					newValuesBuffer.append(separator).append(value);
 					separator = ",";
 				}
+				this.type = newValuesBuffer.toString();
 			}
 		}
 
@@ -486,7 +489,7 @@ public final class Entry extends ExtendableObject {
 			String[] values = this.type.split(",");
 			for (String value : values) {
 				String[] parts = value.split(":");
-				if (transactionType == parts[0] + ":" + parts[1]) {
+				if (transactionType.equals(parts[0] + ":" + parts[1])) {
 					return parts[2];
 				}
 			}

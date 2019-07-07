@@ -32,9 +32,19 @@ import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
  * This class is a wrapper for a transaction in a stock account.  It is created on an as-needed basis, i.e.
  * when the entry is scrolled into view. 
  * 
- * Latest thinking: This object exposes an interface that has a transaction type, and then,
+ * This object exposes an interface that has a transaction type, and then,
  * various properties such as dividend tax amount, share purchase quantity, share price etc.
  *
+ *Latest thinking: We have a separate facade for each transaction type.  1) we don't have all those
+ * inapplicable properties, 2) this class is too big and will nicely split up, and 3) plugins should be
+ * able to add transaction types, which means new transaction types cannot be in this single class.
+ * 
+ * Also, transactions could contain multiple transaction types, so for each transaction template seen in a
+ * transaction, a facade can be exposed.  For existing transactions, exposing a facade is straight forward.
+ * (except that a single entry may be in fact internally be a list of entries which means its properties cannot
+ * be set).  When adding a new transaction type, we must first set the type on each pre-existing entry ourselves.
+ * The facade will then use that entry.  Otherwise the facade will create a new entry.
+ *  
  * These may be inapplicable for certain transaction types, in which case the values will bind
  * to null.
  *
@@ -328,7 +338,7 @@ public class StockEntryFacade implements EntryFacade {
 				} else {
 					if (commissionEntry == null) {
 						commissionEntry = getMainEntry().getTransaction().createEntry();
-						commissionEntry.setType(transactionType.getValue().getId() + ":", "commission");
+						commissionEntry.setType(transactionType.getValue().getId() + ":", StockEntryRowControl.BuyOrSellEntryType.Commission.getId());
 						commissionEntry.setAccount(account.getCommissionAccount());
 						StockEntryInfo.getSecurityAccessor().setValue(commissionEntry, (Security)purchaseOrSaleEntry.getCommodity());
 					}
@@ -419,7 +429,7 @@ public class StockEntryFacade implements EntryFacade {
 				if (event.diff.getNewValue() == null) {
 					if (dividendEntry != null) {
 						try {
-							getMainEntry().getTransaction().getEntryCollection().deleteElement(withholdingTaxEntry);
+							getMainEntry().getTransaction().getEntryCollection().deleteElement(dividendEntry);
 						} catch (ReferenceViolationException e) {
 							// This should not happen because entries are never referenced
 							throw new RuntimeException("Internal error", e);
@@ -530,6 +540,7 @@ public class StockEntryFacade implements EntryFacade {
 					&& purchaseOrSaleEntry == null
 					&& transferEntry == null) {
 				transactionType.setValue(TransactionType.Dividend);
+				getMainEntry().setType(transactionType.getValue().getId() + ":", "cash");
 				dividendEntry.setType(transactionType.getValue().getId() + ":", "dividend");
 				if (withholdingTaxEntry != null) {
 					withholdingTaxEntry.setType(transactionType.getValue().getId() + ":", "withholding-tax");
@@ -546,6 +557,7 @@ public class StockEntryFacade implements EntryFacade {
 					transactionType.setValue(TransactionType.Sell);
 					quantity.setValue(-purchaseOrSaleEntry.getAmount());
 				}
+				getMainEntry().setType(transactionType.getValue().getId() + ":", "cash");
 				purchaseOrSaleEntry.setType(transactionType.getValue().getId() + ":", "acquisition-or-disposal");
 				if (commissionEntry != null) {
 					commissionEntry.setType(transactionType.getValue().getId() + ":", "commission");
@@ -565,6 +577,7 @@ public class StockEntryFacade implements EntryFacade {
 					&& purchaseOrSaleEntry == null
 					&& transferEntry != null) {
 				transactionType.setValue(TransactionType.Transfer);
+				getMainEntry().setType(transactionType.getValue().getId() + ":", "cash");
 				transferEntry.setType(transactionType.getValue().getId() + ":", "transfer");
 				security.setValue(null);
 			} else {
