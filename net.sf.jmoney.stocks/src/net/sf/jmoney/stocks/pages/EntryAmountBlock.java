@@ -27,21 +27,21 @@ import net.sf.jmoney.model2.EntryInfo;
  * @author Nigel Westbury
  *
  */
-public class EntryAmountBlock extends
-		IndividualBlock<IObservableValue<StockEntryFacade>> {
+public class EntryAmountBlock<F extends BaseEntryFacade> extends
+		IndividualBlock<IObservableValue<F>> {
 	
-	private IValueProperty<StockEntryFacade, Long> amountProperty;
+	private IValueProperty<F, Long> amountProperty;
 	
 	private IAmountFormatter formatter;
 
-	public EntryAmountBlock(String label, IValueProperty<StockEntryFacade, Long> amountProperty, IAmountFormatter formatter) {
+	public EntryAmountBlock(String label, IValueProperty<F, Long> amountProperty, IAmountFormatter formatter) {
 		super(label, EntryInfo.getAmountAccessor().getMinimumWidth(), EntryInfo.getAmountAccessor().getWeight());
 		this.amountProperty = amountProperty;
 		this.formatter = formatter;
 	}
 
 	@Override
-	public Control createCellControl(Composite parent, IObservableValue<StockEntryFacade> master, RowControl rowControl) {
+	public Control createCellControl(Composite parent, IObservableValue<F> master, RowControl rowControl) {
 		final Text control = new Text(parent, SWT.RIGHT);
 
 		IBidiWithExceptionConverter<Long, String> amountToText = new IBidiWithExceptionConverter<Long,String>() {

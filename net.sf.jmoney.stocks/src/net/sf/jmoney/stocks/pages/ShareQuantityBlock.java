@@ -20,10 +20,9 @@ import net.sf.jmoney.entrytable.RowControl;
 import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.stocks.model.StockAccount;
-import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
 
 public class ShareQuantityBlock extends
-			IndividualBlock<IObservableValue<StockEntryFacade>> {
+			IndividualBlock<IObservableValue<StockBuyOrSellFacade>> {
 		private final StockAccount account;
 
 		public ShareQuantityBlock(StockAccount account) {
@@ -32,26 +31,18 @@ public class ShareQuantityBlock extends
 		}
 
 		@Override
-		public Control createCellControl(Composite parent, final IObservableValue<StockEntryFacade> master, RowControl rowControl) {
+		public Control createCellControl(Composite parent, final IObservableValue<StockBuyOrSellFacade> master, RowControl rowControl) {
 			final Text control = new Text(parent, SWT.RIGHT);
 
 			IBidiWithExceptionConverter<Long,String> amountToText = new IBidiWithExceptionConverter<Long,String>() {
 				@Override
 				public String modelToTarget(Long quantity) {
-					StockEntryFacade stockEntryFacade = master.getValue();
-					
-					if (!stockEntryFacade.isPurchaseOrSale()) {
-						// TODO is this correct????
-						return null;
+					StockBuyOrSellFacade stockEntryFacade = master.getValue();
+					if (stockEntryFacade == null) {
+						return "<quantity>";
 					}
-
 					IAmountFormatter formatter = getFormatter(stockEntryFacade);
 
-//						long quantity = stockEntryFacade.getPurchaseOrSaleEntry().getAmount();
-					if (stockEntryFacade.getTransactionType() == TransactionType.Sell) {
-//							quantity = -quantity;
-					}
-					
 					return quantity == null ? null : formatter.format(quantity);
 				}
 
@@ -60,7 +51,7 @@ public class ShareQuantityBlock extends
 					if (amountString.trim().length() == 0) {
 						return null;
 					} else {
-							StockEntryFacade stockEntryFacade = master.getValue();
+						StockBuyOrSellFacade stockEntryFacade = master.getValue();
 							IAmountFormatter formatter = getFormatter(stockEntryFacade);
 			        		return formatter.parse(amountString);
 					}
@@ -72,7 +63,7 @@ public class ShareQuantityBlock extends
 				 * @param stockEntryFacade
 				 * @return
 				 */
-				private IAmountFormatter getFormatter(StockEntryFacade stockEntryFacade) {
+				private IAmountFormatter getFormatter(StockBuyOrSellFacade stockEntryFacade) {
 					IAmountFormatter formatter = stockEntryFacade.getPurchaseOrSaleEntry().getCommodity();
 					if (formatter == null) {
 						/*
@@ -90,9 +81,9 @@ public class ShareQuantityBlock extends
 				}
 			};
 
-			IValueProperty<StockEntryFacade, Long> shareQuantityProperty = new PropertyOnObservable<StockEntryFacade, Long>(Long.class) {
+			IValueProperty<StockBuyOrSellFacade, Long> shareQuantityProperty = new PropertyOnObservable<StockBuyOrSellFacade, Long>(Long.class) {
 				@Override
-				protected IObservableValue<Long> getObservable(StockEntryFacade source) {
+				protected IObservableValue<Long> getObservable(StockBuyOrSellFacade source) {
 					return source.quantity();
 				}
 			};

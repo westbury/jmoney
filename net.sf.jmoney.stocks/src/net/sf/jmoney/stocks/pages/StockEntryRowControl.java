@@ -6,8 +6,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.core.databinding.observable.value.AbstractObservableValue;
 import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.IValueChangeListener;
+import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.core.databinding.observable.value.ValueDiff;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.swt.widgets.Composite;
@@ -35,13 +39,167 @@ import net.sf.jmoney.stocks.model.StockAccount;
  */
 public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEntryRowControl> {
 
+	/**
+	 * This observable value is designed for the destination of a default value.  It must meet
+	 * the following criteria:
+	 * 
+	 * - values can be set.  However if the value is currently not applicable then the value is dropped.
+	 * It is ok to drop the value because the computed value that is the source of the default value should
+	 * be returning null if the transaction type is such that the value is not applicable.
+	 * 
+	 * - value changes should be fired, but this is used only for the purpose of stopping the binding if the
+	 * destination is manually changed.  The old and new values will not matter.  Also no event should be
+	 * fired if the change was due to the property becoming inapplicable or applicable.
+	 */
+	private abstract class AbstractTradeDefault<T> extends AbstractObservableValue<T> {
+		protected final StockEntryFacade newEntryFacade;
+
+		protected IValueChangeListener<T> listener = new IValueChangeListener<T>() {
+			@Override
+			public void handleValueChange(ValueChangeEvent<? extends T> event) {
+				// New diff that is <T> instead of <? extends T>
+				ValueDiff<T> diff = new ValueDiff<T>() {
+					@Override
+					public T getOldValue() {
+						return event.diff.getOldValue();
+					}
+
+					@Override
+					public T getNewValue() {
+						return event.diff.getNewValue();
+					}
+				}; 
+				AbstractTradeDefault.this.fireValueChange(diff);
+			}
+			
+		};
+		
+		private AbstractTradeDefault(StockEntryFacade newEntryFacade) {
+			this.newEntryFacade = newEntryFacade;
+			
+			newEntryFacade.buyOrSellFacade().addValueChangeListener(new IValueChangeListener<StockBuyOrSellFacade>() {
+				@Override
+				public void handleValueChange(ValueChangeEvent<? extends StockBuyOrSellFacade> event) {
+					if (event.diff.getOldValue() != null) {
+						IObservableValue<T> target = getTarget(event.diff.getOldValue());
+						target.removeValueChangeListener(listener);
+					}
+					if (event.diff.getNewValue() != null) {
+						IObservableValue<T> target = getTarget(event.diff.getNewValue());
+						target.addValueChangeListener(listener);
+					}
+				}
+			});
+		}
+
+		@Override
+		protected T doGetValue() {
+			if (newEntryFacade.getTransactionType() == TransactionType.Buy
+					|| newEntryFacade.getTransactionType() == TransactionType.Sell) {
+				return getTarget(newEntryFacade.getBuyOrSellFacade()).getValue();
+			} else {
+				return null;
+			}
+		}
+
+		@Override
+		protected void doSetValue(T value) {
+			if (newEntryFacade.getTransactionType() == TransactionType.Buy
+					|| newEntryFacade.getTransactionType() == TransactionType.Sell) {
+				getTarget(newEntryFacade.getBuyOrSellFacade()).setValue(value);
+			}
+		}
+		
+		protected abstract IObservableValue<T> getTarget(StockBuyOrSellFacade facade);
+	}
+
+	private final class SharePriceDefault extends AbstractTradeDefault<BigDecimal> {
+		private SharePriceDefault(StockEntryFacade newEntryFacade) {
+			super(newEntryFacade);
+		}
+		
+		@Override
+		public Object getValueType() {
+			return BigDecimal.class;
+		}
+
+		@Override
+		protected IObservableValue<BigDecimal> getTarget(StockBuyOrSellFacade facade) {
+			return facade.sharePrice();
+		}
+	}
+	
+	private final class ShareQuantityDefault extends AbstractTradeDefault<Long> {
+		private ShareQuantityDefault(StockEntryFacade newEntryFacade) {
+			super(newEntryFacade);
+		}
+		
+		@Override
+		public Object getValueType() {
+			return Long.class;
+		}
+
+		@Override
+		protected IObservableValue<Long> getTarget(StockBuyOrSellFacade facade) {
+			return facade.quantity();
+		}
+	}
+	
+	private final class CommissionDefault extends AbstractTradeDefault<Long> {
+		private CommissionDefault(StockEntryFacade newEntryFacade) {
+			super(newEntryFacade);
+		}
+		
+		@Override
+		public Object getValueType() {
+			return Long.class;
+		}
+
+		@Override
+		protected IObservableValue<Long> getTarget(StockBuyOrSellFacade facade) {
+			return facade.commission();
+		}
+	}
+	
+	private final class Tax1Default extends AbstractTradeDefault<Long> {
+		private Tax1Default(StockEntryFacade newEntryFacade) {
+			super(newEntryFacade);
+		}
+		
+		@Override
+		public Object getValueType() {
+			return Long.class;
+		}
+
+		@Override
+		protected IObservableValue<Long> getTarget(StockBuyOrSellFacade facade) {
+			return facade.tax1();
+		}
+	}
+	
+	private final class Tax2Default extends AbstractTradeDefault<Long> {
+		private Tax2Default(StockEntryFacade newEntryFacade) {
+			super(newEntryFacade);
+		}
+		
+		@Override
+		public Object getValueType() {
+			return Long.class;
+		}
+
+		@Override
+		protected IObservableValue<Long> getTarget(StockBuyOrSellFacade facade) {
+			return facade.tax2();
+		}
+	}
+	
+	
 	public enum TransactionType {
 		Buy("stocks.buy", BuyOrSellEntryType.getEntryTypes()),
 		Sell("stocks.sell", BuyOrSellEntryType.getEntryTypes()),
 		Dividend("stocks.dividend", DividendEntryType.getEntryTypes()),
 		Takeover("stocks.takeover", TakeoverEntryType.getEntryTypes()),
-		Transfer("stocks.transfer", new HashSet<String>()),   // remove this type????
-		Other(null, null);   // and remove this type????
+		Other(null, null);   // all other transaction types use this.  Should it just be a null type?
 
 		private String id;
 		private Set<String> entryTypes;
@@ -229,15 +387,17 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 		stockEntryFacade.setValue(facade);
 		
 		// This must be done before we add the default bindings
-		if (facade.isPurchaseOrSale()) {
-			facade.sharePrice().setValue(facade.calculatePrice());
-		} else {
-			facade.sharePrice().setValue(null);
-		}
+		// Should now be done when facade created
+//		if (facade.isPurchaseOrSale()) {
+//			facade.sharePrice().setValue(facade.calculatePrice());
+//		} else {
+//			facade.sharePrice().setValue(null);
+//		}
 
 		/*
 		 * Bind the default values if and only if this is a new transaction
 		 */
+		// TODO check these bindings are disposed when the input replaced
 		if (inputEntryData.getEntry() == null) {
 			bindDefaultNetAmount();
 
@@ -342,11 +502,12 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 		StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
 
 		if (isGrossSameAsNetAmount(account)) {
-			Bind.oneWay(new ComputedValue<BigDecimal>() {
+			ComputedValue<BigDecimal> sharePriceDefault = new ComputedValue<BigDecimal>() {
 				@Override
 				protected BigDecimal calculate() {
 					if (newEntryFacade.isPurchaseOrSale()) {
-						if (newEntryFacade.getQuantity() == 0) {
+						StockBuyOrSellFacade newPurchaseOrSaleFacade = newEntryFacade.getBuyOrSellFacade();
+						if (newPurchaseOrSaleFacade.quantity().getValue() == 0) {
 							return null;
 						}
 
@@ -357,14 +518,20 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 						 * bound to the default value.
 						 */
 						BigDecimal grossAmount = new BigDecimal(newEntryFacade.getMainEntry().getAmount()).movePointLeft(2);
-						BigDecimal quantity = new BigDecimal(newEntryFacade.getQuantity());
+						BigDecimal quantity = new BigDecimal(newPurchaseOrSaleFacade.quantity().getValue());
 						return grossAmount.divide(quantity, 4, BigDecimal.ROUND_HALF_UP);
 					} else {
 						// Not a purchase or sale transaction
 						return null;
 					}
 				}
-			}).untilTargetChanges().to(newEntryFacade.sharePrice());
+			};
+			
+			IObservableValue<BigDecimal> sharePrice = new SharePriceDefault(newEntryFacade);
+			
+			Bind.oneWay(sharePriceDefault)
+			.untilTargetChanges()
+			.to(sharePrice);
 		} else {
 			// No default value for the share price
 		}
@@ -377,6 +544,8 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 			@Override
 			protected Long calculate() {
 				if (newEntryFacade.isPurchaseOrSale()) {
+					StockBuyOrSellFacade newPurchaseOrSaleFacade = newEntryFacade.getBuyOrSellFacade();
+
 					/*
 					 * The user would not usually enter the net amount for the
 					 * transaction because it is hard to calculate backwards from this.
@@ -391,7 +560,7 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 					 */
 					StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
 
-					BigDecimal sharePrice = newEntryFacade.sharePrice().getValue();
+					BigDecimal sharePrice = newPurchaseOrSaleFacade.sharePrice().getValue();
 					if (sharePrice == null) {
 						return null;
 					}
@@ -416,9 +585,11 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 			}
 		};
 
+		IObservableValue<Long> shareQuantity = new ShareQuantityDefault(newEntryFacade);
+		
 		Bind.oneWay(quantityDefault)
 		.untilTargetChanges()
-		.to(newEntryFacade.quantity());
+		.to(shareQuantity);
 	}
 
 	// All transaction types???
@@ -430,26 +601,28 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 			protected Long calculate() {
 				// Must not return null because this is bound to property of type 'long'.
 				
-				//				if (newEntryData.isPurchaseOrSale()) {
-				Long grossAmount = calculateGrossAmount(newEntryFacade);
+				StockBuyOrSellFacade facade = newEntryFacade.getBuyOrSellFacade();
+				Long grossAmount = calculateGrossAmount(facade);
 				StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
 				if (grossAmount != null) {
-					long totalExpenses =
-							newEntryFacade.getCommission()
-							+ newEntryFacade.getTax1Amount()
-							+ newEntryFacade.getTax2Amount();
-					if (newEntryFacade.getTransactionType() == TransactionType.Sell) {
-						return grossAmount - totalExpenses;
+					long totalExpenses = 0;
+					if (newEntryFacade.isPurchaseOrSale()) {
+						StockBuyOrSellFacade newPurchaseOrSaleFacade = newEntryFacade.getBuyOrSellFacade();
+						totalExpenses =
+								newPurchaseOrSaleFacade.getCommissionAmount()
+								+ newPurchaseOrSaleFacade.getTax1Amount()
+								+ newPurchaseOrSaleFacade.getTax2Amount();
+						if (newEntryFacade.getTransactionType() == TransactionType.Sell) {
+							return grossAmount - totalExpenses;
+						} else {
+							return - grossAmount - totalExpenses;
+						}
 					} else {
-						return - grossAmount - totalExpenses;
+						return grossAmount;
 					}
 				} else {
 					return 0L;
 				}
-				//				} else {
-				//					// Not a purchase or sale transaction
-				//					return null;
-				//				}
 			}
 		};
 
@@ -465,7 +638,8 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 			@Override
 			protected Long calculate() {
 				if (newEntryFacade.isPurchaseOrSale()) {
-					Long grossAmount = calculateGrossAmount(newEntryFacade);
+					StockBuyOrSellFacade facade = newEntryFacade.getBuyOrSellFacade();
+					Long grossAmount = calculateGrossAmount(facade);
 					StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
 					if (grossAmount != null) {
 						RatesTable commissionRates =
@@ -487,9 +661,11 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 			}
 		};
 
+		IObservableValue<Long> target = new CommissionDefault(newEntryFacade);
+		
 		Bind.oneWay(commissionDefault)
 		.untilTargetChanges()
-		.to(newEntryFacade.commission());
+		.to(target);
 	}
 
 	private void bindDefaultTax1() {
@@ -499,7 +675,8 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 			@Override
 			protected Long calculate() {
 				if (newEntryFacade.isPurchaseOrSale()) {
-					Long grossAmount = calculateGrossAmount(newEntryFacade);
+					StockBuyOrSellFacade facade = newEntryFacade.getBuyOrSellFacade();
+					Long grossAmount = calculateGrossAmount(facade);
 					StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
 					if (grossAmount != null) {
 						if (account.getTax1Account() != null && account.getTax1Rates() != null) {
@@ -517,9 +694,11 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 			}
 		};
 
+		IObservableValue<Long> target = new Tax1Default(newEntryFacade);
+		
 		Bind.oneWay(tax1Default)
 		.untilTargetChanges()
-		.to(newEntryFacade.tax1());
+		.to(target);
 	}
 
 	private void bindDefaultTax2() {
@@ -529,7 +708,8 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 			@Override
 			protected Long calculate() {
 				if (newEntryFacade.isPurchaseOrSale()) {
-					Long grossAmount = calculateGrossAmount(newEntryFacade);
+					StockBuyOrSellFacade facade = newEntryFacade.getBuyOrSellFacade();
+					Long grossAmount = calculateGrossAmount(facade);
 					StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
 					if (grossAmount != null) {
 						if (account.getTax2Account() != null && account.getTax2Rates() != null) {
@@ -547,9 +727,11 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 			}
 		};
 
+		IObservableValue<Long> target = new Tax2Default(newEntryFacade);
+		
 		Bind.oneWay(tax2Default)
 		.untilTargetChanges()
-		.to(newEntryFacade.tax2());
+		.to(target);
 	}
 
 	private void bindDefaultWithholdingTax() {
@@ -580,7 +762,8 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 			@Override
 			protected Long calculate() {
 				if (thisEntryFacade.isDividend()) {
-					long dividend = - thisEntryFacade.getNetAmount() - thisEntryFacade.getWithholdingTax();
+					StockDividendFacade facade = thisEntryFacade.dividendFacade().getValue();
+					long dividend = - thisEntryFacade.getNetAmount() - facade.getWithholdingTaxAmount();
 					return dividend;
 				} else {
 					return null;
@@ -596,18 +779,14 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 
 	/**
 	 * @trackedGetter???
-	 * @param newEntryData 
+	 * @param newEntryFacade 
 	 * @return
 	 */
-	private Long calculateGrossAmount(StockEntryFacade newEntryData) {
-		// TODO: Can we clean this up a little?  Stock quantities are to three decimal places,
+	private Long calculateGrossAmount(StockBuyOrSellFacade newEntryFacade) {
+		// Stock quantities are to three decimal places,
 		// (long value is number of thousandths) hence why we shift the long value three places.
-		long quantity = newEntryData.getQuantity();
-		// remove this because the above always returns positive anyway.
-		//		if (input.getTransactionType() == TransactionType.Sell) {
-		//			quantity = -quantity;  // We use positive amounts here, regardless of whether buying or selling
-		//		}
-		BigDecimal sharePrice = newEntryData.sharePrice().getValue();
+		long quantity = newEntryFacade.quantity().getValue();
+		BigDecimal sharePrice = newEntryFacade.sharePrice().getValue();
 		if (sharePrice == null || quantity == 0) {
 			return null;
 		} else {

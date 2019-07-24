@@ -20,7 +20,6 @@ package net.sf.jmoney.stocks.pages;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 import org.eclipse.core.commands.IHandler;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
@@ -72,21 +71,20 @@ import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
 
 /**
-* TODO: This code is duplicated in StockDetailsEditor.  Remove the duplication
+ * TODO: This code is duplicated in StockDetailsEditor. Remove the duplication
  *
  * @author Johann Gyger
  */
 public class EntriesSection extends SectionPart implements IEntriesContent {
 
-	private static class BlankBlock extends
-			CellBlock<IObservableValue<StockEntryFacade>> {
+	private static class BlankBlock extends CellBlock<IObservableValue<StockEntryFacade>> {
 		private BlankBlock() {
 			super(0, 0);
 		}
 
 		@Override
-		public Control createCellControl(
-				Composite parent, IObservableValue<StockEntryFacade> master, RowControl rowControl) {
+		public Control createCellControl(Composite parent, IObservableValue<StockEntryFacade> master,
+				RowControl rowControl) {
 			return new Label(parent, SWT.NONE);
 		}
 
@@ -94,7 +92,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		public void createHeaderControls(Composite parent) {
 			/*
 			 * We need to create something here because the layout expects the correct
-			 * number of controls.  Create an empty label.
+			 * number of controls. Create an empty label.
 			 */
 			new Label(parent, SWT.NONE);
 		}
@@ -106,7 +104,8 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 
 	private Block<StockEntryRowControl> rootBlock;
 
-	public EntriesSection(Composite parent, final StockAccount account, FormToolkit toolkit, IHandlerService handlerService) {
+	public EntriesSection(Composite parent, final StockAccount account, FormToolkit toolkit,
+			IHandlerService handlerService) {
 		super(parent, toolkit, ExpandableComposite.TITLE_BAR);
 		getSection().setText("All Entries");
 		this.account = account;
@@ -114,150 +113,105 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		/*
 		 * Setup the layout structure of the header and rows.
 		 */
-		IndividualBlock<IObservableValue<? extends EntryFacade>> transactionDateColumn = PropertyBlock.createTransactionColumn(TransactionInfo.getDateAccessor());
+		IndividualBlock<IObservableValue<? extends EntryFacade>> transactionDateColumn = PropertyBlock
+				.createTransactionColumn(TransactionInfo.getDateAccessor());
 
 		IndividualBlock<IObservableValue<StockEntryFacade>> actionColumn = new TransactionTypeBlock();
 
 		IndividualBlock<IObservableValue<StockEntryFacade>> shareNameColumn = new SecurityBlock();
 
-		IndividualBlock<IObservableValue<StockEntryFacade>> priceColumn = new StockPriceBlock(account);
-
-		IndividualBlock<IObservableValue<StockEntryFacade>> shareQuantityColumn = new ShareQuantityBlock(account);
-
-		PropertyOnObservable<StockEntryFacade, Long> withholdingTaxProperty = new PropertyOnObservable<StockEntryFacade, Long>(Long.class) {
-			@Override
-			protected IObservableValue<Long> getObservable(StockEntryFacade source) {
-				return source.withholdingTax();
-			}
-		};
+//		ValueProperty<StockEntryFacade, Long> withholdingTaxProperty2 = new ValueProperty<StockEntryFacade, Long>() {
+//
+//			@Override
+//			public Object getValueType() {
+//				return withholdingTaxProperty.getValueType();
+//			}
+//
+//			@Override
+//			public IObservableValue<Long> observe(Realm realm, StockEntryFacade source) {
+//				return new ComputedValue<Long>() {
+//					@Override
+//					protected Long calculate() {
+//						StockDividendFacade facade = source.dividendFacade().getValue();
+//						return withholdingTaxProperty.getValue(facade);
+//					}
+//				};
+//			}
+//		};
 		
-		// Null does not work as a child of StackBlock so create an empty one.
-		// No, it is fine to be null now, I think.
-		final Block<IObservableValue<StockEntryFacade>> withholdingTaxColumn =
-				account.getWithholdingTaxAccount() == null 
-				? null //new BlankBlock()
-				: new EntryAmountBlock("Withholding Tax", withholdingTaxProperty, account.getWithholdingTaxAccount().getCurrency());
+		Block<IObservableValue<StockEntryFacade>> withholdingTaxColumn 
+			= new DividendInfoColumn(account);
+				
 
-		List<Block<? super IObservableValue<StockEntryFacade>>> expenseColumns = new ArrayList<Block<? super IObservableValue<StockEntryFacade>>>();
+		Block<IObservableValue<StockEntryFacade>> purchaseOrSaleInfoColumn 
+			= new TradeInfoColumn(account);
 
-		if (account.getCommissionAccount() != null) {
-			PropertyOnObservable<StockEntryFacade, Long> commissionProperty = new PropertyOnObservable<StockEntryFacade, Long>(Long.class) {
-				@Override
-				protected IObservableValue<Long> getObservable(StockEntryFacade source) {
-					return source.commission();
-				}
-			};
-			
-			final Block<IObservableValue<StockEntryFacade>> commissionColumn =
-					new EntryAmountBlock("Commission", commissionProperty, account.getCommissionAccount().getCurrency());
-			
-			expenseColumns.add(commissionColumn);
-		}
 
-		if (account.getTax1Name() != null && account.getTax1Account() != null) {
-			PropertyOnObservable<StockEntryFacade, Long> tax1Property = new PropertyOnObservable<StockEntryFacade, Long>(Long.class) {
-				@Override
-				protected IObservableValue<Long> getObservable(StockEntryFacade source) {
-					return source.tax1();
-				}
-			};
-			
-			final Block<IObservableValue<StockEntryFacade>> tax1Column =
-					new EntryAmountBlock(account.getTax1Name(), tax1Property, account.getTax1Account().getCurrency());
-
-			expenseColumns.add(tax1Column);
-		}
-
-		if (account.getTax2Name() != null && account.getTax2Account() != null) {
-			PropertyOnObservable<StockEntryFacade, Long> tax2Property = new PropertyOnObservable<StockEntryFacade, Long>(Long.class) {
-				@Override
-				protected IObservableValue<Long> getObservable(StockEntryFacade source) {
-					return source.tax2();
-				}
-			};
-			
-			final Block<IObservableValue<StockEntryFacade>> tax2Column =
-					new EntryAmountBlock(account.getTax2Name(), tax2Property, account.getTax2Account().getCurrency());
-
-			expenseColumns.add(tax2Column);
-		}
-
-		final Block<IObservableValue<StockEntryFacade>> purchaseOrSaleInfoColumn = new VerticalBlock<IObservableValue<StockEntryFacade>>(
-				priceColumn,
-				shareQuantityColumn,
-				new HorizontalBlock<IObservableValue<StockEntryFacade>>(
-						expenseColumns
-				)
-		);
-
-		final IndividualBlock<IObservableValue<StockEntryFacade>> transferAccountColumn = new PropertyBlock<IObservableValue<StockEntryFacade>, Entry>(EntryInfo.getAccountAccessor(), "transferAccount", "Transfer Account") {
-			@Override
-			public Entry getObjectContainingProperty(IObservableValue<StockEntryFacade> data) {
-				return data.getValue().getTransferEntry();
-			}
-		};
-
+		
+		
+		
 		final Block<IObservableValue<StockEntryFacade>> customTransactionColumn = new OtherEntriesBlock<StockEntryFacade>(
 				new HorizontalBlock<IObservableValue<Entry>>(
 						new SingleOtherEntryDetailPropertyBlock(EntryInfo.getAccountAccessor()),
-						new SingleOtherEntryDetailPropertyBlock(EntryInfo.getMemoAccessor(), net.sf.jmoney.resources.Messages.EntriesSection_EntryDescription),
-						new SingleOtherEntryDetailPropertyBlock(EntryInfo.getAmountAccessor())
-						)
-				);
+						new SingleOtherEntryDetailPropertyBlock(EntryInfo.getMemoAccessor(),
+								net.sf.jmoney.resources.Messages.EntriesSection_EntryDescription),
+						new SingleOtherEntryDetailPropertyBlock(EntryInfo.getAmountAccessor())));
 
-    	Block<StockEntryRowControl> debitAndCreditColumnsManager = new DelegateBlock<StockEntryRowControl, IObservableValue<Entry>>(
-    			DebitAndCreditColumns.createDebitAndCreditColumns(account.getCurrency())
-			) {
+		Block<StockEntryRowControl> debitAndCreditColumnsManager = new DelegateBlock<StockEntryRowControl, IObservableValue<Entry>>(
+				DebitAndCreditColumns.createDebitAndCreditColumns(account.getCurrency())) {
 			@Override
 			protected IObservableValue<Entry> convert(StockEntryRowControl blockInput) {
 				return blockInput.observeMainEntry();
 			}
 		};
 
-		Block<StockEntryRowControl> balanceColumnManager = new DelegateBlock<StockEntryRowControl, IObservableValue<EntryData>>(new BalanceColumn(account.getCurrency())) {
+		Block<StockEntryRowControl> balanceColumnManager = new DelegateBlock<StockEntryRowControl, IObservableValue<EntryData>>(
+				new BalanceColumn(account.getCurrency())) {
 			@Override
 			protected IObservableValue<EntryData> convert(StockEntryRowControl blockInput) {
 				return blockInput.getRowInput();
 			}
 		};
-		
+
 		RowSelectionTracker<StockEntryRowControl> rowTracker = new RowSelectionTracker<StockEntryRowControl>();
 
+		
 		Block<IObservableValue<StockEntryFacade>> part1SubBlock = new HorizontalBlock<IObservableValue<StockEntryFacade>>(
 				transactionDateColumn,
 				new VerticalBlock<IObservableValue<StockEntryFacade>>(
-						new HorizontalBlock<IObservableValue<StockEntryFacade>>(
-								actionColumn,
-								shareNameColumn
-								),
-								new PropertyBlock<IObservableValue<StockEntryFacade>, Entry>(EntryInfo.getMemoAccessor(), "entry") { //$NON-NLS-1$
+						new HorizontalBlock<IObservableValue<StockEntryFacade>>(actionColumn, shareNameColumn),
+						new PropertyBlock<IObservableValue<StockEntryFacade>, Entry>(EntryInfo.getMemoAccessor(),
+								"entry") { //$NON-NLS-1$
 							@Override
 							public Entry getObjectContainingProperty(IObservableValue<StockEntryFacade> data) {
 								return data.getValue() == null ? null : data.getValue().getMainEntry();
 							}
-						}
-				),
-				new StackBlock<IObservableValue<StockEntryFacade>>(
-						withholdingTaxColumn,
-						purchaseOrSaleInfoColumn,
-						transferAccountColumn,
-						customTransactionColumn
-						) {
+						}),
+				new StackBlock<IObservableValue<StockEntryFacade>>(withholdingTaxColumn, purchaseOrSaleInfoColumn,
+						customTransactionColumn) {
 
 					@Override
 					protected Block<IObservableValue<StockEntryFacade>> getTopBlock(IObservableValue<StockEntryFacade> data) {
-						if (data.getValue().getTransactionType() == null) {
+						// TODO this is wrong. If we get an observable, we must take into account that
+						// it may change.
+						// If in fact it never changes then the value should be passed in, not the
+						// observable.
+
+						TransactionType transactionType = data.getValue().getTransactionType();
+						if (transactionType == null) {
 							return null;
 						} else {
-							switch (data.getValue().getTransactionType()) {
+							switch (transactionType) {
 							case Buy:
 							case Sell:
+//								purchaseOrSaleInfoColumn.setFacade(data.getValue().getBuyOrSellFacade());
 								return purchaseOrSaleInfoColumn;
 							case Dividend:
 								// Note that this will be null if there is no withholding tax account
+//								if (withholdingTaxColumn != null) {
+//									withholdingTaxColumn.setFacade(data.getValue().getDividendFacade());
+//								}
 								return withholdingTaxColumn;
-							case Transfer:
-								return transferAccountColumn;
 							case Other:
 								return customTransactionColumn;
 							default:
@@ -267,50 +221,50 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 					}
 
 					@Override
-					public Control createCellControl(Composite parent, final IObservableValue<StockEntryFacade> blockInput, final RowControl rowControl) {
-						final StackControl<IObservableValue<StockEntryFacade>> control = new StackControl<IObservableValue<StockEntryFacade>>(parent, rowControl, blockInput, this);
+					public Control createCellControl(Composite parent,
+							final IObservableValue<StockEntryFacade> blockInput, final RowControl rowControl) {
+						final StackControl<IObservableValue<StockEntryFacade>> control = new StackControl<IObservableValue<StockEntryFacade>>(
+								parent, rowControl, blockInput, this);
 
-						IValueProperty<StockEntryFacade, TransactionType> transactionProperty = new PropertyOnObservable<StockEntryFacade, TransactionType>(TransactionType.class) {
+						IValueProperty<StockEntryFacade, TransactionType> transactionProperty = new PropertyOnObservable<StockEntryFacade, TransactionType>(
+								TransactionType.class) {
 							@Override
-							protected IObservableValue<TransactionType> getObservable(
-									StockEntryFacade source) {
+							protected IObservableValue<TransactionType> getObservable(StockEntryFacade source) {
 								return source.transactionType();
 							}
 						};
 
-						transactionProperty.observeDetail(blockInput).addValueChangeListener(new IValueChangeListener<TransactionType>() {
+						transactionProperty.observeDetail(blockInput)
+								.addValueChangeListener(new IValueChangeListener<TransactionType>() {
 
-							@Override
-							public void handleValueChange(ValueChangeEvent<? extends TransactionType> event) {
-								//								todo: queue this code and run asynchronously.  So it runs once only
-								//								when lots of changes are made by the same code???
+									@Override
+									public void handleValueChange(ValueChangeEvent<? extends TransactionType> event) {
+										// todo: queue this code and run asynchronously. So it runs once only
+										// when lots of changes are made by the same code???
 
-								Block<IObservableValue<StockEntryFacade>> topBlock = getTopBlock(blockInput);
+										Block<IObservableValue<StockEntryFacade>> topBlock = getTopBlock(blockInput);
 
-								// Set this block in the control
-								control.setTopBlock(topBlock);
+										// Set this block in the control
+										control.setTopBlock(topBlock);
 
-								/*
-								 * This stack layout has a size this is the
-								 * preferred size of the top control, ignoring
-								 * all the other controls. Therefore changing
-								 * the top control may change the size of the
-								 * row.
-								 */
-								// TODO: It is a bit funny using the coordinator here
-								// This needs to be cleaned up.
-								fEntriesControl.table.refreshSize(rowControl);
+										/*
+										 * This stack layout has a size this is the preferred size of the top control,
+										 * ignoring all the other controls. Therefore changing the top control may
+										 * change the size of the row.
+										 */
+										// TODO: It is a bit funny using the coordinator here
+										// This needs to be cleaned up.
+										fEntriesControl.table.refreshSize(rowControl);
 
-								/*
-								 * The above method will re-size the height of the row
-								 * to its preferred height, but it won't layout the child
-								 * controls if the preferred height did not change.
-								 * We therefore force a layout in order to bring the new
-								 * top control to the top and layout its child controls.
-								 */
-								rowControl.layout(true);
-							}
-						});
+										/*
+										 * The above method will re-size the height of the row to its preferred height,
+										 * but it won't layout the child controls if the preferred height did not
+										 * change. We therefore force a layout in order to bring the new top control to
+										 * the top and layout its child controls.
+										 */
+										rowControl.layout(true);
+									}
+								});
 
 						return control;
 					}
@@ -319,25 +273,23 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 					protected IDataManagerForAccounts getDataManager(IObservableValue<StockEntryFacade> data) {
 						return data.getValue().getMainEntry().getDataManager();
 					}
-				}
-		);
+				});
 
-    	Block<StockEntryRowControl> part1Block = new DelegateBlock<StockEntryRowControl, IObservableValue<StockEntryFacade>>(part1SubBlock) {
+		Block<StockEntryRowControl> part1Block = new DelegateBlock<StockEntryRowControl, IObservableValue<StockEntryFacade>>(
+				part1SubBlock) {
 			@Override
 			protected IObservableValue<StockEntryFacade> convert(StockEntryRowControl blockInput) {
 				return blockInput.observeEntryFacade();
 			}
 		};
 
-		rootBlock = new HorizontalBlock<StockEntryRowControl>(
-				part1Block,
-				debitAndCreditColumnsManager,
-				balanceColumnManager
-		);
+		rootBlock = new HorizontalBlock<StockEntryRowControl>(part1Block, debitAndCreditColumnsManager,
+				balanceColumnManager);
 
 		// Create the table control.
 		IRowProvider<EntryData, StockEntryRowControl> rowProvider = new StockRowProvider(rootBlock);
-		fEntriesControl = new EntriesTable<StockEntryRowControl>(getSection(), rootBlock, this, rowProvider, account.getSession(), transactionDateColumn, rowTracker) {
+		fEntriesControl = new EntriesTable<StockEntryRowControl>(getSection(), rootBlock, this, rowProvider,
+				account.getSession(), transactionDateColumn, rowTracker) {
 			@Override
 			protected EntryData createEntryRowInput(Entry entry) {
 				return new EntryData(entry, session.getDataManager());
@@ -383,10 +335,9 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 	@Override
 	public Collection<Entry> getEntries() {
 		/*
-		 * We want only cash entries, not stock entries.  This is providing
-		 * content for a table of entries that show the running balance.
-		 * A stock entry or an entry in a currency other than the currency
-		 * of the account should not be returned.
+		 * We want only cash entries, not stock entries. This is providing content for a
+		 * table of entries that show the running balance. A stock entry or an entry in
+		 * a currency other than the currency of the account should not be returned.
 		 */
 		Collection<Entry> entries = new ArrayList<Entry>();
 		for (Entry entry : account.getEntries()) {
@@ -401,23 +352,28 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 	@Override
 	public boolean isEntryInTable(Entry entry) {
 		/*
-		 * Entry must be in right account AND be in the currency of the account.
-		 * The account will contain stock entries and these should not appear
-		 * as top level entries in the table.
+		 * Entry must be in right account AND be in the currency of the account. The
+		 * account will contain stock entries and these should not appear as top level
+		 * entries in the table.
 		 */
-		return account == entry.getAccount()
-				&& entry.getCommodityInternal() == account.getCurrency();
+		return account == entry.getAccount() && entry.getCommodityInternal() == account.getCurrency();
 	}
 
-	/* (non-Javadoc)
-	 * @see net.sf.jmoney.pages.entries.IEntriesContent#filterEntry(net.sf.jmoney.pages.entries.EntriesTable.DisplayableTransaction)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * net.sf.jmoney.pages.entries.IEntriesContent#filterEntry(net.sf.jmoney.pages.
+	 * entries.EntriesTable.DisplayableTransaction)
 	 */
 	@Override
 	public boolean filterEntry(EntryData data) {
 		return true;
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see net.sf.jmoney.pages.entries.IEntriesContent#getStartBalance()
 	 */
 	@Override
@@ -429,15 +385,14 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 	@Override
 	public Entry createNewEntry(Transaction newTransaction) {
 		/*
-		 * For stock entries, we create a single entry only.
-		 * The other entries are created as appropriate when a
-		 * transaction type is selected.
+		 * For stock entries, we create a single entry only. The other entries are
+		 * created as appropriate when a transaction type is selected.
 		 */
 		Entry entryInTransaction = newTransaction.createEntry();
 
 		// It is assumed that the entry is in a data manager that is a direct
 		// child of the data manager that contains the account.
-		TransactionManager tm = (TransactionManager)entryInTransaction.getDataManager();
+		TransactionManager tm = (TransactionManager) entryInTransaction.getDataManager();
 		entryInTransaction.setAccount(tm.getCopyInTransaction(account));
 
 		return entryInTransaction;

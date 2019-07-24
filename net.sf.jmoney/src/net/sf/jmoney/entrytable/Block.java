@@ -123,4 +123,6 @@ public abstract class Block<R> {
 	 * 		it on to the next child block
 	 */
 	public abstract int initIndexes(int startIndex);
+
+//	public abstract void setFacade(R facade);
 }

@@ -6,9 +6,6 @@ import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.property.value.IValueProperty;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiWithExceptionConverter;
-import org.eclipse.core.internal.databinding.provisional.bind.IBidiWithStatusConverter;
-import org.eclipse.core.internal.databinding.provisional.bind.IValueWithStatus;
-import org.eclipse.core.internal.databinding.provisional.bind.ValueWithStatus;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.databinding.fieldassist.ControlStatusDecoration;
 import org.eclipse.jface.databinding.swt.SWTObservables;
@@ -25,7 +22,7 @@ import net.sf.jmoney.entrytable.RowControl;
 import net.sf.jmoney.stocks.model.StockAccount;
 
 public class StockPriceBlock extends
-		IndividualBlock<IObservableValue<StockEntryFacade>> {
+		IndividualBlock<IObservableValue<StockBuyOrSellFacade>> {
 	private final StockAccount account;
 
 	public StockPriceBlock(StockAccount account) {
@@ -34,7 +31,7 @@ public class StockPriceBlock extends
 	}
 
 	@Override
-	public Control createCellControl(Composite parent, IObservableValue<StockEntryFacade> master, RowControl rowControl) {
+	public Control createCellControl(Composite parent, IObservableValue<StockBuyOrSellFacade> master, RowControl rowControl) {
 		final Text control = new Text(parent, SWT.RIGHT);
 
 		IBidiWithExceptionConverter<BigDecimal,String> amountToText = new IBidiWithExceptionConverter<BigDecimal,String>() {
@@ -59,9 +56,9 @@ public class StockPriceBlock extends
 			}
 		};
 
-		IValueProperty<StockEntryFacade, BigDecimal> sharePriceProperty = new PropertyOnObservable<StockEntryFacade, BigDecimal>(BigDecimal.class) {
+		IValueProperty<StockBuyOrSellFacade, BigDecimal> sharePriceProperty = new PropertyOnObservable<StockBuyOrSellFacade, BigDecimal>(BigDecimal.class) {
 			@Override
-			protected IObservableValue<BigDecimal> getObservable(StockEntryFacade source) {
+			protected IObservableValue<BigDecimal> getObservable(StockBuyOrSellFacade source) {
 				return source.sharePrice();
 			}
 		};

@@ -24,7 +24,6 @@ package net.sf.jmoney.stocks.pages;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 import org.eclipse.core.commands.IHandler;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
@@ -182,82 +181,10 @@ public class StockDetailsEditor extends EditorPart {
 
 		IndividualBlock<IObservableValue<StockEntryFacade>> shareNameColumn = new SecurityBlock();
 
-		IndividualBlock<IObservableValue<StockEntryFacade>> priceColumn = new StockPriceBlock(account);
+		Block<IObservableValue<StockEntryFacade>> withholdingTaxColumn 
+		= new DividendInfoColumn(account);
 
-		IndividualBlock<IObservableValue<StockEntryFacade>> shareQuantityColumn = new ShareQuantityBlock(account);
-
-		IValueProperty<StockEntryFacade, Long> withholdingTaxProperty = new PropertyOnObservable<StockEntryFacade, Long>(Long.class) {
-			@Override
-			protected IObservableValue<Long> getObservable(StockEntryFacade source) {
-				return source.withholdingTax();
-			}
-		};
-		
-		// Null does not work as a child of StackBlock so create an empty one.
-		final Block<IObservableValue<StockEntryFacade>> withholdingTaxColumn =
-//				account.getWithholdingTaxAccount() == null 
-//				? new BlankBlock()
-//				: 
-					new EntryAmountBlock("Withholding Tax", withholdingTaxProperty, account.getWithholdingTaxAccount().getCurrency());
-
-		List<Block<? super IObservableValue<StockEntryFacade>>> expenseColumns = new ArrayList<Block<? super IObservableValue<StockEntryFacade>>>();
-
-		if (account.getCommissionAccount() != null) {
-			IValueProperty<StockEntryFacade, Long> commissionProperty = new PropertyOnObservable<StockEntryFacade, Long>(Long.class) {
-				@Override
-				protected IObservableValue<Long> getObservable(StockEntryFacade source) {
-					return source.commission();
-				}
-			};
-			
-			final Block<IObservableValue<StockEntryFacade>> commissionColumn =
-					new EntryAmountBlock("Commission", commissionProperty, account.getCommissionAccount().getCurrency());
-			
-			expenseColumns.add(commissionColumn);
-		}
-
-		if (account.getTax1Name() != null && account.getTax1Account() != null) {
-			IValueProperty<StockEntryFacade, Long> tax1Property = new PropertyOnObservable<StockEntryFacade, Long>(Long.class) {
-				@Override
-				protected IObservableValue<Long> getObservable(StockEntryFacade source) {
-					return source.tax1();
-				}
-			};
-			
-			final Block<IObservableValue<StockEntryFacade>> tax1Column =
-					new EntryAmountBlock(account.getTax1Name(), tax1Property, account.getTax1Account().getCurrency());
-
-			expenseColumns.add(tax1Column);
-		}
-
-		if (account.getTax2Name() != null && account.getTax2Account() != null) {
-			IValueProperty<StockEntryFacade, Long> tax2Property = new PropertyOnObservable<StockEntryFacade, Long>(Long.class) {
-				@Override
-				protected IObservableValue<Long> getObservable(StockEntryFacade source) {
-					return source.tax2();
-				}
-			};
-			
-			final Block<IObservableValue<StockEntryFacade>> tax2Column =
-					new EntryAmountBlock(account.getTax2Name(), tax2Property, account.getTax2Account().getCurrency());
-
-			expenseColumns.add(tax2Column);
-		}
-
-		final Block<IObservableValue<StockEntryFacade>> purchaseOrSaleInfoColumn = new VerticalBlock<IObservableValue<StockEntryFacade>>(
-				priceColumn,
-				shareQuantityColumn,
-				new HorizontalBlock<IObservableValue<StockEntryFacade>>(
-						expenseColumns
-				)
-		);
-
-		final IndividualBlock<IObservableValue<StockEntryFacade>> transferAccountColumn = new PropertyBlock<IObservableValue<StockEntryFacade>, Entry>(EntryInfo.getAccountAccessor(), "transferAccount", "Transfer Account") {
-			@Override
-			public Entry getObjectContainingProperty(IObservableValue<StockEntryFacade> data) {
-				return data.getValue().getTransferEntry();
-			}
-		};
+		final Block<IObservableValue<StockEntryFacade>> purchaseOrSaleInfoColumn = new TradeInfoColumn(account);
 
 		final Block<IObservableValue<StockEntryFacade>> customTransactionColumn = new OtherEntriesBlock<StockEntryFacade>(
 				new HorizontalBlock<IObservableValue<Entry>>(
@@ -300,7 +227,6 @@ public class StockDetailsEditor extends EditorPart {
 				new StackBlock<IObservableValue<StockEntryFacade>>(
 						withholdingTaxColumn,
 						purchaseOrSaleInfoColumn,
-						transferAccountColumn,
 						customTransactionColumn
 						) {
 
@@ -313,11 +239,29 @@ public class StockDetailsEditor extends EditorPart {
 							case Buy:
 							case Sell:
 								return purchaseOrSaleInfoColumn;
+//
+//								return new DelegateBlock<IObservableValue<StockEntryFacade>, IObservableValue<StockBuyOrSellFacade>>(purchaseOrSaleInfoColumn) {
+//									@Override
+//									protected IObservableValue<StockBuyOrSellFacade> convert(IObservableValue<StockEntryFacade> outerInput) {
+//										return new ComputedValue<StockBuyOrSellFacade>() {
+//											@Override
+//											protected StockBuyOrSellFacade calculate() {
+//												return outerInput.getValue().getBuyOrSellFacade();
+//											}};
+//									}
+//								};
 							case Dividend:
-								// Note that this will be null if there is no withholding tax account
 								return withholdingTaxColumn;
-							case Transfer:
-								return transferAccountColumn;
+//								return new DelegateBlock<IObservableValue<StockEntryFacade>, IObservableValue<StockDividendFacade>>(withholdingTaxColumn) {
+//									@Override
+//									protected IObservableValue<StockDividendFacade> convert(IObservableValue<StockEntryFacade> outerInput) {
+//										return new ComputedValue<StockDividendFacade>() {
+//											@Override
+//											protected StockDividendFacade calculate() {
+//												return outerInput.getValue().dividendFacade().getValue();
+//											}};
+//									}
+//								};
 							case Other:
 								return customTransactionColumn;
 							default:

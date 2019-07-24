@@ -188,6 +188,9 @@ public class StockDividendFacade extends BaseEntryFacade {
 		}
 	}
 
+	/**
+	 * This is used only so we can bind a single control to the security for the purpose of persisting the security when forcing the transaction type.
+	 */
 	public IObservableValue<Security> security() {
 		return security;
 	}

@@ -27,13 +27,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.sf.jmoney.isolation.IDataManager;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+
+import net.sf.jmoney.isolation.IDataManager;
 
 /**
  * This class represents a block where alternative layouts are shown,
@@ -127,7 +127,7 @@ public abstract class StackBlock<R> extends CellBlock<R> {
 		 */
 		minimumWidth = 0;
 		weight = 0;
-		for (Block<? super R> child: children) {
+		for (Block<?> child: children) {
 			minimumWidth = Math.max(minimumWidth, child.minimumWidth);
 			weight = Math.max(weight, child.weight);
 			
@@ -152,12 +152,16 @@ public abstract class StackBlock<R> extends CellBlock<R> {
 		 * of the tallest block in the stack.  (We don't want to header
 		 * height changing as selections are made in the table).
 		 */
-		for (Block<? super R> child: children) {
-			Composite childControl = new Composite(stackComposite, SWT.NULL);
-			childControl.setLayout(new BlockLayout<R>(child, false, null));
-			child.createHeaderControls(childControl);
-			childControls.put(child, childControl);
+		for (Block<?> child: children) {
+			createHeaderForChild(child);
 		}
+	}
+
+	private <R2> void createHeaderForChild(Block<R2> child) {
+		Composite childControl = new Composite(stackComposite, SWT.NULL);
+		childControl.setLayout(new BlockLayout<R2>(child, false, null));
+		child.createHeaderControls(childControl);
+		childControls.put(child, childControl);
 	}
 
 	/**

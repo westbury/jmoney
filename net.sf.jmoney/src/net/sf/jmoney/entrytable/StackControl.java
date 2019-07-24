@@ -80,7 +80,7 @@ public class StackControl<R> extends Composite {
 	 * 
 	 * @param topBlock
 	 */
-	public void setTopBlock(Block<? super R> topBlock) {
+	public void setTopBlock(Block<R> topBlock) {
 		// First set the top control in this row
 		CellContainer<R> topControl;
 		if (topBlock == null) {
@@ -88,6 +88,7 @@ public class StackControl<R> extends Composite {
 		} else {
 			topControl = childControls.get(topBlock); 
 			if (topControl == null) {
+//				R2 childInput = f(input);
 				topControl = new CellContainer<R>(this, input);
 				final BlockLayout<R> childLayout = new BlockLayout<R>(topBlock, false, input);
 				topControl.setLayout(childLayout);

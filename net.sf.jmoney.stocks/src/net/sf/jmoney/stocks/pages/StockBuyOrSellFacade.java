@@ -72,6 +72,8 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 			createEntry("acquisition-or-disposal");
 		}
 		
+		sharePrice().setValue(calculatePrice());
+
 		/*
 		 * As there is no entry when the quantity is zero, we maintain a writable value.
 		 * This ensures the security is persisted even when the quantity of it is set to zero.
@@ -93,6 +95,10 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 				setSecurity(event.diff.getNewValue());
 			}
 		});
+	}
+
+	public Entry getPurchaseOrSaleEntry() {
+		return this.purchaseOrSaleEntry.getValue();
 	}
 
 	/**
@@ -291,6 +297,5 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 	public IObservableValue<Security> security() {
 		return security;
 	}
-
 
 }
