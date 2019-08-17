@@ -13,7 +13,6 @@ import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.stocks.model.Security;
-import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
 
 /*
@@ -132,19 +131,6 @@ public abstract class BaseEntryFacade implements EntryFacade {
 					}};
 				ObservableEntry.this.fireValueChange(diff);
 			}
-			
-			private Entry calculateEntry() {
-				Entry matchingEntry = null;
-				for (Entry entry : transaction.getEntryCollection()) {
-					if (entry.getType(transactionTypeAndName) == entryId) {
-						if (matchingEntry != null) {
-							throw new RuntimeException("can't have two entries of same id");
-						}
-						matchingEntry = entry;
-					}
-				}
-				return matchingEntry;
-			}
 		};
 
 		
@@ -152,7 +138,20 @@ public abstract class BaseEntryFacade implements EntryFacade {
 
 		public ObservableEntry(String entryId) {
 			this.entryId = entryId;
-
+			this.entry = this.calculateEntry();
+		}
+		
+		private Entry calculateEntry() {
+			Entry matchingEntry = null;
+			for (Entry entry : transaction.getEntryCollection()) {
+				if (entry.getType(transactionTypeAndName).equals(entryId)) {
+					if (matchingEntry != null) {
+						throw new RuntimeException("can't have two entries of same id");
+					}
+					matchingEntry = entry;
+				}
+			}
+			return matchingEntry;
 		}
 
 		@Override
@@ -166,13 +165,14 @@ public abstract class BaseEntryFacade implements EntryFacade {
 		}
 	}
 
-	private StockAccount account;
+//	private StockAccount account;
 
 	/**
 	 * The net amount, being the amount deposited or withdrawn from the cash balance
 	 * in this account.
 	 */
-	private Entry netAmountEntry;
+//	private Entry netAmountEntry;
+	private IObservableValue<Entry> netAmountEntry;
 	
 	protected Transaction transaction;
 
@@ -181,14 +181,15 @@ public abstract class BaseEntryFacade implements EntryFacade {
 	public BaseEntryFacade(Transaction transaction, TransactionType transactionType, String transactionName) {
 		this.transaction = transaction;
 		this.transactionTypeAndName = transactionType.getId() + ":" + transactionName;
+		this.netAmountEntry = observeEntry("cash");
 	}
 
 
-	public BaseEntryFacade(Entry netAmountEntry, StockAccount stockAccount) {
-		this.netAmountEntry = netAmountEntry;
-		this.account = stockAccount;
-		
-	}
+//	public BaseEntryFacade(Entry netAmountEntry, StockAccount stockAccount) {
+//		this.netAmountEntry = netAmountEntry;
+//		this.account = stockAccount;
+//		
+//	}
 
 	/**
 	 * Provides an observable on an entry that is the entry with the given
@@ -230,16 +231,17 @@ public abstract class BaseEntryFacade implements EntryFacade {
 
 	@Override
 	public Entry getMainEntry() {
-		return netAmountEntry;
+		// TODO what if this entry is deleted from a transaction?
+		return netAmountEntry.getValue();
 	}
 
-	/**
-	 * @return the net amount, being the amount credited or debited from the account
-	 * @trackedGetter        
-	 */
-	public long getNetAmount() {
-		return EntryInfo.getAmountAccessor().observe(netAmountEntry).getValue();
-	}
+//	/**
+//	 * @return the net amount, being the amount credited or debited from the account
+//	 * @trackedGetter        
+//	 */
+//	public long getNetAmount() {
+//		return EntryInfo.getAmountAccessor().observe(netAmountEntry).getValue();
+//	}
 
 	/**
 	 * This is used only so that when the user forces a transaction from one transaction type to

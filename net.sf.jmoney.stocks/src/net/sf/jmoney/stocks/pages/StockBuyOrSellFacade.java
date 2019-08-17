@@ -60,8 +60,8 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 	private final IObservableValue<Long> tax2 = new WritableValue<Long>();
 
 
-	public StockBuyOrSellFacade(Transaction transaction, TransactionType transactionTypeName, String transactionName, StockAccount stockAccount) {
-		super(transaction, TransactionType.Dividend, "");
+	public StockBuyOrSellFacade(Transaction transaction, TransactionType transactionType, String transactionName, StockAccount stockAccount) {
+		super(transaction, transactionType, "");
 
 		purchaseOrSaleEntry = observeEntry("acquisition-or-disposal");
 		commissionEntry = observeEntry("commission");
@@ -72,7 +72,30 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 			createEntry("acquisition-or-disposal");
 		}
 		
+		// TODO the following is incorrect because we must listen to the underlying datastore
+		
 		sharePrice().setValue(calculatePrice());
+
+		switch (transactionType) {
+		case Buy:
+			quantity.setValue(purchaseOrSaleEntry.getValue().getAmount());
+			break;
+		case Sell:
+			quantity.setValue(-purchaseOrSaleEntry.getValue().getAmount());
+			break;
+		default:
+			throw new RuntimeException("Bad case");
+		}
+		
+		if (commissionEntry.getValue() != null) {
+			commission.setValue(commissionEntry.getValue().getAmount());
+		}
+		if (tax1Entry.getValue() != null) {
+			tax1.setValue(tax1Entry.getValue().getAmount());
+		}
+		if (tax2Entry.getValue() != null) {
+			tax2.setValue(tax2Entry.getValue().getAmount());
+		}
 
 		/*
 		 * As there is no entry when the quantity is zero, we maintain a writable value.
@@ -182,7 +205,7 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 	/*
 	 * The price is calculated, not stored in the model. This method
 	 * calculates the share price from the data in the model.  It does
-	 * this by adding up all the cash entries to get the gross proceeds
+	 * this by adding up all the cash entries to get the gross proceeds0000
 	 * or cost and then dividing by the number of shares.
 	 *
 	 * @return the calculated price to four decimal places, or null
@@ -190,6 +213,9 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 	 * 		is zero)
 	 */
 	public BigDecimal calculatePrice() {
+		if (purchaseOrSaleEntry.getValue() == null) {
+			return new BigDecimal(43);
+		}
 		BigDecimal totalShares = BigDecimal.valueOf(purchaseOrSaleEntry.getValue().getAmount())
 				.movePointLeft(3);
 

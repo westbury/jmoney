@@ -22,14 +22,10 @@ class DividendInfoColumn
 			}
 		};
 
-
-		// Null as a child of stack block indicates that nothing is to be shown.
-		return account
-				.getWithholdingTaxAccount() == null ? null // new BlankBlock()
-						: new EntryAmountBlock<StockDividendFacade>("Withholding Tax", withholdingTaxProperty,
+		return account.getWithholdingTaxAccount() == null 
+				? new EntriesSection.BlankBlock<StockDividendFacade>()
+				: new EntryAmountBlock<StockDividendFacade>("Withholding Tax", withholdingTaxProperty,
 								account.getWithholdingTaxAccount().getCurrency());
-
-
 	}
 	
 	@Override

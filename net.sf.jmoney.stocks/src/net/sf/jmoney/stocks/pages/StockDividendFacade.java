@@ -45,6 +45,12 @@ public class StockDividendFacade extends BaseEntryFacade {
 			createEntry("dividend");
 		}
 		
+		// TODO the following is incorrect because we must listen to the underlying datastore
+		
+		if (withholdingTaxEntry.getValue() != null) {
+			withholdingTax.setValue(withholdingTaxEntry.getValue().getAmount());
+		}
+
 		/*
 		 * As there is no entry when the quantity is zero, we maintain a writable value.
 		 * This ensures the security is persisted even when the quantity of it is set to zero.
@@ -201,6 +207,12 @@ public class StockDividendFacade extends BaseEntryFacade {
 	@Override
 	public Security getSecurity() {
 		return security.getValue();
+	}
+
+	public IObservableValue<Long> grossDividend() {
+		// TODO this must be writable because it is set with default binding.
+		// Should we have the default binding at all???????
+		return new WritableValue<Long>();
 	}
 
 }

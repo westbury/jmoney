@@ -77,13 +77,13 @@ import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
  */
 public class EntriesSection extends SectionPart implements IEntriesContent {
 
-	private static class BlankBlock extends CellBlock<IObservableValue<StockEntryFacade>> {
-		private BlankBlock() {
+	public static class BlankBlock<F> extends CellBlock<IObservableValue<F>> {
+		BlankBlock() {
 			super(0, 0);
 		}
 
 		@Override
-		public Control createCellControl(Composite parent, IObservableValue<StockEntryFacade> master,
+		public Control createCellControl(Composite parent, IObservableValue<F> master,
 				RowControl rowControl) {
 			return new Label(parent, SWT.NONE);
 		}

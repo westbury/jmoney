@@ -51,7 +51,7 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 	 * destination is manually changed.  The old and new values will not matter.  Also no event should be
 	 * fired if the change was due to the property becoming inapplicable or applicable.
 	 */
-	private abstract class AbstractTradeDefault<T> extends AbstractObservableValue<T> {
+	private abstract class AbstractTargetForDefault<T, F> extends AbstractObservableValue<T> {
 		protected final StockEntryFacade newEntryFacade;
 
 		protected IValueChangeListener<T> listener = new IValueChangeListener<T>() {
@@ -69,17 +69,17 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 						return event.diff.getNewValue();
 					}
 				}; 
-				AbstractTradeDefault.this.fireValueChange(diff);
+				AbstractTargetForDefault.this.fireValueChange(diff);
 			}
 			
 		};
 		
-		private AbstractTradeDefault(StockEntryFacade newEntryFacade) {
+		private AbstractTargetForDefault(StockEntryFacade newEntryFacade) {
 			this.newEntryFacade = newEntryFacade;
 			
-			newEntryFacade.buyOrSellFacade().addValueChangeListener(new IValueChangeListener<StockBuyOrSellFacade>() {
+			transactionSpecificFacade(newEntryFacade).addValueChangeListener(new IValueChangeListener<F>() {
 				@Override
-				public void handleValueChange(ValueChangeEvent<? extends StockBuyOrSellFacade> event) {
+				public void handleValueChange(ValueChangeEvent<? extends F> event) {
 					if (event.diff.getOldValue() != null) {
 						IObservableValue<T> target = getTarget(event.diff.getOldValue());
 						target.removeValueChangeListener(listener);
@@ -96,7 +96,7 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 		protected T doGetValue() {
 			if (newEntryFacade.getTransactionType() == TransactionType.Buy
 					|| newEntryFacade.getTransactionType() == TransactionType.Sell) {
-				return getTarget(newEntryFacade.getBuyOrSellFacade()).getValue();
+				return getTarget(this.transactionSpecificFacade(newEntryFacade).getValue()).getValue();
 			} else {
 				return null;
 			}
@@ -106,11 +106,37 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 		protected void doSetValue(T value) {
 			if (newEntryFacade.getTransactionType() == TransactionType.Buy
 					|| newEntryFacade.getTransactionType() == TransactionType.Sell) {
-				getTarget(newEntryFacade.getBuyOrSellFacade()).setValue(value);
+				getTarget(this.transactionSpecificFacade(newEntryFacade).getValue()).setValue(value);
 			}
 		}
 		
-		protected abstract IObservableValue<T> getTarget(StockBuyOrSellFacade facade);
+		protected abstract IObservableValue<F> transactionSpecificFacade(StockEntryFacade facade);
+
+		protected abstract IObservableValue<T> getTarget(F facade);
+	}
+
+	/**
+	 * This observable value is designed for the destination of a default value.  It must meet
+	 * the following criteria:
+	 * 
+	 * - values can be set.  However if the value is currently not applicable then the value is dropped.
+	 * It is ok to drop the value because the computed value that is the source of the default value should
+	 * be returning null if the transaction type is such that the value is not applicable.
+	 * 
+	 * - value changes should be fired, but this is used only for the purpose of stopping the binding if the
+	 * destination is manually changed.  The old and new values will not matter.  Also no event should be
+	 * fired if the change was due to the property becoming inapplicable or applicable.
+	 */
+	private abstract class AbstractTradeDefault<T> extends AbstractTargetForDefault<T, StockBuyOrSellFacade> {
+
+		private AbstractTradeDefault(StockEntryFacade newEntryFacade) {
+			super(newEntryFacade);
+		}
+
+		@Override
+		protected IObservableValue<StockBuyOrSellFacade> transactionSpecificFacade(StockEntryFacade facade) {
+			return facade.buyOrSellFacade();
+		}
 	}
 
 	private final class SharePriceDefault extends AbstractTradeDefault<BigDecimal> {
@@ -190,6 +216,34 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 		@Override
 		protected IObservableValue<Long> getTarget(StockBuyOrSellFacade facade) {
 			return facade.tax2();
+		}
+	}
+	
+	private abstract class AbstractDividendDefault<T> extends AbstractTargetForDefault<T, StockDividendFacade> {
+
+		private AbstractDividendDefault(StockEntryFacade newEntryFacade) {
+			super(newEntryFacade);
+		}
+
+		@Override
+		protected IObservableValue<StockDividendFacade> transactionSpecificFacade(StockEntryFacade facade) {
+			return facade.dividendFacade();
+		}
+	}
+
+	private final class GrossDividendDefault extends AbstractDividendDefault<Long> {
+		private GrossDividendDefault(StockEntryFacade newEntryFacade) {
+			super(newEntryFacade);
+		}
+		
+		@Override
+		public Object getValueType() {
+			return BigDecimal.class;
+		}
+
+		@Override
+		protected IObservableValue<Long> getTarget(StockDividendFacade facade) {
+			return facade.grossDividend();
 		}
 	}
 	
@@ -600,27 +654,34 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 			@Override
 			protected Long calculate() {
 				// Must not return null because this is bound to property of type 'long'.
-				
-				StockBuyOrSellFacade facade = newEntryFacade.getBuyOrSellFacade();
-				Long grossAmount = calculateGrossAmount(facade);
-				StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
-				if (grossAmount != null) {
-					long totalExpenses = 0;
-					if (newEntryFacade.isPurchaseOrSale()) {
-						StockBuyOrSellFacade newPurchaseOrSaleFacade = newEntryFacade.getBuyOrSellFacade();
-						totalExpenses =
-								newPurchaseOrSaleFacade.getCommissionAmount()
-								+ newPurchaseOrSaleFacade.getTax1Amount()
-								+ newPurchaseOrSaleFacade.getTax2Amount();
-						if (newEntryFacade.getTransactionType() == TransactionType.Sell) {
-							return grossAmount - totalExpenses;
+	
+				switch (newEntryFacade.getTransactionType()) {
+				case Buy:
+				case Sell:
+					StockBuyOrSellFacade facade = newEntryFacade.getBuyOrSellFacade();
+					Long grossAmount = calculateGrossAmount(facade);
+					StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
+					if (grossAmount != null) {
+						long totalExpenses = 0;
+						if (newEntryFacade.isPurchaseOrSale()) {
+							StockBuyOrSellFacade newPurchaseOrSaleFacade = newEntryFacade.getBuyOrSellFacade();
+							totalExpenses =
+									newPurchaseOrSaleFacade.getCommissionAmount()
+									+ newPurchaseOrSaleFacade.getTax1Amount()
+									+ newPurchaseOrSaleFacade.getTax2Amount();
+							if (newEntryFacade.getTransactionType() == TransactionType.Sell) {
+								return grossAmount - totalExpenses;
+							} else {
+								return - grossAmount - totalExpenses;
+							}
 						} else {
-							return - grossAmount - totalExpenses;
+							return grossAmount;
 						}
 					} else {
-						return grossAmount;
+						return 0L;
 					}
-				} else {
+
+				default:
 					return 0L;
 				}
 			}
@@ -758,6 +819,8 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 	private void bindDividend() {
 		final StockEntryFacade thisEntryFacade = stockEntryFacade.getValue();
 
+		IObservableValue<Long> target = new GrossDividendDefault(thisEntryFacade);
+		
 		Bind.oneWay(new ComputedValue<Long>() {
 			@Override
 			protected Long calculate() {
@@ -769,7 +832,7 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 					return null;
 				}
 			}
-		}).to(thisEntryFacade.dividend());
+		}).to(target);
 	}
 
 	@Override
@@ -817,7 +880,8 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 	@Override
 	protected void specificValidation() throws InvalidUserEntryException {
 		// TODO: We should remove this method and call the EntryData method directly.
-		stockEntryFacade.getValue().specificValidation();
+		// We need to know what specific validation is actually done before we can sort this out.
+//		stockEntryFacade.getValue().specificValidation();
 	}
 
 	//	public BigDecimal getSharePrice() {

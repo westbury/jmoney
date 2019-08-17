@@ -215,9 +215,9 @@ public class StockEntryFacade implements EntryFacade {
 		} else {
 
 			TransactionType newType = null;
+			boolean conflictFound = false;
 			for (Entry entry: getMainEntry().getTransaction().getEntryCollection()) {
 				String[] values = entry.getType() != null ? entry.getType().split(",") : new String[0];
-				boolean conflictFound = false;
 				for (String value : values) {
 					String[] parts = value.split(":");
 					if (parts[0].startsWith("stocks.")) {
@@ -228,20 +228,33 @@ public class StockEntryFacade implements EntryFacade {
 							} else {
 								newType = matchingType.get();
 							}
-							this.transactionType.setValue(matchingType.get());
-						} else {
-							this.transactionType.setValue(TransactionType.Other);
 						}
 					}
 				}
-
-				if (newType != null && !conflictFound) {
-					this.transactionType.setValue(newType);
-				} else {
-					this.transactionType.setValue(null);
-				}
-
 			}
+
+			if (newType != null && !conflictFound) {
+				this.transactionType.setValue(newType);
+
+				switch (newType) {
+				case Buy:
+				case Sell:
+					tradeFacade.setValue(new StockBuyOrSellFacade(getMainEntry().getTransaction(), newType, "", account));
+					facade = tradeFacade.getValue();   // But this assumes this is only place that updates tradeFacade
+					break;
+				case Dividend:
+					dividendFacade.setValue(new StockDividendFacade(getMainEntry().getTransaction(), "", account));
+					facade = dividendFacade.getValue();
+					break;
+				case Takeover:
+					break;
+				default:
+					break;
+				}
+			} else {
+				this.transactionType.setValue(TransactionType.Other);
+			}
+
 		}
 	}
 

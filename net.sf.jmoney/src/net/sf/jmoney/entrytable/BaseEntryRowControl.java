@@ -640,16 +640,6 @@ public abstract class BaseEntryRowControl<B, R extends BaseEntryRowControl<B, R>
 	}
 
 	/**
-	 * Caller must not dispose the observable.
-	 * When is it disposed????
-	 * 
-	 * @return
-	 */
-	public IObservableValue<EntryData> observeRowInput() {
-		return rowInput;
-	}
-
-	/**
 	 * 
 	 * @return an observable on the uncommitted main entry (the
 	 * 			entry containing the net amount credited or debited
