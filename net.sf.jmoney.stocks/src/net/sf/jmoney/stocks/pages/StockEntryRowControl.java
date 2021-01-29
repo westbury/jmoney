@@ -249,22 +249,38 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 	
 	
 	public enum TransactionType {
-		Buy("stocks.buy", BuyOrSellEntryType.getEntryTypes()),
-		Sell("stocks.sell", BuyOrSellEntryType.getEntryTypes()),
-		Dividend("stocks.dividend", DividendEntryType.getEntryTypes()),
-		Takeover("stocks.takeover", TakeoverEntryType.getEntryTypes()),
-		Other(null, null);   // all other transaction types use this.  Should it just be a null type?
+		Buy("stocks.buy", BuyOrSellEntryType.values()),
+		Sell("stocks.sell", BuyOrSellEntryType.values()),
+		Dividend("stocks.dividend", DividendEntryType.values()),
+		Takeover("stocks.takeover", TakeoverEntryType.values()),
+		Other(null, new IEntryType[0]);   // all other transaction types use this.  Should it just be a null type?
 
 		private String id;
 		private Set<String> entryTypes;
+		private Set<String> compulsoryEntryTypes;
 		
-		TransactionType(String id, Set<String> entryTypes) {
+		TransactionType(String id, IEntryType[] entryTypes) {
 			this.id = id;
-			this.entryTypes = entryTypes;
+
+			this.entryTypes = new HashSet<>();
+			for (IEntryType entryType : entryTypes) {
+				this.entryTypes.add(entryType.getId());
+			}
+
+			this.compulsoryEntryTypes = new HashSet<>();
+			for (IEntryType entryType : entryTypes) {
+				if (entryType.isCompulsory()) {
+					this.compulsoryEntryTypes.add(entryType.getId());
+				}
+			}
 		}
 
 		public Set<String> getEntryTypes() {
 			return this.entryTypes;
+		}
+
+		public Set<String> getCompulsoryEntryTypes() {
+			return this.compulsoryEntryTypes;
 		}
 
 		/**
@@ -277,92 +293,77 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 		}
 	}
 
-	public enum BuyOrSellEntryType {
-		Cash("main"),
-		AquisitionOrDisposal("acquisition-or-disposal"),
-		Commission("commission"),
-		Tax1("tax1"),
-		Tax2("tax2");
+	public enum BuyOrSellEntryType implements IEntryType {
+		Cash("cash", true),
+		AquisitionOrDisposal("acquisition-or-disposal", true),
+		Commission("commission", false),
+		Tax1("tax1", false),
+		Tax2("tax2", false);
 
-		private String id;
+		public final String id;
+		public final boolean isCompulsory;
 		
-		BuyOrSellEntryType(String id) {
+		BuyOrSellEntryType(String id, boolean isCompulsory) {
 			this.id = id;
+			this.isCompulsory = isCompulsory;
 		}
 		
-		static public Set<String> getEntryTypes() {
-			Set<String> entryTypes = new HashSet<>();
-			for (BuyOrSellEntryType entryType : BuyOrSellEntryType.values()) {
-				entryTypes.add(entryType.getId());
-			}
-			return entryTypes;
-		}
-
-		/**
-		 * This is the last part of each triple in the entry type.
-		 * 
-		 * @return
-		 */
+		@Override
 		public String getId() {
 			return id;
+		}
+
+		@Override
+		public boolean isCompulsory() {
+			return isCompulsory;
 		}
 	}
 
-	public enum DividendEntryType {
-		Cash("main"),
-		Dividend("dividend"),
-		WithholdingTax("withholding-tax");
+	public enum DividendEntryType implements IEntryType {
+		Cash("cash", true),
+		Dividend("dividend", true),
+		WithholdingTax("withholding-tax", false);
 
-		private String id;
+		public final String id;
+		public final boolean isCompulsory;
 		
-		DividendEntryType(String id) {
+		DividendEntryType(String id, boolean isCompulsory) {
 			this.id = id;
+			this.isCompulsory = isCompulsory;
 		}
 		
-		static public Set<String> getEntryTypes() {
-			Set<String> entryTypes = new HashSet<>();
-			for (DividendEntryType entryType : DividendEntryType.values()) {
-				entryTypes.add(entryType.getId());
-			}
-			return entryTypes;
-		}
-
-		/**
-		 * This is the last part of each triple in the entry type.
-		 * 
-		 * @return
-		 */
+		@Override
 		public String getId() {
 			return id;
+		}
+
+		@Override
+		public boolean isCompulsory() {
+			return isCompulsory;
 		}
 	}
 
-	public enum TakeoverEntryType {
-		Cash("main"),
-		TakenOver("takenOver"),
-		TakingOver("takenOver");
+	public enum TakeoverEntryType implements IEntryType {
+		Cash("cash", true),
+		TakenOver("takenOver", true),
+		TakingOver("takingOver", false);
 
-		private String id;
+		public final String id;
+		public final boolean isCompulsory;
 		
-		TakeoverEntryType(String id) {
+		TakeoverEntryType(String id, boolean isCompulsory) {
 			this.id = id;
+			this.isCompulsory = isCompulsory;
 		}
 		
-		static public Set<String> getEntryTypes() {
-			Set<String> entryTypes = new HashSet<>();
-			for (TakeoverEntryType entryType : TakeoverEntryType.values()) {
-				entryTypes.add(entryType.getId());
-			}
-			return entryTypes;
-		}
-
-		/**
-		 * This is the last part of each triple in the entry type.
-		 * 
-		 * @return
-		 */
+		@Override
 		public String getId() {
 			return id;
+		}
+
+		@Override
+		public boolean isCompulsory() {
+			return isCompulsory;
 		}
 	}
 

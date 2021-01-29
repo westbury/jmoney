@@ -112,7 +112,11 @@ public abstract class Security extends Commodity {
 	}
 
 	private static String appendIsinCheckDigit(String isin) {
-		return isin + calculateIsinCheckDigit(isin);
+		if (isin.length() == 11) {
+			return isin + calculateIsinCheckDigit(isin);
+		} else {
+			return isin;
+		}
 	}
 
 	public String getSymbol() {
@@ -190,6 +194,9 @@ public abstract class Security extends Commodity {
 	}
 
 	private static char calculateIsinCheckDigit(final String isin) {
+		if (isin.length() != 11) {
+			throw new RuntimeException("Invalid ISIN: " + isin);
+		}
 		StringBuilder digits = new StringBuilder();
 		for (int i = 0; i < 11; ++i) {
 			digits.append(Character.digit(isin.charAt(i), 36));

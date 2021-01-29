@@ -11,6 +11,7 @@ import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.StockAccount;
+import net.sf.jmoney.stocks.model.StockEntry;
 import net.sf.jmoney.stocks.model.StockEntryInfo;
 import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
 
@@ -78,8 +79,9 @@ public class StockDividendFacade extends BaseEntryFacade {
 	 * @return the entry in the transaction that represents the stock in the company
 	 * 			being taken over.
 	 */
-	public Entry getGrossDividendEntry() {
-		return dividendEntry.getValue();
+	public StockEntry getGrossDividendEntry() {
+		Entry baseEntry = dividendEntry.getValue();
+		return baseEntry.getExtension(StockEntryInfo.getPropertySet(), true);
 	}
 
 	/**

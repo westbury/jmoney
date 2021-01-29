@@ -72,8 +72,8 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 			createEntry("acquisition-or-disposal");
 		}
 		
-		// TODO the following is incorrect because we must listen to the underlying datastore
-		
+		// Now the acquisition-or-disposal entry has been created, we can set the calculated
+		// price. 
 		sharePrice().setValue(calculatePrice());
 
 		switch (transactionType) {
@@ -122,6 +122,10 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 
 	public Entry getPurchaseOrSaleEntry() {
 		return this.purchaseOrSaleEntry.getValue();
+	}
+
+	public void setQuantity(long amount) {
+		purchaseOrSaleEntry.getValue().setAmount(amount);
 	}
 
 	/**
@@ -205,7 +209,7 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 	/*
 	 * The price is calculated, not stored in the model. This method
 	 * calculates the share price from the data in the model.  It does
-	 * this by adding up all the cash entries to get the gross proceeds0000
+	 * this by adding up all the cash entries to get the gross proceeds
 	 * or cost and then dividing by the number of shares.
 	 *
 	 * @return the calculated price to four decimal places, or null

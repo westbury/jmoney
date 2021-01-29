@@ -1,16 +1,9 @@
 package net.sf.jmoney.stocks.pages;
 
-import org.eclipse.core.databinding.observable.value.AbstractObservableValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
-import org.eclipse.core.databinding.observable.value.ValueDiff;
 
 import net.sf.jmoney.entrytable.EntryFacade;
-import net.sf.jmoney.isolation.IListPropertyAccessor;
-import net.sf.jmoney.isolation.IModelObject;
-import net.sf.jmoney.isolation.IScalarPropertyAccessor;
-import net.sf.jmoney.isolation.SessionChangeListener;
 import net.sf.jmoney.model2.Entry;
-import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
@@ -40,138 +33,6 @@ import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
  */
 public abstract class BaseEntryFacade implements EntryFacade {
  
-	private final class ObservableEntry extends AbstractObservableValue<Entry> {
-		private String entryId;
-
-		/*
-		 * This listener updates all our writable values.
-		 *
-		 * The model keeps only a weak reference to this listener, removing it
-		 * if no one else is referencing the listener.  We therefore must maintain
-		 * a reference for as long as this object exists.
-		 */
-		private SessionChangeListener modelListener = new SessionChangeListener() {
-
-			@Override
-			public void objectInserted(IModelObject newObject) {
-				if (newObject instanceof Entry) {
-					Entry newEntry = (Entry)newObject;
-					if (newEntry.getTransaction() == transaction
-							&& newEntry.getType(transactionTypeAndName) == entryId) {
-						updateValue();
-					}
-				}
-			}
-
-			@Override
-			public void objectCreated(IModelObject newObject) {
-				// TODO Auto-generated method stub
-
-			}
-
-			@Override
-			public void objectRemoved(IModelObject deletedObject) {
-				if (deletedObject instanceof Entry) {
-					Entry deletedEntry = (Entry)deletedObject;
-					if (deletedEntry.getTransaction() == transaction
-							&& deletedEntry.getType(transactionTypeAndName) == entryId) {
-						updateValue();
-					}
-				}
-			}
-
-			@Override
-			public void objectDestroyed(IModelObject deletedObject) {
-				// TODO Auto-generated method stub
-
-			}
-
-			@Override
-			public void objectChanged(IModelObject changedObject,
-					IScalarPropertyAccessor changedProperty, Object oldValue,
-					Object newValue) {
-				if (changedObject instanceof Entry) {
-					Entry changedEntry = (Entry)changedObject;
-					if (changedEntry.getTransaction() == transaction
-							&& changedProperty == EntryInfo.getTypeAccessor()) {
-						updateValue();
-					}
-				}
-			}
-
-			@Override
-			public void objectMoved(IModelObject movedObject,
-					IModelObject originalParent,
-					IModelObject newParent,
-					IListPropertyAccessor originalParentListProperty,
-					IListPropertyAccessor newParentListProperty) {
-				// TODO Auto-generated method stub
-
-			}
-
-			@Override
-			public void performRefresh() {
-				// TODO Auto-generated method stub
-
-			}
-			
-			private void updateValue() {
-				Entry oldValue = entry;
-				Entry newValue = entry = calculateEntry();
-				ValueDiff<Entry> diff = new ValueDiff<Entry>() {
-
-					@Override
-					public Entry getOldValue() {
-						return oldValue;
-					}
-
-					@Override
-					public Entry getNewValue() {
-						return newValue;
-					}};
-				ObservableEntry.this.fireValueChange(diff);
-			}
-		};
-
-		
-		private Entry entry;
-
-		public ObservableEntry(String entryId) {
-			this.entryId = entryId;
-			this.entry = this.calculateEntry();
-		}
-		
-		private Entry calculateEntry() {
-			Entry matchingEntry = null;
-			for (Entry entry : transaction.getEntryCollection()) {
-				if (entry.getType(transactionTypeAndName).equals(entryId)) {
-					if (matchingEntry != null) {
-						throw new RuntimeException("can't have two entries of same id");
-					}
-					matchingEntry = entry;
-				}
-			}
-			return matchingEntry;
-		}
-
-		@Override
-		public Object getValueType() {
-			return Entry.class;
-		}
-
-		@Override
-		protected Entry doGetValue() {
-			return entry;
-		}
-	}
-
-//	private StockAccount account;
-
-	/**
-	 * The net amount, being the amount deposited or withdrawn from the cash balance
-	 * in this account.
-	 */
-//	private Entry netAmountEntry;
 	private IObservableValue<Entry> netAmountEntry;
 	
 	protected Transaction transaction;
@@ -182,14 +43,11 @@ public abstract class BaseEntryFacade implements EntryFacade {
 		this.transaction = transaction;
 		this.transactionTypeAndName = transactionType.getId() + ":" + transactionName;
 		this.netAmountEntry = observeEntry("cash");
+		
+		if (netAmountEntry.getValue() == null) {
+			findOrCreateEntryWithId("cash");
+		}
 	}
-
-
-//	public BaseEntryFacade(Entry netAmountEntry, StockAccount stockAccount) {
-//		this.netAmountEntry = netAmountEntry;
-//		this.account = stockAccount;
-//		
-//	}
 
 	/**
 	 * Provides an observable on an entry that is the entry with the given
@@ -205,14 +63,14 @@ public abstract class BaseEntryFacade implements EntryFacade {
 	 * - delete an entry (call method on transaction directly)
 	 * - remove the transaction type and entry id (if we ever want to do this, call method on entry directly)
 	 * 
-	 * Doing any of the above will of course result in the observable value firing a change event.
+	 * Doing any of the above will result in the observable value firing a change event.
 
 	 * @param entryId
 	 * @return
 	 */
 	// TODO better as a trackedGetter?
 	protected IObservableValue<Entry> observeEntry(String entryId) {
-		return new ObservableEntry(entryId);
+		return new ObservableEntry(entryId, transaction, transactionTypeAndName);
 	}
 
 	/**
@@ -229,6 +87,37 @@ public abstract class BaseEntryFacade implements EntryFacade {
 		return entry;
 	}
 
+	/**
+	 * Looks for an entry with a type id that has the required entry id, even if the transaction
+	 * type is different.
+	 * <P>
+	 * This is useful when forcing a transaction of one type to a transaction
+	 * of another type.  When changing a transaction type, we want to keep as much information
+	 * in the transaction as possible.  For example, the "cash" entry may contain information
+	 * pertaining to the bank account transaction which we do not want to lose.
+	 * <P>
+	 * We only re-use another entry if the transaction type has a 'stock.' prefix and the
+	 * transaction id is blank (so we don't tread on other plugin's transaction types).
+	 *   
+	 * @param entryId
+	 * @return
+	 */
+	protected Entry findOrCreateEntryWithId(String entryId) {
+		for (Entry entry: transaction.getEntryCollection()) {
+			String[] values = entry.getType() != null ? entry.getType().split(",") : new String[0];
+			for (String value : values) {
+				String[] parts = value.split(":");
+				if (parts[0].startsWith("stocks.") && parts[1].equals("") & parts[2].contentEquals(entryId)) {
+					entry.setType(transactionTypeAndName, entryId);
+					return entry;
+				}
+			}
+		}
+
+		// Only if no suitable entry is found do we create a new entry
+		return createEntry(entryId);
+	}
+	
 	@Override
 	public Entry getMainEntry() {
 		// TODO what if this entry is deleted from a transaction?
