@@ -560,9 +560,10 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 			ComputedValue<BigDecimal> sharePriceDefault = new ComputedValue<BigDecimal>() {
 				@Override
 				protected BigDecimal calculate() {
-					if (newEntryFacade.isPurchaseOrSale()) {
-						StockBuyOrSellFacade newPurchaseOrSaleFacade = newEntryFacade.getBuyOrSellFacade();
-						if (newPurchaseOrSaleFacade.quantity().getValue() == 0) {
+					StockBuyOrSellFacade newPurchaseOrSaleFacade = newEntryFacade.getBuyOrSellFacade();
+					if (newPurchaseOrSaleFacade != null) {
+						Long quantity1 = newPurchaseOrSaleFacade.quantity().getValue();
+						if (quantity1 == null || quantity1 == 0) {
 							return null;
 						}
 
@@ -573,7 +574,7 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 						 * bound to the default value.
 						 */
 						BigDecimal grossAmount = new BigDecimal(newEntryFacade.getMainEntry().getAmount()).movePointLeft(2);
-						BigDecimal quantity = new BigDecimal(newPurchaseOrSaleFacade.quantity().getValue());
+						BigDecimal quantity = new BigDecimal(quantity1);
 						return grossAmount.divide(quantity, 4, BigDecimal.ROUND_HALF_UP);
 					} else {
 						// Not a purchase or sale transaction
@@ -598,8 +599,8 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 		ComputedValue<Long> quantityDefault = new ComputedValue<Long>() {
 			@Override
 			protected Long calculate() {
-				if (newEntryFacade.isPurchaseOrSale()) {
-					StockBuyOrSellFacade newPurchaseOrSaleFacade = newEntryFacade.getBuyOrSellFacade();
+				StockBuyOrSellFacade newPurchaseOrSaleFacade = newEntryFacade.getBuyOrSellFacade();
+				if (newPurchaseOrSaleFacade != null) {
 
 					/*
 					 * The user would not usually enter the net amount for the
@@ -655,35 +656,25 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 			@Override
 			protected Long calculate() {
 				// Must not return null because this is bound to property of type 'long'.
-	
-				switch (newEntryFacade.getTransactionType()) {
-				case Buy:
-				case Sell:
-					StockBuyOrSellFacade facade = newEntryFacade.getBuyOrSellFacade();
+				StockBuyOrSellFacade facade = newEntryFacade.getBuyOrSellFacade();
+				if (facade == null) {
+					return 0L;
+				} else {
 					Long grossAmount = calculateGrossAmount(facade);
-					StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
 					if (grossAmount != null) {
 						long totalExpenses = 0;
-						if (newEntryFacade.isPurchaseOrSale()) {
-							StockBuyOrSellFacade newPurchaseOrSaleFacade = newEntryFacade.getBuyOrSellFacade();
 							totalExpenses =
-									newPurchaseOrSaleFacade.getCommissionAmount()
-									+ newPurchaseOrSaleFacade.getTax1Amount()
-									+ newPurchaseOrSaleFacade.getTax2Amount();
+									facade.getCommissionAmount()
+									+ facade.getTax1Amount()
+									+ facade.getTax2Amount();
 							if (newEntryFacade.getTransactionType() == TransactionType.Sell) {
 								return grossAmount - totalExpenses;
 							} else {
 								return - grossAmount - totalExpenses;
 							}
-						} else {
-							return grossAmount;
-						}
 					} else {
 						return 0L;
 					}
-
-				default:
-					return 0L;
 				}
 			}
 		};
@@ -699,8 +690,8 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 		ComputedValue<Long> commissionDefault = new ComputedValue<Long>() {
 			@Override
 			protected Long calculate() {
-				if (newEntryFacade.isPurchaseOrSale()) {
-					StockBuyOrSellFacade facade = newEntryFacade.getBuyOrSellFacade();
+				StockBuyOrSellFacade facade = newEntryFacade.getBuyOrSellFacade();
+				if (facade != null) {
 					Long grossAmount = calculateGrossAmount(facade);
 					StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
 					if (grossAmount != null) {
@@ -736,8 +727,8 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 		ComputedValue<Long> tax1Default = new ComputedValue<Long>() {
 			@Override
 			protected Long calculate() {
-				if (newEntryFacade.isPurchaseOrSale()) {
-					StockBuyOrSellFacade facade = newEntryFacade.getBuyOrSellFacade();
+				StockBuyOrSellFacade facade = newEntryFacade.getBuyOrSellFacade();
+				if (facade != null) {
 					Long grossAmount = calculateGrossAmount(facade);
 					StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
 					if (grossAmount != null) {
@@ -769,8 +760,8 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 		ComputedValue<Long> tax2Default = new ComputedValue<Long>() {
 			@Override
 			protected Long calculate() {
-				if (newEntryFacade.isPurchaseOrSale()) {
-					StockBuyOrSellFacade facade = newEntryFacade.getBuyOrSellFacade();
+				StockBuyOrSellFacade facade = newEntryFacade.getBuyOrSellFacade();
+				if (facade != null) {
 					Long grossAmount = calculateGrossAmount(facade);
 					StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
 					if (grossAmount != null) {
@@ -825,8 +816,8 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 		Bind.oneWay(new ComputedValue<Long>() {
 			@Override
 			protected Long calculate() {
-				if (thisEntryFacade.isDividend()) {
-					StockDividendFacade facade = thisEntryFacade.dividendFacade().getValue();
+				StockDividendFacade facade = thisEntryFacade.dividendFacade().getValue();
+				if (facade != null) {
 					long dividend = - thisEntryFacade.getNetAmount() - facade.getWithholdingTaxAmount();
 					return dividend;
 				} else {
@@ -849,7 +840,8 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 	private Long calculateGrossAmount(StockBuyOrSellFacade newEntryFacade) {
 		// Stock quantities are to three decimal places,
 		// (long value is number of thousandths) hence why we shift the long value three places.
-		long quantity = newEntryFacade.quantity().getValue();
+		Long quantity1 = newEntryFacade.quantity().getValue();
+		long quantity = quantity1 == null ? 0L : quantity1;
 		BigDecimal sharePrice = newEntryFacade.sharePrice().getValue();
 		if (sharePrice == null || quantity == 0) {
 			return null;

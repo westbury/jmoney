@@ -404,8 +404,11 @@ public class StockEntryFacade implements EntryFacade {
 		return dividendFacade;
 	}
 
+	/**
+	 * 
+	 * @return a facade to a buy or sell transaction, or null if this is not a buy or sell transaction.
+	 */
 	public StockBuyOrSellFacade getBuyOrSellFacade() {
-		Assert.isTrue(isPurchaseOrSale());
 		return tradeFacade.getValue();
 	}
 
