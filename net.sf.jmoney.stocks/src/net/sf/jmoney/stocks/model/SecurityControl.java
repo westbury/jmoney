@@ -148,26 +148,10 @@ public abstract class SecurityControl<A extends Security> extends Composite {
         final List listControl = new List(shell, SWT.SINGLE | SWT.V_SCROLL);
         listControl.setLayoutData(new RowData(SWT.DEFAULT, 100));
 
-        Button addSecurityButton = new Button(shell, SWT.PUSH);
-        addSecurityButton.setText("Add New Stock...");
-        addSecurityButton.addSelectionListener(new SelectionAdapter() {
-        	@Override
-			public void widgetSelected(SelectionEvent e) {
-				NewStockWizard<A> wizard = new NewStockWizard<A>(getSession(), securityClass);
-				System.out.println(shell.isDisposed() + ", " + shell.getDisplay());
-				WizardDialog dialog = new WizardDialog(shell, wizard);
-				dialog.setPageSize(600, 300);
-				int result = dialog.open();
-				if (result == Window.OK) {
-					/*
-					 * Having created the new stock, set it as the
-					 * selected stock in this control.
-					 */
-	    	        setSecurity(wizard.getNewStock());
-				}
-			}
-        });
-
+        for (ExtendablePropertySet<? extends A> specificSecurityClass : securityClass.getDerivedPropertySets()) {
+	        createNewSecurityButton(shell, specificSecurityClass);
+        }
+        
         // Important we use the field for the session and stockClass.  We do not use the parameters
         // (the parameters may be null, but fields should always have been set by
         // the time control gets focus).
@@ -282,6 +266,28 @@ public abstract class SecurityControl<A extends Security> extends Composite {
         		parentShell.removeShellListener(parentActivationListener);
 			}
         });
+	}
+
+	private <A2 extends A> void createNewSecurityButton(final Shell shell, ExtendablePropertySet<A2> specificSecurityClass) {
+		Button addSecurityButton = new Button(shell, SWT.PUSH);
+		addSecurityButton.setText("Add New " + specificSecurityClass.getObjectDescription() + "...");
+		addSecurityButton.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				NewStockWizard<A2> wizard = new NewStockWizard<A2>(getSession(), specificSecurityClass);
+				System.out.println(shell.isDisposed() + ", " + shell.getDisplay());
+				WizardDialog dialog = new WizardDialog(shell, wizard);
+				dialog.setPageSize(600, 300);
+				int result = dialog.open();
+				if (result == Window.OK) {
+					/*
+					 * Having created the new stock, set it as the
+					 * selected stock in this control.
+					 */
+			        setSecurity(wizard.getNewStock());
+				}
+			}
+		});
 	}
 
 	private void addSecurities(String prefix, Collection<? extends Commodity> securities, List listControl, Class<A> securityClass) {
