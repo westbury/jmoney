@@ -1,5 +1,8 @@
 package net.sf.jmoney.stocks.pages;
 
+import net.sf.jmoney.model2.Account;
+import net.sf.jmoney.stocks.model.StockAccount;
+
 public interface IEntryType {
 
 	/**
@@ -10,5 +13,7 @@ public interface IEntryType {
 	String getId();
 
 	boolean isCompulsory();
+
+	Account getAssociatedAccount(StockAccount account);
 
 }

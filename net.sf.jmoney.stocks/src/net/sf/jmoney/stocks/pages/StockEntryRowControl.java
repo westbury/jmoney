@@ -23,6 +23,7 @@ import net.sf.jmoney.entrytable.FocusCellTracker;
 import net.sf.jmoney.entrytable.InvalidUserEntryException;
 import net.sf.jmoney.entrytable.RowSelectionTracker;
 import net.sf.jmoney.entrytable.VirtualRowTable;
+import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.stocks.model.RatesTable;
@@ -256,16 +257,17 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 		Other(null, new IEntryType[0]);   // all other transaction types use this.  Should it just be a null type?
 
 		private String id;
-		private Set<String> entryTypes;
+		private IEntryType[] entryTypes;
 		private Set<String> compulsoryEntryTypes;
 		
 		TransactionType(String id, IEntryType[] entryTypes) {
 			this.id = id;
+			this.entryTypes = entryTypes;
 
-			this.entryTypes = new HashSet<>();
-			for (IEntryType entryType : entryTypes) {
-				this.entryTypes.add(entryType.getId());
-			}
+//			this.entryTypes = new HashSet<>();
+//			for (IEntryType entryType : entryTypes) {
+//				this.entryTypes.add(entryType.getId());
+//			}
 
 			this.compulsoryEntryTypes = new HashSet<>();
 			for (IEntryType entryType : entryTypes) {
@@ -275,7 +277,7 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 			}
 		}
 
-		public Set<String> getEntryTypes() {
+		public IEntryType[] getEntryTypes() {
 			return this.entryTypes;
 		}
 
@@ -293,19 +295,25 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 		}
 	}
 
+	public interface AssociatedAccount {
+		public Account getAssociatedAccount(StockAccount account);
+	}
+	
 	public enum BuyOrSellEntryType implements IEntryType {
-		Cash("cash", true),
-		AquisitionOrDisposal("acquisition-or-disposal", true),
-		Commission("commission", false),
-		Tax1("tax1", false),
-		Tax2("tax2", false);
+		Cash("cash", true, account -> account),
+		AquisitionOrDisposal("acquisition-or-disposal", true, account -> account),
+		Commission("commission", false, account -> account.getCommissionAccount()),
+		Tax1("tax1", false, account -> account.getTax1Account()),
+		Tax2("tax2", false, account -> account.getTax2Account());
 
 		public final String id;
 		public final boolean isCompulsory;
+		private final AssociatedAccount associatedAccountGetter;
 		
-		BuyOrSellEntryType(String id, boolean isCompulsory) {
+		BuyOrSellEntryType(String id, boolean isCompulsory, AssociatedAccount associatedAccountGetter) {
 			this.id = id;
 			this.isCompulsory = isCompulsory;
+			this.associatedAccountGetter = associatedAccountGetter;
 		}
 		
 		@Override
@@ -316,20 +324,27 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 		@Override
 		public boolean isCompulsory() {
 			return isCompulsory;
+		}
+		
+		@Override
+		public Account getAssociatedAccount(StockAccount account) {
+			return associatedAccountGetter.getAssociatedAccount(account);
 		}
 	}
 
 	public enum DividendEntryType implements IEntryType {
-		Cash("cash", true),
-		Dividend("dividend", true),
-		WithholdingTax("withholding-tax", false);
+		Cash("cash", true, account -> account),
+		Dividend("dividend", true, account -> account.getDividendAccount()),
+		WithholdingTax("withholding-tax", false, account -> account.getWithholdingTaxAccount());
 
 		public final String id;
 		public final boolean isCompulsory;
+		private final AssociatedAccount associatedAccountGetter;
 		
-		DividendEntryType(String id, boolean isCompulsory) {
+		DividendEntryType(String id, boolean isCompulsory, AssociatedAccount associatedAccountGetter) {
 			this.id = id;
 			this.isCompulsory = isCompulsory;
+			this.associatedAccountGetter = associatedAccountGetter;
 		}
 		
 		@Override
@@ -340,20 +355,27 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 		@Override
 		public boolean isCompulsory() {
 			return isCompulsory;
+		}
+		
+		@Override
+		public Account getAssociatedAccount(StockAccount account) {
+			return associatedAccountGetter.getAssociatedAccount(account);
 		}
 	}
 
 	public enum TakeoverEntryType implements IEntryType {
-		Cash("cash", true),
-		TakenOver("takenOver", true),
-		TakingOver("takingOver", false);
+		Cash("cash", true, account -> account),
+		TakenOver("takenOver", true, account -> account),
+		TakingOver("takingOver", false, account -> account);
 
 		public final String id;
 		public final boolean isCompulsory;
+		private final AssociatedAccount associatedAccountGetter;
 		
-		TakeoverEntryType(String id, boolean isCompulsory) {
+		TakeoverEntryType(String id, boolean isCompulsory, AssociatedAccount associatedAccountGetter) {
 			this.id = id;
 			this.isCompulsory = isCompulsory;
+			this.associatedAccountGetter = associatedAccountGetter;
 		}
 		
 		@Override
@@ -364,6 +386,11 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 		@Override
 		public boolean isCompulsory() {
 			return isCompulsory;
+		}
+		
+		@Override
+		public Account getAssociatedAccount(StockAccount account) {
+			return associatedAccountGetter.getAssociatedAccount(account);
 		}
 	}
 

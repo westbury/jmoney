@@ -59,7 +59,16 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 	 */
 	private final IObservableValue<Long> tax2 = new WritableValue<Long>();
 
+	/**
+	 * Multiple observers may be using facades on the same transaction.  Therefore constructing a
+	 * facade should not alter the transaction.  A facade should only be constructed once we know
+	 * the transaction meets the restrictions of the facade (has all compulsory entries).  Otherwise
+	 * we get horrible recursion as creating a facade invokes all sorts of other listeners to do stuff.
+	 */
 
+	/**
+	 * TODO this absolutely must not change the transaction....
+	 */
 	public StockBuyOrSellFacade(Transaction transaction, TransactionType transactionType, String transactionName, StockAccount stockAccount) {
 		super(transaction, transactionType, "");
 
