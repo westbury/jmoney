@@ -37,4 +37,35 @@
       </filetype>
    </extension>
 
+   <extension
+         point="org.eclipse.ui.commands">
+      <command
+            id="net.sf.jmoney.ofx.ofxExport"
+            name="Export to OFX"/>
+   </extension>
+
+   <extension
+         point="org.eclipse.ui.handlers">
+      <handler
+            class="net.sf.jmoney.ofx.OfxExportHandler"
+            commandId="net.sf.jmoney.ofx.ofxExport">
+         <activeWhen>
+            <with
+                  variable="activeEditor">
+               <instanceof
+                     value="net.sf.jmoney.views.AccountEditor">
+               </instanceof>
+            </with>
+         </activeWhen>
+      </handler>
+   </extension>
+
+<extension point="org.eclipse.ui.menus">
+     <menuContribution locationURI="menu:file?after=additions">
+        <command
+              commandId="net.sf.jmoney.ofx.ofxExport"
+              label="Export OFX..."/>
+     </menuContribution>
+   </extension>
+   
 </plugin>
