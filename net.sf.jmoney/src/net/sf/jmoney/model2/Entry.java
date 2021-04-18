@@ -403,8 +403,6 @@ public final class Entry extends ExtendableObject {
 		processPropertyChange(EntryInfo.getIncomeExpenseCurrencyAccessor(), oldIncomeExpenseCurrency, incomeExpenseCurrency);
 	}
 	
-	// Helper methods
-	
 	/**
 	 * Returns the entry type.
 	 */
@@ -423,80 +421,8 @@ public final class Entry extends ExtendableObject {
 		processPropertyChange(EntryInfo.getTypeAccessor(), oldType, type);
 	}
 
-	/**
-	 * This is a helper method for setting an entry type.
-	 * 
-	 * The 'type' property of an entry is actually a comma-separated list of values.
-	 * Each value in the list contains a transaction type (with an optional id) and an entry type.
-	 * Almost always there will be only a single value in this list, but in case there are more
-	 * than one value, callers should use this method whenever setting the transaction type.
-	 * This method will add the entry type for the given transaction type and id, leaving all other
-	 * values in the list alone.
-	 */
-	public void setType(String transactionType, String entryType) {
-		String oldType = this.type;
-		
-		if (this.type == null) {
-			if (entryType != null) {
-				this.type = transactionType + ":" + entryType;
-			}
-		} else {
-			String[] values = this.type.split(",");
-			List<String> newValues = new ArrayList<>();
-			boolean entryFound = false;
-			for (String value : values) {
-				String[] parts = value.split(":");
-				if (transactionType.equals(parts[0] + ":" + parts[1])) {
-					if (entryType == null) {
-						// Explicitly clearing an entry type is fine.
-					} else {
-						if (!entryType.equals(parts[2])) {
-							// We're forcing the entry type to another type.
-							// I'm not sure this is a good idea so throw an error for time being.
-							throw new RuntimeException("Forcing entry type not allowed for time being");
-						}
-						newValues.add(value);
-						entryFound = true;
-					}
-				} else {
-					newValues.add(value);
-				}
-			}
-			
-			if (!entryFound && entryType != null) {
-				newValues.add(transactionType + ":" + entryType);
-			}
-		
-			if (newValues.isEmpty()) {
-				this.type = null;
-			} else {
-				StringBuffer newValuesBuffer = new StringBuffer();
-				String separator = "";
-				for (String value : newValues) {
-					newValuesBuffer.append(separator).append(value);
-					separator = ",";
-				}
-				this.type = newValuesBuffer.toString();
-			}
-		}
-
-		// Notify the change manager.
-		processPropertyChange(EntryInfo.getTypeAccessor(), oldType, type);
-	}
-
-	public String getType(String transactionType) {
-		if (this.type != null) {
-			String[] values = this.type.split(",");
-			for (String value : values) {
-				String[] parts = value.split(":");
-				if (transactionType.equals(parts[0] + ":" + parts[1])) {
-					return parts[2];
-				}
-			}
-		}
-		return null;
-	}
-
+	// Helper methods
+	
 	/**
 	 * A transaction with split entries is a transaction that
 	 * has entries in three or more accounts (where each account

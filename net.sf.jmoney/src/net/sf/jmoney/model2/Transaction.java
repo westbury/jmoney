@@ -41,6 +41,8 @@ public class Transaction extends ExtendableObject {
 
     protected Date date = null;
 
+	protected String type = null;
+
     protected IListManager<Entry> entries;
 
 	public Transaction(
@@ -48,11 +50,13 @@ public class Transaction extends ExtendableObject {
 			ListKey parentKey,
     		IListManager<Entry> entries,
     		Date date,
+    		String type,
 			IValues<Transaction> extensionValues) {
 		super(objectKey, parentKey, extensionValues);
 
 		this.entries = entries;
 		this.date = date;
+		this.type = type;
 	}
 
 	public Transaction(
@@ -64,6 +68,7 @@ public class Transaction extends ExtendableObject {
 
 		// TODO: Check that this sets the date to the current date.
 		this.date = new Date();
+		this.type = null;
 	}
 
     @Override
@@ -85,6 +90,24 @@ public class Transaction extends ExtendableObject {
 		// Notify the change manager.
 		processPropertyChange(TransactionInfo.getDateAccessor(), oldDate, date);
     }
+
+	/**
+	 * Returns the entry type.
+	 */
+	public String getType() {
+		return type;
+	}
+
+	/**
+	 * See @ for a description of entry types.
+	 */
+	public void setType(String type) {
+		String oldType = this.type;
+		this.type = (type != null && type.length() == 0) ? null : type;
+
+		// Notify the change manager.
+		processPropertyChange(TransactionInfo.getTypeAccessor(), oldType, type);
+	}
 
     public Entry createEntry() {
     	return new EntryCollection(entries, this, TransactionInfo.getEntriesAccessor()).createEntry();

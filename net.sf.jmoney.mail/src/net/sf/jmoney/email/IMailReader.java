@@ -6,7 +6,7 @@ import java.util.Set;
 import net.sf.jmoney.model2.Session;
 
 /**
- * Interface to be implementad by all extensions
+ * Interface to be implemented by all extensions
  * that know how to extract accounting information from e-mail.
  * 
  * @author westbury.nigel2

@@ -22,6 +22,7 @@ import net.sf.jmoney.isolation.IScalarPropertyAccessor;
 import net.sf.jmoney.isolation.SessionChangeListener;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
+import net.sf.jmoney.model2.TransactionInfo;
 import net.sf.jmoney.model2.Transaction.EntryCollection;
 import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.StockAccount;
@@ -101,6 +102,10 @@ public class StockEntryFacade implements EntryFacade {
 			public void objectChanged(IModelObject changedObject,
 					IScalarPropertyAccessor changedProperty, Object oldValue,
 					Object newValue) {
+				if (changedObject == getMainEntry().getTransaction()
+						&& changedProperty == TransactionInfo.getTypeAccessor()) {
+					analyzeAndSetTransaction();
+				}
 				if (changedObject instanceof Entry) {
 					Entry changedEntry = (Entry)changedObject;
 					if (changedEntry.getTransaction() == getMainEntry().getTransaction()) {
@@ -183,37 +188,19 @@ public class StockEntryFacade implements EntryFacade {
 				return null;
 			} else {
 
-				String transactionType = null;
-				boolean conflictFound = false;
-				for (Entry entry: getMainEntry().getTransaction().getEntryCollection()) {
-					String[] values = entry.getType() != null ? entry.getType().split(",") : new String[0];
-					for (String value : values) {
-						String[] parts = value.split(":");
-						if (parts[0].startsWith("stocks.")) {
-							String thisTransactionType = parts[0] + ':' + parts[1];
-							if (transactionType != null && !thisTransactionType.contentEquals(transactionType)) {
-								conflictFound = true;
-							} else {
-								transactionType = thisTransactionType;
-							}
-						}
-					}
-				}
+				String transactionType = getMainEntry().getTransaction().getType();
+				if (transactionType != null) {
 
-				if (transactionType != null && !conflictFound) {
-
-					String transactionTypeOnly = transactionType.split(":")[0];
-					Optional<TransactionType> matchingType = Arrays.asList(TransactionType.values()).stream().filter(eachType -> eachType.getId() != null && eachType.getId().equals(transactionTypeOnly)).findAny();
+					Optional<TransactionType> matchingType = Arrays.asList(TransactionType.values()).stream().filter(eachType -> eachType.getId() != null && eachType.getId().equals(transactionType)).findAny();
 					if (matchingType.isPresent()) {
 						TransactionType newType = matchingType.get();
-
 
 						// Check all compulsory entries exist
 						boolean anyTypesNotFound = false;
 						for (String compulsoryEntryType : newType.getCompulsoryEntryTypes()) {
 							boolean thisTypeFound = false;
 							for (Entry entry: getMainEntry().getTransaction().getEntryCollection()) {
-								String thisEntryType = entry.getType(transactionType);
+								String thisEntryType = entry.getType();
 								if (thisEntryType != null && thisEntryType.equals(compulsoryEntryType)) {
 									thisTypeFound = true;
 								}
@@ -239,13 +226,15 @@ public class StockEntryFacade implements EntryFacade {
 		}
 
 		private void forceTransactionTo(TransactionType newTransType) {
-			// This method does not itself set the transaction type.  When we change the transaction entries, the model listener
+			// This method does not itself set the transaction type in this object.
+			// When we change the transaction type and entries in the model, the model listener
 			// will analyze the transaction.  That way all facades on the transaction will update in the
 			// same way.
 
-			String oldTransTypeId = this.transactionTypeValue != null ? this.transactionTypeValue.getId() + ":" : null;
-			String newTransTypeId = newTransType.getId() + ":";
-			
+			TransactionType oldTransType = this.transactionTypeValue;
+
+			getMainEntry().getTransaction().setType(newTransType.getId());
+
 			// Get the security from the old transaction, which must be done
 			// before we start messing with this transaction.
 			Security security = StockEntryFacade.this.facade == null ? null : facade.getSecurity();
@@ -262,22 +251,20 @@ public class StockEntryFacade implements EntryFacade {
 				if (entry == getMainEntry()) {
 					// Maintain the main entry even if no previous transaction type.  This entry is the anchor entry and we want the instance
 					// to remain.
-					if (oldTransTypeId != null) {
-						entry.setType(oldTransTypeId, null);
-					}
-					entry.setType(newTransTypeId, "cash");
+					// TODO should we check that this entry was not some non-cash entry before?
+					// that would be bad.
+					entry.setType("cash");
 					compulsoryEntryTypes.remove("cash");
 				} else {	
 					IEntryType[] validNewEntryTypes = newTransType.getEntryTypes();
 					
-					if (oldTransTypeId != null) {
-						String typeOfThisEntry = entry.getType(oldTransTypeId);
+					if (oldTransType != null) {
+						String typeOfThisEntry = entry.getType();
 						
 						Optional<IEntryType> entryType = Arrays.stream(validNewEntryTypes).filter(e -> e.getId().contentEquals(typeOfThisEntry)).findFirst();
 						if (entryType.isPresent()) {
-							// Force this entry
-							entry.setType(oldTransTypeId, null);
-							entry.setType(newTransTypeId, typeOfThisEntry);
+							// Leave this entry as it is valid in the new transaction type too.
+							
 							entry.setAccount(entryType.get().getAssociatedAccount(account));
 							
 							// As the entry already exists, remove from the list of entries we must create
@@ -294,7 +281,7 @@ public class StockEntryFacade implements EntryFacade {
 			// Add the missing required entries
 			for (String entryTypeId : compulsoryEntryTypes) {
 				Optional<IEntryType> entryType = Arrays.stream(newTransType.getEntryTypes()).filter(e -> e.getId().equals(entryTypeId)).findFirst();
-				this.createEntry(newTransTypeId, entryType.get());
+				this.createEntry(entryType.get());
 			}
 			
 			// The model listener will now have analyzed the transaction and updated the transaction type
@@ -316,9 +303,9 @@ public class StockEntryFacade implements EntryFacade {
 			}
 		}
 
-		protected Entry createEntry(String transactionTypeAndName, IEntryType entryType) {
+		protected Entry createEntry(IEntryType entryType) {
 			Entry entry = getMainEntry().getTransaction().createEntry();
-			entry.setType(transactionTypeAndName, entryType.getId());
+			entry.setType(entryType.getId());
 			entry.setAccount(entryType.getAssociatedAccount(account));
 			return entry;
 		}
@@ -347,6 +334,7 @@ public class StockEntryFacade implements EntryFacade {
 		this.account = stockAccount;
 		
 		transactionType = new TransactionTypeObservable(netAmountEntry);
+		setAppropriateFacade(transactionType.getValue());
 		
 		/*
 		 * The above set the initial transaction type.
@@ -380,31 +368,34 @@ public class StockEntryFacade implements EntryFacade {
 				// This object guarantees that the transaction has all the compulsory entries for the
 				// transaction type.
 
-				facade = null;  // Do we need this?
 				TransactionType newValue = event.diff.getNewValue();
-				if (newValue != null) {
-					switch (newValue) {
-					case Buy:
-					case Sell:
-						StockBuyOrSellFacade thisTradeFacade = new StockBuyOrSellFacade(getMainEntry().getTransaction(), newValue, "", account);
-						facade = thisTradeFacade;   // But this assumes this is only place that upates tradeFacade
-						tradeFacade.setValue(thisTradeFacade);
-						break;
-					case Dividend:
-						dividendFacade.setValue(new StockDividendFacade(getMainEntry().getTransaction(), "", account));
-						facade = dividendFacade.getValue();
-						break;
-					case Takeover:
-						takeoverFacade.setValue(new StockTakeoverFacade(getMainEntry().getTransaction(), "", account));
-						facade = takeoverFacade.getValue();
-						break;
-					default:
-						break;
-					}
-				}
-
+				setAppropriateFacade(newValue);
 			}
 		});
+	}
+
+	private void setAppropriateFacade(TransactionType transactionType) {
+		if (transactionType != null) {
+			switch (transactionType) {
+			case Buy:
+			case Sell:
+				StockBuyOrSellFacade thisTradeFacade = new StockBuyOrSellFacade(getMainEntry().getTransaction(), transactionType, "", account);
+				facade = thisTradeFacade;   // But this assumes this is only place that upates tradeFacade
+				tradeFacade.setValue(thisTradeFacade);
+				break;
+			case Dividend:
+				dividendFacade.setValue(new StockDividendFacade(getMainEntry().getTransaction(), "", account));
+				facade = dividendFacade.getValue();
+				break;
+			case Takeover:
+				takeoverFacade.setValue(new StockTakeoverFacade(getMainEntry().getTransaction(), "", account));
+				facade = takeoverFacade.getValue();
+				break;
+			default:
+				facade = null;  // Do we need this?
+				break;
+			}
+		}
 	}
 
 	@Override

@@ -10,6 +10,7 @@ import net.sf.jmoney.isolation.SessionChangeListener;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.Transaction;
+import net.sf.jmoney.model2.TransactionInfo;
 
 /**
  * This class is an observer of an entry in a given transaction with a given type id.
@@ -23,7 +24,6 @@ import net.sf.jmoney.model2.Transaction;
 class ObservableEntry extends AbstractObservableValue<Entry> {
 	private String entryId;
 	private Transaction transaction;
-	private String transactionTypeAndName;
 	
 	/*
 	 * This listener listens to the model for changes that may result in a change to the value
@@ -36,7 +36,7 @@ class ObservableEntry extends AbstractObservableValue<Entry> {
 			if (newObject instanceof Entry) {
 				Entry newEntry = (Entry)newObject;
 				if (newEntry.getTransaction() == transaction
-						&& newEntry.getType(transactionTypeAndName) == entryId) {
+						&& newEntry.getType() == entryId) {
 					updateValue();
 				}
 			}
@@ -53,7 +53,7 @@ class ObservableEntry extends AbstractObservableValue<Entry> {
 			if (deletedObject instanceof Entry) {
 				Entry deletedEntry = (Entry)deletedObject;
 				if (deletedEntry.getTransaction() == transaction
-						&& deletedEntry.getType(transactionTypeAndName) == entryId) {
+						&& deletedEntry.getType() == entryId) {
 					updateValue();
 				}
 			}
@@ -69,6 +69,10 @@ class ObservableEntry extends AbstractObservableValue<Entry> {
 		public void objectChanged(IModelObject changedObject,
 				IScalarPropertyAccessor changedProperty, Object oldValue,
 				Object newValue) {
+			if (changedObject == transaction
+					&& changedProperty == TransactionInfo.getTypeAccessor()) {
+				updateValue();
+			}
 			if (changedObject instanceof Entry) {
 				Entry changedEntry = (Entry)changedObject;
 				if (changedEntry.getTransaction() == transaction
@@ -117,10 +121,9 @@ class ObservableEntry extends AbstractObservableValue<Entry> {
 	
 	private Entry entry;
 
-	public ObservableEntry(String entryId, Transaction transaction, String transactionTypeAndName) {
+	public ObservableEntry(String entryId, Transaction transaction) {
 		this.entryId = entryId;
 		this.transaction = transaction;
-		this.transactionTypeAndName = transactionTypeAndName;
 		this.entry = this.calculateEntry();
 		
 		transaction.getDataManager().addChangeListener(modelListener);
@@ -130,7 +133,7 @@ class ObservableEntry extends AbstractObservableValue<Entry> {
 		Entry matchingEntry = null;
 		for (Entry entry : transaction.getEntryCollection()) {
 			// Note that the type set in the entry may be null 
-			if (entryId.equals(entry.getType(transactionTypeAndName))) {
+			if (entryId.equals(entry.getType())) {
 				if (matchingEntry != null) {
 					throw new RuntimeException("can't have two entries of same id");
 				}

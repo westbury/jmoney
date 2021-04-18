@@ -25,6 +25,7 @@ package net.sf.jmoney.model2;
 import java.util.Date;
 
 import net.sf.jmoney.fields.DateControlFactory;
+import net.sf.jmoney.fields.TextControlFactory;
 import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ListKey;
@@ -65,6 +66,7 @@ public class TransactionInfo implements IPropertySetInfo {
 					parentKey, 
 					values.getListManager(objectKey, TransactionInfo.getEntriesAccessor()),
 					values.getScalarValue(TransactionInfo.getDateAccessor()),
+					values.getScalarValue(TransactionInfo.getTypeAccessor()),
 					values
 			);
 		}
@@ -72,6 +74,7 @@ public class TransactionInfo implements IPropertySetInfo {
 
 
 	private static ScalarPropertyAccessor<Date,Transaction> dateAccessor = null;
+	private static ScalarPropertyAccessor<String,Transaction> typeAccessor = null;
 	private static ListPropertyAccessor<Entry,Transaction> entriesAccessor = null;
 
 	@Override
@@ -84,9 +87,11 @@ public class TransactionInfo implements IPropertySetInfo {
 		};
 		
         IPropertyControlFactory<Transaction,Date> dateControlFactory = new DateControlFactory<Transaction>();
+		IPropertyControlFactory<Transaction,String> textControlFactory = new TextControlFactory<Transaction>();
 		
 		entriesAccessor = propertySet.addPropertyList("entry", Messages.TransactionInfo_Entry, EntryInfo.getPropertySet(), entryGetter); //$NON-NLS-1$
 		dateAccessor = propertySet.addProperty("date", Messages.TransactionInfo_Date, Date.class, 0, 74, dateControlFactory, null); //$NON-NLS-1$
+		typeAccessor = propertySet.addProperty("type", Messages.TransactionInfo_Type, String.class, 5, 100, textControlFactory, null); //$NON-NLS-1$
 		
 		return propertySet;
 	}
@@ -111,5 +116,12 @@ public class TransactionInfo implements IPropertySetInfo {
 	public static ScalarPropertyAccessor<Date,Transaction> getDateAccessor() {
 		return dateAccessor;
 	}	
+
+	/**
+	 * @return
+	 */
+	public static ScalarPropertyAccessor<String,Transaction> getTypeAccessor() {
+		return typeAccessor;
+	}
 
 }

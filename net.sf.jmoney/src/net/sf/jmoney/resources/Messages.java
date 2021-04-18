@@ -174,6 +174,7 @@ public class Messages extends NLS {
 	public static String TransactionDialog_Message;
 	public static String TransactionDialog_ShellText;
 	public static String TransactionInfo_Date;
+	public static String TransactionInfo_Type;
 	public static String TransactionInfo_Description;
 	public static String TransactionInfo_Entry;
 	public static String WizardPropertyPage_ErrorNameEmpty;

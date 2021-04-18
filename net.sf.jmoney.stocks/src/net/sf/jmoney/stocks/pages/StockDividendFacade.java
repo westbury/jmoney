@@ -6,6 +6,7 @@ import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 
 import net.sf.jmoney.entrytable.InvalidUserEntryException;
+import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.Transaction;
@@ -46,6 +47,9 @@ public class StockDividendFacade extends BaseEntryFacade {
 			createEntry("dividend");
 		}
 		
+		Security security = StockEntryInfo.getSecurityAccessor().getValue(dividendEntry.getValue());
+		this.security.setValue(security);
+		
 		// TODO the following is incorrect because we must listen to the underlying datastore
 		
 		if (withholdingTaxEntry.getValue() != null) {
@@ -67,7 +71,7 @@ public class StockDividendFacade extends BaseEntryFacade {
 //			}
 //		});
 
-		security.addValueChangeListener(new IValueChangeListener<Security>() {
+		this.security.addValueChangeListener(new IValueChangeListener<Security>() {
 			@Override
 			public void handleValueChange(ValueChangeEvent<? extends Security> event) {
 				setSecurity(event.diff.getNewValue());

@@ -37,11 +37,8 @@ public abstract class BaseEntryFacade implements EntryFacade {
 	
 	protected Transaction transaction;
 
-	protected String transactionTypeAndName;
-
 	public BaseEntryFacade(Transaction transaction, TransactionType transactionType, String transactionName) {
 		this.transaction = transaction;
-		this.transactionTypeAndName = transactionType.getId() + ":" + transactionName;
 		this.netAmountEntry = observeEntry("cash");
 		
 		if (netAmountEntry.getValue() == null) {
@@ -70,7 +67,7 @@ public abstract class BaseEntryFacade implements EntryFacade {
 	 */
 	// TODO better as a trackedGetter?
 	protected IObservableValue<Entry> observeEntry(String entryId) {
-		return new ObservableEntry(entryId, transaction, transactionTypeAndName);
+		return new ObservableEntry(entryId, transaction);
 	}
 
 	/**
@@ -83,7 +80,7 @@ public abstract class BaseEntryFacade implements EntryFacade {
 	 */
 	protected Entry createEntry(String entryId) {
 		Entry entry = this.transaction.createEntry();
-		entry.setType(this.transactionTypeAndName, entryId);
+		entry.setType(entryId);
 		return entry;
 	}
 
@@ -104,13 +101,9 @@ public abstract class BaseEntryFacade implements EntryFacade {
 	 */
 	protected Entry findOrCreateEntryWithId(String entryId) {
 		for (Entry entry: transaction.getEntryCollection()) {
-			String[] values = entry.getType() != null ? entry.getType().split(",") : new String[0];
-			for (String value : values) {
-				String[] parts = value.split(":");
-				if (parts[0].startsWith("stocks.") && parts[1].equals("") & parts[2].contentEquals(entryId)) {
-					entry.setType(transactionTypeAndName, entryId);
-					return entry;
-				}
+			if (entry.getType().contentEquals(entryId)) {
+				entry.setType(entryId);
+				return entry;
 			}
 		}
 

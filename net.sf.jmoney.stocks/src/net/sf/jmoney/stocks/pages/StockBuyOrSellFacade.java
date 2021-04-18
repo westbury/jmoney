@@ -9,6 +9,7 @@ import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 
 import net.sf.jmoney.entrytable.InvalidUserEntryException;
+import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
@@ -78,6 +79,7 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 		tax2Entry = observeEntry("tax2");
 		
 		if (purchaseOrSaleEntry.getValue() == null) {
+			// FIXME this can't change the model
 			createEntry("acquisition-or-disposal");
 		}
 		
@@ -85,6 +87,11 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 		// price. 
 		sharePrice().setValue(calculatePrice());
 
+		Commodity security = purchaseOrSaleEntry.getValue().getCommodity();
+		if (security instanceof Security) {
+			this.security.setValue((Security)security);
+		}
+		
 		switch (transactionType) {
 		case Buy:
 			quantity.setValue(purchaseOrSaleEntry.getValue().getAmount());
@@ -121,7 +128,7 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 //			}
 //		});
 
-		security.addValueChangeListener(new IValueChangeListener<Security>() {
+		this.security.addValueChangeListener(new IValueChangeListener<Security>() {
 			@Override
 			public void handleValueChange(ValueChangeEvent<? extends Security> event) {
 				setSecurity(event.diff.getNewValue());
