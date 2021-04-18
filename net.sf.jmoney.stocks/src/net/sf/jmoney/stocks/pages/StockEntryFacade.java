@@ -12,6 +12,7 @@ import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
 import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.core.databinding.observable.value.ValueDiff;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.runtime.Assert;
 
@@ -500,18 +501,84 @@ public class StockEntryFacade implements EntryFacade {
 
 	// readonly, which means this may be better as a tracked getter.
 	public IObservableValue<Security> security() {
-		return new ComputedValue<Security>() {
-			@Override
-			protected Security calculate() {
-				if (buyOrSellFacade().getValue() != null) {
-					return buyOrSellFacade().getValue().security().getValue();
+		return new AbstractObservableValue<Security>() {
+
+			IObservableValue<IObservableValue<Security>> x = new ComputedValue<IObservableValue<Security>>() {
+				@Override
+				protected IObservableValue<Security> calculate() {
+					if (buyOrSellFacade().getValue() != null) {
+						return buyOrSellFacade().getValue().security();
+					}
+					if (dividendFacade().getValue() != null) {
+						return dividendFacade().getValue().security();
+					}
+					return null;
 				}
-				if (dividendFacade().getValue() != null) {
-					return dividendFacade().getValue().security().getValue();
+			};
+
+			// Listener to the computed value, the computed value that gives us the appropriate observable
+			IValueChangeListener<IObservableValue<Security>> listener = new IValueChangeListener<IObservableValue<Security>>() {
+
+				@Override
+				public void handleValueChange(ValueChangeEvent<? extends IObservableValue<Security>> event) {
+					IObservableValue<Security> oldObservable = event.diff.getOldValue();
+					if (oldObservable != null) {
+						oldObservable.removeValueChangeListener(listener2);
+					}
+					IObservableValue<Security> newObservable = event.diff.getNewValue();
+					if (newObservable != null) {
+						newObservable.addValueChangeListener(listener2);
+					}
+				}
+			};
+
+			// Listener to the appropriate observable
+			IValueChangeListener<Security> listener2 = new IValueChangeListener<Security>() {
+
+				@Override
+				public void handleValueChange(ValueChangeEvent<? extends Security> event) {
+					ValueDiff<Security> diff = Diffs.createValueDiff(event.diff.getOldValue(), event.diff.getNewValue());
+					fireSecurityChange(diff);
+				}
+			};
+			
+			private void fireSecurityChange(ValueDiff<Security> diff) {
+				this.fireValueChange(diff);
+			}
+
+			@Override
+			public Object getValueType() {
+				return Security.class;
+			}
+
+			@Override
+			protected Security doGetValue() {
+				IObservableValue<Security> security = x.getValue();
+				if (security != null) {
+					return security.getValue();
 				}
 				return null;
 			}
+
+			@Override
+			protected void doSetValue(Security value) {
+				IObservableValue<Security> security = x.getValue();
+				if (security != null) {
+					security.setValue(value);
+				}
+			}
+			
+			@Override
+			protected void firstListenerAdded() {
+				x.addValueChangeListener(listener);
+			}
+
+			@Override
+			protected void lastListenerRemoved() {
+				x.removeValueChangeListener(listener);
+			}
 		};
+		
 	}
 
 	public void setSecurity(Security security) {
