@@ -267,9 +267,9 @@ public class BasicImporter implements IQifImporter {
 			// (if one is a split transaction, we should keep that one, otherwise
 			// it does not matter which we keep so keep the old one).
 
-			for (Iterator iter = transaction.getEntryCollection().iterator(); iter.hasNext(); ) {
-				Entry entry = (Entry)iter.next();
-				if (!entry.equals(firstEntry)) {
+			for (Iterator<Entry> iter = transaction.getEntryCollection().iterator(); iter.hasNext(); ) {
+				Entry entry = iter.next();
+				if (!entry.equals(firstEntry.getBaseObject())) {
 
 					// Force a category in each account.
 					// This is required by the JMoney data model.

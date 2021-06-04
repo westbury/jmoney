@@ -1,8 +1,14 @@
 package net.sf.jmoney.stocks.pages;
 
+import net.sf.jmoney.entrytable.IndividualBlock;
+import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
+import net.sf.jmoney.pages.entries.EntriesFilter;
+import net.sf.jmoney.pages.entries.EntriesFilterSection;
 import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.views.AccountEditorInput;
+
+import java.util.Vector;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.swt.layout.GridData;
@@ -23,7 +29,7 @@ public class StockEntriesEditor extends EditorPart {
 	/**
 	 * The account being shown in this page.
 	 */
-	private StockAccount account;
+	private Account account;
     
 	@Override
 	public void init(IEditorSite site, IEditorInput input)
@@ -31,11 +37,15 @@ public class StockEntriesEditor extends EditorPart {
 		
 		setSite(site);
 		setInput(input);
-		
-    	// Set the account that this page is viewing and editing.
-		AccountEditorInput input2 = (AccountEditorInput)input;
+
 		IDataManagerForAccounts sessionManager = (IDataManagerForAccounts)site.getPage().getInput();
-        account = (StockAccount)sessionManager.getSession().getAccountByFullName(input2.getFullAccountName());
+
+    	// Set the account that this page is viewing and editing.
+		AccountEditorInput accountEditorInput = (AccountEditorInput)input;
+        account = sessionManager.getSession().getAccountByFullName(accountEditorInput.getFullAccountName());
+		if (account == null) {
+			throw new PartInitException("Account " + accountEditorInput.getFullAccountName() + " no longer exists.");
+		}
 	}
 
 	@Override
@@ -68,7 +78,7 @@ public class StockEntriesEditor extends EditorPart {
 		// Get the handler service and pass it on so that handlers can be activated as appropriate
 		IHandlerService handlerService = (IHandlerService) getSite().getService(IHandlerService.class);
 
-        final EntriesSection fEntriesSection = new EntriesSection(form.getBody(), account, toolkit, handlerService);
+        final EntriesSection fEntriesSection = new EntriesSection(form.getBody(), (StockAccount) account, toolkit, handlerService);
         fEntriesSection.getSection().setLayoutData(new GridData(GridData.FILL_BOTH));
 
         form.setText("Investment Account Entries");

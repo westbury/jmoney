@@ -6,6 +6,8 @@ import net.sf.jmoney.entrytable.EntryFacade;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.stocks.model.Security;
+import net.sf.jmoney.stocks.model.StockAccount;
+import net.sf.jmoney.stocks.pages.StockEntryRowControl.BuyOrSellEntryType;
 import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
 
 /*
@@ -42,7 +44,7 @@ public abstract class BaseEntryFacade implements EntryFacade {
 		this.netAmountEntry = observeEntry("cash");
 		
 		if (netAmountEntry.getValue() == null) {
-			findOrCreateEntryWithId("cash");
+			findOrCreateEntryWithId(BuyOrSellEntryType.Cash);
 		}
 	}
 
@@ -78,9 +80,18 @@ public abstract class BaseEntryFacade implements EntryFacade {
 	 * @param entryId
 	 * @throws RuntimeException if an entry already exists with the given id
 	 */
-	protected Entry createEntry(String entryId) {
+//	protected Entry createEntry(String entryId) {
+//		Entry entry = this.transaction.createEntry();
+//		entry.setType(entryId);
+//		return entry;
+//	}
+	protected Entry createEntry(IEntryType entryType) {
+		// TODO this is a little hacky - can we get the stock account from elsewhere?
+		StockAccount stockAccount = (StockAccount)this.getMainEntry().getAccount().getParent();
+		
 		Entry entry = this.transaction.createEntry();
-		entry.setType(entryId);
+		entry.setType(entryType.getId());
+		entry.setAccount(entryType.getAssociatedAccount(stockAccount));
 		return entry;
 	}
 
@@ -93,22 +104,23 @@ public abstract class BaseEntryFacade implements EntryFacade {
 	 * in the transaction as possible.  For example, the "cash" entry may contain information
 	 * pertaining to the bank account transaction which we do not want to lose.
 	 * <P>
-	 * We only re-use another entry if the transaction type has a 'stock.' prefix and the
-	 * transaction id is blank (so we don't tread on other plugin's transaction types).
+	 * We only re-use another entry if the transaction type has a 'stock.' prefix
+	 * (so we don't tread on other plugin's transaction types).
 	 *   
-	 * @param entryId
+	 * @param entryType.getId()
 	 * @return
 	 */
-	protected Entry findOrCreateEntryWithId(String entryId) {
+	// TODO is this needed?  Doesn't seem to be used when forcing a transaction.
+	protected Entry findOrCreateEntryWithId(IEntryType entryType) {
 		for (Entry entry: transaction.getEntryCollection()) {
-			if (entry.getType().contentEquals(entryId)) {
-				entry.setType(entryId);
+			if (entry.getType().contentEquals(entryType.getId())) {
+				entry.setType(entryType.getId());
 				return entry;
 			}
 		}
 
 		// Only if no suitable entry is found do we create a new entry
-		return createEntry(entryId);
+		return createEntry(entryType);
 	}
 	
 	@Override

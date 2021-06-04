@@ -17,10 +17,13 @@ import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.model.StockEntryInfo;
+import net.sf.jmoney.stocks.pages.StockEntryRowControl.BuyOrSellEntryType;
 import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
 
 public class StockBuyOrSellFacade extends BaseEntryFacade {
 
+	private TransactionType transactionType; // stock.buy or stock.sell
+	
 	/**
 	 * the entry for the commission, or null if this is not a purchase or sale
 	 * transaction or if no commission account is configured for this stock
@@ -72,7 +75,8 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 	 */
 	public StockBuyOrSellFacade(Transaction transaction, TransactionType transactionType, String transactionName, StockAccount stockAccount) {
 		super(transaction, transactionType, "");
-
+		this.transactionType = transactionType;
+		
 		purchaseOrSaleEntry = observeEntry("acquisition-or-disposal");
 		commissionEntry = observeEntry("commission");
 		tax1Entry = observeEntry("tax1");
@@ -80,7 +84,7 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 		
 		if (purchaseOrSaleEntry.getValue() == null) {
 			// FIXME this can't change the model
-			createEntry("acquisition-or-disposal");
+			createEntry(BuyOrSellEntryType.AquisitionOrDisposal);
 		}
 		
 		// Now the acquisition-or-disposal entry has been created, we can set the calculated
@@ -141,7 +145,13 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 	}
 
 	public void setQuantity(long amount) {
-		purchaseOrSaleEntry.getValue().setAmount(amount);
+		if (this.transactionType == TransactionType.Buy) {
+			purchaseOrSaleEntry.getValue().setAmount(amount);
+		} else if (this.transactionType == TransactionType.Sell) {
+			purchaseOrSaleEntry.getValue().setAmount(-amount);
+		} else {
+			throw new RuntimeException();
+		}
 	}
 
 	/**
@@ -164,7 +174,7 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 			}
 		} else {
 			if (entry == null) {
-				entry = createEntry("commission");
+				entry = createEntry(BuyOrSellEntryType.Commission);
 			}
 			entry.setAmount(amount);
 		}
@@ -190,7 +200,7 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 			}
 		} else {
 			if (entry == null) {
-				entry = createEntry("tax1");
+				entry = createEntry(BuyOrSellEntryType.Tax1);
 			}
 			entry.setAmount(amount);
 		}
@@ -216,7 +226,7 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 			}
 		} else {
 			if (entry == null) {
-				entry = createEntry("tax2");
+				entry = createEntry(BuyOrSellEntryType.Tax2);
 			}
 			entry.setAmount(amount);
 		}

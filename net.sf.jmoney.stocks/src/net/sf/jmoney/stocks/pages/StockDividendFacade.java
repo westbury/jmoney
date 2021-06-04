@@ -14,6 +14,8 @@ import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.model.StockEntry;
 import net.sf.jmoney.stocks.model.StockEntryInfo;
+import net.sf.jmoney.stocks.pages.StockEntryRowControl.BuyOrSellEntryType;
+import net.sf.jmoney.stocks.pages.StockEntryRowControl.DividendEntryType;
 import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
 
 public class StockDividendFacade extends BaseEntryFacade {
@@ -44,7 +46,7 @@ public class StockDividendFacade extends BaseEntryFacade {
 		withholdingTaxEntry = observeEntry("withholding-tax");
 		
 		if (dividendEntry.getValue() == null) {
-			createEntry("dividend");
+			createEntry(DividendEntryType.Dividend);
 		}
 		
 		Security security = StockEntryInfo.getSecurityAccessor().getValue(dividendEntry.getValue());
@@ -127,7 +129,7 @@ public class StockDividendFacade extends BaseEntryFacade {
 			}
 		} else {
 			if (entry == null) {
-				entry = createEntry("withholding-tax");
+				entry = createEntry(DividendEntryType.WithholdingTax);
 			}
 			entry.setAmount(amount);
 		}

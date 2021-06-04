@@ -10,6 +10,7 @@ import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.model.StockEntryInfo;
+import net.sf.jmoney.stocks.pages.StockEntryRowControl.TakeoverEntryType;
 import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
 
 public class StockTakeoverFacade extends BaseEntryFacade {
@@ -44,7 +45,7 @@ public class StockTakeoverFacade extends BaseEntryFacade {
 		paymentInStockEntry = observeEntry("takingOver");
 		
 		if (relinquishedStockEntry.getValue() == null) {
-			createEntry("takenOver");
+			createEntry(TakeoverEntryType.TakenOver);
 		}
 		
 		/*
@@ -120,7 +121,7 @@ public class StockTakeoverFacade extends BaseEntryFacade {
 			}
 		} else {
 			if (entry == null) {
-				entry = createEntry("takingOver");
+				entry = createEntry(TakeoverEntryType.TakingOver);
 			}
 			entry.setAmount(quantity);
 		}
