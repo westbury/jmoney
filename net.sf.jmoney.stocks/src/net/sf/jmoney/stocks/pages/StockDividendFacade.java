@@ -14,9 +14,8 @@ import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.model.StockEntry;
 import net.sf.jmoney.stocks.model.StockEntryInfo;
-import net.sf.jmoney.stocks.pages.StockEntryRowControl.BuyOrSellEntryType;
-import net.sf.jmoney.stocks.pages.StockEntryRowControl.DividendEntryType;
-import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
+import net.sf.jmoney.stocks.types.DividendEntryType;
+import net.sf.jmoney.stocks.types.TransactionType;
 
 public class StockDividendFacade extends BaseEntryFacade {
 

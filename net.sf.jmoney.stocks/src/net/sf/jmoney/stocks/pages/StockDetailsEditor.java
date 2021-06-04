@@ -79,7 +79,7 @@ import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionInfo;
 import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.StockAccount;
-import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
+import net.sf.jmoney.stocks.types.TransactionType;
 import net.sf.jmoney.views.AccountEditorInput;
 
 public class StockDetailsEditor extends EditorPart {

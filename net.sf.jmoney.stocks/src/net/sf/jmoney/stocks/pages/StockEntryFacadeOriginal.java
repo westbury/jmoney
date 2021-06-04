@@ -26,7 +26,8 @@ import net.sf.jmoney.model2.Transaction.EntryCollection;
 import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.model.StockEntryInfo;
-import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
+import net.sf.jmoney.stocks.types.BuyOrSellEntryType;
+import net.sf.jmoney.stocks.types.TransactionType;
 
 /*
  * This class is a wrapper for a transaction in a stock account.  It is created on an as-needed basis, i.e.
@@ -335,7 +336,7 @@ public class StockEntryFacadeOriginal implements EntryFacade {
 				} else {
 					if (commissionEntry == null) {
 						commissionEntry = getMainEntry().getTransaction().createEntry();
-						commissionEntry.setType(StockEntryRowControl.BuyOrSellEntryType.Commission.getId());
+						commissionEntry.setType(BuyOrSellEntryType.Commission.getId());
 						commissionEntry.setAccount(account.getCommissionAccount());
 						StockEntryInfo.getSecurityAccessor().setValue(commissionEntry, (Security)purchaseOrSaleEntry.getCommodity());
 					}

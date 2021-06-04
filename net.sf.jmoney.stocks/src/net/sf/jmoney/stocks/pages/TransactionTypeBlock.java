@@ -17,7 +17,7 @@ import net.sf.jmoney.entrytable.CellFocusListener;
 import net.sf.jmoney.entrytable.ICellControl2;
 import net.sf.jmoney.entrytable.IndividualBlock;
 import net.sf.jmoney.entrytable.RowControl;
-import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
+import net.sf.jmoney.stocks.types.TransactionType;
 
 public class TransactionTypeBlock extends
 			IndividualBlock<IObservableValue<StockEntryFacade>> {

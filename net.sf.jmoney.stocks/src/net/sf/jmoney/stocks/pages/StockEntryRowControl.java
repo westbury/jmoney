@@ -2,9 +2,7 @@ package net.sf.jmoney.stocks.pages;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.eclipse.core.databinding.observable.value.AbstractObservableValue;
 import org.eclipse.core.databinding.observable.value.ComputedValue;
@@ -23,11 +21,11 @@ import net.sf.jmoney.entrytable.FocusCellTracker;
 import net.sf.jmoney.entrytable.InvalidUserEntryException;
 import net.sf.jmoney.entrytable.RowSelectionTracker;
 import net.sf.jmoney.entrytable.VirtualRowTable;
-import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.stocks.model.RatesTable;
 import net.sf.jmoney.stocks.model.StockAccount;
+import net.sf.jmoney.stocks.types.TransactionType;
 
 /**
  * Default binding only ever applies for a new entry.  The user cannot select away from the new entry without
@@ -249,151 +247,6 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 	}
 	
 	
-	public enum TransactionType {
-		Buy("stocks.buy", BuyOrSellEntryType.values()),
-		Sell("stocks.sell", BuyOrSellEntryType.values()),
-		Dividend("stocks.dividend", DividendEntryType.values()),
-		Takeover("stocks.takeover", TakeoverEntryType.values()),
-		Other(null, new IEntryType[0]);   // all other transaction types use this.  Should it just be a null type?
-
-		private String id;
-		private IEntryType[] entryTypes;
-		private Set<String> compulsoryEntryTypes;
-		
-		TransactionType(String id, IEntryType[] entryTypes) {
-			this.id = id;
-			this.entryTypes = entryTypes;
-
-//			this.entryTypes = new HashSet<>();
-//			for (IEntryType entryType : entryTypes) {
-//				this.entryTypes.add(entryType.getId());
-//			}
-
-			this.compulsoryEntryTypes = new HashSet<>();
-			for (IEntryType entryType : entryTypes) {
-				if (entryType.isCompulsory()) {
-					this.compulsoryEntryTypes.add(entryType.getId());
-				}
-			}
-		}
-
-		public IEntryType[] getEntryTypes() {
-			return this.entryTypes;
-		}
-
-		public Set<String> getCompulsoryEntryTypes() {
-			return this.compulsoryEntryTypes;
-		}
-
-		/**
-		 * This is the first part of each triple in the entry type.
-		 * 
-		 * @return
-		 */
-		public String getId() {
-			return id;
-		}
-	}
-
-	public interface AssociatedAccount {
-		public Account getAssociatedAccount(StockAccount account);
-	}
-	
-	public enum BuyOrSellEntryType implements IEntryType {
-		Cash("cash", true, account -> account),
-		AquisitionOrDisposal("acquisition-or-disposal", true, account -> account),
-		Commission("commission", false, account -> account.getCommissionAccount()),
-		Tax1("tax1", false, account -> account.getTax1Account()),
-		Tax2("tax2", false, account -> account.getTax2Account());
-
-		public final String id;
-		public final boolean isCompulsory;
-		private final AssociatedAccount associatedAccountGetter;
-		
-		BuyOrSellEntryType(String id, boolean isCompulsory, AssociatedAccount associatedAccountGetter) {
-			this.id = id;
-			this.isCompulsory = isCompulsory;
-			this.associatedAccountGetter = associatedAccountGetter;
-		}
-		
-		@Override
-		public String getId() {
-			return id;
-		}
-
-		@Override
-		public boolean isCompulsory() {
-			return isCompulsory;
-		}
-		
-		@Override
-		public Account getAssociatedAccount(StockAccount account) {
-			return associatedAccountGetter.getAssociatedAccount(account);
-		}
-	}
-
-	public enum DividendEntryType implements IEntryType {
-		Cash("cash", true, account -> account),
-		Dividend("dividend", true, account -> account.getDividendAccount()),
-		WithholdingTax("withholding-tax", false, account -> account.getWithholdingTaxAccount());
-
-		public final String id;
-		public final boolean isCompulsory;
-		private final AssociatedAccount associatedAccountGetter;
-		
-		DividendEntryType(String id, boolean isCompulsory, AssociatedAccount associatedAccountGetter) {
-			this.id = id;
-			this.isCompulsory = isCompulsory;
-			this.associatedAccountGetter = associatedAccountGetter;
-		}
-		
-		@Override
-		public String getId() {
-			return id;
-		}
-
-		@Override
-		public boolean isCompulsory() {
-			return isCompulsory;
-		}
-		
-		@Override
-		public Account getAssociatedAccount(StockAccount account) {
-			return associatedAccountGetter.getAssociatedAccount(account);
-		}
-	}
-
-	public enum TakeoverEntryType implements IEntryType {
-		Cash("cash", true, account -> account),
-		TakenOver("takenOver", true, account -> account),
-		TakingOver("takingOver", false, account -> account);
-
-		public final String id;
-		public final boolean isCompulsory;
-		private final AssociatedAccount associatedAccountGetter;
-		
-		TakeoverEntryType(String id, boolean isCompulsory, AssociatedAccount associatedAccountGetter) {
-			this.id = id;
-			this.isCompulsory = isCompulsory;
-			this.associatedAccountGetter = associatedAccountGetter;
-		}
-		
-		@Override
-		public String getId() {
-			return id;
-		}
-
-		@Override
-		public boolean isCompulsory() {
-			return isCompulsory;
-		}
-		
-		@Override
-		public Account getAssociatedAccount(StockAccount account) {
-			return associatedAccountGetter.getAssociatedAccount(account);
-		}
-	}
-
 	/**
 	 * The share price currently shown to the user, or null if
 	 * this is a new entry and no share price has been entered.

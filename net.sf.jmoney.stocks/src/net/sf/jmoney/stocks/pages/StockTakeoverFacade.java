@@ -10,8 +10,8 @@ import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.model.StockEntryInfo;
-import net.sf.jmoney.stocks.pages.StockEntryRowControl.TakeoverEntryType;
-import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
+import net.sf.jmoney.stocks.types.TakeoverEntryType;
+import net.sf.jmoney.stocks.types.TransactionType;
 
 public class StockTakeoverFacade extends BaseEntryFacade {
 

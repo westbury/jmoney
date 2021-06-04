@@ -2,7 +2,7 @@ package net.sf.jmoney.stocks.pages;
 
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.stocks.model.StockAccount;
-import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
+import net.sf.jmoney.stocks.types.TransactionType;
 
 public class StockSellFacade extends StockBuyOrSellFacade {
 

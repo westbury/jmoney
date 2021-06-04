@@ -7,8 +7,8 @@ import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.StockAccount;
-import net.sf.jmoney.stocks.pages.StockEntryRowControl.BuyOrSellEntryType;
-import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
+import net.sf.jmoney.stocks.types.BuyOrSellEntryType;
+import net.sf.jmoney.stocks.types.TransactionType;
 
 /*
  * This class is a wrapper for a transaction in a stock account.  It is created on an as-needed basis, i.e.
