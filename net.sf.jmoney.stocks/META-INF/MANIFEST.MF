@@ -20,5 +20,6 @@ Bundle-ActivationPolicy: lazy
 Bundle-Vendor: JMoney.sf.net
 Export-Package: net.sf.jmoney.stocks.gains,
  net.sf.jmoney.stocks.model,
- net.sf.jmoney.stocks.pages
+ net.sf.jmoney.stocks.pages,
+ net.sf.jmoney.stocks.types
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8

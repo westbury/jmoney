@@ -104,11 +104,11 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 
 	private Block<StockEntryRowControl> rootBlock;
 
-	public EntriesSection(Composite parent, final StockAccount account, FormToolkit toolkit,
+	public EntriesSection(Composite parent, StockAccount account2, FormToolkit toolkit,
 			IHandlerService handlerService) {
 		super(parent, toolkit, ExpandableComposite.TITLE_BAR);
 		getSection().setText("All Entries");
-		this.account = account;
+		this.account = account2;
 
 		/*
 		 * Setup the layout structure of the header and rows.
@@ -140,11 +140,11 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 //		};
 		
 		Block<IObservableValue<StockEntryFacade>> withholdingTaxColumn 
-			= new DividendInfoColumn(account);
+			= new DividendInfoColumn(account2);
 				
 
 		Block<IObservableValue<StockEntryFacade>> purchaseOrSaleInfoColumn 
-			= new TradeInfoColumn(account);
+			= new TradeInfoColumn(account2);
 
 
 		
@@ -158,7 +158,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 						new SingleOtherEntryDetailPropertyBlock(EntryInfo.getAmountAccessor())));
 
 		Block<StockEntryRowControl> debitAndCreditColumnsManager = new DelegateBlock<StockEntryRowControl, IObservableValue<Entry>>(
-				DebitAndCreditColumns.createDebitAndCreditColumns(account.getCurrency())) {
+				DebitAndCreditColumns.createDebitAndCreditColumns(account2.getCurrency())) {
 			@Override
 			protected IObservableValue<Entry> convert(StockEntryRowControl blockInput) {
 				return blockInput.observeMainEntry();
@@ -166,7 +166,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		};
 
 		Block<StockEntryRowControl> balanceColumnManager = new DelegateBlock<StockEntryRowControl, IObservableValue<EntryData>>(
-				new BalanceColumn(account.getCurrency())) {
+				new BalanceColumn(account2.getCurrency())) {
 			@Override
 			protected IObservableValue<EntryData> convert(StockEntryRowControl blockInput) {
 				return blockInput.getRowInput();
@@ -289,7 +289,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		// Create the table control.
 		IRowProvider<EntryData, StockEntryRowControl> rowProvider = new StockRowProvider(rootBlock);
 		fEntriesControl = new EntriesTable<StockEntryRowControl>(getSection(), rootBlock, this, rowProvider,
-				account.getSession(), transactionDateColumn, rowTracker) {
+				account2.getSession(), transactionDateColumn, rowTracker) {
 			@Override
 			protected EntryData createEntryRowInput(Entry entry) {
 				return new EntryData(entry, session.getDataManager());

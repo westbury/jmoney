@@ -2,10 +2,13 @@ package net.sf.jmoney.pages.entries;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
 
 import net.sf.jmoney.JMoneyPlugin;
 import net.sf.jmoney.entrytable.EntryRowControl;
+import net.sf.jmoney.entrytable.IEntriesContent;
 import net.sf.jmoney.entrytable.IndividualBlock;
 import net.sf.jmoney.entrytable.OtherEntriesPropertyBlock;
 import net.sf.jmoney.entrytable.PropertyBlock;
@@ -26,6 +29,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorSite;
 import org.eclipse.ui.IMemento;
@@ -39,17 +43,42 @@ public class AccountEntriesEditor extends EditorPart {
 
 	static public final String ID = "net.sf.jmoney.accountEntriesEditor"; //$NON-NLS-1$
 	
-	protected Vector<IndividualBlock> allEntryDataObjects = new Vector<IndividualBlock>();
-
+	IAccountEntriesEditorFactory entriesPageFactory;
+	
+	protected List<IndividualBlock> allEntryDataObjects = new ArrayList<IndividualBlock>();
     protected EntriesFilterSection fEntriesFilterSection;
-
 	final EntriesFilter filter = new EntriesFilter();
 
 	/**
 	 * The account being shown in this page.
 	 */
 	private Account account;
-    
+
+	public interface IAccountEntriesEditorFactory {
+		Control createEntriesEditor(Composite parent, Account account, EntriesFilter filter, FormToolkit toolkit, IHandlerService handlerService);
+	}
+	
+	public AccountEntriesEditor(IAccountEntriesEditorFactory entriesPageFactory) {
+		this.entriesPageFactory = entriesPageFactory;
+	}
+
+	public AccountEntriesEditor() {
+		this.entriesPageFactory = new IAccountEntriesEditorFactory() {
+			@Override
+			public Control createEntriesEditor(Composite parent, Account account, EntriesFilter filter, FormToolkit toolkit, IHandlerService handlerService) {
+				EntriesSection fEntriesSection = new EntriesSection(parent, account, filter, toolkit, handlerService);
+//		        	final CategoryEntriesSection fEntriesSection = new CategoryEntriesSection(form.getBody(), (IncomeExpenseAccount)account, filter, toolkit, handlerService);
+				filter.addPropertyChangeListener(new PropertyChangeListener() {
+					@Override
+					public void propertyChange(PropertyChangeEvent event) {
+						fEntriesSection.refreshEntryList();
+					}
+				});
+				return fEntriesSection.getSection();
+			}
+		};
+	}
+
 	@Override
 	public void init(IEditorSite site, IEditorInput input)
 			throws PartInitException {
@@ -65,15 +94,6 @@ public class AccountEntriesEditor extends EditorPart {
 		if (account == null) {
 			throw new PartInitException("Account " + accountEditorInput.getFullAccountName() + " no longer exists.");
 		}
-		
-        // Create our own transaction manager.
-        // This ensures that uncommitted changes
-    	// made by this page are isolated from datastore usage outside
-    	// of this page.
-//		DatastoreManager sessionManager = JMoneyPlugin.getDefault().getSessionManager();
-//		session = sessionManager.getSession();
-//
-//        transactionManager = new TransactionManager(sessionManager);
 	}
 
 	@Override
@@ -210,30 +230,10 @@ public class AccountEntriesEditor extends EditorPart {
         fEntriesFilterSection.getSection().setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
         
 		// Get the handler service and pass it on so that handlers can be activated as appropriate
-		IHandlerService handlerService = (IHandlerService) getSite().getService(IHandlerService.class);
+		IHandlerService handlerService = getSite().getService(IHandlerService.class);
 
-		if (account instanceof CurrencyAccount) {
-        	final EntriesSection fEntriesSection = new EntriesSection(form.getBody(), account, filter, toolkit, handlerService);
-            fEntriesSection.getSection().setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-
-            filter.addPropertyChangeListener(new PropertyChangeListener() {
-    			@Override
-				public void propertyChange(PropertyChangeEvent event) {
-    				fEntriesSection.refreshEntryList();
-    			}
-    		});
-        } else {
-//        	final CategoryEntriesSection fEntriesSection = new CategoryEntriesSection(form.getBody(), (IncomeExpenseAccount)account, filter, toolkit, handlerService);
-        	final EntriesSection fEntriesSection = new EntriesSection(form.getBody(), account, filter, toolkit, handlerService);
-            fEntriesSection.getSection().setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-
-            filter.addPropertyChangeListener(new PropertyChangeListener() {
-    			@Override
-				public void propertyChange(PropertyChangeEvent event) {
-    				fEntriesSection.refreshEntryList();
-    			}
-    		});
-        }
+		final Control fEntriesSection = this.entriesPageFactory.createEntriesEditor(form.getBody(), account, filter, toolkit, handlerService);
+        fEntriesSection.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
         form.setText(Messages.EntriesPage_Text);
 	}

@@ -23,18 +23,25 @@
 package net.sf.jmoney.stocks.pages;
 
 import net.sf.jmoney.IBookkeepingPageFactory;
+import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
+import net.sf.jmoney.pages.entries.AccountEntriesEditor;
+import net.sf.jmoney.pages.entries.EntriesFilter;
 import net.sf.jmoney.stocks.ShowStockDetailsHandler;
 import net.sf.jmoney.stocks.model.Stock;
+import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.views.AccountEditor;
 import net.sf.jmoney.views.AccountEditorInput;
 
 import org.eclipse.core.commands.IHandler;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IMemento;
 import org.eclipse.ui.PartInitException;
+import org.eclipse.ui.forms.widgets.FormToolkit;
 import org.eclipse.ui.handlers.IHandlerService;
 
 /**
@@ -42,10 +49,15 @@ import org.eclipse.ui.handlers.IHandlerService;
  */
 public class StockEntriesPage implements IBookkeepingPageFactory {
 
+	public Control createEntriesEditor(Composite parent, Account account, EntriesFilter filter, FormToolkit toolkit, IHandlerService handlerService) {
+		EntriesSection fEntriesSection = new EntriesSection(parent, (StockAccount)account, toolkit, handlerService);
+		return fEntriesSection.getSection();
+	}
+
 	@Override
 	public void createPages(AccountEditor editor, IEditorInput input,
 			IMemento memento) throws PartInitException {
-		IEditorPart entriesEditor = new StockEntriesEditor();
+		IEditorPart entriesEditor = new AccountEntriesEditor((parent, account, filter, toolkit, handlerService) -> this.createEntriesEditor(parent, account, filter, toolkit, handlerService));
 		editor.addPage(entriesEditor, "Entries");
 
 		IEditorPart balancesEditor = new StockBalancesEditor(editor);
@@ -80,7 +92,7 @@ public class StockEntriesPage implements IBookkeepingPageFactory {
 		}
 
 		// Get the handler service and pass it on so that handlers can be activated as appropriate
-		IHandlerService handlerService = (IHandlerService)editor.getSite().getService(IHandlerService.class);
+		IHandlerService handlerService = editor.getSite().getService(IHandlerService.class);
 
 		IHandler handler = new ShowStockDetailsHandler(editor);
 		handlerService.activateHandler("net.sf.jmoney.stock.showStockDetails", handler);
