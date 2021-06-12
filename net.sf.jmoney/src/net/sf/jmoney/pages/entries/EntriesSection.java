@@ -18,6 +18,8 @@
  */
 package net.sf.jmoney.pages.entries;
 
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.util.Collection;
 
 import net.sf.jmoney.entrytable.BalanceColumn;
@@ -86,6 +88,14 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
         this.filter = filter;
         this.handlerService = handlerService;
         createClient(toolkit);
+        
+		filter.addPropertyChangeListener(new PropertyChangeListener() {
+			@Override
+			public void propertyChange(PropertyChangeEvent event) {
+				refreshEntryList();
+			}
+		});
+
     }
 
     public void refreshEntryList() {

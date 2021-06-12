@@ -27,12 +27,18 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Vector;
 
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.ui.forms.SectionPart;
+import org.eclipse.ui.forms.widgets.FormToolkit;
+import org.eclipse.ui.handlers.IHandlerService;
+
 import net.sf.jmoney.JMoneyPlugin;
 import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ListKey;
 import net.sf.jmoney.isolation.ObjectCollection;
+import net.sf.jmoney.pages.entries.EntriesSection;
 
 /**
  * An implementation of the Account interface
@@ -154,4 +160,17 @@ public abstract class Account extends ExtendableObject implements Comparable<Acc
         if (JMoneyPlugin.DEBUG) System.out.println("Level from " + this.name + ", child of " + getParent() +" is " + level); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
         return level;
     }
+
+    /**
+     * Sometimes an account implementation may want to control the entries list in child accounts.  For example
+     * a stock account may want to show stock transaction types in cash accounts that are sub-accounts of the
+     * stock account.
+     * <P>
+     * @return the entries list implementation to use for the given child account, or null if the usual implementation
+     * 		is to be used for the child account 
+     */
+	public SectionPart createEntriesSection(Composite parent, Account account, FormToolkit toolkit,
+			IHandlerService handlerService) {
+		return null;
+	}
 }

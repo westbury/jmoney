@@ -306,16 +306,24 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 		
 		// If this is a new entry (this uncommitted entry is the new entry row) then
 		// we must set the currency to the default currency for the account.
-		// TODO is this the right place for this???
+		// We need do this only if the cash entries are directly in the StockAccount.
+		// If the cash entries are in sub-accounts then those sub-accounts will be single-currency accounts.
+		// TODO is this the right place for this?
 		Entry entryInTransaction = uncommittedEntry.getValue();
 		if (entryInTransaction.getCommodity() == null) {
-			StockAccount account = (StockAccount)entryInTransaction.getAccount();
-			entryInTransaction.setCommodity(account.getCurrency());
+			if (entryInTransaction.getAccount() instanceof StockAccount) {
+				StockAccount account = (StockAccount)entryInTransaction.getAccount();
+				entryInTransaction.setCommodity(account.getCurrency());
+			}
 		}
 
-		/* Find the stock account, which is this account.
+		/* Find the stock account, which may be this account or may be the parent account (if this is a cash account
+		 * nested in a stock account).
 		*/
-		StockAccount stockAccount = (StockAccount)entryInTransaction.getAccount();
+		StockAccount stockAccount = 
+				entryInTransaction.getAccount() instanceof StockAccount
+				? (StockAccount)entryInTransaction.getAccount()
+				: (StockAccount)entryInTransaction.getAccount().getParent();
 				
 		// Create the facade
 		StockEntryFacade facade = new StockEntryFacade(entryInTransaction, stockAccount);

@@ -62,6 +62,7 @@ import net.sf.jmoney.entrytable.StackBlock;
 import net.sf.jmoney.entrytable.StackControl;
 import net.sf.jmoney.entrytable.VerticalBlock;
 import net.sf.jmoney.isolation.TransactionManager;
+import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
@@ -75,7 +76,7 @@ import net.sf.jmoney.stocks.types.TransactionType;
  *
  * @author Johann Gyger
  */
-public class EntriesSection extends SectionPart implements IEntriesContent {
+public class StockEntriesSection extends SectionPart implements IEntriesContent {
 
 	public static class BlankBlock<F> extends CellBlock<IObservableValue<F>> {
 		BlankBlock() {
@@ -98,17 +99,19 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		}
 	}
 
-	private StockAccount account;
+	private Account thisAccount;
+	private StockAccount stockAccount;
 
 	private EntriesTable<StockEntryRowControl> fEntriesControl;
 
 	private Block<StockEntryRowControl> rootBlock;
 
-	public EntriesSection(Composite parent, StockAccount account2, FormToolkit toolkit,
+	public StockEntriesSection(Composite parent, Account thisAccount, StockAccount stockAccount, FormToolkit toolkit,
 			IHandlerService handlerService) {
 		super(parent, toolkit, ExpandableComposite.TITLE_BAR);
 		getSection().setText("All Entries");
-		this.account = account2;
+		this.thisAccount = thisAccount;
+		this.stockAccount = stockAccount;
 
 		/*
 		 * Setup the layout structure of the header and rows.
@@ -140,11 +143,11 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 //		};
 		
 		Block<IObservableValue<StockEntryFacade>> withholdingTaxColumn 
-			= new DividendInfoColumn(account2);
+			= new DividendInfoColumn(stockAccount);
 				
 
 		Block<IObservableValue<StockEntryFacade>> purchaseOrSaleInfoColumn 
-			= new TradeInfoColumn(account2);
+			= new TradeInfoColumn(stockAccount);
 
 
 		
@@ -158,7 +161,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 						new SingleOtherEntryDetailPropertyBlock(EntryInfo.getAmountAccessor())));
 
 		Block<StockEntryRowControl> debitAndCreditColumnsManager = new DelegateBlock<StockEntryRowControl, IObservableValue<Entry>>(
-				DebitAndCreditColumns.createDebitAndCreditColumns(account2.getCurrency())) {
+				DebitAndCreditColumns.createDebitAndCreditColumns(stockAccount.getCurrency())) {
 			@Override
 			protected IObservableValue<Entry> convert(StockEntryRowControl blockInput) {
 				return blockInput.observeMainEntry();
@@ -166,7 +169,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		};
 
 		Block<StockEntryRowControl> balanceColumnManager = new DelegateBlock<StockEntryRowControl, IObservableValue<EntryData>>(
-				new BalanceColumn(account2.getCurrency())) {
+				new BalanceColumn(stockAccount.getCurrency())) {
 			@Override
 			protected IObservableValue<EntryData> convert(StockEntryRowControl blockInput) {
 				return blockInput.getRowInput();
@@ -289,7 +292,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		// Create the table control.
 		IRowProvider<EntryData, StockEntryRowControl> rowProvider = new StockRowProvider(rootBlock);
 		fEntriesControl = new EntriesTable<StockEntryRowControl>(getSection(), rootBlock, this, rowProvider,
-				account2.getSession(), transactionDateColumn, rowTracker) {
+				thisAccount.getSession(), transactionDateColumn, rowTracker) {
 			@Override
 			protected EntryData createEntryRowInput(Entry entry) {
 				return new EntryData(entry, session.getDataManager());
@@ -340,8 +343,8 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		 * a currency other than the currency of the account should not be returned.
 		 */
 		Collection<Entry> entries = new ArrayList<Entry>();
-		for (Entry entry : account.getEntries()) {
-			if (entry.getCommodityInternal() == account.getCurrency()) {
+		for (Entry entry : thisAccount.getEntries()) {
+			if (entry.getCommodityInternal() == stockAccount.getCurrency()) {
 				entries.add(entry);
 			}
 		}
@@ -356,7 +359,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		 * account will contain stock entries and these should not appear as top level
 		 * entries in the table.
 		 */
-		return account == entry.getAccount() && entry.getCommodityInternal() == account.getCurrency();
+		return entry.getAccount() == thisAccount && entry.getCommodityInternal() == stockAccount.getCurrency();
 	}
 
 	/*
@@ -393,7 +396,7 @@ public class EntriesSection extends SectionPart implements IEntriesContent {
 		// It is assumed that the entry is in a data manager that is a direct
 		// child of the data manager that contains the account.
 		TransactionManager tm = (TransactionManager) entryInTransaction.getDataManager();
-		entryInTransaction.setAccount(tm.getCopyInTransaction(account));
+		entryInTransaction.setAccount(tm.getCopyInTransaction(thisAccount));
 
 		return entryInTransaction;
 	}

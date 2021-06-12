@@ -23,7 +23,7 @@ class DividendInfoColumn
 		};
 
 		return account.getWithholdingTaxAccount() == null 
-				? new EntriesSection.BlankBlock<StockDividendFacade>()
+				? new StockEntriesSection.BlankBlock<StockDividendFacade>()
 				: new EntryAmountBlock<StockDividendFacade>("Withholding Tax", withholdingTaxProperty,
 								account.getWithholdingTaxAccount().getCurrency());
 	}

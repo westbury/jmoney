@@ -26,16 +26,24 @@ package net.sf.jmoney.stocks.model;
 import java.text.NumberFormat;
 import java.text.ParseException;
 
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.ui.forms.SectionPart;
+import org.eclipse.ui.forms.widgets.FormToolkit;
+import org.eclipse.ui.handlers.IHandlerService;
+
 import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.isolation.IListManager;
 import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ListKey;
+import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
+import net.sf.jmoney.pages.entries.EntriesSection;
+import net.sf.jmoney.stocks.pages.StockEntriesSection;
 
 /**
  * The data model for an account.
@@ -533,5 +541,13 @@ public class StockAccount extends CapitalAccount {
 				return Math.round(amount.doubleValue() * SCALE_FACTOR);
 			}
 		};
+	}
+
+	@Override
+	public SectionPart createEntriesSection(Composite parent, Account account, FormToolkit toolkit,
+			IHandlerService handlerService) {
+		// For all child accounts, whether a capital account or an income and expense account, we want to show
+		// the stock transaction types.
+		return new StockEntriesSection(parent, account, this,  toolkit, handlerService);
 	}
 }

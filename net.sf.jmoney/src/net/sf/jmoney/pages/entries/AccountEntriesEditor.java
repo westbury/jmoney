@@ -62,23 +62,6 @@ public class AccountEntriesEditor extends EditorPart {
 		this.entriesPageFactory = entriesPageFactory;
 	}
 
-	public AccountEntriesEditor() {
-		this.entriesPageFactory = new IAccountEntriesEditorFactory() {
-			@Override
-			public Control createEntriesEditor(Composite parent, Account account, EntriesFilter filter, FormToolkit toolkit, IHandlerService handlerService) {
-				EntriesSection fEntriesSection = new EntriesSection(parent, account, filter, toolkit, handlerService);
-//		        	final CategoryEntriesSection fEntriesSection = new CategoryEntriesSection(form.getBody(), (IncomeExpenseAccount)account, filter, toolkit, handlerService);
-				filter.addPropertyChangeListener(new PropertyChangeListener() {
-					@Override
-					public void propertyChange(PropertyChangeEvent event) {
-						fEntriesSection.refreshEntryList();
-					}
-				});
-				return fEntriesSection.getSection();
-			}
-		};
-	}
-
 	@Override
 	public void init(IEditorSite site, IEditorInput input)
 			throws PartInitException {
