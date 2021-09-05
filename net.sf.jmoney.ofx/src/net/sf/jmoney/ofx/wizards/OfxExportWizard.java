@@ -31,18 +31,22 @@ import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.ofx.Activator;
 import net.sf.jmoney.ofx.model.OfxEntryInfo;
+import net.sf.jmoney.stocks.model.Bond;
+import net.sf.jmoney.stocks.model.Security;
+import net.sf.jmoney.stocks.model.Stock;
 import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.pages.StockBuyOrSellFacade;
 import net.sf.jmoney.stocks.pages.StockDividendFacade;
 import net.sf.jmoney.stocks.pages.StockEntryFacade;
-import net.sf.jmoney.stocks.pages.StockEntryRowControl;
-import net.sf.jmoney.stocks.pages.StockEntryRowControl.TransactionType;
+import net.sf.jmoney.stocks.types.TransactionType;
 import net.sf.jmoney.views.AccountEditor;
 
 import org.eclipse.core.commands.ExecutionEvent;
@@ -71,6 +75,8 @@ public class OfxExportWizard extends Wizard implements IExportWizard {
 	private IWorkbenchWindow window;
 
 	private StockAccount stockAccount;
+	
+	private Set<Security> securities = new HashSet<>();
 	
 	private OfxExportWizardPage mainPage;
 
@@ -132,7 +138,8 @@ public class OfxExportWizard extends Wizard implements IExportWizard {
 				writer.writeStartAggregate("SIGNONMSGSRSV1");
 				writer.writeStartAggregate("SONRS");
 				writer.writeStartAggregate("FI");
-				writer.writeElement("ORG", "wellsfargo.com");
+				this.writeOptionalElement(writer, "ORG", stockAccount.getBrokerageFirm());
+//				this.writeOptionalElement(writer, "FID", stockAccount.getBankOfxId());
 				writer.writeEndAggregate("FI");
 				writer.writeEndAggregate("SONRS");
 				writer.writeEndAggregate("SIGNONMSGSRSV1");
@@ -149,67 +156,69 @@ public class OfxExportWizard extends Wizard implements IExportWizard {
 						StockEntryFacade facade = new StockEntryFacade(entry, stockAccount);
 
 						if (facade.getTransactionType() != null) {
-						switch (facade.getTransactionType()) {
-						case Buy:
-							StockBuyOrSellFacade buyFacade = facade.buyOrSellFacade().getValue();
-							writer.writeStartAggregate("BUYMF");
-							writer.writeStartAggregate("INVBUY");
-							writeTradeInv(writer, buyFacade, StockEntryRowControl.TransactionType.Buy);
-							writer.writeEndAggregate("INVBUY");
-							writer.writeElement("BUYTYPE", "BUY");
-							writer.writeEndAggregate("BUYMF");
-							break;
-						case Sell:
-							StockBuyOrSellFacade sellFacade = facade.buyOrSellFacade().getValue();
-							writer.writeStartAggregate("SELLMF");
-							writer.writeStartAggregate("INVSELL");
-							writeTradeInv(writer, sellFacade, StockEntryRowControl.TransactionType.Sell);
-							writer.writeEndAggregate("INVSELL");
-							writer.writeElement("SELLTYPE", "SELL");
-							writer.writeEndAggregate("SELLMF");
-							break;
-						case Dividend:
-							StockDividendFacade dividendFacade = facade.dividendFacade().getValue();
-							writer.writeStartAggregate("INCOME");
-
-							writer.writeStartAggregate("INVTRAN");
-							if (OfxEntryInfo.getFitidAccessor().getValue(entry) != null) {
-								writer.writeElement("FITID", OfxEntryInfo.getFitidAccessor().getValue(entry));
+							switch (facade.getTransactionType()) {
+							case Buy:
+								StockBuyOrSellFacade buyFacade = facade.buyOrSellFacade().getValue();
+								writer.writeStartAggregate("BUYMF");
+								writer.writeStartAggregate("INVBUY");
+								writeTradeInv(writer, buyFacade, TransactionType.Buy);
+								writer.writeEndAggregate("INVBUY");
+								writer.writeElement("BUYTYPE", "BUY");
+								writer.writeEndAggregate("BUYMF");
+								break;
+							case Sell:
+								StockBuyOrSellFacade sellFacade = facade.buyOrSellFacade().getValue();
+								writer.writeStartAggregate("SELLMF");
+								writer.writeStartAggregate("INVSELL");
+								writeTradeInv(writer, sellFacade, TransactionType.Sell);
+								writer.writeEndAggregate("INVSELL");
+								writer.writeElement("SELLTYPE", "SELL");
+								writer.writeEndAggregate("SELLMF");
+								break;
+							case Dividend:
+								StockDividendFacade dividendFacade = facade.dividendFacade().getValue();
+								Security dividendSecurity = dividendFacade.getSecurity();
+								securities.add(dividendSecurity);
+								
+								writer.writeStartAggregate("INCOME");
+	
+								writer.writeStartAggregate("INVTRAN");
+								if (OfxEntryInfo.getFitidAccessor().getValue(entry) != null) {
+									writer.writeElement("FITID", OfxEntryInfo.getFitidAccessor().getValue(entry));
+								}
+								writer.writeElement("DTTRADE", toTimestamp(entry.getTransaction().getDate()));
+								writer.writeElement("DTSETTLE", toTimestamp(entry.getValuta() == null ? entry.getTransaction().getDate() : entry.getValuta()));
+								if (entry.getMemo() != null && !entry.getMemo().trim().isEmpty()) {
+									writer.writeElement("MEMO", entry.getMemo());
+								}
+								writer.writeElement("CURRSYM", "USD");
+								writer.writeEndAggregate("INVTRAN");
+	
+								writer.writeStartAggregate("SECID");
+								if (dividendFacade.getSecurity() != null && dividendFacade.getSecurity().getCusip() != null) {
+									writer.writeElement("UNIQUEID", dividendFacade.getSecurity().getCusip());
+									writer.writeElement("UNIQUEIDTYPE", "CUSPID");
+								}
+								writer.writeEndAggregate("SECID");
+	
+								writer.writeElement("INCOMETYPE", "DIV");
+								writer.writeElement("TOTAL", entry.getCommodity().format(dividendFacade.getDividendAmount()));
+								writer.writeElement("SUBACCTSEC", "CASH");
+								writer.writeElement("SUBACCTFUND", "CASH");
+								writer.writeStartAggregate("CURRENCY");
+								writer.writeElement("CURRRATE", "1");
+								writer.writeElement("CURRSYM", "USD");
+								writer.writeEndAggregate("CURRENCY");
+	
+								writer.writeEndAggregate("INCOME");
+								break;
+							case Other:
+								break;
+							case Takeover:
+								break;
+							default:
+								break;
 							}
-							writer.writeElement("DTTRADE", toTimestamp(entry.getTransaction().getDate()));
-							writer.writeElement("DTSETTLE", toTimestamp(entry.getValuta() == null ? entry.getTransaction().getDate() : entry.getValuta()));
-							if (entry.getMemo() != null && !entry.getMemo().trim().isEmpty()) {
-								writer.writeElement("MEMO", entry.getMemo());
-							}
-							writer.writeElement("CURRSYM", "USD");
-							writer.writeEndAggregate("INVTRAN");
-
-							writer.writeStartAggregate("SECID");
-							if (dividendFacade.getSecurity() != null && dividendFacade.getSecurity().getCusip() != null) {
-								writer.writeElement("UNIQUEID", dividendFacade.getSecurity().getCusip());
-								writer.writeElement("UNIQUEIDTYPE", "CUSPID");
-							}
-							writer.writeEndAggregate("SECID");
-
-							writer.writeElement("INCOMETYPE", "DIV");
-							writer.writeElement("TOTAL", entry.getCommodity().format(dividendFacade.getDividendAmount()));
-							writer.writeElement("SUBACCTSEC", "CASH");
-							writer.writeElement("SUBACCTFUND", "CASH");
-							writer.writeStartAggregate("CURRENCY");
-							writer.writeElement("CURRRATE", "1");
-							writer.writeElement("CURRSYM", "USD");
-							writer.writeEndAggregate("CURRENCY");
-
-							writer.writeEndAggregate("INCOME");
-							break;
-						case Other:
-							break;
-						case Takeover:
-							break;
-						default:
-							break;
-
-						}
 						}
 					}
 				}
@@ -219,6 +228,31 @@ public class OfxExportWizard extends Wizard implements IExportWizard {
 				writer.writeEndAggregate("INVSTMTTRNRS");
 				writer.writeEndAggregate("INVSTMTMSGSRSV1");
 
+				writer.writeStartAggregate("SECLISTMSGSRSV1");
+				writer.writeStartAggregate("SECLIST");
+				
+				for (Security security : securities) {
+					if (security instanceof Stock) {
+						writer.writeStartAggregate("STOCKINFO");
+						writer.writeStartAggregate("SECLIST");
+						writer.writeStartAggregate("SECID");
+						writer.writeElement("UNIQUEID", security.getCusip());
+						writer.writeElement("UNIQUEIDTYPE", "CUSPID");
+						writer.writeEndAggregate("SECID");
+						writeOptionalElement(writer, "SECNAME", security.getName());
+						writeOptionalElement(writer, "TICKER", security.getSymbol());
+//						writer.writeElement("FIID", security.getFiid());
+						writer.writeEndAggregate("SECLIST");
+						writer.writeEndAggregate("STOCKINFO");
+					} else if (security instanceof Bond) {
+						
+					} else {
+						throw new RuntimeException("Security type not known to OFX exporter");
+					}
+				}
+				
+				writer.writeEndAggregate("SECLIST");
+				writer.writeEndAggregate("SECLISTMSGSRSV1");
 
 				writer.writeEndAggregate("OFX");
 				writer.close();
@@ -231,7 +265,14 @@ public class OfxExportWizard extends Wizard implements IExportWizard {
 			}
 	}
 
+	private void writeOptionalElement(OFXV2Writer writer, String name, String value) throws IOException {
+		writer.writeElement(name, value);
+	}
+
 	private void writeTradeInv(OFXV2Writer writer, StockBuyOrSellFacade tradeFacade, TransactionType type) throws IOException {
+		Security security = tradeFacade.getSecurity();
+		securities.add(security);
+		
 		Entry entry = tradeFacade.getMainEntry();
 		
 		writer.writeStartAggregate("INVTRAN");
@@ -253,7 +294,13 @@ public class OfxExportWizard extends Wizard implements IExportWizard {
 		writer.writeEndAggregate("SECID");
 
 		writer.writeElement("UNITS", tradeFacade.getSecurity().format(tradeFacade.quantity().getValue()));
-		writer.writeElement("UNITPRICE", tradeFacade.calculatePrice().toPlainString());
+		if (tradeFacade.calculatePrice() == null) {
+			// This is here because we have some bad transactions.
+			// We should really be fixing the transactions.
+			writer.writeElement("UNITPRICE", "1.00");
+		} else {	
+			writer.writeElement("UNITPRICE", tradeFacade.calculatePrice().toPlainString());
+		}
 		writer.writeElement("COMMISSION", entry.getCommodity().format(tradeFacade.getCommissionAmount()));
 		writer.writeElement("INCOMETYPE", "DIV");
 
