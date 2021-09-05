@@ -182,7 +182,8 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 
 		@Override
 		protected IObservableValue<Long> getTarget(StockBuyOrSellFacade facade) {
-			return facade.commission();
+			// Sometimes facade is null.  This needs further investigation
+			return facade == null ? null : facade.commission();
 		}
 	}
 	
@@ -198,7 +199,8 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 
 		@Override
 		protected IObservableValue<Long> getTarget(StockBuyOrSellFacade facade) {
-			return facade.tax1();
+			// facade can be null, not sure why
+			return facade == null ? null : facade.tax1();
 		}
 	}
 	
@@ -442,9 +444,9 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 		 * commodity type in this account then we can calculate backwards.
 		 */
 		final StockEntryFacade newEntryFacade = stockEntryFacade.getValue();
-		StockAccount account = (StockAccount)newEntryFacade.getMainEntry().getAccount();
+		StockAccount stockAccount = newEntryFacade.getStockAccount();
 
-		if (isGrossSameAsNetAmount(account)) {
+		if (isGrossSameAsNetAmount(stockAccount)) {
 			ComputedValue<BigDecimal> sharePriceDefault = new ComputedValue<BigDecimal>() {
 				@Override
 				protected BigDecimal calculate() {
@@ -517,6 +519,9 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 						 * bound to the default value.
 						 */
 						BigDecimal grossAmount = new BigDecimal(newEntryFacade.getMainEntry().getAmount()).movePointLeft(2);
+						if (sharePrice.equals(BigDecimal.ZERO)) {
+							return 43L;
+						}
 						BigDecimal quantity = grossAmount.divide(sharePrice);
 						return quantity.movePointRight(3).longValue();
 					} else {

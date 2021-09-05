@@ -2,18 +2,31 @@ package net.sf.jmoney.stocks.pages;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 
+import org.eclipse.core.databinding.observable.Diffs;
+import org.eclipse.core.databinding.observable.value.AbstractObservableValue;
+import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
 import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.core.databinding.observable.value.ValueDiff;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 
 import net.sf.jmoney.entrytable.InvalidUserEntryException;
+import net.sf.jmoney.isolation.IListPropertyAccessor;
+import net.sf.jmoney.isolation.IModelObject;
+import net.sf.jmoney.isolation.IScalarPropertyAccessor;
+import net.sf.jmoney.isolation.SessionChangeAdapter;
+import net.sf.jmoney.isolation.SessionChangeListener;
+import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Currency;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.model2.Transaction;
+import net.sf.jmoney.model2.TransactionInfo;
 import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.model.StockEntryInfo;
@@ -21,6 +34,82 @@ import net.sf.jmoney.stocks.types.BuyOrSellEntryType;
 import net.sf.jmoney.stocks.types.TransactionType;
 
 public class StockBuyOrSellFacade extends BaseEntryFacade {
+
+	private IObservableValue<IObservableValue<Long>> computedQuantityObservable = new ComputedValue<IObservableValue<Long>>() {
+		@Override
+		protected IObservableValue<Long> calculate() {
+			Entry currentPurchaseOrSaleEntry = purchaseOrSaleEntry.getValue();
+			if (currentPurchaseOrSaleEntry != null) {
+				return new ObservableQuantity(currentPurchaseOrSaleEntry);
+			}
+			return null;
+		}
+	};
+
+	private class ObservableQuantity extends AbstractObservableValue<Long> {
+		private final Entry currentPurchaseOrSaleEntry;
+
+		private SessionChangeListener modelListener = new SessionChangeAdapter() {
+			@Override
+			public void objectChanged(IModelObject changedObject, IScalarPropertyAccessor changedProperty, Object oldValue,	Object newValue) {
+				if (changedObject == currentPurchaseOrSaleEntry
+						&& changedProperty == EntryInfo.getAmountAccessor()) {
+					if (transactionType == TransactionType.Buy) {
+						fireValueChange(Diffs.createValueDiff((Long)oldValue, (Long)newValue));
+					} else if (transactionType == TransactionType.Sell) {
+						fireValueChange(Diffs.createValueDiff(-(Long)oldValue, -(Long)newValue));
+					} else {
+						throw new RuntimeException();
+					}
+				}
+			}
+		};
+		
+		private ObservableQuantity(Entry currentPurchaseOrSaleEntry) {
+			this.currentPurchaseOrSaleEntry = currentPurchaseOrSaleEntry;
+		}
+
+		@Override
+		public Object getValueType() {
+			return Long.class;
+		}
+
+		@Override
+		protected Long doGetValue() {
+			if (transactionType == TransactionType.Buy) {
+				return currentPurchaseOrSaleEntry.getAmount();
+			} else if (transactionType == TransactionType.Sell) {
+				return -currentPurchaseOrSaleEntry.getAmount();
+			} else {
+				throw new RuntimeException();
+			}
+		}
+
+		@Override
+		protected void doSetValue(Long value) {
+			if (value == null) {
+				currentPurchaseOrSaleEntry.setAmount(0);
+			} else if (transactionType == TransactionType.Buy) {
+				currentPurchaseOrSaleEntry.setAmount(value);
+			} else if (transactionType == TransactionType.Sell) {
+				currentPurchaseOrSaleEntry.setAmount(-value);
+			} else {
+				throw new RuntimeException();
+			}
+		}
+
+		@Override
+		protected void firstListenerAdded() {
+			currentPurchaseOrSaleEntry.getDataManager().addChangeListener(modelListener);
+		}
+
+		@Override
+		protected void lastListenerRemoved() {
+			currentPurchaseOrSaleEntry.getDataManager().removeChangeListener(modelListener);
+		}
+	}
+
+	static private DateFormat dateFormat = new SimpleDateFormat("dd-MMM-yyyy");
 
 	private TransactionType transactionType; // stock.buy or stock.sell
 	
@@ -39,9 +128,10 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 
 	private IObservableValue<Security> security = new WritableValue<>();
 	
-	// bound to getPurchaseOrSaleEntry().getAmount() except this is always positive whereas
-	// getPurchaseOrSaleEntry().getAmount() would be negative for a sale
-	private final IObservableValue<Long> quantity = new WritableValue<Long>();
+	/** bound to getPurchaseOrSaleEntry().getAmount() except this is always positive whereas
+	 getPurchaseOrSaleEntry().getAmount() would be negative for a sale
+	 */
+	private final IObservableValue<Long> quantity = new RetargetableObservable<Long>(Long.class, computedQuantityObservable);
 
 	private final IObservableValue<BigDecimal> sharePrice = new WritableValue<BigDecimal>();
 
@@ -144,6 +234,18 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 		return this.purchaseOrSaleEntry.getValue();
 	}
 
+	/**
+	 * @trackedGetter        
+	 */
+	public long getQuantityAmount() {
+		Entry entry = purchaseOrSaleEntry.getValue();
+		if (entry == null) {
+			return 0;
+		} else {
+			return EntryInfo.getAmountAccessor().observe(entry).getValue();
+		}
+	}
+	
 	public void setQuantity(long amount) {
 		if (this.transactionType == TransactionType.Buy) {
 			purchaseOrSaleEntry.getValue().setAmount(amount);
@@ -256,15 +358,19 @@ public class StockBuyOrSellFacade extends BaseEntryFacade {
 			}
 		}
 
-		BigDecimal price = null;
-		if (totalCash != 0 && totalShares.compareTo(BigDecimal.ZERO) != 0) {
-			/*
-			 * Either we gain cash and lose stock, or we lose cash and gain
-			 * stock. Hence we need to negate to get a positive value.
-			 */
-			price = BigDecimal.valueOf(-totalCash).movePointLeft(2).divide(totalShares, 4, RoundingMode.HALF_UP);
+		if (totalCash == 0) {
+			System.out.println("Transaction dated " + dateFormat.format(transaction.getDate()) + " is a buy/sell but cash adds up to zero!");
+			return null;
 		}
-
+		if (totalShares.compareTo(BigDecimal.ZERO) == 0) {
+			System.out.println("Transaction dated " + dateFormat.format(transaction.getDate()) + " is a buy/sell but no shares were aquired or disposed of!");
+			return null;
+		}
+		/*
+		 * Either we gain cash and lose stock, or we lose cash and gain
+		 * stock. Hence we need to negate to get a positive value.
+		 */
+		BigDecimal price = BigDecimal.valueOf(-totalCash).movePointLeft(2).divide(totalShares, 4, RoundingMode.HALF_UP);
 		return price;
 	}
 

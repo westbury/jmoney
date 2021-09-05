@@ -218,6 +218,8 @@ public class StockEntriesSection extends SectionPart implements IEntriesContent 
 							case Other:
 								return customTransactionColumn;
 							default:
+								// TODO this is not correct.  Extensions can define transaction types.
+								// Test with Takeover in extension.
 								throw new RuntimeException("bad case");
 							}
 						}

@@ -34,6 +34,7 @@ public class ShareQuantityBlock extends
 		public Control createCellControl(Composite parent, final IObservableValue<StockBuyOrSellFacade> master, RowControl rowControl) {
 			final Text control = new Text(parent, SWT.RIGHT);
 
+			// FIXME this is not correct.  Entering new buy/sell transactions is broken.
 			IBidiWithExceptionConverter<Long,String> amountToText = new IBidiWithExceptionConverter<Long,String>() {
 				@Override
 				public String modelToTarget(Long quantity) {
