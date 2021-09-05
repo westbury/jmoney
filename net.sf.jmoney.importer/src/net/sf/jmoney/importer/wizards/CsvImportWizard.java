@@ -332,7 +332,7 @@ public abstract class CsvImportWizard extends Wizard {
 
 			try {
 				String parts [] = amountString.split("\\.");
-				long amount = Long.parseLong(parts[0]) * 100;
+				long amount = parts[0].isEmpty() ? 0 : Long.parseLong(parts[0]) * 100;
 				if (parts.length > 1) {
 					if (parts[1].length() == 1) {
 						parts[1] = parts[1] + "0";

@@ -251,7 +251,13 @@ public abstract class CsvImportToAccountWizard<T extends BaseEntryData> extends 
 	@Override
 	public boolean importFile(File file) {
 		if (newWay()) {
-			return importFile2(file);
+			try (Reader reader = new FileReader(file)) {
+				return importFile3(reader, file.getName());
+			} catch (IOException e) {
+				// This is not likely to happen because the file dialog only allows selection of existing files.
+				// However the auto-close can throw IOException.
+				throw new RuntimeException(e);
+			}
 		} else {
 			return super.importFile(file);
 		}
@@ -265,20 +271,6 @@ public abstract class CsvImportToAccountWizard<T extends BaseEntryData> extends 
 		throw new RuntimeException("but we are not doing this the new way...");
 	}
 
-	/**
-	 * This is mostly a copy of the method from the base class.  However it is different
-	 * because it collects all the import entries into an array first.  This allows it to
-	 * present all the entries to the user in a dialog before any are committed.
-	 */
-	public boolean importFile2(File file) {
-		try {
-			return importFile3(new FileReader(file), file.getName());
-		} catch (FileNotFoundException e) {
-			// This should not happen because the file dialog only allows selection of existing files.
-			throw new RuntimeException(e);
-		}
-	}
-	
 	/**
 	 * This is mostly a copy of the method from the base class.  However it is different
 	 * because it collects all the import entries into an array first.  This allows it to
