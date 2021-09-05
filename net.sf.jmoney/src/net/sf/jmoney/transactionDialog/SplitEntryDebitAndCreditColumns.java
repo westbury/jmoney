@@ -43,6 +43,7 @@ import net.sf.jmoney.entrytable.EntryData;
 import net.sf.jmoney.entrytable.ICellControl2;
 import net.sf.jmoney.entrytable.IndividualBlock;
 import net.sf.jmoney.entrytable.RowControl;
+import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.model2.Commodity;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
@@ -64,7 +65,15 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry> {
 
 			IObservableValue<Long> amountObservable = EntryInfo.getAmountAccessor().observe(entry);
 
-			IBidiWithStatusConverter<Long, String> creditAndDebitSplitConverter = new CreditAndDebitSplitConverter(commodity, isDebit, amountObservable);
+			// TODO update the commodity, used to format amounts, if the transaction changes.
+			IAmountFormatter commodityForFormatting = entry.getCommodityInternal();
+			if (commodityForFormatting == null) {
+				// Default formatting
+				// Perhaps better is to display as an integer?
+				commodityForFormatting = entry.getSession().getDefaultCurrency();
+			}
+			
+			IBidiWithStatusConverter<Long, String> creditAndDebitSplitConverter = new CreditAndDebitSplitConverter(commodityForFormatting, isDebit, amountObservable);
 			
 			ControlStatusDecoration statusDecoration = new ControlStatusDecoration(
 					textControl, SWT.LEFT | SWT.TOP);
@@ -112,21 +121,19 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry> {
 	}
 
 	private String id;
-	private Commodity commodity;
 	private boolean isDebit;
 
-	public static SplitEntryDebitAndCreditColumns createCreditColumn(Commodity commodityForFormatting) {
-    	return new SplitEntryDebitAndCreditColumns("credit", Messages.SplitEntryDebitAndCreditColumns_Credit, commodityForFormatting, false);  //$NON-NLS-1$
+	public static SplitEntryDebitAndCreditColumns createCreditColumn() {
+    	return new SplitEntryDebitAndCreditColumns("credit", Messages.SplitEntryDebitAndCreditColumns_Credit, false);  //$NON-NLS-1$
 	}
 
-	public static SplitEntryDebitAndCreditColumns createDebitColumn(Commodity commodityForFormatting) {
-    	return new SplitEntryDebitAndCreditColumns("debit", Messages.SplitEntryDebitAndCreditColumns_Debit, commodityForFormatting, true);      //$NON-NLS-1$
+	public static SplitEntryDebitAndCreditColumns createDebitColumn() {
+    	return new SplitEntryDebitAndCreditColumns("debit", Messages.SplitEntryDebitAndCreditColumns_Debit, true);      //$NON-NLS-1$
 	}
 
-	private SplitEntryDebitAndCreditColumns(String id, String name, Commodity commodity, boolean isDebit) {
+	private SplitEntryDebitAndCreditColumns(String id, String name, boolean isDebit) {
 		super(name, 70, 2);
 		this.id = id;
-		this.commodity = commodity;
 		this.isDebit = isDebit;
 	}
 

@@ -562,8 +562,8 @@ public class TransactionDialog extends Dialog {
 		 * Setup the layout structure of the header and rows.
 		 */
 
-		CellBlock<Entry> debitColumnManager = SplitEntryDebitAndCreditColumns.createDebitColumn(transaction.getSession().getDefaultCurrency());
-		CellBlock<Entry> creditColumnManager = SplitEntryDebitAndCreditColumns.createCreditColumn(transaction.getSession().getDefaultCurrency());
+		CellBlock<Entry> debitColumnManager = SplitEntryDebitAndCreditColumns.createDebitColumn();
+		CellBlock<Entry> creditColumnManager = SplitEntryDebitAndCreditColumns.createCreditColumn();
 
 		rootBlock = new HorizontalBlock<Entry>(
 								new SingleOtherEntryPropertyBlock(EntryInfo.getAccountAccessor()),
