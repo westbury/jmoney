@@ -7,6 +7,7 @@
 package net.sf.jmoney.stocks.model;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -127,7 +128,7 @@ public class RatesTable {
 		BigDecimal partialBandRange = new BigDecimal(amount - bands.get(i-1).getBandStart()).movePointLeft(2);
 		total = total.add(partialBandRange.multiply(bands.get(i-1).getProportion()));
 
-		BigDecimal total2 = total.movePointRight(2).setScale(0, BigDecimal.ROUND_HALF_UP);
+		BigDecimal total2 = total.movePointRight(2).setScale(0, RoundingMode.HALF_UP);
 		return total2.longValue();
 	}
 	

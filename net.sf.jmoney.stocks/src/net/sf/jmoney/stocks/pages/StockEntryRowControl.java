@@ -1,6 +1,7 @@
 package net.sf.jmoney.stocks.pages;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,6 +25,7 @@ import net.sf.jmoney.entrytable.VirtualRowTable;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
 import net.sf.jmoney.stocks.model.RatesTable;
+import net.sf.jmoney.stocks.model.Stock;
 import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.types.TransactionType;
 
@@ -732,15 +734,15 @@ public class StockEntryRowControl extends BaseEntryRowControl<EntryData, StockEn
 	 */
 	private Long calculateGrossAmount(StockBuyOrSellFacade newEntryFacade) {
 		// Stock quantities are to three decimal places,
-		// (long value is number of thousandths) hence why we shift the long value three places.
+		// (long value is number of ten-thousandths) hence why we shift the long value four places.
 		Long quantity1 = newEntryFacade.quantity().getValue();
 		long quantity = quantity1 == null ? 0L : quantity1;
 		BigDecimal sharePrice = newEntryFacade.sharePrice().getValue();
 		if (sharePrice == null || quantity == 0) {
 			return null;
 		} else {
-			BigDecimal grossAmount1 = sharePrice.multiply(BigDecimal.valueOf(quantity).movePointLeft(3));
-			BigDecimal grossAmount2 = grossAmount1.movePointRight(2).setScale(0, BigDecimal.ROUND_HALF_UP);
+			BigDecimal grossAmount1 = sharePrice.multiply(BigDecimal.valueOf(quantity).movePointLeft(Stock.SCALE_DIGITS));
+			BigDecimal grossAmount2 = grossAmount1.movePointRight(2).setScale(0, RoundingMode.HALF_UP);
 			long grossAmount = grossAmount2.longValue();
 			return grossAmount;
 		}

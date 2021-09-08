@@ -32,7 +32,9 @@ import net.sf.jmoney.isolation.ListKey;
 public class Stock extends Security {
 
 	// This implementation formats all quantities as numbers with four decimal places.
-	private int SCALE_FACTOR = 10000;
+	// The unit for a stock is one ten-thousandth of a stock.
+	public static int SCALE_FACTOR = 10000;
+	public static int SCALE_DIGITS = 4;
 
 	private static NumberFormat numberFormat = NumberFormat.getNumberInstance();
 	static {
