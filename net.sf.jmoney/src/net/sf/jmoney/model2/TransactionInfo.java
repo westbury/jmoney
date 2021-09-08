@@ -90,7 +90,7 @@ public class TransactionInfo implements IPropertySetInfo {
 		IPropertyControlFactory<Transaction,String> textControlFactory = new TextControlFactory<Transaction>();
 		
 		entriesAccessor = propertySet.addPropertyList("entry", Messages.TransactionInfo_Entry, EntryInfo.getPropertySet(), entryGetter); //$NON-NLS-1$
-		dateAccessor = propertySet.addProperty("date", Messages.TransactionInfo_Date, Date.class, 0, 74, dateControlFactory, null); //$NON-NLS-1$
+		dateAccessor = propertySet.addProperty("date", Messages.TransactionInfo_Date, Date.class, 0, 88, dateControlFactory, null); //$NON-NLS-1$
 		typeAccessor = propertySet.addProperty("type", Messages.TransactionInfo_Type, String.class, 5, 100, textControlFactory, null); //$NON-NLS-1$
 		
 		return propertySet;
