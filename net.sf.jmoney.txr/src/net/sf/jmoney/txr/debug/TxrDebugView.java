@@ -25,9 +25,17 @@ package net.sf.jmoney.txr.debug;
 import java.awt.Toolkit;
 import java.awt.datatransfer.FlavorEvent;
 import java.awt.datatransfer.FlavorListener;
+import java.lang.reflect.Array;
 import java.net.URL;
+import java.util.List;
+import java.util.ArrayList;
 
+import org.eclipse.core.databinding.observable.value.IObservableValue;
+import org.eclipse.core.databinding.observable.value.IValueChangeListener;
+import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
+import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.jface.action.Action;
+import org.eclipse.jface.action.IContributionManager;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -119,9 +127,9 @@ public class TxrDebugView extends ViewPart {
 
 	private Image errorImage;
 
-	private String txr = "@(collect)\nOrder Detail";
-	
-	private String testData = "line 1\nline 2";
+	private String txr = "@(collect)\nOrder Detail\nAmount\n@amount\nPrice: @price\n@(until)\nWe also recommend:\n@(end)\nmatch line 1\nmatch line 2\nmatch line 3";
+
+	private String testData = "line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14";
 
 	private Composite txrEditorComposite;
 
@@ -130,7 +138,10 @@ public class TxrDebugView extends ViewPart {
 	private ScrolledComposite sc;
 
 	private Composite horizontallySplitComposite;
-	
+
+	private List<TxrLineMatch> txrLineMatches;
+	private List<TextDataLineMatch> textDataLineMatches;
+
 	public TxrDebugView() {
 		pasteTxrAction = new PasteTxrAction();
 		pasteTextAction = new PasteTextAction();
@@ -259,11 +270,41 @@ public class TxrDebugView extends ViewPart {
 		txr = getTextFromClipboard();
 		this.parseTxr();
 		this.runMatcher();
+
+
+		txrEditorComposite.layout();
+		testDataComposite.layout();
+
+		// Is this needed?  (if not, hsc)
+		//		sc.setMinSize(horizontallySplitComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+		horizontallySplitComposite.setSize(horizontallySplitComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+		horizontallySplitComposite.layout();
+
+		sc.layout(true);
+		sc.update();
+		sc.getParent().update();
+		sc.getParent().layout(true);
+
+
 	}
 
 	private void pasteDetails() {
 		testData = getTextFromClipboard();
 		this.runMatcher();
+
+		txrEditorComposite.layout();
+		testDataComposite.layout();
+
+		// Is this needed?  (if not, hsc)
+		//		sc.setMinSize(horizontallySplitComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+		horizontallySplitComposite.setSize(horizontallySplitComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+		horizontallySplitComposite.layout();
+
+		sc.layout(true);
+		sc.update();
+		sc.getParent().update();
+		sc.getParent().layout(true);
+
 	}
 
 	private String getTextFromClipboard() {
@@ -276,103 +317,326 @@ public class TxrDebugView extends ViewPart {
 	}
 
 	private void parseTxr() {
-	
-		
+
+
 	}
-	
-	private void runMatcher() {
-	
+
+	private Control txrLineRowComposite(Composite parent, int lineNumber, String line, Listener listener) {
+		Composite composite = new Composite(parent, SWT.NONE);
+		GridLayout layout = new GridLayout(2, false);
+		layout.marginHeight = 0;
+		layout.verticalSpacing = 0;
+		composite.setLayout(layout);
+
+		Label lineNumberControl = new Label(composite, SWT.NONE);
+		lineNumberControl.setText(Integer.toString(lineNumber));
+		lineNumberControl.setLayoutData(new GridData(SWT.FILL, SWT.BOTTOM, false, true));
+
+		Text lineControl = new Text(composite, SWT.NONE);
+		lineControl.setText(line);
+		lineControl.setLayoutData(new GridData(SWT.FILL, SWT.BOTTOM, true, true));
+
+		Control[] x = { composite, lineNumberControl, lineControl };
+		for (Control c : x) {
+			c.addListener (SWT.MouseDown, listener);
+			c.addListener (SWT.MouseUp, listener);
+			c.addListener (SWT.MouseMove, listener);
+		}
+
+		return composite;
+	}
+
+	private Control textDataLineRowComposite(Composite parent, int lineNumber, String line) {
+		Composite composite = new Composite(parent, SWT.NONE);
+		GridLayout layout = new GridLayout(2, false);
+		layout.marginHeight = 0;
+		layout.verticalSpacing = 0;
+		composite.setLayout(layout);
+
+		Label lineNumberControl = new Label(composite, SWT.NONE);
+		lineNumberControl.setText(Integer.toString(lineNumber));
+		lineNumberControl.setLayoutData(new GridData(SWT.FILL, SWT.BOTTOM, false, true));
+
+		Label lineControl = new Label(composite, SWT.NONE);
+		lineControl.setText(line);
+		lineControl.setLayoutData(new GridData(SWT.FILL, SWT.BOTTOM, true, true));
+
+		return composite;
+	}
+
+	/**
+	 * This class has two states: If its location is currently being dragged then 
+	 * @author Nigel
+	 *
+	 */
+	class TxrLineMatch {
+
+		private int lineNumber;
+		private String line;
 		
+		/**
+		 * The line in the text data to which this is matched, or null if this is an unmatched line.
+		 * 
+		 * A line will be matched if either the matching rules matched it, or if the user explicitly stated
+		 * that it is matched.
+		 * 
+		 * If this is set then the line on the left must be level with the text data line on the right.  This
+		 * will likely involve adding empty space between lines (or either left or right). 
+		 */
+		private Integer textDataLineNumber;
+
+		public IObservableValue<Integer> preceedingGap = new WritableValue<Integer>();
+		
+		public TxrLineMatch(int lineNumber, String line) {
+			this.lineNumber = lineNumber;
+			this.line = line;
+			this.preceedingGap.setValue(0);
+		}
+
+		/**
+		 * 			        	    Initially, and for small changes, the mouse is dragging the line up
+			        	  or down.  However as one gets towards the limits of the editor area, the text
+			        	  data area starts scrolling in the opposite direction.  Furthermore, the action
+			        	  gradually switches so that the mouse position dictates the rate at which the text data
+			        	  scrolls, so the text data will continue to scroll even if the mouse is not moved.
+			        	  (stopping only when the mouse is moved back into the center third of the editor area or if the mouse button is
+			        	  released).
+			        	  The control will never go into the last sixth.  At that point the movement is only by scrolling the text data.
+			        	  (though the speed will depend on where in the last sixth it is).  So second last sixth is the transition. 1) amount by which control moves relative to amount of mouse movement,
+			        	  2) speed of scrolling is the addition of a) amount to compensate for lack of movement in first, and b) the speed based on the mouse position, gradually increasing in the entire last third.
+			        	  
+
+		 * @param movement the amount the mouse was moved since last updated
+		 * @param positionWithinEditor a number in the range 0 (top of editor) to 1 (bottom of editor)
+		 */
+		// TODO this should not be here.  It should be handled outside in the dnd code. This object is updated only when dropped.
+		public void setOffset(int movement, float positionWithinEditor) {
+			if (positionWithinEditor < 0) {
+				positionWithinEditor = 0;
+			}
+			if (positionWithinEditor > 1) {
+				positionWithinEditor = 1;
+			}
+			
+			if (positionWithinEditor < 0.166) {
+				
+			} else if (positionWithinEditor < 0.333) {
+				
+			} else if (positionWithinEditor < 0.666) {
+				// Middle area, so move just the left area
+				
+			} else if (positionWithinEditor < 0.833) {
+				
+			} else {
+				
+			}
+			
+//			if (gap > 0) {
+//				lineControl.setLayoutData(new RowData(SWT.DEFAULT, 20 + gap));
+//			} else {
+//				lineControl.setLayoutData(new RowData(SWT.DEFAULT, SWT.DEFAULT));
+//			}
+		}
+
+		/**
+		 * 
+		 * @param gap the gap above this line, so zero if this line immediately follows the preceeding
+		 * 			line, one if this line is to be positioned one line further down with a empty line above etc.
+		 */
+		public void setPreceedingGap(int gap) {
+			// UI will listen and update layout objects
+			preceedingGap.setValue(gap);
+		}
+	}
+
+	class TextDataLineMatch {
+
+		private int lineNumber;
+		private String line;
+		public IObservableValue<Integer> preceedingGap = new WritableValue<Integer>();
+		
+		public TextDataLineMatch(int lineNumber, String line) {
+			this.lineNumber = lineNumber;
+			this.line = line;
+		}
+
+		public void setPreceedingGap(int gap) {
+			// UI will listen and update layout objects
+			preceedingGap.setValue(gap);
+		}
+	}
+
+	private void runMatcher() {
+
+
 		while (txrEditorComposite.getChildren().length != 0) {
 			txrEditorComposite.getChildren()[0].dispose();
 		}
-		
+
+		txrLineMatches = new ArrayList<>();
 		int lineNumber = 0;
 		for (String line : txr.split("\n")) {
-			Text lineControl = new Text(txrEditorComposite, SWT.NONE);
-			lineControl.setText(line);
-			
-			if (++lineNumber == 3) {
-				lineControl.setLayoutData(new RowData(SWT.DEFAULT, 100));
+			lineNumber++;
+
+			TxrLineMatch txrLineMatch = new TxrLineMatch(lineNumber, line);
+			txrLineMatches.add(txrLineMatch);
+
+			if (lineNumber == 3) {
+				txrLineMatch.textDataLineNumber = 6;
 			}
-			
+			if (lineNumber == 10) {
+				txrLineMatch.textDataLineNumber = 8;
+			}
+
+			Thread[] scrollingThread = new Thread[1];
 			Point[] offset = new Point[1];
 			Listener listener = new Listener () {
-			    public void handleEvent (Event event) {
-			      switch (event.type) {
-			        case SWT.MouseDown:
-			        	System.out.println("Down: " + event.x + ',' + event.y);
-//			          Rectangle rect = composite.getBounds ();
-//			          if (rect.contains (event.x, event.y)) {
-//			            Point pt1 = composite.toDisplay (0, 0);
-//			            Point pt2 = shell.toDisplay (event.x, event.y); 
-			            offset [0] = new Point (event.x, event.y);
-//			          }
-			          break;
-			        case SWT.MouseMove:
-			          if (offset[0] != null) {
-				        	int gap = event.y - offset[0].y;
-				        	if (gap > 0) {
-				        		lineControl.setLayoutData(new RowData(SWT.DEFAULT, 20 + gap));
-				        	} else {
-				        		lineControl.setLayoutData(new RowData(SWT.DEFAULT, SWT.DEFAULT));
-				        	}
-				        	txrEditorComposite.layout();
-			          }
-			          
-			          break;
-			        case SWT.MouseUp:
-			          offset [0] = null;
-			          break;
-			      }
-			    }
-			  };
-			  lineControl.addListener (SWT.MouseDown, listener);
-			  lineControl.addListener (SWT.MouseUp, listener);
-			  lineControl.addListener (SWT.MouseMove, listener);
+				public void handleEvent (Event event) {
+					switch (event.type) {
+					case SWT.MouseDown:
+						System.out.println("Down: " + event.x + ',' + event.y);
+						//			          Rectangle rect = composite.getBounds ();
+						//			          if (rect.contains (event.x, event.y)) {
+						//			            Point pt1 = composite.toDisplay (0, 0);
+						//			            Point pt2 = shell.toDisplay (event.x, event.y); 
+						offset [0] = new Point (event.x, event.y);
+
+
+						// Start a thread that updates
+						new Thread(new String()).run();
+						scrollingThread[0] = new Thread() {
+							@Override
+							public void run() {
+							}
+						};
+						scrollingThread[0].start();
+						break;
+					case SWT.MouseMove:
+						if (scrollingThread[0] != null) {
+							scrollingThread[0].stop();
+						}
+						if (offset[0] != null) {
+							/* Determine the mouse position relative to both the position where it
+			        	  	   was when we last processed it and also the position within the TXR editor
+			        	  	   area.
+							 */
+							int movement = event.y - offset[0].y;
+							offset[0].y = event.y;
+
+							Rectangle editorArea = txrEditorComposite.getClientArea();
+							float positionWithinEditor = ((float)event.y - editorArea.y) / editorArea.height;
+
+							txrLineMatch.setOffset(movement, positionWithinEditor);
+
+							txrEditorComposite.layout();
+						}
+
+						break;
+					case SWT.MouseUp:
+						offset [0] = null;
+						break;
+					}
+				}
+			};
+
+			Control lineControl = txrLineRowComposite(txrEditorComposite, lineNumber, line, listener);
+			int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
+			lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
+			
+			txrLineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
+				@Override
+				public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
+					lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight * (event.diff.getNewValue() + 1)));
+				}
+			});
 		}
 		txrEditorComposite.layout();
-		
+
 		while (testDataComposite.getChildren().length != 0) {
 			testDataComposite.getChildren()[0].dispose();
 		}
-		for (String line : testData.split("\n")) {
-			Label lineControl = new Label(testDataComposite, SWT.NONE);
-			lineControl.setText(line);
+
+		{
+			textDataLineMatches = new ArrayList<>();
+			int textDataLineNumber = 0;
+			for (String line : testData.split("\n")) {
+				TextDataLineMatch lineMatch = new TextDataLineMatch(textDataLineNumber, line);
+				textDataLineMatches.add(lineMatch);
+				textDataLineNumber++;
+
+				Control lineControl = textDataLineRowComposite(testDataComposite, textDataLineNumber, line);
+				int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
+				lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
+				
+				lineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
+					@Override
+					public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
+						lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight * (event.diff.getNewValue() + 1)));
+					}
+				});
+			}
 		}
-		testDataComposite.layout();
+
+		// Set heights so that all matched lines in the TXR are lined up correctly with the
+		// line from the text data.
 		
-		// Is this needed?  (if not, hsc)
-//		sc.setMinSize(horizontallySplitComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
-		horizontallySplitComposite.setSize(horizontallySplitComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
-		horizontallySplitComposite.layout();
-		
-		sc.layout(true);
-		sc.update();
-		sc.getParent().update();
-		sc.getParent().layout(true);
-		
+		int txrLineLocation = 0;  // Location of last line processed, 1 is top position etc
+		int textDataLineLocation = 0;  // Location of last line processed, 1 is top position etc
+		int textDataLineNumber = 0;  // Last data line processed, 1-based
+		for (TxrLineMatch txrLineMatch : txrLineMatches) {
+			if (txrLineMatch.textDataLineNumber == null) {
+				// This line is not matched, so it just goes immediately after the previous
+				txrLineMatch.setPreceedingGap(0);
+				txrLineLocation++;
+			} else {
+				assert (txrLineMatch.textDataLineNumber > textDataLineNumber); // Must move forwards
+				
+				while (textDataLineNumber < txrLineMatch.textDataLineNumber - 1) {
+					textDataLineMatches.get(textDataLineNumber).setPreceedingGap(0);
+					textDataLineNumber++;
+					textDataLineLocation++;
+				}
+				
+				// Update location to be where the matching lines would go if there were no gaps
+				txrLineLocation++;
+				textDataLineLocation++;
+				
+				if (textDataLineLocation < txrLineLocation) {
+					// We need to add space on the right to line these up
+					textDataLineMatches.get(textDataLineNumber).setPreceedingGap(txrLineLocation - textDataLineLocation);
+					txrLineMatch.setPreceedingGap(0);
+					textDataLineLocation = txrLineLocation;
+				} else {
+					// We need to add space on the left to line these up (or no space is needed on either side)
+					textDataLineMatches.get(textDataLineNumber).setPreceedingGap(0);
+					txrLineMatch.setPreceedingGap(textDataLineLocation - txrLineLocation);
+					txrLineLocation = textDataLineLocation;
+				}
+				textDataLineNumber++;
+				assert (textDataLineNumber == txrLineMatch.textDataLineNumber);
+			}
+		}
 	}
-	
+
 	private Control createTopArea(Composite parent) {
 		Composite composite = new Composite(parent, SWT.NONE);
 		composite.setLayout(new GridLayout(2, false));
- 
+
 		// Anything to go here?
-		
+
 		return composite;
 	}
-	
+
 	private Control createScrollableMainArea(Composite parent) {
 		sc = new ScrolledComposite(parent, SWT.V_SCROLL | SWT.H_SCROLL);
-	
+
 		horizontallySplitComposite = createHorizontallySplitArea(sc);
-	
+
 		sc.setContent(horizontallySplitComposite);	
-	
-//		sc.setExpandHorizontal(true);
-//		sc.setExpandVertical(true);
-//		sc.setMinSize(horizontallySplitComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+
+		//		sc.setExpandHorizontal(true);
+		//		sc.setExpandVertical(true);
+		//		sc.setMinSize(horizontallySplitComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 		horizontallySplitComposite.setSize(horizontallySplitComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 
 		sc.addControlListener(new ControlAdapter() {
@@ -383,7 +647,7 @@ public class TxrDebugView extends ViewPart {
 		});
 		return sc;
 	}
-	
+
 	private Composite createHorizontallySplitArea(Composite parent) {
 		Composite containerOfSash = new Composite(parent, SWT.NONE);
 		containerOfSash.setLayout(new FormLayout());
@@ -442,6 +706,8 @@ public class TxrDebugView extends ViewPart {
 		formData.bottom = new FormAttachment(100, 0);
 		fUnreconciledSection.setLayoutData(formData);
 
+		runMatcher(); // This sets it all up.
+		
 		return containerOfSash;
 	}	
 
@@ -451,10 +717,10 @@ public class TxrDebugView extends ViewPart {
 		rowLayout.wrap = false;
 		txrEditorComposite.setLayout(rowLayout);
 
-		for (String line : txr.split("\n")) {
-			Text lineControl = new Text(txrEditorComposite, SWT.NONE);
-			lineControl.setText(line);
-		}
+//		for (String line : txr.split("\n")) {
+//			Text lineControl = new Text(txrEditorComposite, SWT.NONE);
+//			lineControl.setText(line);
+//		}
 
 		return txrEditorComposite;
 	}
@@ -465,49 +731,49 @@ public class TxrDebugView extends ViewPart {
 		rowLayout.wrap = false;
 		testDataComposite.setLayout(rowLayout);
 
-		for (String line : testData.split("\n")) {
-			Label lineControl = new Label(testDataComposite, SWT.NONE);
-			lineControl.setText(line);
-		}
+//		for (String line : testData.split("\n")) {
+//			Label lineControl = new Label(testDataComposite, SWT.NONE);
+//			lineControl.setText(line);
+//		}
 
 		return testDataComposite;
 	}
 
-//	private Control createOrderControls(Composite parent) {
-//		Composite composite = new Composite(parent, SWT.NONE);
-//		composite.setLayout(new GridLayout(2, false));
-//
-//		Label orderNumberLabel = new Label(composite, 0);
-//		orderNumberLabel.setText("Order Number:");
-//		Text orderControl = new Text(composite, SWT.NONE);
-//		orderControl.setLayoutData(new GridData(200, SWT.DEFAULT));
-//
-//		Label orderDateLabel = new Label(composite, 0);
-//		orderDateLabel.setText("Order Date:");
-//		DateControl orderDateControl = new DateControl(composite);
-//		orderDateControl.setLayoutData(new GridData(200, SWT.DEFAULT));
-//
-//		Label orderAmountLabel = new Label(composite, 0);
-//		orderAmountLabel.setText("Order Total:");
-//		Text orderAmountControl = new Text(composite, SWT.NONE);
-//		orderAmountControl.setLayoutData(new GridData(200, SWT.DEFAULT));
-//
-//		selObs.addValueChangeListener(new IValueChangeListener<Object>() {
-//			@Override
-//			public void handleValueChange(ValueChangeEvent<? extends Object> event) {
-//				if (selObs.getValue() instanceof AmazonOrder) {
-//					AmazonOrder order = (AmazonOrder)selObs.getValue();
-//
-//					orderControl.setText(order.getOrderNumber());
-//					orderDateControl.setDate(order.getOrderDate());
-//
-//					orderAmountControl.setText(currencyFormatter.format(order.getOrderTotal()));
-//				}
-//			}
-//		});
-//
-//		return composite;
-//	}
+	//	private Control createOrderControls(Composite parent) {
+	//		Composite composite = new Composite(parent, SWT.NONE);
+	//		composite.setLayout(new GridLayout(2, false));
+	//
+	//		Label orderNumberLabel = new Label(composite, 0);
+	//		orderNumberLabel.setText("Order Number:");
+	//		Text orderControl = new Text(composite, SWT.NONE);
+	//		orderControl.setLayoutData(new GridData(200, SWT.DEFAULT));
+	//
+	//		Label orderDateLabel = new Label(composite, 0);
+	//		orderDateLabel.setText("Order Date:");
+	//		DateControl orderDateControl = new DateControl(composite);
+	//		orderDateControl.setLayoutData(new GridData(200, SWT.DEFAULT));
+	//
+	//		Label orderAmountLabel = new Label(composite, 0);
+	//		orderAmountLabel.setText("Order Total:");
+	//		Text orderAmountControl = new Text(composite, SWT.NONE);
+	//		orderAmountControl.setLayoutData(new GridData(200, SWT.DEFAULT));
+	//
+	//		selObs.addValueChangeListener(new IValueChangeListener<Object>() {
+	//			@Override
+	//			public void handleValueChange(ValueChangeEvent<? extends Object> event) {
+	//				if (selObs.getValue() instanceof AmazonOrder) {
+	//					AmazonOrder order = (AmazonOrder)selObs.getValue();
+	//
+	//					orderControl.setText(order.getOrderNumber());
+	//					orderDateControl.setDate(order.getOrderDate());
+	//
+	//					orderAmountControl.setText(currencyFormatter.format(order.getOrderTotal()));
+	//				}
+	//			}
+	//		});
+	//
+	//		return composite;
+	//	}
 
 	@Override
 	public void setFocus() {
