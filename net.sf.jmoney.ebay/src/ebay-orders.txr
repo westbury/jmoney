@@ -1,0 +1,43 @@
+@(skip)
+@{username}user ID, click for member’s profile (@{feedbackscore})Feedback score is @{feedbackscore} for @{username}Make this page your My eBay homepage
+@(skip)
+Filter by:
+All
+@(collect :maxgap 6)
+ORDER DATE
+@(assert)
+@{orderdate /\w\w\w\s\d\d,\s\d\d\d\d/}
+ORDER NUMBER
+@{ordernumber}
+SOLD BY
+@{seller}user ID, click for member’s profile
+@  (maybe)
+ORDER TOTAL@; this stops appearing once orders are more than a few months old
+GBP @{ordertotal /\-?(\d,)?\d\d?\d?\.\d\d/}
+@  (end)
+View order details@{description}
+@  (collect)
+@{description2}
+@{description3}
+(@{itemnumber})
+@  (assert)
+@  (skip 7)
+@  (maybe)
+Paid on @{paiddate /\w\w\w\s\d?\d,\s\d\d\d\d/}@; this stops appearing once orders are more than a few months old
+Shipped on @{shipdate /\d\d\/\d\d\/\d\d/}
+Feedback needed
+@    (cases)
+Feedback received
+@    (or)
+No Feedback received
+@    (end)
+@  (end)
+ITEM PRICE:
+GBP @{itemprice /\-?(\d,)?\d\d?\d?\.\d\d/}
+@(skip 5)
+More actions
+Add note- @{description4}
+@  (until)
+ORDER DATE
+@  (end)
+@(end)

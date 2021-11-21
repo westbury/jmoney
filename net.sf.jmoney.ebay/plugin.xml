@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+   <extension
+         point="net.sf.jmoney.importer.importdata">
+
+        <import-format
+           id="ebaycopytextimport" 
+           label="Ebay Order Data (from order history, copy text)" 
+           class="net.sf.jmoney.ebay.EbayCopytextImportWizard"/>
+
+   </extension>
+
+   <extension 
+         point="org.eclipse.ui.views">
+      <view
+            id="net.sf.jmoney.ebay.EbayImportView"
+            name="Ebay"
+            class="net.sf.jmoney.ebay.copytext.EbayImportView">
+      </view>
+   </extension>
+
+   <extension
+         point="net.sf.jmoney.fields">
+      <extension-property-set
+        id="entryProperties"
+          info-class="net.sf.jmoney.ebay.EbayEntryInfo"
+          extendable-property-set="net.sf.jmoney.entry">
+      </extension-property-set>
+   </extension>
+
+</plugin>

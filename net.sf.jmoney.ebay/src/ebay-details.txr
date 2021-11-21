@@ -1,0 +1,48 @@
+@(skip)
+Time placed ${orderdate /\w\w\w\s\d\d,\s\d\d\d\d/} at ${ordertime}
+Order number ${ordernumber}
+Total GBP ${total} (${numberofitems})
+Sold by ${seller}
+Delivery info
+Delivered on ${deliverydate /\w\w\w,\s\w\w\w\s\d\d,\s\d\d\d\d/}
+
+Paid
+${dayofyearpaid}
+Shipped
+${dayofyearshipped}
+Delivered
+${dayofyeardelivered}
+Tracking details
+Shipping Service ${shippingservice}
+Carrier ${carrier}
+Number ${trackingnumber}
+Item info
+${collect}
+${description}
+${description}
+
+GBP ${amount}Unit price GBP ${unitprice}
+
+Item number:${itemnumber}
+
+${detail}
+
+Buy again
+@(end)
+Shipping address
+@(skip)
+Ending in ${lastfourdigits}Visa credit card ending in ${lastfourdigits}
+
+Nigel Westbury
+
+GBP ${total}
+${orderdate} at ${ordertime}
+
+${numberofitems}
+GBP ${itemtotal}
+Shipping
+${shipping}
+Order total
+GBP ${total}
+How do you like our order details page?
+@(skip)
