@@ -10,8 +10,6 @@ public class EbayOrderItem {
 	
 	private IItemUpdater updater;
 	
-	private String soldBy;
-
 	int quantity = 1;
 
 	private long netCost;
@@ -21,6 +19,8 @@ public class EbayOrderItem {
 	private Date paidDate;
 	
 	private Date shipDate;
+	
+	private String imageCode;
 	
 	public EbayOrderItem(EbayOrder order, IItemUpdater updater) {
 		this.order = order;
@@ -50,14 +50,6 @@ public class EbayOrderItem {
 	 */
 	public long getNetCost() {
 		return netCost;
-	}
-
-	public void setSoldBy(String soldBy) {
-		this.soldBy = soldBy;
-	}
-
-	public String getSoldBy() {
-		return soldBy;
 	}
 
 	public void setQuantity(int quantity) {
@@ -107,5 +99,10 @@ public class EbayOrderItem {
 	public void setShipDate(Date shipDate) {
 		this.shipDate = shipDate;
 		updater.setShipDate(shipDate);
+	}
+
+	public void setImageCode(String imageCode) {
+		this.imageCode = imageCode;
+		updater.setImageCode(imageCode);
 	}
 }

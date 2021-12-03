@@ -22,6 +22,8 @@ import ebayscraper.IContextUpdater;
 import ebayscraper.api.EbayItemFields;
 import ebayscraper.api.EbayOrderDetailFields;
 import ebayscraper.api.EbayOrderFields;
+import net.sf.jmoney.ebay.copytext.EbayImportView;
+import net.sf.jmoney.ebay.copytext.ItemUpdater;
 import net.sf.jmoney.importer.wizards.ImportException;
 
 public class EbayOrderAnalyzer {
@@ -133,6 +135,20 @@ public class EbayOrderAnalyzer {
 
 			item.setPaidDate(paidDate);
 			item.setShipDate(shipDate);
+			
+			// Set the image
+			try {
+				String imageCode = EbayImportView.getImageCodeFromItemNumber(itemNumber);
+				if (imageCode != null) {
+					// TODO delete setImageCode method altogether as not now used
+					// In fact why can't more just be set in the entry directly?
+//					item.setImageCode(imageCode);
+					EbayImportView.setImageIntoItem(imageCode, (ItemUpdater)item.getUnderlyingItem());	
+				}
+			} catch (RuntimeException e) {
+				// Don't fail the entire import if this fails.  It just means we don't get an image for this item.
+				e.printStackTrace(System.out);
+			}
 		}
 
 //				// Now we have the items in this order,

@@ -175,4 +175,9 @@ public class ItemUpdater implements IItemUpdater {
 		entry.setShipmentDate(shipDate);
 	}
 
+	@Override
+	public void setImageCode(String imageCode) {
+		entry.setImageCode(imageCode);
+	}
+
 }

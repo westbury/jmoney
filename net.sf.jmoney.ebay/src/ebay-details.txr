@@ -1,48 +1,66 @@
-@(skip)
-Time placed ${orderdate /\w\w\w\s\d\d,\s\d\d\d\d/} at ${ordertime}
-Order number ${ordernumber}
-Total GBP ${total} (${numberofitems})
-Sold by ${seller}
+@(collect)
+Order info
+@(assert)
+Time placed	@{orderdate /\w\w\w\s\d\d?,\s\d\d\d\d/} at @{ordertime}
+Order number	@{ordernumber}
+Total	GBP @{total} (@{numberofitems})
+Sold by	@{seller}
 Delivery info
-Delivered on ${deliverydate /\w\w\w,\s\w\w\w\s\d\d,\s\d\d\d\d/}
+Delivered on @{deliverydate /\w\w\w,\s\w\w\w\s\d?\d,\s\d\d\d\d/}
 
 Paid
-${dayofyearpaid}
+@{dayofyearpaid}
 Shipped
-${dayofyearshipped}
+@{dayofyearshipped}
 Delivered
-${dayofyeardelivered}
+@{dayofyeardelivered}
 Tracking details
-Shipping Service ${shippingservice}
-Carrier ${carrier}
-Number ${trackingnumber}
+Shipping Service	@{shippingservice}
+Carrier	@{carrier}
+Number	@{trackingnumber}
 Item info
-${collect}
-${description}
-${description}
+@(collect)
+@{description}
+@{description}
+@(assert)
 
-GBP ${amount}Unit price GBP ${unitprice}
+GBP @{amount}Unit price GBP @{unitprice}
 
-Item number:${itemnumber}
+Item number:@{itemnumber}
 
-${detail}
+@{detail}
 
-Buy again
+@(skip 5)
+More actions
+@(until)
+@  (cases)
+Order info
+@  (or)
+Related sponsored items
+@  (end)
 @(end)
-Shipping address
+@(until)
+Related sponsored items
+@(end)
+Related sponsored items
 @(skip)
-Ending in ${lastfourdigits}Visa credit card ending in ${lastfourdigits}
+Payment info
+@(assert)
+Ending in @{lastfourdigits}@{cardtype /Visa|Master Card/} credit card ending in @{lastfourdigits}
 
-Nigel Westbury
+@{nameoncard}
 
-GBP ${total}
-${orderdate} at ${ordertime}
+GBP @{totalforday}
+@{orderdate2 /\w\w\w\s\d\d?/} at @{ordertime2}
 
-${numberofitems}
-GBP ${itemtotal}
+@{numberofitems2}
+GBP @{itemtotal2}
+@(maybe)
+Item discount
+-GBP @{discount}
+@(end)
 Shipping
-${shipping}
+@{shipping}
 Order total
-GBP ${total}
+GBP @{totalforday}
 How do you like our order details page?
-@(skip)

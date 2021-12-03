@@ -34,4 +34,6 @@ public interface IItemUpdater {
 
 	void setShipDate(Date shipDate);
 
+	void setImageCode(String imageCode);
+
 }
