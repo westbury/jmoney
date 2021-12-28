@@ -4,24 +4,19 @@ import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.DayOfWeek;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.TextStyle;
-import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import ebayscraper.IContextUpdater;
-import ebayscraper.api.EbayItemFields;
-import ebayscraper.api.EbayOrderDetailFields;
-import ebayscraper.api.EbayOrderFields;
+import ebayscraper.api.EbayDetailItemFields;
+import ebayscraper.api.EbayDetailOrderFields;
+import ebayscraper.api.EbayDetailPaymentFields;
+import ebayscraper.api.EbayOrderListItemFields;
+import ebayscraper.api.EbayOrderListOrderFields;
 import net.sf.jmoney.ebay.copytext.EbayImportView;
 import net.sf.jmoney.ebay.copytext.ItemUpdater;
 import net.sf.jmoney.importer.wizards.ImportException;
@@ -32,7 +27,9 @@ public class EbayOrderAnalyzer {
 	private static DateFormat ebayDateFormat = new SimpleDateFormat("MMM dd, yyyy");
 	private static DateFormat ebayPaidDateFormat = new SimpleDateFormat("MMM d, yyyy");
 	private static DateFormat ebayShipDateFormat = new SimpleDateFormat("MM/dd/yyyy");
-
+	private static DateFormat ebayMonthAndDayFormat = new SimpleDateFormat("MMM d");
+	private static DateFormat ebayDeliveryDateFormat = new SimpleDateFormat("EEE, MMM d, yyyy");
+	
 	private Set<EbayOrder> orders;
 	private IContextUpdater contextUpdater;
 
@@ -41,7 +38,7 @@ public class EbayOrderAnalyzer {
 		this.contextUpdater = contextUpdater;
 	}
 
-	public Date processEbayOrder(EbayOrderFields orderFields) {
+	public Date processEbayOrderList(EbayOrderListOrderFields orderFields) {
 		String orderDateAsString = orderFields.getOrderDate();
 		String orderNumber = orderFields.getOrderNumber();
 		String seller = orderFields.getSeller();
@@ -68,16 +65,13 @@ public class EbayOrderAnalyzer {
 		 */
 		EbayOrder order = getEbayOrderWrapper(orderNumber, orderDate);
 
-		order.setOrderDate(orderDate);  // Done here and in above....
+//		order.setOrderDate(orderDate);  // Done here and in above....
 		order.setSeller(seller);
-		order.setOrderTotal(orderTotal);
+//		order.setItemTotal(orderTotal);  actually not available from order list
 
 		ItemBuilder itemBuilder = new ItemBuilder(order, order.getItems());
 
-		for (EbayItemFields itemFields : orderFields.getItems()) {
-
-			String paidDateAsString = itemFields.getPaidDate();
-			String shipDateAsString = itemFields.getShipDate();
+		for (EbayOrderListItemFields itemFields : orderFields.getItems()) {
 
 			/*
 			 * If no EbayShipment exists yet in this view then create one.
@@ -94,47 +88,14 @@ public class EbayOrderAnalyzer {
 			 */
 
 			String description = itemFields.getDescription();
-			String unitPriceAsString = itemFields.getUnitPrice();
-			String quantityAsString = itemFields.getQuantity();
+			String itemPriceAsString = itemFields.getUnitPrice();
 			String itemNumber = itemFields.getItemNumber();
 
-			Date paidDate = null;
-			try {
-				if (paidDateAsString != null) {
-					paidDate = ebayPaidDateFormat.parse(paidDateAsString);
-				}
-			} catch (ParseException e) {
-				e.printStackTrace();
-				throw new RuntimeException("bad date");
-			}
+			long itemPrice = new BigDecimal(itemPriceAsString).scaleByPowerOfTen(2).longValueExact();
 
-			Date shipDate = null;
-			if (paidDateAsString != null) {
-				try {
-					shipDate = ebayShipDateFormat.parse(shipDateAsString);
-				} catch (ParseException e) {
-					e.printStackTrace();
-					throw new RuntimeException("bad date");
-				}
-			}
-			
-			int itemQuantity = 1;
-			if (quantityAsString != null) {
-				itemQuantity = Integer.parseInt(quantityAsString);
-			}
+			EbayOrderItem item = itemBuilder.get(itemNumber, description);
 
-			final long unitPrice = new BigDecimal(unitPriceAsString).scaleByPowerOfTen(2).longValueExact();
-			long itemAmount = unitPrice * itemQuantity;
-
-//				if (itemQuantity != 1) {
-//					itemFields.setQuantity(itemQuantity);
-//				}
-			long netAmount = unitPrice * itemQuantity;
-			
-			EbayOrderItem item = itemBuilder.get(itemNumber, description, netAmount);
-
-			item.setPaidDate(paidDate);
-			item.setShipDate(shipDate);
+			item.setNetCost(itemPrice);
 			
 			// Set the image
 			try {
@@ -171,94 +132,171 @@ public class EbayOrderAnalyzer {
 		 * other property's amount changes.  That would prevent us, when the charge amount is fixed, from making changes to
 		 * multiple amounts that together leave the charge amount unchanged.
 		 */
-//		for (EbayShipment order : order.getShipments()) {
-//			order.flush();
-//		}
+		order.flush();
 
 		return orderDate;
 	}
 
-	public void processEbayOrderDetails(EbayOrderDetailFields orderFields)
+	public void processEbayOrderDetails(EbayDetailPaymentFields paymentFields)
 			throws UnsupportedImportDataException {
-		String orderDateAsString = orderFields.getOrderDate();
-		String orderNumber = orderFields.getOrderNumber();
-		String totalAsString = orderFields.getTotal();  // Same as from listings page???
-		String grandTotalAsString = orderFields.getGrandTotal();
-		String lastFourDigits = orderFields.getLastFourDigits();
-		String postageAndPackagingAsString = orderFields.getPostageAndPackaging();
+		
+		String lastFourDigits = paymentFields.getLastFourDigits();
+		String discountAsString = paymentFields.getDiscount();
+		String shippingAsString = paymentFields.getShippingCost();
 
-		Date orderDate;
-		try {
-			orderDate = ebayDateFormat.parse(orderDateAsString);
-		} catch (ParseException e) {
-			// TODO Return as error to TXR when that is supported???
-			e.printStackTrace();
-			throw new RuntimeException("bad date");
-		}
+		for (EbayDetailOrderFields orderFields : paymentFields.getOrders()) {
+		
+			String orderDateAsString = orderFields.getOrderDate();
+			String orderNumber = orderFields.getOrderNumber();
+			String totalAsString = orderFields.getTotal();  // Same as from listings page???
+			String soldBy = orderFields.getSeller();
+			String paidDayOfYearAsString = orderFields.getDayOfYearPaid();
+			String shippingDayOfYearAsString = orderFields.getDayOfYearShipped();
+			String deliveryDateAsString = orderFields.getDeliveryDate();
+	
+			Date orderDate;
+			Date paidDate;
+			Date shippingDate;
+			Date deliveryDate;
+			try {
+				orderDate = ebayDateFormat.parse(orderDateAsString);
+				paidDate = ebayMonthAndDayFormat.parse(paidDayOfYearAsString);
+				shippingDate = ebayMonthAndDayFormat.parse(shippingDayOfYearAsString);
+				if (deliveryDateAsString != null) {
+					deliveryDate = ebayDeliveryDateFormat.parse(deliveryDateAsString);
+				} else {
+					deliveryDate = null; // Sometimes this seems to be missing from the details page
+				}
+				
+				// Set year for paid and ship dates, because those were given as day and month only.
+				Calendar orderedDay = Calendar.getInstance();
+				orderedDay.setTime(orderDate);
+				int orderedMonth = orderedDay.get(Calendar.MONTH);
+				int orderedYear = orderedDay.get(Calendar.YEAR);
 
-		/** The order total as shown in the orders list page */
-		//		long orderTotal = new BigDecimal(totalAsString).scaleByPowerOfTen(2).longValueExact();
+				Calendar paidCalendar = Calendar.getInstance();
+				paidCalendar.setTime(paidDate);
+				int paidMonth = paidCalendar.get(Calendar.MONTH);
+				if (paidMonth < orderedMonth) {
+					paidCalendar.set(Calendar.YEAR, orderedYear + 1);
+				} else {
+					paidCalendar.set(Calendar.YEAR, orderedYear);
+				}
+				paidDate = paidCalendar.getTime();
+				
+				Calendar shippedCalendar = Calendar.getInstance();
+				shippedCalendar.setTime(shippingDate);
+				int shippedMonth = paidCalendar.get(Calendar.MONTH);
+				if (shippedMonth < orderedMonth) {
+					shippedCalendar.set(Calendar.YEAR, orderedYear + 1);
+				} else {
+					shippedCalendar.set(Calendar.YEAR, orderedYear);
+				}
+				shippingDate = shippedCalendar.getTime();
+			} catch (ParseException e) {
+				throw new RuntimeException("bad date", e);
+			}
+	
+			long orderTotal = new BigDecimal(totalAsString).scaleByPowerOfTen(2).longValueExact();
+	
+			long discount = discountAsString == null ? 0 : new BigDecimal(discountAsString).scaleByPowerOfTen(2).longValueExact();
+			long shipping = (shippingAsString == null || shippingAsString.equals("Free")) ? 0 : new BigDecimal(shippingAsString.substring("GBP ".length())).scaleByPowerOfTen(2).longValueExact();
+	
+			/*
+			 * If no EbayOrder exists yet in this view then create one.
+			 * This will be either initially empty if the order does not yet
+			 * exist in the session or it will be a wrapper for the existing order
+			 * found in the session.
+			 */
+			EbayOrder order = getEbayOrderWrapper(orderNumber, orderDate);
+			order.setSeller(soldBy);
+			order.setOrderTotal(orderTotal);
+			order.setPostageAndPackaging(shipping);
+			order.setPaidDate(paidDate);
+			order.setShippingDate(shippingDate);
+			if (deliveryDate != null) {
+				order.setDeliveryDate(deliveryDate);
+			}
 
-		// For foreign orders, must be grand total and not total, because we must add in the
-		// import fees deposit.
-		long orderTotal = new BigDecimal(grandTotalAsString).scaleByPowerOfTen(2).longValueExact();
+			order.setLastFourDigitsOfAccount(lastFourDigits);
 
-		long postageAndPackaging = new BigDecimal(postageAndPackagingAsString).scaleByPowerOfTen(2).longValueExact();
-
-		/*
-		 * If no EbayOrder exists yet in this view then create one.
-		 * This will be either initially empty if the order does not yet
-		 * exist in the session or it will be a wrapper for the existing order
-		 * found in the session.
-		 */
-		EbayOrder order = getEbayOrderWrapper(orderNumber, orderDate);
-
-		ItemBuilder itemBuilder = new ItemBuilder(order, order.getItems());
-
-		for (EbayItemFields itemFields : orderFields.getItems()) {
-
+			ItemBuilder itemBuilder = new ItemBuilder(order, order.getItems());
+	
+			for (EbayDetailItemFields itemFields : orderFields.getItems()) {
+	
 				String description = itemFields.getDescription();
 				String unitPriceAsString = itemFields.getUnitPrice();
-				String quantityAsString = itemFields.getQuantity();
-				String soldBy = itemFields.getSellerName();
 				String itemNumber = itemFields.getItemNumber();
+				String itemDetail = itemFields.getDetail();
 
-//				EbayOrderItem item = itemBuilder.get("", description, signedItemAmount, orderObject);
-//
-//				// TODO any item data to merge here???
-//				// These may already be set, so should we check they are
-//				// not being changed????
-////				if (itemQuantity != 1) {
-////					item.setQuantity(itemQuantity);
-////				}
-//				item.setAuthor(author);
-//				item.setSoldBy(soldBy);
+				long itemPrice = new BigDecimal(unitPriceAsString).scaleByPowerOfTen(2).longValueExact();
+
+				EbayOrderItem item = itemBuilder.get(itemNumber, description);
+
+				item.setNetCost(itemPrice);
+				item.getUnderlyingItem().setSoldBy(soldBy);
+				
+				// Look for quantity in the detail
+				int itemQuantity = 1;
+				if (itemDetail != null) {
+					Pattern quantityPattern1 = Pattern.compile("(.*)Qty\\s(\\d+)(.*)");
+					Matcher m = quantityPattern1.matcher(itemDetail);
+					if (m.matches()) {
+						String q = m.group(2);
+						itemQuantity = Integer.parseInt(q);
+						itemDetail = m.group(1) + m.group(3);
+						Pattern quantityPattern2 = Pattern.compile("(.*)quantity\\s" + q + "(.*)");
+						Matcher m2 = quantityPattern2.matcher(itemDetail);
+						if (m2.matches()) {
+							itemDetail = m2.group(1) + m2.group(2);
+						}
+					}
+					if (itemQuantity != 1) {
+						item.setQuantity(itemQuantity);	
+					}
+				}
+				
+				// What's left, show that as 'detail' to the user.
+				item.setDetail(itemDetail);
+			}
+	
+			if (!itemBuilder.isEmpty()) {
+				throw new RuntimeException("The imported items in the order do not match the previous set of imported items in order " + order.getOrderNumber() + ".  This should not happen and the code cannot cope with this situation.");
+			}
+
+			if (discount != 0) {
+			}
+			
+			if (shipping != 0) {
+	//			EbayShipment[] saleShipments = order.getShipments().stream().filter(order -> !order.isReturn()).toArray(EbayShipment[]::new);
+	//			if (saleShipments.length == 1) {
+	//				EbayShipment order = saleShipments[0]; 
+	//				order.setPostageAndPackaging(postageAndPackaging);
+	//			} else {
+	//				throw new RuntimeException("p&p but multiple shipments.  We need to see an example of this to decide how to handle this.");
+	//			}
+			}
+
+			/*
+			 * Not all changes are immediately reflected in the underlying datastore.
+			 * For example, we don't update the calculated charge amount each time some
+			 * other property's amount changes.  That would prevent us, when the charge amount is fixed, from making changes to
+			 * multiple amounts that together leave the charge amount unchanged.
+			 */
+			order.flush();
+
 		}
-
-		if (!itemBuilder.isEmpty()) {
-			throw new RuntimeException("The imported items in the order do not match the previous set of imported items in order " + order.getOrderNumber() + ".  This should not happen and the code cannot cope with this situation.");
-		}
-
-		if (postageAndPackaging != 0) {
-//			EbayShipment[] saleShipments = order.getShipments().stream().filter(order -> !order.isReturn()).toArray(EbayShipment[]::new);
-//			if (saleShipments.length == 1) {
-//				EbayShipment order = saleShipments[0]; 
-//				order.setPostageAndPackaging(postageAndPackaging);
-//			} else {
-//				throw new RuntimeException("p&p but multiple shipments.  We need to see an example of this to decide how to handle this.");
-//			}
-		}
-
+		
 		/*
 		 * Not all changes are immediately reflected in the underlying datastore.
 		 * For example, we don't update the calculated charge amount each time some
 		 * other property's amount changes.  That would prevent us, when the charge amount is fixed, from making changes to
 		 * multiple amounts that together leave the charge amount unchanged.
 		 */
-		for (EbayOrderItem item : order.getItems()) {
-			// TODO
-//			order.flush();
-		}
+//		for (EbayOrderItem item : order.getItems()) {
+//			// TODO
+////			item.flush();
+//		}
 	}
 
 	/**

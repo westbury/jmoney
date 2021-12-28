@@ -6,14 +6,21 @@ Order number	@{ordernumber}
 Total	GBP @{total} (@{numberofitems})
 Sold by	@{seller}
 Delivery info
-Delivered on @{deliverydate /\w\w\w,\s\w\w\w\s\d?\d,\s\d\d\d\d/}
+@(maybe)
+Delivered on @{deliverydate /\w\w\w,\s\w\w\w\s\d\d?,\s\d\d\d\d/}
+@(end)
 
 Paid
 @{dayofyearpaid}
 Shipped
 @{dayofyearshipped}
+@(maybe)
+3
+@(end)
 Delivered
-@{dayofyeardelivered}
+@(maybe)
+@{dayofyeardelivered /\w\w\w\s\d\d?/}
+@(end)
 Tracking details
 Shipping Service	@{shippingservice}
 Carrier	@{carrier}
@@ -28,21 +35,37 @@ GBP @{amount}Unit price GBP @{unitprice}
 
 Item number:@{itemnumber}
 
+@(maybe)
 @{detail}
 
-@(skip 5)
-More actions
+@(end)
 @(until)
 @  (cases)
 Order info
 @  (or)
 Related sponsored items
+@  (or)
+Sponsored items based on your recent views
+@  (or)
+Shipping address
 @  (end)
 @(end)
 @(until)
+@  (cases)
 Related sponsored items
+@  (or)
+Sponsored items based on your recent views
+@  (or)
+Shipping address
+@  (end)
 @(end)
+@(cases)
 Related sponsored items
+@(or)
+Sponsored items based on your recent views
+@  (or)
+Shipping address
+@(end)
 @(skip)
 Payment info
 @(assert)

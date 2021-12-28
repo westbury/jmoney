@@ -32,18 +32,6 @@ public class ItemUpdater implements IItemUpdater {
 	
 	private int quantity;
 
-	private boolean isMovie = false;
-	
-	protected static Pattern descWithQuantityPattern;
-	static {
-		descWithQuantityPattern = Pattern.compile("(.*) x(\\d+)");
-	}
-
-	protected static Pattern streamedMoviePattern;
-	static {
-		streamedMoviePattern = Pattern.compile("streamed movie - \"(.*)\"");
-	}
-
 	public ItemUpdater(EbayEntry entry, AccountFinder accountFinder) {
 		this.entry = entry;
 		this.accountFinder = accountFinder;
@@ -52,27 +40,19 @@ public class ItemUpdater implements IItemUpdater {
 			description = "";
 			quantity = 1;
 		} else {
-			Matcher m = streamedMoviePattern.matcher(entry.getMemo());
-			if (m.matches()) {
-				description = m.group(1);
-				quantity = 1;
-				isMovie = true;
-			} else {
-			m = descWithQuantityPattern.matcher(entry.getMemo());
-			if (m.matches()) {
-				description = m.group(1);
-				quantity = Integer.parseInt(m.group(2));
-			} else {
-				description = entry.getMemo();
-				quantity = 1;
-			}
-			}
+			description = entry.getMemo();
+			quantity = 1;
 		}
 	}
 
 	@Override
 	public void setOrderNumber(String orderNumber) {
 		entry.setOrderNumber(orderNumber);
+	}
+
+	@Override
+	public void setItemNumber(String itemNumber) {
+		entry.setItemNumber(itemNumber);
 	}
 
 	public EbayEntry getEntry() {
@@ -108,13 +88,18 @@ public class ItemUpdater implements IItemUpdater {
 	}
 
 	@Override
-	public long getNetCost() {
+	public long getGrossCost() {
 		return entry.getAmount();
 	}
 
 	@Override
-	public void setNetCost(long itemPrice) {
+	public void setGrossCost(long itemPrice) {
 		entry.setAmount(itemPrice);
+	}
+
+	@Override
+	public String getItemNumber() {
+		return entry.getItemNumber();
 	}
 
 	@Override
@@ -133,8 +118,8 @@ public class ItemUpdater implements IItemUpdater {
 	}
 
 	@Override
-	public void setSoldBy(String asinOrIsbn) {
-		entry.setSoldBy(asinOrIsbn);
+	public void setSoldBy(String seller) {
+		entry.setSoldBy(seller);
 	}
 
 	@Override
@@ -154,10 +139,7 @@ public class ItemUpdater implements IItemUpdater {
 	}
 
 	private void buildDescription() {
-		if (isMovie) {
-			assert quantity == 1;
-			entry.setMemo("streamed movie - \"" + description + "\"");
-		} else if (quantity == 1) {
+		if (quantity == 1) {
 			entry.setMemo(description);
 		} else {
 			entry.setMemo(description + " x" + quantity);
@@ -171,8 +153,8 @@ public class ItemUpdater implements IItemUpdater {
 	}
 
 	@Override
-	public void setShipDate(Date shipDate) {
-		entry.setShipmentDate(shipDate);
+	public void setDeliveryDate(Date deliveryDate) {
+		entry.setDeliveryDate(deliveryDate);
 	}
 
 	@Override

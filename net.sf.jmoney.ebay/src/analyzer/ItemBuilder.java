@@ -17,34 +17,24 @@ class ItemBuilder {
 		preexistingItems = new HashSet<>(items);
 	}
 
-	public EbayOrderItem get(String itemNumber, String description, long netCost/*, OrderObject shipmentObject*/) {
+	public EbayOrderItem get(String itemNumber, String description) {
 		// Find the matching entry
 		if (preexistingItems.isEmpty()) {
-			EbayOrderItem item = order.createNewItem(itemNumber, description, netCost);
+			EbayOrderItem item = order.createNewItem(itemNumber, description);
 			return item;
 		} else {
-			EbayOrderItem[] matches = preexistingItems.stream().filter(item -> item.getNetCost() == netCost).toArray(EbayOrderItem[]::new);
+			EbayOrderItem[] matches = preexistingItems.stream().filter(item -> item.getItemNumber() == itemNumber).toArray(EbayOrderItem[]::new);
 			if (matches.length > 1) {
 				matches = Stream.of(matches).filter(item -> item.getEbayDescription().equals(description)).toArray(EbayOrderItem[]::new);
-			} else {
-				/* This may be an overseas order or some other complex order in which we don't
-				 * know the item price.  So try matching on description only.
-				 * We want to match on the sale or return as appropriate so we do check the sign
-				 * of the net cost.   
-				 */
-				if (matches.length == 0) {
-					matches = preexistingItems.stream().filter(item -> item.getEbayDescription().equals(description) && (item.getNetCost() > 0) == (netCost > 0)).toArray(EbayOrderItem[]::new);
-				}
 			}
-			if (matches.length != 1) {
+			if (matches.length == 0) {
 				throw new RuntimeException("Existing transaction for order does not match up.");
 			}
 			EbayOrderItem matchingItem = matches[0];
 
-			// Need to update item price if overseas processing happened...
-			matchingItem.setNetCost(netCost);
-			
+			// Remove this one.  This ensures that if there are multiple identical items, each one is matched once.
 			preexistingItems.remove(matchingItem);
+			
 			return matchingItem;
 		}
 	}

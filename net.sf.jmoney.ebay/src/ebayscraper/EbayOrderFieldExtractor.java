@@ -3,11 +3,11 @@ package ebayscraper;
 import java.util.ArrayList;
 import java.util.List;
 
-import ebayscraper.api.EbayItemFields;
-import ebayscraper.api.EbayOrderFields;
+import ebayscraper.api.EbayOrderListItemFields;
+import ebayscraper.api.EbayOrderListOrderFields;
 import txr.matchers.MatchResults;
 
-public class EbayOrderFieldExtractor implements EbayOrderFields {
+public class EbayOrderFieldExtractor implements EbayOrderListOrderFields {
 
 	protected MatchResults orderBindings;
 	
@@ -36,17 +36,17 @@ public class EbayOrderFieldExtractor implements EbayOrderFields {
 	}
 
 	@Override
-	public String getDescription() {
-		return orderBindings.getVariable("description").text;
-	}
-
-	@Override
-	public List<EbayItemFields> getItems() {
-		List<EbayItemFields> result = new ArrayList<>();
+	public List<EbayOrderListItemFields> getItems() {
+		List<EbayOrderListItemFields> result = new ArrayList<>();
 	
 		for (MatchResults itemBindings : orderBindings.getCollections(0)) {
 			result.add(
-				new EbayItemFields() {
+				new EbayOrderListItemFields() {
+
+					@Override
+					public String getItemNumber() {
+						return itemBindings.getVariable("itemnumber").text;
+					}
 
 					@Override
 					public String getDescription() {
@@ -59,35 +59,20 @@ public class EbayOrderFieldExtractor implements EbayOrderFields {
 						return itemBindings.getVariable("itemprice").text;
 					}
 
-					@Override
-					public String getQuantity() {
-						return "1";
-//						return itemBindings.getVariable("quantity").text;
-					}
+//					@Override
+//					public String getDetail() {
+//						return itemBindings.getVariable("detail").text;
+//					}
 
-					@Override
-					public String getSellerName() {
-						return itemBindings.getVariable("soldby").text;
-					}
-
-					@Override
-					public String getItemNumber() {
-						return itemBindings.getVariable("itemnumber").text;
-					}
-
-					@Override
-					public String getPaidDate() {
-						return itemBindings.getVariable("paiddate").text;
-					}
-
-					@Override
-					public String getShipDate() {
-						return itemBindings.getVariable("shipdate").text;
-					}
-					
 					@Override
 					public String getItemPrice() {
 						return itemBindings.getVariable("itemprice").text;
+					}
+
+					@Override
+					public String getAmount() {
+						// This is available from the detail page only
+						return null;
 					}
 					
 				});

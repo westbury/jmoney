@@ -28,6 +28,11 @@
           info-class="net.sf.jmoney.ebay.EbayEntryInfo"
           extendable-property-set="net.sf.jmoney.entry">
       </extension-property-set>
+      <extension-property-set
+        id="transactionProperties"
+          info-class="net.sf.jmoney.ebay.EbayTransactionInfo"
+          extendable-property-set="net.sf.jmoney.transaction">
+      </extension-property-set>
    </extension>
 
 </plugin>

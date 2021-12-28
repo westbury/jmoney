@@ -4,23 +4,27 @@ import java.util.Date;
 
 public interface IItemUpdater {
 
+	String getItemNumber();
+	
+	void setItemNumber(String itemNumber);
+
 	/**
 	 * @return the price for the given quantity of the item,
-	 * being the unit price multiplied by the quantity
+	 * being the item price adjusted by the shipping and discount amounts
+	 * (pro-rated across all items in the order)
 	 */
-	long getNetCost();
+	long getGrossCost();
 
 	/**
 	 * @param itemPrice the price for the given quantity of the item,
-	 * being the unit price multiplied by the quantity
+	 * being the item price adjusted by the shipping and discount amounts
+	 * (pro-rated across all items in the order)
 	 */
-	void setNetCost(long itemPrice);
+	void setGrossCost(long itemPrice);
 
 	String getEbayDescription();
 
 	String getSoldBy();
-
-	String getImageCode();
 
 	void setSoldBy(String soldBy);
 
@@ -32,7 +36,9 @@ public interface IItemUpdater {
 
 	void setPaidDate(Date paidDate);
 
-	void setShipDate(Date shipDate);
+	void setDeliveryDate(Date deliveryDate);
+
+	String getImageCode();
 
 	void setImageCode(String imageCode);
 

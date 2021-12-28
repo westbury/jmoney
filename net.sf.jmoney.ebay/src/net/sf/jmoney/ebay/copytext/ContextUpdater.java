@@ -9,13 +9,13 @@ import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 
 import analyzer.EbayOrder;
-import analyzer.EbayOrderItem;
 import ebayscraper.IContextUpdater;
-import ebayscraper.IItemUpdater;
 import ebayscraper.IOrderUpdater;
 import net.sf.jmoney.ebay.AccountFinder;
 import net.sf.jmoney.ebay.EbayEntry;
 import net.sf.jmoney.ebay.EbayEntryInfo;
+import net.sf.jmoney.ebay.EbayTransaction;
+import net.sf.jmoney.ebay.EbayTransactionInfo;
 import net.sf.jmoney.importer.wizards.ImportException;
 import net.sf.jmoney.model2.BankAccount;
 import net.sf.jmoney.model2.Entry;
@@ -31,19 +31,20 @@ public class ContextUpdater implements IContextUpdater {
 	// Session, inside transaction
 	private Session session;
 
+	/** outside transaction (committed) */
 	private IObservableValue<BankAccount> defaultChargeAccount = new WritableValue<>();
 
 	private AccountFinder accountFinder;
 
 	private IDatastoreManager sessionManager;
 
-	public ContextUpdater(IDatastoreManager committedSessionManager, TransactionManagerForAccounts uncommittedSessionManager, AccountFinder accountFinder,
-			IObservableValue<BankAccount> defaultChargeAccount) {
+	public ContextUpdater(IDatastoreManager committedSessionManager, TransactionManagerForAccounts uncommittedSessionManager, IObservableValue<BankAccount> defaultChargeAccount) {
 		this.sessionManager = committedSessionManager;
 		this.uncommittedSessionManager = uncommittedSessionManager;
 		this.session = uncommittedSessionManager.getSession();
-		this.accountFinder = accountFinder;
 		this.defaultChargeAccount = defaultChargeAccount;
+
+		this.accountFinder = new AccountFinder(session, "GBP");
 	}
 
 	/**
@@ -63,22 +64,24 @@ public class ContextUpdater implements IContextUpdater {
 	public EbayOrder createEbayOrder(String orderNumber, Date orderDate) {
 		Set<EbayEntry> entriesInOrder = lookupEntriesInOrder(orderNumber, orderDate);
 
-		Transaction transaction;
+		EbayTransaction transaction;
 
 		if (entriesInOrder.isEmpty()) {
-			transaction = session.createTransaction();
+			transaction = session.createTransaction().getExtension(EbayTransactionInfo.getPropertySet(), true);
+			transaction.setDate(orderDate);
 		} else {
 			Transaction[] transactions = entriesInOrder.stream().map(entry -> entry.getTransaction()).distinct().toArray(Transaction[]::new);
 			if (transactions.length > 1) {
 				throw new RuntimeException("There are multiple transactions with entries with an order id of " + orderNumber + ".  Please sort that out before importing.");
 			}
-			transaction = transactions[0];
+			transaction = transactions[0].getExtension(EbayTransactionInfo.getPropertySet(), true);
 		}
 		
-		IOrderUpdater orderUpdater = new OrderUpdater(transaction, accountFinder, defaultChargeAccount.getValue());
+		BankAccount defaultChargeAccountInTranssaction = uncommittedSessionManager.getCopyInTransaction(defaultChargeAccount.getValue());
+		IOrderUpdater orderUpdater = new OrderUpdater(transaction, accountFinder, defaultChargeAccountInTranssaction);
 		EbayOrder order = new EbayOrder(orderNumber, orderUpdater);
 
-		// Is this correct?  It must be here for new transtion, but what about an existing one?
+		// Is this correct?  It must be here for new transaction, but what about an existing one?
 		order.setOrderDate(orderDate);
 
 		return order;

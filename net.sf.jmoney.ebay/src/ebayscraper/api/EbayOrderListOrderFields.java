@@ -2,7 +2,7 @@ package ebayscraper.api;
 
 import java.util.List;
 
-public interface EbayOrderFields {
+public interface EbayOrderListOrderFields {
 
 	String getOrderDate();
 
@@ -10,10 +10,8 @@ public interface EbayOrderFields {
 
 	String getTotal();
 
-	String getDescription();
-
 	String getSeller();
 
-	List<EbayItemFields> getItems();
+	List<EbayOrderListItemFields> getItems();
 
 }

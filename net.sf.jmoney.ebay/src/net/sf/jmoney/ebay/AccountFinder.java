@@ -34,20 +34,20 @@ public class AccountFinder {
 	public IncomeExpenseAccount findUnmatchedAccount()
 			throws ImportException {
 		/*
-		 * Look for a category account that has a name that starts with "Amazon unmatched"
+		 * Look for a category account that has a name that starts with "eBay unmatched"
 		 * and a currency that matches the currency of the charge account.
 		 */
 		IncomeExpenseAccount unmatchedAccount = null;
 		for (Iterator<IncomeExpenseAccount> iter = session.getIncomeExpenseAccountIterator(); iter.hasNext(); ) {
 			IncomeExpenseAccount eachAccount = iter.next();
-			if (eachAccount.getName().startsWith("Amazon unmatched")
+			if (eachAccount.getName().startsWith("eBay unmatched")
 					&& eachAccount.getCurrency() == currency) {
 				unmatchedAccount = eachAccount;
 				break;
 			}
 		}
 		if (unmatchedAccount == null) {
-			throw new ImportException("No account exists with a name that begins 'Amazon unmatched' and a currency of " + currency.getName() + ".");
+			throw new ImportException("No account exists with a name that begins 'eBay unmatched' and a currency of " + currency.getName() + ".");
 		}
 		return unmatchedAccount;
 	}
@@ -71,23 +71,6 @@ public class AccountFinder {
 			throw new ImportException("No account exists with a name that begins 'Postage and Packaging' and a currency of " + currency.getName() + ".");
 		}
 		return postageAndPackagingAccount;
-	}
-
-	public IncomeExpenseAccount findMiscellaneousAccount() throws ImportException {
-		IncomeExpenseAccount account = null;
-		for (Iterator<IncomeExpenseAccount> iter = session.getIncomeExpenseAccountIterator(); iter.hasNext(); ) {
-			IncomeExpenseAccount eachAccount = iter.next();
-			if (eachAccount.getName().startsWith("Misc Amazon Charges")
-					&& eachAccount.getCommodity(null) == currency) {
-				account = (IncomeExpenseAccount)eachAccount;
-				break;
-			}
-		}
-		if (account == null) {
-			throw new ImportException("No account exists with a name that begins 'Misc Amazon Charges' and has a currency of " + currency.getName() + ".");
-		}
-		
-		return account;
 	}
 
 	public static BankAccount findChargeAccount(Shell shell, Session session, String lastFourDigits)
@@ -123,14 +106,14 @@ public class AccountFinder {
 		IncomeExpenseAccount defaultPurchaseAccount = null;
 		for (Iterator<IncomeExpenseAccount> iter = session.getIncomeExpenseAccountIterator(); iter.hasNext(); ) {
 			IncomeExpenseAccount eachAccount = iter.next();
-			if (eachAccount.getName().startsWith("Amazon purchase")
+			if (eachAccount.getName().startsWith("eBay purchase")
 					&& eachAccount.getCurrency() == currency) {
 				defaultPurchaseAccount = eachAccount;
 				break;
 			}
 		}
 		if (defaultPurchaseAccount == null) {
-			throw new ImportException("No account exists with a name that begins 'Amazon purchase' and a currency of " + currency.getName() + ".");
+			throw new ImportException("No account exists with a name that begins 'eBay purchase' and a currency of " + currency.getName() + ".");
 		}
 		return defaultPurchaseAccount;
 	}
@@ -153,15 +136,18 @@ public class AccountFinder {
 		if (lastFourDigits != null) {
 			for (Iterator<CapitalAccount> iter = session.getCapitalAccountIterator(); iter.hasNext(); ) {
 				CapitalAccount eachAccount = iter.next();
-				if (eachAccount.getName().endsWith(lastFourDigits)
-						&& eachAccount instanceof CurrencyAccount
-						&& ((CurrencyAccount)eachAccount).getCurrency() == currency) {
-					chargeAccount = (CurrencyAccount)eachAccount;
-					break;
+				if (eachAccount instanceof BankAccount) {
+					BankAccount bankAccount = (BankAccount)eachAccount;
+					if (bankAccount.getAccountNumber() != null
+							&& bankAccount.getAccountNumber().endsWith(lastFourDigits)
+							&& bankAccount.getCurrency() == currency) {
+						chargeAccount = bankAccount;
+						break;
+					}
 				}
 			}
 			if (chargeAccount == null) {
-				throw new RuntimeException("No account exists with the given last four digits and a currency of " + currency.getName() + ".");
+				throw new RuntimeException("No account exists with the last four digits " + lastFourDigits + " and a currency of " + currency.getName() + ".");
 			}
 		}
 

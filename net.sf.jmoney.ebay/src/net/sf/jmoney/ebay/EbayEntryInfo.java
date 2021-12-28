@@ -58,8 +58,9 @@ public class EbayEntryInfo implements IPropertySetInfo {
 			return new EbayEntry(
 					extendedObject, 
 					values.getScalarValue(getOrderNumberAccessor()),
+					values.getScalarValue(getItemNumberAccessor()),
 					values.getScalarValue(getTrackingNumberAccessor()),
-					values.getScalarValue(getShipmentDateAccessor()),
+					values.getScalarValue(getDeliveryDateAccessor()),
 					values.getScalarValue(getEbayDescriptionAccessor()),
 					values.getScalarValue(getSoldByAccessor()),
 					values.getScalarValue(getImageCodeAccessor()),
@@ -69,8 +70,9 @@ public class EbayEntryInfo implements IPropertySetInfo {
 	});
 	
 	private static ScalarPropertyAccessor<String,Entry> orderNumberAccessor;
+	private static ScalarPropertyAccessor<String,Entry> itemNumberAccessor;
 	private static ScalarPropertyAccessor<String,Entry> trackingNumberAccessor;
-	private static ScalarPropertyAccessor<Date,Entry> shipmentDateAccessor;
+	private static ScalarPropertyAccessor<Date,Entry> deliveryDateAccessor;
 	private static ScalarPropertyAccessor<String,Entry> ebayDescriptionAccessor;
 	private static ScalarPropertyAccessor<String,Entry> soldByAccessor;
 	private static ScalarPropertyAccessor<String,Entry> imageCodeAccessor;
@@ -90,8 +92,9 @@ public class EbayEntryInfo implements IPropertySetInfo {
 		};
 		
 		orderNumberAccessor = propertySet.addProperty("orderNumber", "Ebay Order Number", String.class, 0, 80, textPropertyControlFactory, null);
+		itemNumberAccessor = propertySet.addProperty("itemNumber", "Ebay Item Number", String.class, 0, 80, textPropertyControlFactory, null);
 		trackingNumberAccessor = propertySet.addProperty("trackingNumber", "Ebay Carrier & Tracking Number", String.class, 0, 80, textPropertyControlFactory, null);
-		shipmentDateAccessor = propertySet.addProperty("shipmentDate", "Shipment Date", Date.class, 0, 100, datePropertyControlFactory, null);
+		deliveryDateAccessor = propertySet.addProperty("deliveryDate", "Delivery Date", Date.class, 0, 100, datePropertyControlFactory, null);
 		ebayDescriptionAccessor = propertySet.addProperty("ebayDescription", "Original Ebay Description", String.class, 0, 80, textPropertyControlFactory, null);
 		soldByAccessor = propertySet.addProperty("soldBy", "Sold by", String.class, 0, 80, textPropertyControlFactory, null);
 		imageCodeAccessor = propertySet.addProperty("imageCode", "Image Code", String.class, 0, 80, textPropertyControlFactory, null);
@@ -111,12 +114,16 @@ public class EbayEntryInfo implements IPropertySetInfo {
 		return orderNumberAccessor;
 	}
 
+	public static ScalarPropertyAccessor<String,Entry> getItemNumberAccessor() {
+		return itemNumberAccessor;
+	}
+
 	public static ScalarPropertyAccessor<String,Entry> getTrackingNumberAccessor() {
 		return trackingNumberAccessor;
 	}
 
-	public static ScalarPropertyAccessor<Date,Entry> getShipmentDateAccessor() {
-		return shipmentDateAccessor;
+	public static ScalarPropertyAccessor<Date,Entry> getDeliveryDateAccessor() {
+		return deliveryDateAccessor;
 	}	
 
 	public static ScalarPropertyAccessor<String,Entry> getSoldByAccessor() {

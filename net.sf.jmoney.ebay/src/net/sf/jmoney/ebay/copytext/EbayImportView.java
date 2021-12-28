@@ -26,11 +26,10 @@ import java.awt.Toolkit;
 import java.awt.datatransfer.FlavorEvent;
 import java.awt.datatransfer.FlavorListener;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.text.DateFormat;
 import java.text.MessageFormat;
-import java.text.SimpleDateFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -69,6 +68,8 @@ import org.eclipse.swt.dnd.TextTransfer;
 import org.eclipse.swt.dnd.Transfer;
 import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
+import org.eclipse.swt.events.ModifyEvent;
+import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.PaintEvent;
 import org.eclipse.swt.events.PaintListener;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -107,7 +108,6 @@ import org.eclipse.ui.part.ViewPart;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
 import analyzer.EbayOrder;
 import analyzer.EbayOrderItem;
@@ -115,8 +115,10 @@ import analyzer.UnsupportedImportDataException;
 import ebayscraper.EbayScraperContext;
 import ebayscraper.IContextUpdater;
 import net.sf.jmoney.ebay.AccountFinder;
-import net.sf.jmoney.ebay.UrlBlob;
+import net.sf.jmoney.ebay.EbayEntry;
 import net.sf.jmoney.ebay.EbayEntryInfo;
+import net.sf.jmoney.ebay.EbayTransactionInfo;
+import net.sf.jmoney.ebay.UrlBlob;
 import net.sf.jmoney.fields.AccountControl;
 import net.sf.jmoney.fields.DateControl;
 import net.sf.jmoney.fields.IAmountFormatter;
@@ -126,9 +128,11 @@ import net.sf.jmoney.importer.wizards.ImportException;
 import net.sf.jmoney.model2.BankAccount;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
+import net.sf.jmoney.model2.ExtendableObject;
 import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
+import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
 
 public class EbayImportView extends ViewPart {
@@ -137,7 +141,7 @@ public class EbayImportView extends ViewPart {
 	
 	protected static Pattern urlToImagePattern;
 	static {
-		urlToImagePattern = Pattern.compile("https://i.ebayimg.com/images/g/((\\d|\\w|-)+)/s-l1600.jpg");
+		urlToImagePattern = Pattern.compile("https://i.ebayimg.com/images/g/((\\d|\\w|-|~)+)/s-l\\d\\d\\d\\d?\\.(jpg|webp)");
 	}
 
 	protected static Pattern urlToProductPattern;
@@ -149,7 +153,7 @@ public class EbayImportView extends ViewPart {
 	static {
 		// Sometimes 1500, sometimes 1300
 		// https://i.ebayimg.com/images/g/LGQAAOSw7kdgRpaG/s-l300.jpg
-		urlFromItemPageToImageCodePattern = Pattern.compile("https://i.ebayimg.com/images/g/((\\d|\\w|-)+)/s-l?1?\\d00.jpg");
+		urlFromItemPageToImageCodePattern = Pattern.compile("https://i.ebayimg.com/images/g/((\\d|\\w|-|~)+)/s-l?1?\\d00\\.jpg");
 	}
 	
 	public class PasteOrdersAction extends Action {
@@ -198,6 +202,8 @@ public class EbayImportView extends ViewPart {
 
 	private PasteDetailsAction pasteDetailsAction;
 
+	private IDatastoreManager committedSessionManager;
+	
 	private TransactionManagerForAccounts uncommittedSessionManager;
 
 	// Session, inside transaction
@@ -207,9 +213,8 @@ public class EbayImportView extends ViewPart {
 	
 	private Image errorImage;
 
+	/** outside transaction */
 	private IObservableValue<BankAccount> defaultChargeAccount = new WritableValue<>();
-
-	private AccountFinder accountFinder;
 
 	public EbayImportView() {
 		pasteOrdersAction = new PasteOrdersAction();
@@ -271,7 +276,7 @@ public class EbayImportView extends ViewPart {
 		Control dataComposite = createMainArea(stackComposite);
 
 		final IWorkbenchPage activePage = getSite().getWorkbenchWindow().getActivePage();
-		IDatastoreManager committedSessionManager = (IDatastoreManager)activePage.getInput();
+		committedSessionManager = (IDatastoreManager)activePage.getInput();
 		if (committedSessionManager == null) {
 			stackLayout.topControl = noSessionLabel;
 		} else {
@@ -282,11 +287,10 @@ public class EbayImportView extends ViewPart {
 		
 			currencyFormatter = session.getCurrencyForCode("GBP");
 			
-			accountFinder = new AccountFinder(session, "GBP");
+			BankAccount defaultDefaultChargeAccount = (BankAccount)committedSessionManager.getSession().getAccountByFullName("Aqua (8795)");
+			defaultChargeAccount.setValue(defaultDefaultChargeAccount);
 			
-			defaultChargeAccount.setValue((BankAccount)session.getAccountByFullName("Cambridge Visa 1816"));
-			
-			IContextUpdater contextUpdater = new ContextUpdater(committedSessionManager, uncommittedSessionManager, accountFinder, defaultChargeAccount);
+			IContextUpdater contextUpdater = new ContextUpdater(committedSessionManager, uncommittedSessionManager, defaultChargeAccount);
 			scraperContext = new EbayScraperContext(contextUpdater);
 		}
 		activePage.addPartListener(new IPartListener2() {
@@ -343,7 +347,6 @@ public class EbayImportView extends ViewPart {
 
 					uncommittedSessionManager = null;
 					session = null;
-					accountFinder = null;
 					scraperContext = null;
 				} else {
 					stackLayout.topControl = dataComposite;
@@ -351,11 +354,10 @@ public class EbayImportView extends ViewPart {
 					uncommittedSessionManager = new TransactionManagerForAccounts(committedSessionManager);
 					session = uncommittedSessionManager.getSession();
 					
-					accountFinder = new AccountFinder(session, "GBP");
+					BankAccount defaultDefaultChargeAccount = (BankAccount)committedSessionManager.getSession().getAccountByFullName("Aqua (8795)");
+					defaultChargeAccount.setValue(defaultDefaultChargeAccount);
 					
-					defaultChargeAccount.setValue((BankAccount)session.getAccountByFullName("Cambridge Visa 1816"));
-					
-					IContextUpdater contextUpdater = new ContextUpdater(committedSessionManager, uncommittedSessionManager, accountFinder, defaultChargeAccount);
+					IContextUpdater contextUpdater = new ContextUpdater(committedSessionManager, uncommittedSessionManager, defaultChargeAccount);
 					scraperContext = new EbayScraperContext(contextUpdater);
 				}
 				stackComposite.layout();
@@ -406,7 +408,7 @@ public class EbayImportView extends ViewPart {
 				uncommittedSessionManager = new TransactionManagerForAccounts(committedSessionManager);
 				session = uncommittedSessionManager.getSession();
 				
-				IContextUpdater contextUpdater = new ContextUpdater(committedSessionManager, uncommittedSessionManager, accountFinder, defaultChargeAccount);
+				IContextUpdater contextUpdater = new ContextUpdater(committedSessionManager, uncommittedSessionManager, defaultChargeAccount);
 				scraperContext = new EbayScraperContext(contextUpdater);
 
 				viewer.setInput(scraperContext.orders.toArray(new EbayOrder[0]));
@@ -437,7 +439,7 @@ public class EbayImportView extends ViewPart {
 				uncommittedSessionManager = new TransactionManagerForAccounts(committedSessionManager);
 				session = uncommittedSessionManager.getSession();
 				
-				IContextUpdater contextUpdater = new ContextUpdater(committedSessionManager, uncommittedSessionManager, accountFinder, defaultChargeAccount);
+				IContextUpdater contextUpdater = new ContextUpdater(committedSessionManager, uncommittedSessionManager, defaultChargeAccount);
 				scraperContext = new EbayScraperContext(contextUpdater);
 
 				viewer.setInput(scraperContext.orders.toArray(new EbayOrder[0]));
@@ -450,9 +452,11 @@ public class EbayImportView extends ViewPart {
 	private void checkOrderValid(EbayOrder order) {
 		long totalForOrder = 0;
 		for (EbayOrderItem item : order.getItems()) {
-			// TODO
+			totalForOrder += item.getNetCost();
 		}
-
+		totalForOrder += order.getPostageAndPackaging();
+		totalForOrder -= order.getDiscount();
+		
 		if (totalForOrder != order.getOrderTotal()) {
 			throw new RuntimeException(MessageFormat.format("Order shipments for {2} add up to {0} but the order total is given as {1}.  These are expected to match so information from the details page is needed to resolve this.", 
 					currencyFormatter.format(totalForOrder), 
@@ -494,7 +498,7 @@ public class EbayImportView extends ViewPart {
 		AccountControl<BankAccount> chargeAccountControl = new AccountControl<BankAccount>(composite, BankAccount.class) {
 			@Override
 			protected Session getSession() {
-				return session;
+				return committedSessionManager.getSession();
 			}
 		};
 		chargeAccountControl.setLayoutData(new GridData(200, SWT.DEFAULT));
@@ -633,16 +637,16 @@ public class EbayImportView extends ViewPart {
 				}
 		  }); 
 
-		TreeViewerColumn asinColumn = new TreeViewerColumn(viewer, SWT.LEFT);
-		asinColumn.getColumn().setText("ASIN/ISBN");
-		asinColumn.getColumn().setWidth(200);
+		TreeViewerColumn itemNumberColumn = new TreeViewerColumn(viewer, SWT.LEFT);
+		itemNumberColumn.getColumn().setText("Item Number");
+		itemNumberColumn.getColumn().setWidth(200);
 
-		asinColumn.setLabelProvider(new CellLabelProvider() {
+		itemNumberColumn.setLabelProvider(new CellLabelProvider() {
 			@Override
 			public void update(ViewerCell cell) {
 				if (cell.getElement() instanceof EbayOrderItem) {
 					EbayOrderItem item = (EbayOrderItem)cell.getElement();
-					String text = item.getUnderlyingItem().getSoldBy();
+					String text = item.getUnderlyingItem().getItemNumber();
 					cell.setText(text);
 				}
 			}
@@ -695,22 +699,26 @@ public class EbayImportView extends ViewPart {
 		stackComposite.setLayout(stackLayout);
 
 		IObservableValue<Entry> ebayEntry = new WritableValue<Entry>();
+		IObservableValue<Transaction> ebayTransaction = new WritableValue<Transaction>();
 
-		Control orderControls = createOrderControls(stackComposite);
-		Control combinedControls = createCombinedOrderAndItemControls(stackComposite);
+		Control orderControls = createOrderControls(stackComposite, ebayTransaction);
 		Control itemControls = createItemControls(stackComposite, ebayEntry);
-
 
 		selObs.addValueChangeListener(new IValueChangeListener<Object>() {
 			@Override
 			public void handleValueChange(ValueChangeEvent<? extends Object> event) {
+//				if (event.diff.getOldValue() instanceof EbayOrderItem) {
+//					EbayOrderItem item = (EbayOrderItem)selObs.getValue();
+//					item.getUnderlyingItem().
+//				}
+				
 				if (selObs.getValue() instanceof EbayOrder) {
 					EbayOrder order = (EbayOrder)selObs.getValue();
-					if (order.getItems().size() == 1) {
-						stackLayout.topControl= combinedControls;
-					} else {
-						stackLayout.topControl= orderControls;
-					}
+					stackLayout.topControl= orderControls;
+					
+					OrderUpdater order2 = (OrderUpdater)order.getUnderlyingOrder();
+					ebayTransaction.setValue(order2.getTransaction().getBaseObject());
+
 				} else if (selObs.getValue() instanceof EbayOrderItem) {
 					EbayOrderItem item = (EbayOrderItem)selObs.getValue();
 					ItemUpdater item2 = (ItemUpdater)item.getUnderlyingItem();
@@ -718,6 +726,29 @@ public class EbayImportView extends ViewPart {
 					stackLayout.topControl = itemControls;
 
 					ebayEntry.setValue(item2.getEntry().getBaseObject());
+					
+//					IObservableValue<String> o = EbayEntryInfo.getImageCodeAccessor().observeDetail(ebayEntry);
+//					IValueChangeListener<String> imageCodeListener = new IValueChangeListener<String>() {
+//						@Override
+//						public void handleValueChange(ValueChangeEvent<? extends String> event) {
+//							EbayEntry entry = ebayEntry.getValue().getExtension(EbayEntryInfo.getPropertySet(), true);
+//							String imageCode = event.diff.getNewValue();
+//							if (!imageCode.equals(entry.getImageCode()) {
+//								entry.
+//							}
+//							System.out.println("update image - TODO");
+//						}
+//					};
+//					// This is probably not needed????
+//					o.addValueChangeListener(imageCodeListener);
+//					parent.addDisposeListener(new DisposeListener() {
+//						@Override
+//						public void widgetDisposed(DisposeEvent e) {
+//							o.removeValueChangeListener(imageCodeListener);
+//						}
+//					});
+					
+
 				} else {
 					stackLayout.topControl = null;
 				}
@@ -729,7 +760,7 @@ public class EbayImportView extends ViewPart {
 		return stackComposite;
 	}
 
-	private Control createOrderControls(Composite parent) {
+	private Control createOrderControls(Composite parent, IObservableValue<Transaction> ebayTransaction) {
 		Composite composite = new Composite(parent, SWT.NONE);
 		composite.setLayout(new GridLayout(2, false));
 
@@ -750,8 +781,36 @@ public class EbayImportView extends ViewPart {
 
 		Label orderAmountLabel = new Label(composite, 0);
 		orderAmountLabel.setText("Order Total:");
-		Text orderAmountControl = new Text(composite, SWT.NONE);
-		orderAmountControl.setLayoutData(new GridData(200, SWT.DEFAULT));
+		Text orderAmountControl = new Text(composite, SWT.TRAIL);
+		orderAmountControl.setLayoutData(new GridData(80, SWT.DEFAULT));
+
+		Label paymentDateLabel = new Label(composite, 0);
+		paymentDateLabel.setText("Payment Date:");
+		DateControl paymentDateControl = new DateControl(composite);
+		paymentDateControl.setLayoutData(new GridData(200, SWT.DEFAULT));
+
+		Label shippingDateLabel = new Label(composite, 0);
+		shippingDateLabel.setText("Ship Date:");
+		DateControl shippingDateControl = new DateControl(composite);
+		shippingDateControl.setLayoutData(new GridData(200, SWT.DEFAULT));
+
+		Label deliveryDateLabel = new Label(composite, 0);
+		deliveryDateLabel.setText("Delivery Date:");
+		DateControl deliveryDateControl = new DateControl(composite);
+		deliveryDateControl.setLayoutData(new GridData(200, SWT.DEFAULT));
+
+//		createLabelAndControl(composite, EbayTransactionInfo.getShippingCostAccessor(), ebayTransaction);
+//		createLabelAndControl(composite, EbayTransactionInfo.getDiscountAccessor(), ebayTransaction);
+
+		Label postageAndPackagingLabel = new Label(composite, 0);
+		postageAndPackagingLabel.setText("Shipping:");
+		Text postageAndPackagingControl = new Text(composite, SWT.TRAIL);
+		postageAndPackagingControl.setLayoutData(new GridData(80, SWT.DEFAULT));
+
+		Label discountLabel = new Label(composite, 0);
+		discountLabel.setText("Discount:");
+		Text discountControl = new Text(composite, SWT.TRAIL);
+		discountControl.setLayoutData(new GridData(80, SWT.DEFAULT));
 
 		selObs.addValueChangeListener(new IValueChangeListener<Object>() {
 			@Override
@@ -761,77 +820,68 @@ public class EbayImportView extends ViewPart {
 
 					orderDateControl.setDate(order.getOrderDate());
 					orderControl.setText(order.getOrderNumber());
-					sellerControl.setText(order.getSeller());
+					sellerControl.setText(order.getSeller() == null ? "" : order.getSeller()); // Why would seller be null?
 					orderAmountControl.setText(currencyFormatter.format(order.getOrderTotal()));
-				}
-			}
-		});
 
-		return composite;
-	}
+					paymentDateControl.setDate(order.getPaidDate());
+					shippingDateControl.setDate(order.getShippingDate());
+					deliveryDateControl.setDate(order.getDeliveryDate());
 
-	private Control createCombinedOrderAndItemControls(Composite parent) {
-		Composite composite = new Composite(parent, SWT.NONE);
-		composite.setLayout(new GridLayout(2, false));
+					if (order.getPostageAndPackaging() != 0) {
+						postageAndPackagingControl.setText(currencyFormatter.format(order.getPostageAndPackaging()));
+					} else {
+						postageAndPackagingControl.setText("");
+					}
 
-		Label orderNumberLabel = new Label(composite, 0);
-		orderNumberLabel.setText("Order Number:");
-		Text orderControl = new Text(composite, SWT.NONE);
-		orderControl.setLayoutData(new GridData(200, SWT.DEFAULT));
-
-		Label orderDateLabel = new Label(composite, 0);
-		orderDateLabel.setText("Order Date:");
-		DateControl orderDateControl = new DateControl(composite);
-		orderDateControl.setLayoutData(new GridData(200, SWT.DEFAULT));
-
-		Label sellerLabel = new Label(composite, 0);
-		sellerLabel.setText("Sold By:");
-		Text sellerControl = new Text(composite, SWT.NONE);
-		sellerControl.setLayoutData(new GridData(200, SWT.DEFAULT));
-
-		Label orderAmountLabel = new Label(composite, 0);
-		orderAmountLabel.setText("Order Total:");
-		Text orderAmountControl = new Text(composite, SWT.NONE);
-		orderAmountControl.setLayoutData(new GridData(200, SWT.DEFAULT));
-
-		Label expectedDateLabel = new Label(composite, 0);
-		expectedDateLabel.setText("Expected Date:");
-		Text expectedDateControl = new Text(composite, SWT.NONE);
-		expectedDateControl.setLayoutData(new GridData(200, SWT.DEFAULT));
-
-		Label deliveryDateLabel = new Label(composite, 0);
-		deliveryDateLabel.setText("Delivery Date:");
-		DateControl deliveryDateControl = new DateControl(composite);
-		deliveryDateControl.setLayoutData(new GridData(200, SWT.DEFAULT));
-
-		Label postageAndPackagingLabel = new Label(composite, 0);
-		postageAndPackagingLabel.setText("Postage and Packaging:");
-		Text postageAndPackagingControl = new Text(composite, SWT.NONE);
-		postageAndPackagingControl.setLayoutData(new GridData(200, SWT.DEFAULT));
-
-		selObs.addValueChangeListener(new IValueChangeListener<Object>() {
-			@Override
-			public void handleValueChange(ValueChangeEvent<? extends Object> event) {
-				if (selObs.getValue() instanceof EbayOrder) {
-					EbayOrder order = (EbayOrder)selObs.getValue();
-
-					if (order.getItems().size() == 1) {
-						orderControl.setText(order.getOrderNumber());
-						orderDateControl.setDate(order.getOrderDate());
-						sellerControl.setText(order.getSeller());
-
-						orderAmountControl.setText(currencyFormatter.format(order.getOrderTotal()));
-
-//						if (order.getPostageAndPackaging() != 0) {
-//							postageAndPackagingControl.setText(currencyFormatter.format(order.getPostageAndPackaging()));
-//						} else {
-//							postageAndPackagingControl.setText("");
-//						}
+					if (order.getDiscount() != 0) {
+						discountControl.setText(currencyFormatter.format(order.getDiscount()));
+					} else {
+						discountControl.setText("");
 					}
 				}
 			}
 		});
 
+		postageAndPackagingControl.addModifyListener(new ModifyListener() {
+			@Override
+			public void modifyText(ModifyEvent event) {
+				Object selection = selObs.getValue();
+				if (!(selection instanceof EbayOrder)) {
+					throw new RuntimeException("Control should not be visible");
+				}
+				EbayOrder order = (EbayOrder)selection;
+				String shippingAsString = postageAndPackagingControl.getText();
+				try {
+					long shipping = new BigDecimal(shippingAsString).scaleByPowerOfTen(2).longValueExact();
+					order.setPostageAndPackaging(shipping);
+				} catch (Exception ex) {
+					
+				}
+
+				orderAmountControl.setText(currencyFormatter.format(order.getOrderTotal()));
+			}
+		});
+		
+		discountControl.addModifyListener(new ModifyListener() {
+			@Override
+			public void modifyText(ModifyEvent event) {
+				Object selection = selObs.getValue();
+				if (!(selection instanceof EbayOrder)) {
+					throw new RuntimeException("Control should not be visible");
+				}
+				EbayOrder order = (EbayOrder)selection;
+				String discountAsString = discountControl.getText();
+				try {
+					long discount = new BigDecimal(discountAsString).scaleByPowerOfTen(2).longValueExact();
+					order.setDiscount(discount);
+				} catch (Exception ex) {
+					
+				}
+
+				orderAmountControl.setText(currencyFormatter.format(order.getOrderTotal()));
+			}
+		});
+		
 		return composite;
 	}
 
@@ -849,30 +899,37 @@ public class EbayImportView extends ViewPart {
 		Composite composite = new Composite(parent, SWT.NONE);
 		composite.setLayout(new GridLayout(2, false));
 
+		createLabelAndControl(composite, EbayEntryInfo.getItemNumberAccessor(), ebayEntry);
 		createLabelAndControl(composite, EntryInfo.getMemoAccessor(), ebayEntry);
 		createLabelAndControl(composite, EntryInfo.getAmountAccessor(), ebayEntry);
-		createLabelAndControl(composite, EbayEntryInfo.getShipmentDateAccessor(), ebayEntry);
+		// In trans in ebay model, but copied across all entries in datastore:
+//		createLabelAndControl(composite, EbayEntryInfo.getDeliveryDateAccessor(), ebayEntry);
 		createLabelAndControl(composite, EbayEntryInfo.getImageCodeAccessor(), ebayEntry);
+
+		Label netAmountLabel = new Label(composite, 0);
+		netAmountLabel.setText("Net Amount:");
+		Text netAmountControl = new Text(composite, SWT.TRAIL);
+		netAmountControl.setLayoutData(new GridData(80, SWT.DEFAULT));
 
 		Label quantityLabel = new Label(composite, 0);
 		quantityLabel.setText("Quantity:");
 		Text quantityControl = new Text(composite, SWT.NONE);
 		quantityControl.setLayoutData(new GridData(200, SWT.DEFAULT));
 
-		Label paymentDateLabel = new Label(composite, 0);
-		paymentDateLabel.setText("Payment Date:");
-		DateControl paymentDateControl = new DateControl(composite);
-		paymentDateControl.setLayoutData(new GridData(200, SWT.DEFAULT));
+		Label detailLabel = new Label(composite, 0);
+		detailLabel.setText("Detail:");
+		Text detailControl = new Text(composite, SWT.NONE);
+		detailControl.setLayoutData(new GridData(200, SWT.DEFAULT));
 
 		selObs.addValueChangeListener(new IValueChangeListener<Object>() {
 			@Override
 			public void handleValueChange(ValueChangeEvent<? extends Object> event) {
 				if (selObs.getValue() instanceof EbayOrderItem) {
 					EbayOrderItem item = (EbayOrderItem)selObs.getValue();
-
-					quantityControl.setText(item.getQuantity() == 1 ? "" : Integer.toString(item.getQuantity()));
 					
-					paymentDateControl.setDate(item.getPaidDate());
+					netAmountControl.setText(new BigDecimal(item.getNetCost()).movePointLeft(2).toPlainString());
+					quantityControl.setText(item.getQuantity() == 1 ? "" : Integer.toString(item.getQuantity()));
+					detailControl.setText(item.getDetail() == null ? "" : item.getDetail());
 				}
 			}
 		});
@@ -964,7 +1021,7 @@ public class EbayImportView extends ViewPart {
 					if (selection2 != null) {
 						Matcher m = urlToProductPattern.matcher(selection2);
 						if (m.matches()) {
-							// We can get the ASIN from this URL, so accept the drop
+							// We can get the item number from this URL, so accept the drop
 							System.out.println("drop allowed");
 							return;
 						}
@@ -1074,8 +1131,8 @@ public class EbayImportView extends ViewPart {
 		return canvas;
 	}
 
-	private void createLabelAndControl(Composite parent, ScalarPropertyAccessor<?, Entry> propertyAccessor,
-			IObservableValue<Entry> ebayEntry) {
+	private <T extends ExtendableObject> void createLabelAndControl(Composite parent, ScalarPropertyAccessor<?, T> propertyAccessor,
+			IObservableValue<T> ebayEntry) {
 		Label propertyLabel = new Label(parent, 0);
 		propertyLabel.setText(propertyAccessor.getDisplayName() + ':');
 		Control propertyControl = propertyAccessor.createPropertyControl2(parent, ebayEntry);
@@ -1098,7 +1155,7 @@ public class EbayImportView extends ViewPart {
 			setImageIntoItem(imageCode, selectedItem2);
 
 			canvas.redraw();
-
+			viewer.update(selectedItem, null);
 		}
 	}
 
@@ -1124,9 +1181,25 @@ public class EbayImportView extends ViewPart {
 			// the image.
 			itemUpdater.setImage(blob);
 
-		} catch (MalformedURLException e) {
-			// Should not happen so convert to an unchecked exception
-			throw new RuntimeException(e);
+		} catch (Exception e) {
+			urlString = MessageFormat
+					.format("https://i.ebayimg.com/images/g/{0}/s-l140.jpg",
+							imageCode);
+
+			try {
+				URL picture = new URL(urlString);
+
+				IBlob blob = new UrlBlob(picture);
+
+				// We must go thru the wrapper item, do not set
+				// directly on the entry, because the wrapper caches
+				// the image.
+				itemUpdater.setImage(blob);
+
+			} catch (MalformedURLException e2) {
+				// Should not happen so convert to an unchecked exception
+				throw new RuntimeException(e2);
+			}
 		}
 	}
 

@@ -42,13 +42,15 @@ public class EbayEntry extends EntryExtension {
 	 */
 	private String orderNumber = null;
 	
+	private String itemNumber = null;
+	
 	/**
 	 * the carrier and tracking number, being used when importing items and
 	 * orders to match the items to the orders
 	 */
 	private String trackingNumber = null;
 	
-	private Date shipmentDate = null;
+	private Date deliveryDate = null;
 
 	private String ebayDescription = null;
 
@@ -78,13 +80,14 @@ public class EbayEntry extends EntryExtension {
 	 * This constructor is called by the datastore to construct
 	 * the extension objects when loading data.
 	 */
-	public EbayEntry(ExtendableObject extendedObject, String orderId, String trackingNumber, Date shipmentDate, String ebayDescription, String asinOrIsbn, String imageCode, IBlob picture) {
+	public EbayEntry(ExtendableObject extendedObject, String orderId, String itemNumber, String trackingNumber, Date deliveryDate, String ebayDescription, String soldBy, String imageCode, IBlob picture) {
 		super(extendedObject);
 		this.orderNumber = orderId;
+		this.itemNumber = itemNumber;
 		this.trackingNumber = trackingNumber;
-		this.shipmentDate = shipmentDate;
+		this.deliveryDate = deliveryDate;
 		this.ebayDescription = ebayDescription;
-		this.soldBy = asinOrIsbn;
+		this.soldBy = soldBy;
 		this.imageCode = imageCode;
 		this.picture = picture;
 	}
@@ -101,6 +104,18 @@ public class EbayEntry extends EntryExtension {
 		processPropertyChange(EbayEntryInfo.getOrderNumberAccessor(), oldOrderNumber, orderNumber);
 	}
 	
+	public String getItemNumber() {
+		return itemNumber;
+	}
+	
+	public void setItemNumber(String itemNumber) {
+		String oldItemNumber = this.itemNumber;
+		this.itemNumber = itemNumber;
+
+		// Notify the change manager.
+		processPropertyChange(EbayEntryInfo.getItemNumberAccessor(), oldItemNumber, itemNumber);
+	}
+	
 	public String getTrackingNumber() {
 		return trackingNumber;
 	}
@@ -113,16 +128,16 @@ public class EbayEntry extends EntryExtension {
 		processPropertyChange(EbayEntryInfo.getTrackingNumberAccessor(), oldTrackingNumber, trackingNumber);
 	}
 	
-	public Date getShipmentDate() {
-		return shipmentDate;
+	public Date getDeliveryDate() {
+		return deliveryDate;
 	}
 	
-	public void setShipmentDate(Date shipmentDate) {
-		Date oldShipmentDate = this.shipmentDate;
-		this.shipmentDate = shipmentDate;
+	public void setDeliveryDate(Date deliveryDate) {
+		Date oldDeliveryDate = this.deliveryDate;
+		this.deliveryDate = deliveryDate;
 
 		// Notify the change manager.
-		processPropertyChange(EbayEntryInfo.getShipmentDateAccessor(), oldShipmentDate, shipmentDate);
+		processPropertyChange(EbayEntryInfo.getDeliveryDateAccessor(), oldDeliveryDate, deliveryDate);
 	}
 
 	public String getEbayDescription() {

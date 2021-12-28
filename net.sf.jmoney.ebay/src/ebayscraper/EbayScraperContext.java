@@ -24,8 +24,9 @@ import java.util.Set;
 import analyzer.EbayOrder;
 import analyzer.EbayOrderAnalyzer;
 import analyzer.UnsupportedImportDataException;
-import ebayscraper.api.EbayOrderDetailFields;
-import ebayscraper.api.EbayOrderFields;
+import ebayscraper.api.EbayDetailOrderFields;
+import ebayscraper.api.EbayOrderListOrderFields;
+import ebayscraper.api.EbayDetailPaymentFields;
 import net.sf.jmoney.importer.wizards.ImportException;
 import txr.matchers.DocumentMatcher;
 import txr.matchers.MatchResults;
@@ -97,15 +98,15 @@ public class EbayScraperContext {
 		MatchResults bindings = extractOrderBindings(inputText);
 
 		for (MatchResults orderBindings : bindings.getCollections(0)) {
-			EbayOrderFields orderFields = new EbayOrderFieldExtractor(orderBindings);
-			Date orderDate = analyzer.processEbayOrder(orderFields);
+			EbayOrderListOrderFields orderFields = new EbayOrderFieldExtractor(orderBindings);
+			Date orderDate = analyzer.processEbayOrderList(orderFields);
 		}
 	}
 
 	public void importDetails(String inputText) throws UnsupportedImportDataException {
 		MatchResults orderBindings = extractDetailsBindings(inputText);
 
-		EbayOrderDetailFields orderFields = new EbayOrderDetailFieldExtractor(orderBindings);
+		EbayDetailPaymentFields orderFields = new EbayPaymentDetailFieldExtractor(orderBindings);
 		
 		analyzer.processEbayOrderDetails(orderFields);
 	}

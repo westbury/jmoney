@@ -12,21 +12,22 @@ public class EbayOrderItem {
 	
 	int quantity = 1;
 
+	private String detail;
+	
 	private long netCost;
 
 	private String ebayDescription;
 
-	private Date paidDate;
-	
-	private Date shipDate;
-	
 	private String imageCode;
 	
 	public EbayOrderItem(EbayOrder order, IItemUpdater updater) {
 		this.order = order;
 		this.updater = updater;
-		
-		this.netCost = updater.getNetCost();
+
+		// No, we don't know the net cost from the database.  The database has
+		// just the gross cost.  Net cost is set only from the imported data.
+//		this.netCost = updater.getNetCost();
+
 		this.ebayDescription = updater.getEbayDescription();
 //???		this.quantity = updater.getQuantity();
 	}
@@ -38,7 +39,6 @@ public class EbayOrderItem {
 	 */
 	public void setNetCost(long netCost) {
 		this.netCost = netCost;
-		updater.setNetCost(netCost);
 	}
 
 	/**
@@ -50,6 +50,10 @@ public class EbayOrderItem {
 	 */
 	public long getNetCost() {
 		return netCost;
+	}
+
+	public void setGrossCost(long amount) {
+		updater.setGrossCost(amount);
 	}
 
 	public void setQuantity(int quantity) {
@@ -70,6 +74,10 @@ public class EbayOrderItem {
 		return order;
 	}
 
+	public String getItemNumber() {
+		return updater.getItemNumber();
+	}
+
 	public String getEbayDescription() {
 		return ebayDescription;
 	}
@@ -83,26 +91,16 @@ public class EbayOrderItem {
 		return ebayDescription == null ? Long.toString(netCost) : ebayDescription;
 	}
 
-	public Date getPaidDate() {
-		return paidDate;
-	}
-
-	public void setPaidDate(Date paidDate) {
-		this.paidDate = paidDate;
-		updater.setPaidDate(paidDate);
-	}
-
-	public Date getShipDate() {
-		return shipDate;
-	}
-
-	public void setShipDate(Date shipDate) {
-		this.shipDate = shipDate;
-		updater.setShipDate(shipDate);
-	}
-
 	public void setImageCode(String imageCode) {
 		this.imageCode = imageCode;
 		updater.setImageCode(imageCode);
+	}
+
+	public String getDetail() {
+		return detail;
+	}
+
+	public void setDetail(String detail) {
+		this.detail = detail;
 	}
 }
