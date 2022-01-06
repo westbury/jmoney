@@ -25,6 +25,8 @@ package net.sf.jmoney.txr.debug;
 import java.awt.Toolkit;
 import java.awt.datatransfer.FlavorEvent;
 import java.awt.datatransfer.FlavorListener;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Array;
 import java.net.URL;
 import java.util.List;
@@ -80,6 +82,11 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 
 import net.sf.jmoney.txr.Activator;
+import txr.matchers.DocumentMatcher;
+import txr.matchers.DocumentMatcher.MatchPair;
+import txr.matchers.MatchResults;
+import txr.matchers.MatcherResult.IControlCallback;
+import txr.parser.TxrErrorInDocumentException;
 
 public class TxrDebugView extends ViewPart {
 
@@ -127,9 +134,34 @@ public class TxrDebugView extends ViewPart {
 
 	private Image errorImage;
 
-	private String txr = "@(collect)\nOrder Detail\nAmount\n@amount\nPrice: @price\n@(until)\nWe also recommend:\n@(end)\nmatch line 1\nmatch line 2\nmatch line 3";
-
-	private String testData = "line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14";
+//	private String txr = "@(collect)\nOrder Detail\nAmount\n@amount\nPrice: @price\n@(until)\nWe also recommend:\n@(end)\nmatch line 1\nmatch line 2\nmatch line 3";
+	
+	private String txr = "Introduction\n"
+			+ "\n"
+			+ "@(collect)\n"
+			+ "Title: @description\n"
+			+ "Amount: £@amount\n"
+			+ "\n"
+			+ "@(until)\n"
+			+ "Conclusion\n"
+			+ "@(end)\n"
+			+ "Conclusion\n"
+			+ "Total: £@delivery\n";
+	
+	String [] testData = new String [] {
+			"Introduction",
+			"",
+			"Title: Bananas",
+			"Amount: £36",
+			"",
+			"Title: Oranges",
+			"Amount: £42",
+			"",
+			"Conclusion",
+			"Total: £78.00"
+	};
+	
+//	private String testData = "line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14";
 
 	private Composite txrEditorComposite;
 
@@ -142,6 +174,8 @@ public class TxrDebugView extends ViewPart {
 	private List<TxrLineMatch> txrLineMatches;
 	private List<TextDataLineMatch> textDataLineMatches;
 
+	private DocumentMatcher matcher;
+
 	public TxrDebugView() {
 		pasteTxrAction = new PasteTxrAction();
 		pasteTextAction = new PasteTextAction();
@@ -149,6 +183,8 @@ public class TxrDebugView extends ViewPart {
 		// Load the error indicator
 		URL installURL = Activator.getDefault().getBundle().getEntry("/icons/error.gif");
 		errorImage = ImageDescriptor.createFromURL(installURL).createImage();
+		
+		matcher = createMatcherFromResource("collect-test.txr");
 	}
 
 	@Override
@@ -289,7 +325,7 @@ public class TxrDebugView extends ViewPart {
 	}
 
 	private void pasteDetails() {
-		testData = getTextFromClipboard();
+		testData = getTextFromClipboard().split("\n");
 		this.runMatcher();
 
 		txrEditorComposite.layout();
@@ -321,7 +357,7 @@ public class TxrDebugView extends ViewPart {
 
 	}
 
-	private Control txrLineRowComposite(Composite parent, int lineNumber, String line, Listener listener) {
+	private Control txrLineRowComposite(Composite parent, int lineNumber, String line, int indentation, Listener listener) {
 		Composite composite = new Composite(parent, SWT.NONE);
 		GridLayout layout = new GridLayout(2, false);
 		layout.marginHeight = 0;
@@ -330,11 +366,15 @@ public class TxrDebugView extends ViewPart {
 
 		Label lineNumberControl = new Label(composite, SWT.NONE);
 		lineNumberControl.setText(Integer.toString(lineNumber));
-		lineNumberControl.setLayoutData(new GridData(SWT.FILL, SWT.BOTTOM, false, true));
+		GridData lineNumberGridData = new GridData(SWT.FILL, SWT.BOTTOM, false, true);
+		lineNumberGridData.widthHint = 30;
+		lineNumberControl.setLayoutData(lineNumberGridData);
 
 		Text lineControl = new Text(composite, SWT.NONE);
 		lineControl.setText(line);
-		lineControl.setLayoutData(new GridData(SWT.FILL, SWT.BOTTOM, true, true));
+		GridData textGridData = new GridData(SWT.FILL, SWT.BOTTOM, true, true);
+		textGridData.horizontalIndent = indentation * 30;
+		lineControl.setLayoutData(textGridData);
 
 		Control[] x = { composite, lineNumberControl, lineControl };
 		for (Control c : x) {
@@ -355,7 +395,9 @@ public class TxrDebugView extends ViewPart {
 
 		Label lineNumberControl = new Label(composite, SWT.NONE);
 		lineNumberControl.setText(Integer.toString(lineNumber));
-		lineNumberControl.setLayoutData(new GridData(SWT.FILL, SWT.BOTTOM, false, true));
+		GridData lineNumberGridData = new GridData(SWT.FILL, SWT.BOTTOM, false, true);
+		lineNumberGridData.widthHint = 30;
+		lineNumberControl.setLayoutData(lineNumberGridData);
 
 		Label lineControl = new Label(composite, SWT.NONE);
 		lineControl.setText(line);
@@ -383,9 +425,12 @@ public class TxrDebugView extends ViewPart {
 		 * If this is set then the line on the left must be level with the text data line on the right.  This
 		 * will likely involve adding empty space between lines (or either left or right). 
 		 */
-		private Integer textDataLineNumber;
+		private Integer textDataLineInstanceIndex;
 
 		public IObservableValue<Integer> preceedingGap = new WritableValue<Integer>();
+		
+		/** indicates a line that does not match up with a data line.  It does however have a position in the text data but no line to the right. */
+		protected boolean isDirective;
 		
 		public TxrLineMatch(int lineNumber, String line) {
 			this.lineNumber = lineNumber;
@@ -466,6 +511,20 @@ public class TxrDebugView extends ViewPart {
 		}
 	}
 
+	private DocumentMatcher createMatcherFromResource(String resourceName) {
+		ClassLoader classLoader = getClass().getClassLoader();
+		URL resource = classLoader.getResource(resourceName);
+		try (InputStream txrInputStream = resource.openStream()) {
+			return new DocumentMatcher(txrInputStream, "UTF-8");
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		} catch (TxrErrorInDocumentException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		}
+	}
+
 	private void runMatcher() {
 
 
@@ -473,149 +532,277 @@ public class TxrDebugView extends ViewPart {
 			txrEditorComposite.getChildren()[0].dispose();
 		}
 
-		txrLineMatches = new ArrayList<>();
-		int lineNumber = 0;
-		for (String line : txr.split("\n")) {
-			lineNumber++;
-
-			TxrLineMatch txrLineMatch = new TxrLineMatch(lineNumber, line);
-			txrLineMatches.add(txrLineMatch);
-
-			if (lineNumber == 3) {
-				txrLineMatch.textDataLineNumber = 6;
-			}
-			if (lineNumber == 10) {
-				txrLineMatch.textDataLineNumber = 8;
-			}
-
-			Thread[] scrollingThread = new Thread[1];
-			Point[] offset = new Point[1];
-			Listener listener = new Listener () {
-				public void handleEvent (Event event) {
-					switch (event.type) {
-					case SWT.MouseDown:
-						System.out.println("Down: " + event.x + ',' + event.y);
-						//			          Rectangle rect = composite.getBounds ();
-						//			          if (rect.contains (event.x, event.y)) {
-						//			            Point pt1 = composite.toDisplay (0, 0);
-						//			            Point pt2 = shell.toDisplay (event.x, event.y); 
-						offset [0] = new Point (event.x, event.y);
+		MatchPair results = matcher.process2(this.testData);
 
 
-						// Start a thread that updates
-						new Thread(new String()).run();
-						scrollingThread[0] = new Thread() {
-							@Override
-							public void run() {
-							}
-						};
-						scrollingThread[0].start();
-						break;
-					case SWT.MouseMove:
-						if (scrollingThread[0] != null) {
-							scrollingThread[0].stop();
-						}
-						if (offset[0] != null) {
-							/* Determine the mouse position relative to both the position where it
-			        	  	   was when we last processed it and also the position within the TXR editor
-			        	  	   area.
-							 */
-							int movement = event.y - offset[0].y;
-							offset[0].y = event.y;
-
-							Rectangle editorArea = txrEditorComposite.getClientArea();
-							float positionWithinEditor = ((float)event.y - editorArea.y) / editorArea.height;
-
-							txrLineMatch.setOffset(movement, positionWithinEditor);
-
-							txrEditorComposite.layout();
-						}
-
-						break;
-					case SWT.MouseUp:
-						offset [0] = null;
-						break;
-					}
-				}
-			};
-
-			Control lineControl = txrLineRowComposite(txrEditorComposite, lineNumber, line, listener);
-			int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
-			lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
-			
-			txrLineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
-				@Override
-				public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
-					lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight * (event.diff.getNewValue() + 1)));
-				}
-			});
-		}
-		txrEditorComposite.layout();
 
 		while (testDataComposite.getChildren().length != 0) {
 			testDataComposite.getChildren()[0].dispose();
 		}
 
-		{
+//		{
 			textDataLineMatches = new ArrayList<>();
-			int textDataLineNumber = 0;
-			for (String line : testData.split("\n")) {
-				TextDataLineMatch lineMatch = new TextDataLineMatch(textDataLineNumber, line);
-				textDataLineMatches.add(lineMatch);
-				textDataLineNumber++;
+//			int textDataLineNumber = 0;
+//			for (String line : testData) {
+//				TextDataLineMatch lineMatch = new TextDataLineMatch(textDataLineNumber, line);
+//				textDataLineMatches.add(lineMatch);
+//				textDataLineNumber++;
+//
+//				Control lineControl = textDataLineRowComposite(testDataComposite, textDataLineNumber, line);
+//				int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
+//				lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
+//				
+//				lineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
+//					@Override
+//					public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
+//						lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight * (event.diff.getNewValue() + 1)));
+//					}
+//				});
+//			}
+//		}
+		
+		
+		
+		int[] currentDataLineIndex = { -1 };
+		
+		txrLineMatches = new ArrayList<>();
+//		int lineNumber = 0;
+		String[] txrLines = txr.split("\n");
+		
+		results.matcherResults.createControls(new IControlCallback() {
+			@Override
+			public void createMatch(int txrLineIndex, int textDataLineIndex, int indentation) {
+				System.out.println("create match: " + txrLineIndex + ", " + textDataLineIndex);
+				System.out.println("     " + txrLines[txrLineIndex]);
+				System.out.println("     " + testData[textDataLineIndex]);
 
-				Control lineControl = textDataLineRowComposite(testDataComposite, textDataLineNumber, line);
+				TxrLineMatch txrLineMatch = new TxrLineMatch(txrLineIndex + 1, txrLines[txrLineIndex]);
+				txrLineMatches.add(txrLineMatch);
+
+				// Push forward to textDataLineIndex
+				do {
+					int textDataLineNumber = currentDataLineIndex[0] + 1; 
+					
+					String line = testData[textDataLineNumber];
+					TextDataLineMatch lineMatch = new TextDataLineMatch(textDataLineNumber, line);
+					textDataLineMatches.add(lineMatch);
+
+					Control lineControl = textDataLineRowComposite(testDataComposite, textDataLineNumber, line);
+					int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
+					lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
+					
+					lineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
+						@Override
+						public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
+							lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight * (event.diff.getNewValue() + 1)));
+						}
+					});
+					
+					currentDataLineIndex[0]++;
+					System.out.println(" now " + currentDataLineIndex[0]);
+				} while (currentDataLineIndex[0] < textDataLineIndex);
+				
+				txrLineMatch.textDataLineInstanceIndex = textDataLineMatches.size() - 1;
+
+				Thread[] scrollingThread = new Thread[1];
+				Point[] offset = new Point[1];
+				Listener listener = new Listener () {
+					public void handleEvent (Event event) {
+						switch (event.type) {
+						case SWT.MouseDown:
+							System.out.println("Down: " + event.x + ',' + event.y);
+							//			          Rectangle rect = composite.getBounds ();
+							//			          if (rect.contains (event.x, event.y)) {
+							//			            Point pt1 = composite.toDisplay (0, 0);
+							//			            Point pt2 = shell.toDisplay (event.x, event.y); 
+							offset [0] = new Point (event.x, event.y);
+
+
+							// Start a thread that updates
+							new Thread(new String()).run();
+							scrollingThread[0] = new Thread() {
+								@Override
+								public void run() {
+								}
+							};
+							scrollingThread[0].start();
+							break;
+						case SWT.MouseMove:
+							if (scrollingThread[0] != null) {
+								scrollingThread[0].stop();
+							}
+							if (offset[0] != null) {
+								/* Determine the mouse position relative to both the position where it
+				        	  	   was when we last processed it and also the position within the TXR editor
+				        	  	   area.
+								 */
+								int movement = event.y - offset[0].y;
+								offset[0].y = event.y;
+
+								Rectangle editorArea = txrEditorComposite.getClientArea();
+								float positionWithinEditor = ((float)event.y - editorArea.y) / editorArea.height;
+
+								txrLineMatch.setOffset(movement, positionWithinEditor);
+
+								txrEditorComposite.layout();
+							}
+
+							break;
+						case SWT.MouseUp:
+							offset [0] = null;
+							break;
+						}
+					}
+				};
+
+				Control lineControl = txrLineRowComposite(txrEditorComposite, txrLineIndex + 1, txrLines[txrLineIndex], indentation, listener);
 				int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
 				lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
 				
-				lineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
+				txrLineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
 					@Override
 					public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
 						lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight * (event.diff.getNewValue() + 1)));
 					}
 				});
 			}
-		}
+
+			@Override
+			public void createDirective(int txrLineIndex, int textDataLineIndex, int indentation) {
+				System.out.println("create directive: " + txrLineIndex + ", " + textDataLineIndex);
+				System.out.println("     " + txrLines[txrLineIndex]);
+				System.out.println("     " + testData[textDataLineIndex]);
+
+				TxrLineMatch txrLineMatch = new TxrLineMatch(txrLineIndex + 1, txrLines[txrLineIndex]);
+				txrLineMatches.add(txrLineMatch);
+
+				/*
+				 * A directive has a line position in the text data but it does not match a line,
+				 * so there will always be a blank space to the right of a directive. 
+				 */
+				
+				// Push forward to textDataLineIndex
+				// TODO this is duplicated above
+				// In the case of a directive, we might already be on the correct line.
+				// The directive does not itself match the line, so we don't push the matching line out.
+				// Now currentDataLineIndex is last line actually pushed out, and textDataLineIndex is the one 
+				// to be pushed next,
+				// so if they are one apart then we are already current.
+				while (currentDataLineIndex[0] < textDataLineIndex - 1) {
+					int textDataLineNumber = currentDataLineIndex[0] + 1; 
+					
+					String line = testData[textDataLineNumber];
+					TextDataLineMatch lineMatch = new TextDataLineMatch(textDataLineNumber, line);
+					textDataLineMatches.add(lineMatch);
+
+					Control lineControl = textDataLineRowComposite(testDataComposite, textDataLineNumber, line);
+					int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
+					lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
+					
+					lineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
+						@Override
+						public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
+							lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight * (event.diff.getNewValue() + 1)));
+						}
+					});
+					
+					currentDataLineIndex[0]++;
+					System.out.println(" now " + currentDataLineIndex[0]);
+				};
+				
+				// We have not pushed the matching line out, so go right to end of array (no subtraction of one)
+				txrLineMatch.textDataLineInstanceIndex = textDataLineMatches.size();
+				
+				txrLineMatch.isDirective = true;
+
+				Listener listener = new Listener() {
+					@Override
+					public void handleEvent(Event event) {
+						// TODO Auto-generated method stub
+						
+					}
+				};
+				
+				Control lineControl = txrLineRowComposite(txrEditorComposite, txrLineIndex + 1, txrLines[txrLineIndex], indentation, listener);
+				int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
+				lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
+				
+				txrLineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
+					@Override
+					public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
+						lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight * (event.diff.getNewValue() + 1)));
+					}
+				});
+			}
+
+			@Override
+			public void createMismatch(int txrLineIndex, int textDataLineIndex, int indentation, String message) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void rewind(int textDataLineIndex) {
+				// As currentDataLineIndex is the last line pushed out, and we want to push out again the line
+				// we are rewinding to, hence we subtract one.
+				System.out.println("rewinding: " + currentDataLineIndex[0] + " to " + (textDataLineIndex - 1));
+				currentDataLineIndex[0] = textDataLineIndex - 1;
+			}
+		});
+
+		txrEditorComposite.layout();
+
 
 		// Set heights so that all matched lines in the TXR are lined up correctly with the
 		// line from the text data.
 		
-		int txrLineLocation = 0;  // Location of last line processed, 1 is top position etc
-		int textDataLineLocation = 0;  // Location of last line processed, 1 is top position etc
-		int textDataLineNumber = 0;  // Last data line processed, 1-based
-		for (TxrLineMatch txrLineMatch : txrLineMatches) {
-			if (txrLineMatch.textDataLineNumber == null) {
-				// This line is not matched, so it just goes immediately after the previous
-				txrLineMatch.setPreceedingGap(0);
-				txrLineLocation++;
-			} else {
-				assert (txrLineMatch.textDataLineNumber > textDataLineNumber); // Must move forwards
-				
-				while (textDataLineNumber < txrLineMatch.textDataLineNumber - 1) {
-					textDataLineMatches.get(textDataLineNumber).setPreceedingGap(0);
-					textDataLineNumber++;
-					textDataLineLocation++;
-				}
-				
-				// Update location to be where the matching lines would go if there were no gaps
-				txrLineLocation++;
-				textDataLineLocation++;
-				
-				if (textDataLineLocation < txrLineLocation) {
-					// We need to add space on the right to line these up
-					textDataLineMatches.get(textDataLineNumber).setPreceedingGap(txrLineLocation - textDataLineLocation);
-					txrLineMatch.setPreceedingGap(0);
-					textDataLineLocation = txrLineLocation;
-				} else {
-					// We need to add space on the left to line these up (or no space is needed on either side)
-					textDataLineMatches.get(textDataLineNumber).setPreceedingGap(0);
-					txrLineMatch.setPreceedingGap(textDataLineLocation - txrLineLocation);
-					txrLineLocation = textDataLineLocation;
-				}
-				textDataLineNumber++;
-				assert (textDataLineNumber == txrLineMatch.textDataLineNumber);
-			}
-		}
+//		int txrLineLocation = 0;  // Location of last line processed, 1 is top position etc
+//		int textDataLineLocation = 0;  // Location of last line processed, 1 is top position etc
+//		int textDataLineInstanceIndex = -1;  // Last data line processed, 0-based
+//		for (TxrLineMatch txrLineMatch : txrLineMatches) {
+//			if (txrLineMatch.textDataLineInstanceIndex == null) {
+//				// This line is not matched, so it just goes immediately after the previous
+//				txrLineMatch.setPreceedingGap(0);
+//				txrLineLocation++;
+//			} else {
+//				assert (txrLineMatch.textDataLineInstanceIndex > textDataLineInstanceIndex); // Must move forwards
+//				
+//				while (textDataLineInstanceIndex < txrLineMatch.textDataLineInstanceIndex - 1) {
+//					textDataLineMatches.get(textDataLineInstanceIndex).setPreceedingGap(0);
+//					textDataLineInstanceIndex++;
+//					textDataLineLocation++;
+//				}
+//				
+//				// Update location to be where the matching lines would go if there were no gaps
+//				txrLineLocation++;
+//				textDataLineLocation++;
+//				
+//				if (txrLineMatch.isDirective) {
+//					// This TXR line is a directive, so put it on a line of its own (no data line)
+//					if (textDataLineLocation > txrLineLocation) {
+//						// We need to add space on the left to line these up
+//						txrLineMatch.setPreceedingGap(textDataLineLocation - txrLineLocation);
+//						txrLineLocation = textDataLineLocation;
+//					}
+//				} else {
+//					// Match up lines, so both appear lined up
+//					if (textDataLineLocation < txrLineLocation) {
+//						// We need to add space on the right to line these up
+//						textDataLineMatches.get(textDataLineInstanceIndex).setPreceedingGap(txrLineLocation - textDataLineLocation);
+//						txrLineMatch.setPreceedingGap(0);
+//						textDataLineLocation = txrLineLocation;
+//					} else {
+//						// We need to add space on the left to line these up (or no space is needed on either side)
+//						if (textDataLineInstanceIndex < textDataLineMatches.size())  // Should this test really be needed???
+//							textDataLineMatches.get(textDataLineInstanceIndex).setPreceedingGap(0);
+//						txrLineMatch.setPreceedingGap(textDataLineLocation - txrLineLocation);
+//						txrLineLocation = textDataLineLocation;
+//					}
+//					textDataLineInstanceIndex++;
+//					assert (textDataLineInstanceIndex == txrLineMatch.textDataLineInstanceIndex);
+//				}
+//			}
+//		}
 	}
 
 	private Control createTopArea(Composite parent) {
