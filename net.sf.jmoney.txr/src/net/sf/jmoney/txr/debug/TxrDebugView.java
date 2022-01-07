@@ -568,7 +568,9 @@ public class TxrDebugView extends ViewPart {
 		txrLineMatches = new ArrayList<>();
 //		int lineNumber = 0;
 		String[] txrLines = txr.split("\n");
-		
+
+		final int fudgeFactor = 3;
+
 		results.matcherResults.createControls(new IControlCallback() {
 			@Override
 			public void createMatch(int txrLineIndex, int textDataLineIndex, int indentation) {
@@ -581,20 +583,20 @@ public class TxrDebugView extends ViewPart {
 
 				// Push forward to textDataLineIndex
 				do {
-					int textDataLineNumber = currentDataLineIndex[0] + 1; 
+					int textDataLineIndexToOutput = currentDataLineIndex[0] + 1; 
 					
-					String line = testData[textDataLineNumber];
-					TextDataLineMatch lineMatch = new TextDataLineMatch(textDataLineNumber, line);
+					String line = testData[textDataLineIndexToOutput];
+					TextDataLineMatch lineMatch = new TextDataLineMatch(textDataLineIndexToOutput, line);
 					textDataLineMatches.add(lineMatch);
 
-					Control lineControl = textDataLineRowComposite(testDataComposite, textDataLineNumber, line);
+					Control lineControl = textDataLineRowComposite(testDataComposite, textDataLineIndexToOutput + 1, line);
 					int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
 					lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
 					
 					lineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
 						@Override
 						public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
-							lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight * (event.diff.getNewValue() + 1)));
+							lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight + (rowHeight + fudgeFactor) * event.diff.getNewValue()));
 						}
 					});
 					
@@ -662,7 +664,7 @@ public class TxrDebugView extends ViewPart {
 				txrLineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
 					@Override
 					public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
-						lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight * (event.diff.getNewValue() + 1)));
+						lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight + (rowHeight + fudgeFactor) * event.diff.getNewValue()));
 					}
 				});
 			}
@@ -689,20 +691,20 @@ public class TxrDebugView extends ViewPart {
 				// to be pushed next,
 				// so if they are one apart then we are already current.
 				while (currentDataLineIndex[0] < textDataLineIndex - 1) {
-					int textDataLineNumber = currentDataLineIndex[0] + 1; 
+					int textDataLineIndexToOutput = currentDataLineIndex[0] + 1; 
 					
-					String line = testData[textDataLineNumber];
-					TextDataLineMatch lineMatch = new TextDataLineMatch(textDataLineNumber, line);
+					String line = testData[textDataLineIndexToOutput];
+					TextDataLineMatch lineMatch = new TextDataLineMatch(textDataLineIndexToOutput + 1, line);
 					textDataLineMatches.add(lineMatch);
 
-					Control lineControl = textDataLineRowComposite(testDataComposite, textDataLineNumber, line);
+					Control lineControl = textDataLineRowComposite(testDataComposite, textDataLineIndexToOutput + 1, line);
 					int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
 					lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
 					
 					lineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
 						@Override
 						public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
-							lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight * (event.diff.getNewValue() + 1)));
+							lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight + (rowHeight + fudgeFactor) * event.diff.getNewValue()));
 						}
 					});
 					
@@ -730,7 +732,7 @@ public class TxrDebugView extends ViewPart {
 				txrLineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
 					@Override
 					public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
-						lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight * (event.diff.getNewValue() + 1)));
+						lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight + (rowHeight + fudgeFactor) * event.diff.getNewValue()));
 					}
 				});
 			}
@@ -756,53 +758,57 @@ public class TxrDebugView extends ViewPart {
 		// Set heights so that all matched lines in the TXR are lined up correctly with the
 		// line from the text data.
 		
-//		int txrLineLocation = 0;  // Location of last line processed, 1 is top position etc
-//		int textDataLineLocation = 0;  // Location of last line processed, 1 is top position etc
-//		int textDataLineInstanceIndex = -1;  // Last data line processed, 0-based
-//		for (TxrLineMatch txrLineMatch : txrLineMatches) {
-//			if (txrLineMatch.textDataLineInstanceIndex == null) {
-//				// This line is not matched, so it just goes immediately after the previous
-//				txrLineMatch.setPreceedingGap(0);
-//				txrLineLocation++;
-//			} else {
-//				assert (txrLineMatch.textDataLineInstanceIndex > textDataLineInstanceIndex); // Must move forwards
-//				
-//				while (textDataLineInstanceIndex < txrLineMatch.textDataLineInstanceIndex - 1) {
-//					textDataLineMatches.get(textDataLineInstanceIndex).setPreceedingGap(0);
-//					textDataLineInstanceIndex++;
-//					textDataLineLocation++;
-//				}
-//				
-//				// Update location to be where the matching lines would go if there were no gaps
-//				txrLineLocation++;
-//				textDataLineLocation++;
-//				
-//				if (txrLineMatch.isDirective) {
-//					// This TXR line is a directive, so put it on a line of its own (no data line)
-//					if (textDataLineLocation > txrLineLocation) {
-//						// We need to add space on the left to line these up
-//						txrLineMatch.setPreceedingGap(textDataLineLocation - txrLineLocation);
-//						txrLineLocation = textDataLineLocation;
-//					}
-//				} else {
-//					// Match up lines, so both appear lined up
-//					if (textDataLineLocation < txrLineLocation) {
-//						// We need to add space on the right to line these up
-//						textDataLineMatches.get(textDataLineInstanceIndex).setPreceedingGap(txrLineLocation - textDataLineLocation);
-//						txrLineMatch.setPreceedingGap(0);
-//						textDataLineLocation = txrLineLocation;
-//					} else {
-//						// We need to add space on the left to line these up (or no space is needed on either side)
-//						if (textDataLineInstanceIndex < textDataLineMatches.size())  // Should this test really be needed???
-//							textDataLineMatches.get(textDataLineInstanceIndex).setPreceedingGap(0);
-//						txrLineMatch.setPreceedingGap(textDataLineLocation - txrLineLocation);
-//						txrLineLocation = textDataLineLocation;
-//					}
-//					textDataLineInstanceIndex++;
-//					assert (textDataLineInstanceIndex == txrLineMatch.textDataLineInstanceIndex);
-//				}
-//			}
-//		}
+		int txrLineLocation = 0;  // Location of last line processed, 1 is top position etc
+		int textDataLineLocation = 0;  // Location of last line processed, 1 is top position etc
+		int textDataLineInstanceIndex = -1;  // Last data line processed, 0-based
+		for (TxrLineMatch txrLineMatch : txrLineMatches) {
+			if (txrLineMatch.textDataLineInstanceIndex == null) {
+				// This line is not matched, so it just goes immediately after the previous
+				txrLineMatch.setPreceedingGap(0);
+				txrLineLocation++;
+			} else {
+				assert (txrLineMatch.textDataLineInstanceIndex > textDataLineInstanceIndex); // Must move forwards
+				
+				while (textDataLineInstanceIndex < txrLineMatch.textDataLineInstanceIndex - 1) {
+					textDataLineMatches.get(textDataLineInstanceIndex).setPreceedingGap(0);
+					textDataLineInstanceIndex++;
+					textDataLineLocation++;
+				}
+				
+				if (txrLineMatch.isDirective) {
+					// Update location to be where the matching lines would go if there were no gaps
+					txrLineLocation++;
+					
+					// This TXR line is a directive, so put it on a line of its own (no data line)
+					if (textDataLineLocation > txrLineLocation) {
+						// We need to add space on the left to line these up
+						txrLineMatch.setPreceedingGap(textDataLineLocation - txrLineLocation);
+						txrLineLocation = textDataLineLocation;
+					}
+				} else {
+					// Update location to be where the matching lines would go if there were no gaps
+					txrLineLocation++;
+					textDataLineLocation++;
+					
+					textDataLineInstanceIndex++;
+
+					// Match up lines, so both appear lined up
+					if (textDataLineLocation < txrLineLocation) {
+						// We need to add space on the right to line these up
+						textDataLineMatches.get(textDataLineInstanceIndex).setPreceedingGap(txrLineLocation - textDataLineLocation);
+						txrLineMatch.setPreceedingGap(0);
+						textDataLineLocation = txrLineLocation;
+					} else {
+						// We need to add space on the left to line these up (or no space is needed on either side)
+						if (textDataLineInstanceIndex < textDataLineMatches.size())  // Should this test really be needed???
+							textDataLineMatches.get(textDataLineInstanceIndex).setPreceedingGap(0);
+						txrLineMatch.setPreceedingGap(textDataLineLocation - txrLineLocation);
+						txrLineLocation = textDataLineLocation;
+					}
+					assert (textDataLineInstanceIndex == txrLineMatch.textDataLineInstanceIndex);
+				}
+			}
+		}
 	}
 
 	private Control createTopArea(Composite parent) {
