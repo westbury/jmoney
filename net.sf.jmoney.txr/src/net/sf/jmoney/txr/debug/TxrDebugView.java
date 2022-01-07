@@ -134,8 +134,6 @@ public class TxrDebugView extends ViewPart {
 
 	private Image errorImage;
 
-//	private String txr = "@(collect)\nOrder Detail\nAmount\n@amount\nPrice: @price\n@(until)\nWe also recommend:\n@(end)\nmatch line 1\nmatch line 2\nmatch line 3";
-	
 	private String txr = "Introduction\n"
 			+ "\n"
 			+ "@(collect)\n"
@@ -161,8 +159,6 @@ public class TxrDebugView extends ViewPart {
 			"Total: £78.00"
 	};
 	
-//	private String testData = "line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14";
-
 	private Composite txrEditorComposite;
 
 	private Composite testDataComposite;
@@ -175,6 +171,13 @@ public class TxrDebugView extends ViewPart {
 	private List<TextDataLineMatch> textDataLineMatches;
 
 	private DocumentMatcher matcher;
+
+	/**
+	 * The index of the last test data line that has been created. This is maintained during control
+	 * creation but has no meaning after the controls have been created.
+	 * (This suggests we need a separate class to create the controls?)
+	 */
+	private int currentDataLineIndex;
 
 	public TxrDebugView() {
 		pasteTxrAction = new PasteTxrAction();
@@ -526,47 +529,21 @@ public class TxrDebugView extends ViewPart {
 	}
 
 	private void runMatcher() {
-
-
 		while (txrEditorComposite.getChildren().length != 0) {
 			txrEditorComposite.getChildren()[0].dispose();
 		}
 
 		MatchPair results = matcher.process2(this.testData);
 
-
-
 		while (testDataComposite.getChildren().length != 0) {
 			testDataComposite.getChildren()[0].dispose();
 		}
 
-//		{
-			textDataLineMatches = new ArrayList<>();
-//			int textDataLineNumber = 0;
-//			for (String line : testData) {
-//				TextDataLineMatch lineMatch = new TextDataLineMatch(textDataLineNumber, line);
-//				textDataLineMatches.add(lineMatch);
-//				textDataLineNumber++;
-//
-//				Control lineControl = textDataLineRowComposite(testDataComposite, textDataLineNumber, line);
-//				int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
-//				lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
-//				
-//				lineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
-//					@Override
-//					public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
-//						lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight * (event.diff.getNewValue() + 1)));
-//					}
-//				});
-//			}
-//		}
+		textDataLineMatches = new ArrayList<>();
 		
-		
-		
-		int[] currentDataLineIndex = { -1 };
+		currentDataLineIndex = -1;
 		
 		txrLineMatches = new ArrayList<>();
-//		int lineNumber = 0;
 		String[] txrLines = txr.split("\n");
 
 		final int fudgeFactor = 3;
@@ -583,26 +560,161 @@ public class TxrDebugView extends ViewPart {
 
 				// Push forward to textDataLineIndex
 				do {
-					int textDataLineIndexToOutput = currentDataLineIndex[0] + 1; 
-					
-					String line = testData[textDataLineIndexToOutput];
-					TextDataLineMatch lineMatch = new TextDataLineMatch(textDataLineIndexToOutput, line);
-					textDataLineMatches.add(lineMatch);
+					pushForwardTextData(); // This increments this.currentDataLineIndex by one
+				} while (currentDataLineIndex < textDataLineIndex);
+				
+				txrLineMatch.textDataLineInstanceIndex = textDataLineMatches.size() - 1;
 
-					Control lineControl = textDataLineRowComposite(testDataComposite, textDataLineIndexToOutput + 1, line);
-					int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
-					lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
-					
-					lineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
-						@Override
-						public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
-							lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight + (rowHeight + fudgeFactor) * event.diff.getNewValue()));
+				Thread[] scrollingThread = new Thread[1];
+				Point[] offset = new Point[1];
+				Listener listener = new Listener () {
+					public void handleEvent (Event event) {
+						switch (event.type) {
+						case SWT.MouseDown:
+							System.out.println("Down: " + event.x + ',' + event.y);
+							//			          Rectangle rect = composite.getBounds ();
+							//			          if (rect.contains (event.x, event.y)) {
+							//			            Point pt1 = composite.toDisplay (0, 0);
+							//			            Point pt2 = shell.toDisplay (event.x, event.y); 
+							offset [0] = new Point (event.x, event.y);
+
+
+							// Start a thread that updates
+							new Thread(new String()).run();
+							scrollingThread[0] = new Thread() {
+								@Override
+								public void run() {
+								}
+							};
+							scrollingThread[0].start();
+							break;
+						case SWT.MouseMove:
+							if (scrollingThread[0] != null) {
+								scrollingThread[0].stop();
+							}
+							if (offset[0] != null) {
+								/* Determine the mouse position relative to both the position where it
+				        	  	   was when we last processed it and also the position within the TXR editor
+				        	  	   area.
+								 */
+								int movement = event.y - offset[0].y;
+								offset[0].y = event.y;
+
+								Rectangle editorArea = txrEditorComposite.getClientArea();
+								float positionWithinEditor = ((float)event.y - editorArea.y) / editorArea.height;
+
+								txrLineMatch.setOffset(movement, positionWithinEditor);
+
+								txrEditorComposite.layout();
+							}
+
+							break;
+						case SWT.MouseUp:
+							offset [0] = null;
+							break;
 						}
-					});
-					
-					currentDataLineIndex[0]++;
-					System.out.println(" now " + currentDataLineIndex[0]);
-				} while (currentDataLineIndex[0] < textDataLineIndex);
+					}
+				};
+
+				Control lineControl = txrLineRowComposite(txrEditorComposite, txrLineIndex + 1, txrLines[txrLineIndex], indentation, listener);
+				int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
+				lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
+				
+				txrLineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
+					@Override
+					public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
+						lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight + (rowHeight + fudgeFactor) * event.diff.getNewValue()));
+					}
+				});
+			}
+
+			public void pushForwardTextData() {
+				int textDataLineIndexToOutput = currentDataLineIndex + 1; 
+				
+				final int fudgeFactor = 3;
+
+				String line = testData[textDataLineIndexToOutput];
+				TextDataLineMatch lineMatch = new TextDataLineMatch(textDataLineIndexToOutput, line);
+				textDataLineMatches.add(lineMatch);
+
+				Control lineControl = textDataLineRowComposite(testDataComposite, textDataLineIndexToOutput + 1, line);
+				int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
+				lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
+				
+				lineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
+					@Override
+					public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
+						lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight + (rowHeight + fudgeFactor) * event.diff.getNewValue()));
+					}
+				});
+				
+				currentDataLineIndex++;
+				System.out.println(" now " + currentDataLineIndex);
+			}
+
+			@Override
+			public void createDirective(int txrLineIndex, int textDataLineIndex, int indentation) {
+				System.out.println("create directive: " + txrLineIndex + ", " + textDataLineIndex);
+				System.out.println("     " + txrLines[txrLineIndex]);
+				System.out.println("     " + testData[textDataLineIndex]);
+
+				TxrLineMatch txrLineMatch = new TxrLineMatch(txrLineIndex + 1, txrLines[txrLineIndex]);
+				txrLineMatches.add(txrLineMatch);
+
+				/*
+				 * A directive has a line position in the text data but it does not match a line,
+				 * so there will always be a blank space to the right of a directive.
+				 * (Possible exception: @skip, or @collect where first match is further down?)
+				 */
+				
+				// Push forward to textDataLineIndex
+				// In the case of a directive, we might already be on the correct line.
+				// The directive does not itself match the line, so we don't push the matching line out.
+				// Now currentDataLineIndex is last line actually pushed out, and textDataLineIndex is the one 
+				// to be pushed next,
+				// so if they are one apart then we are already current.
+				while (currentDataLineIndex < textDataLineIndex - 1) {
+					pushForwardTextData(); // increments this.currentDataLineIndex by one
+				};
+				
+				// We have not pushed the matching line out, so go right to end of array (no subtraction of one)
+				txrLineMatch.textDataLineInstanceIndex = textDataLineMatches.size();
+				
+				txrLineMatch.isDirective = true;
+
+				Listener listener = new Listener() {
+					@Override
+					public void handleEvent(Event event) {
+						// TODO Auto-generated method stub
+						
+					}
+				};
+				
+				Control lineControl = txrLineRowComposite(txrEditorComposite, txrLineIndex + 1, txrLines[txrLineIndex], indentation, listener);
+				int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
+				lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
+				
+				txrLineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
+					@Override
+					public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
+						lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight + (rowHeight + fudgeFactor) * event.diff.getNewValue()));
+					}
+				});
+			}
+
+			@Override
+			public void createMismatch(int txrLineIndex, int textDataLineIndex, int indentation, String message) {
+				System.out.println("create mismatch: " + txrLineIndex + ", " + textDataLineIndex);
+				System.out.println("     " + txrLines[txrLineIndex]);
+				System.out.println("     " + testData[textDataLineIndex]);
+
+				TxrLineMatch txrLineMatch = new TxrLineMatch(txrLineIndex + 1, txrLines[txrLineIndex]);
+				txrLineMatches.add(txrLineMatch);
+
+				// Push forward to textDataLineIndex
+				do {
+					pushForwardTextData(); // increments this.currentDataLineIndex by one
+				} while (currentDataLineIndex < textDataLineIndex);
 				
 				txrLineMatch.textDataLineInstanceIndex = textDataLineMatches.size() - 1;
 
@@ -670,85 +782,11 @@ public class TxrDebugView extends ViewPart {
 			}
 
 			@Override
-			public void createDirective(int txrLineIndex, int textDataLineIndex, int indentation) {
-				System.out.println("create directive: " + txrLineIndex + ", " + textDataLineIndex);
-				System.out.println("     " + txrLines[txrLineIndex]);
-				System.out.println("     " + testData[textDataLineIndex]);
-
-				TxrLineMatch txrLineMatch = new TxrLineMatch(txrLineIndex + 1, txrLines[txrLineIndex]);
-				txrLineMatches.add(txrLineMatch);
-
-				/*
-				 * A directive has a line position in the text data but it does not match a line,
-				 * so there will always be a blank space to the right of a directive. 
-				 */
-				
-				// Push forward to textDataLineIndex
-				// TODO this is duplicated above
-				// In the case of a directive, we might already be on the correct line.
-				// The directive does not itself match the line, so we don't push the matching line out.
-				// Now currentDataLineIndex is last line actually pushed out, and textDataLineIndex is the one 
-				// to be pushed next,
-				// so if they are one apart then we are already current.
-				while (currentDataLineIndex[0] < textDataLineIndex - 1) {
-					int textDataLineIndexToOutput = currentDataLineIndex[0] + 1; 
-					
-					String line = testData[textDataLineIndexToOutput];
-					TextDataLineMatch lineMatch = new TextDataLineMatch(textDataLineIndexToOutput + 1, line);
-					textDataLineMatches.add(lineMatch);
-
-					Control lineControl = textDataLineRowComposite(testDataComposite, textDataLineIndexToOutput + 1, line);
-					int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
-					lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
-					
-					lineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
-						@Override
-						public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
-							lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight + (rowHeight + fudgeFactor) * event.diff.getNewValue()));
-						}
-					});
-					
-					currentDataLineIndex[0]++;
-					System.out.println(" now " + currentDataLineIndex[0]);
-				};
-				
-				// We have not pushed the matching line out, so go right to end of array (no subtraction of one)
-				txrLineMatch.textDataLineInstanceIndex = textDataLineMatches.size();
-				
-				txrLineMatch.isDirective = true;
-
-				Listener listener = new Listener() {
-					@Override
-					public void handleEvent(Event event) {
-						// TODO Auto-generated method stub
-						
-					}
-				};
-				
-				Control lineControl = txrLineRowComposite(txrEditorComposite, txrLineIndex + 1, txrLines[txrLineIndex], indentation, listener);
-				int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
-				lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
-				
-				txrLineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
-					@Override
-					public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
-						lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight + (rowHeight + fudgeFactor) * event.diff.getNewValue()));
-					}
-				});
-			}
-
-			@Override
-			public void createMismatch(int txrLineIndex, int textDataLineIndex, int indentation, String message) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
 			public void rewind(int textDataLineIndex) {
 				// As currentDataLineIndex is the last line pushed out, and we want to push out again the line
 				// we are rewinding to, hence we subtract one.
-				System.out.println("rewinding: " + currentDataLineIndex[0] + " to " + (textDataLineIndex - 1));
-				currentDataLineIndex[0] = textDataLineIndex - 1;
+				System.out.println("rewinding: " + currentDataLineIndex + " to " + (textDataLineIndex - 1));
+				currentDataLineIndex = textDataLineIndex - 1;
 			}
 		});
 
@@ -931,42 +969,6 @@ public class TxrDebugView extends ViewPart {
 
 		return testDataComposite;
 	}
-
-	//	private Control createOrderControls(Composite parent) {
-	//		Composite composite = new Composite(parent, SWT.NONE);
-	//		composite.setLayout(new GridLayout(2, false));
-	//
-	//		Label orderNumberLabel = new Label(composite, 0);
-	//		orderNumberLabel.setText("Order Number:");
-	//		Text orderControl = new Text(composite, SWT.NONE);
-	//		orderControl.setLayoutData(new GridData(200, SWT.DEFAULT));
-	//
-	//		Label orderDateLabel = new Label(composite, 0);
-	//		orderDateLabel.setText("Order Date:");
-	//		DateControl orderDateControl = new DateControl(composite);
-	//		orderDateControl.setLayoutData(new GridData(200, SWT.DEFAULT));
-	//
-	//		Label orderAmountLabel = new Label(composite, 0);
-	//		orderAmountLabel.setText("Order Total:");
-	//		Text orderAmountControl = new Text(composite, SWT.NONE);
-	//		orderAmountControl.setLayoutData(new GridData(200, SWT.DEFAULT));
-	//
-	//		selObs.addValueChangeListener(new IValueChangeListener<Object>() {
-	//			@Override
-	//			public void handleValueChange(ValueChangeEvent<? extends Object> event) {
-	//				if (selObs.getValue() instanceof AmazonOrder) {
-	//					AmazonOrder order = (AmazonOrder)selObs.getValue();
-	//
-	//					orderControl.setText(order.getOrderNumber());
-	//					orderDateControl.setDate(order.getOrderDate());
-	//
-	//					orderAmountControl.setText(currencyFormatter.format(order.getOrderTotal()));
-	//				}
-	//			}
-	//		});
-	//
-	//		return composite;
-	//	}
 
 	@Override
 	public void setFocus() {
