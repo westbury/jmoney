@@ -15,3 +15,4 @@ Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ClassPath: .,
  lib/txr-java.jar
+Export-Package: net.sf.jmoney.txr.debug

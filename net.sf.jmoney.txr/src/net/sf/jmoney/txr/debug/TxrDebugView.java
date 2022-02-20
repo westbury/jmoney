@@ -25,11 +25,14 @@ package net.sf.jmoney.txr.debug;
 import java.awt.Toolkit;
 import java.awt.datatransfer.FlavorEvent;
 import java.awt.datatransfer.FlavorListener;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Array;
 import java.net.URL;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.ArrayList;
 
 import org.eclipse.core.databinding.observable.value.IObservableValue;
@@ -53,6 +56,7 @@ import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
@@ -153,17 +157,20 @@ public class TxrDebugView extends ViewPart {
 			"Amount: £36",
 			"",
 			"Title: Oranges",
-			"Amount: £42",
+			"Amountx: £42",
 			"",
-			"Conclusion",
+			"Conclusionx",
 			"Total: £78.00"
 	};
 	
 	private Composite txrEditorComposite;
+	private Control txrEditorScrollable;
 
 	private Composite testDataComposite;
 
 	private ScrolledComposite sc;
+	private ScrolledComposite sc1;
+	private ScrolledComposite sc2;
 
 	private Composite horizontallySplitComposite;
 
@@ -186,8 +193,6 @@ public class TxrDebugView extends ViewPart {
 		// Load the error indicator
 		URL installURL = Activator.getDefault().getBundle().getEntry("/icons/error.gif");
 		errorImage = ImageDescriptor.createFromURL(installURL).createImage();
-		
-		matcher = createMatcherFromResource("collect-test.txr");
 	}
 
 	@Override
@@ -266,39 +271,24 @@ public class TxrDebugView extends ViewPart {
 		Composite composite = new Composite(parent, SWT.NONE);
 		composite.setLayout(new RowLayout(SWT.HORIZONTAL));
 
-		Button commitButton = new Button(composite, SWT.PUSH);
-		commitButton.setText("Commit");
-		commitButton.addSelectionListener(new SelectionListener() {
+		// Re-runs the match exactly the same as before. This is useful when debugging.
+		Button rerunButton = new Button(composite, SWT.PUSH);
+		rerunButton.setText("Re-Run");
+		rerunButton.addSelectionListener(new SelectionListener() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				commitChanges();
+				rerunChanges();
 			}
 
 			@Override
 			public void widgetDefaultSelected(SelectionEvent e) {
-				commitChanges();
+				rerunChanges();
 			}
 
-			private void commitChanges() {
-				// TODO do we want this button?
-			}
-		});
-
-		Button abortButton = new Button(composite, SWT.PUSH);
-		abortButton.setText("Abort");
-		abortButton.addSelectionListener(new SelectionListener() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				abortChanges();
-			}
-
-			@Override
-			public void widgetDefaultSelected(SelectionEvent e) {
-				abortChanges();
-			}
-
-			private void abortChanges() {
-				// Do we want this button?
+			private void rerunChanges() {
+				runMatcher();
+				txrEditorComposite.requestLayout();
+				testDataComposite.requestLayout();
 			}
 		});
 
@@ -361,6 +351,10 @@ public class TxrDebugView extends ViewPart {
 	}
 
 	private Control txrLineRowComposite(Composite parent, int lineNumber, String line, int indentation, Listener listener) {
+		return txrLineRowComposite(parent, lineNumber, line, indentation, listener, Display.getDefault().getSystemColor(SWT.COLOR_BLACK));
+	}
+	
+	private Control txrLineRowComposite(Composite parent, int lineNumber, String line, int indentation, Listener listener, Color color) {
 		Composite composite = new Composite(parent, SWT.NONE);
 		GridLayout layout = new GridLayout(2, false);
 		layout.marginHeight = 0;
@@ -375,6 +369,7 @@ public class TxrDebugView extends ViewPart {
 
 		Text lineControl = new Text(composite, SWT.NONE);
 		lineControl.setText(line);
+		lineControl.setForeground(color);
 		GridData textGridData = new GridData(SWT.FILL, SWT.BOTTOM, true, true);
 		textGridData.horizontalIndent = indentation * 30;
 		lineControl.setLayoutData(textGridData);
@@ -528,6 +523,18 @@ public class TxrDebugView extends ViewPart {
 		}
 	}
 
+	private DocumentMatcher createMatcherFromResource(URL resource) {
+		try (InputStream txrInputStream = resource.openStream()) {
+			return new DocumentMatcher(txrInputStream, "UTF-8");
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		} catch (TxrErrorInDocumentException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		}
+	}
+
 	private void runMatcher() {
 		while (txrEditorComposite.getChildren().length != 0) {
 			txrEditorComposite.getChildren()[0].dispose();
@@ -552,6 +559,12 @@ public class TxrDebugView extends ViewPart {
 			@Override
 			public void createMatch(int txrLineIndex, int textDataLineIndex, int indentation) {
 				System.out.println("create match: " + txrLineIndex + ", " + textDataLineIndex);
+				if (txrLineIndex == 34) {
+					System.out.println("line 34");
+				}
+				if (txrLineIndex == txrLines.length) {
+					return;  // TODO why does this happen?  When no @(skip) to the end????
+				}
 				System.out.println("     " + txrLines[txrLineIndex]);
 				System.out.println("     " + testData[textDataLineIndex]);
 
@@ -654,8 +667,54 @@ public class TxrDebugView extends ViewPart {
 
 			@Override
 			public void createDirective(int txrLineIndex, int textDataLineIndex, int indentation) {
+				createDirective2(txrLineIndex, textDataLineIndex, indentation, Display.getDefault().getSystemColor(SWT.COLOR_BLACK));
+			}
+
+			@Override
+			public void createDirectiveWithError(int txrLineIndex, int textDataLineIndex, int indentation) {
+				createDirective2(txrLineIndex, textDataLineIndex, indentation, Display.getDefault().getSystemColor(SWT.COLOR_RED));
+			}
+
+			public void createDirective2(int txrLineIndex, int textDataLineIndex, int indentation, Color color) {
 				System.out.println("create directive: " + txrLineIndex + ", " + textDataLineIndex);
 				System.out.println("     " + txrLines[txrLineIndex]);
+				if (textDataLineIndex == testData.length) {
+					TxrLineMatch txrLineMatch = new TxrLineMatch(txrLineIndex + 1, txrLines[txrLineIndex]);
+					txrLineMatches.add(txrLineMatch);
+
+					// This will push out the remaining data lines
+					while (currentDataLineIndex < textDataLineIndex - 1) {
+						pushForwardTextData(); // increments this.currentDataLineIndex by one
+					};
+					
+					// We have not pushed the matching line out (or the line after the end of data!), so go right to end of array (no subtraction of one)
+					txrLineMatch.textDataLineInstanceIndex = textDataLineMatches.size();
+					
+					txrLineMatch.isDirective = true;
+
+					Listener listener = new Listener() {
+						@Override
+						public void handleEvent(Event event) {
+							// TODO Auto-generated method stub
+							
+						}
+					};
+					
+					Control lineControl = txrLineRowComposite(txrEditorComposite, txrLineIndex + 1, txrLines[txrLineIndex], indentation, listener, color);
+					int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
+					lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
+					
+					txrLineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
+						@Override
+						public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
+							Integer newValue = event.diff.getNewValue() + 1; // To ensure @(end) is on blank line
+							lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight + (rowHeight + fudgeFactor) * newValue));
+						}
+					});
+					
+					return;
+				}
+				
 				System.out.println("     " + testData[textDataLineIndex]);
 
 				TxrLineMatch txrLineMatch = new TxrLineMatch(txrLineIndex + 1, txrLines[txrLineIndex]);
@@ -690,7 +749,7 @@ public class TxrDebugView extends ViewPart {
 					}
 				};
 				
-				Control lineControl = txrLineRowComposite(txrEditorComposite, txrLineIndex + 1, txrLines[txrLineIndex], indentation, listener);
+				Control lineControl = txrLineRowComposite(txrEditorComposite, txrLineIndex + 1, txrLines[txrLineIndex], indentation, listener, color);
 				int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
 				lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
 				
@@ -706,6 +765,32 @@ public class TxrDebugView extends ViewPart {
 			public void createMismatch(int txrLineIndex, int textDataLineIndex, int indentation, String message) {
 				System.out.println("create mismatch: " + txrLineIndex + ", " + textDataLineIndex);
 				System.out.println("     " + txrLines[txrLineIndex]);
+				if (textDataLineIndex == testData.length) {
+					TxrLineMatch txrLineMatch = new TxrLineMatch(txrLineIndex + 1, txrLines[txrLineIndex]);
+					txrLineMatches.add(txrLineMatch);
+					
+					Listener listener = new Listener() {
+						@Override
+						public void handleEvent(Event event) {
+							// TODO Auto-generated method stub
+							
+						}
+					};
+					
+					Control lineControl = txrLineRowComposite(txrEditorComposite, txrLineIndex + 1, txrLines[txrLineIndex], indentation, listener);
+					int rowHeight = lineControl.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
+					lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight));
+					
+					txrLineMatch.preceedingGap.addValueChangeListener(new IValueChangeListener<Integer>() {
+						@Override
+						public void handleValueChange(ValueChangeEvent<? extends Integer> event) {
+							lineControl.setLayoutData(new RowData(SWT.DEFAULT, rowHeight + (rowHeight + fudgeFactor) * event.diff.getNewValue()));
+						}
+					});
+					
+					return;
+				}
+				
 				System.out.println("     " + testData[textDataLineIndex]);
 
 				TxrLineMatch txrLineMatch = new TxrLineMatch(txrLineIndex + 1, txrLines[txrLineIndex]);
@@ -808,9 +893,9 @@ public class TxrDebugView extends ViewPart {
 				assert (txrLineMatch.textDataLineInstanceIndex > textDataLineInstanceIndex); // Must move forwards
 				
 				while (textDataLineInstanceIndex < txrLineMatch.textDataLineInstanceIndex - 1) {
-					textDataLineMatches.get(textDataLineInstanceIndex).setPreceedingGap(0);
 					textDataLineInstanceIndex++;
 					textDataLineLocation++;
+					textDataLineMatches.get(textDataLineInstanceIndex).setPreceedingGap(0);
 				}
 				
 				if (txrLineMatch.isDirective) {
@@ -847,6 +932,13 @@ public class TxrDebugView extends ViewPart {
 				}
 			}
 		}
+
+		// Needed to adjust scroll bars
+		sc.setMinSize(horizontallySplitComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+		sc1.setMinSize(txrEditorComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+//		sc2.setMinSize(testDataComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+		sc.setMinSize(horizontallySplitComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+
 	}
 
 	private Control createTopArea(Composite parent) {
@@ -859,15 +951,15 @@ public class TxrDebugView extends ViewPart {
 	}
 
 	private Control createScrollableMainArea(Composite parent) {
-		sc = new ScrolledComposite(parent, SWT.V_SCROLL | SWT.H_SCROLL);
+		sc = new ScrolledComposite(parent, SWT.V_SCROLL);
 
 		horizontallySplitComposite = createHorizontallySplitArea(sc);
 
 		sc.setContent(horizontallySplitComposite);	
 
-		//		sc.setExpandHorizontal(true);
-		//		sc.setExpandVertical(true);
-		//		sc.setMinSize(horizontallySplitComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+//				sc.setExpandHorizontal(true);
+				sc.setExpandVertical(true);
+				sc.setMinSize(horizontallySplitComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 		horizontallySplitComposite.setSize(horizontallySplitComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 
 		sc.addControlListener(new ControlAdapter() {
@@ -937,12 +1029,32 @@ public class TxrDebugView extends ViewPart {
 		formData.bottom = new FormAttachment(100, 0);
 		fUnreconciledSection.setLayoutData(formData);
 
-		runMatcher(); // This sets it all up.
-		
 		return containerOfSash;
 	}	
 
 	private Control createTxrEditorArea(Composite parent) {
+		sc1 = new ScrolledComposite(parent, SWT.H_SCROLL);
+
+		txrEditorScrollable = createTxrEditorArea2(sc1);
+
+		sc1.setContent(txrEditorScrollable);	
+
+				sc1.setExpandHorizontal(true);
+//				sc.setExpandVertical(true);
+				sc1.setMinSize(txrEditorScrollable.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+				txrEditorScrollable.setSize(txrEditorScrollable.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+
+		sc1.addControlListener(new ControlAdapter() {
+			@Override
+			public void controlResized(ControlEvent arg0) {
+				txrEditorScrollable.setSize(new Point(sc1.getClientArea().width, sc1.getClientArea().height));
+			}
+		});
+		return sc1;
+	}
+
+
+	private Control createTxrEditorArea2(Composite parent) {
 		txrEditorComposite = new Composite(parent, SWT.NONE);
 		RowLayout rowLayout = new RowLayout(SWT.VERTICAL);
 		rowLayout.wrap = false;
@@ -980,6 +1092,45 @@ public class TxrDebugView extends ViewPart {
 	public void dispose() {
 		super.dispose();
 		errorImage.dispose();
+	}
+
+	// This is used for programmatic opening of view
+	public void setTxrAndData(URL resource, String[] lines) {
+		try (InputStream txrInputStream = resource.openStream()) {
+			this.testData = lines;
+			
+			this.txr = new BufferedReader(new InputStreamReader(txrInputStream))
+					   .lines().collect(Collectors.joining("\n"));
+			
+			matcher = this.createMatcherFromResource(resource);
+			
+			// TODO dedup all the following
+			this.runMatcher();
+
+			txrEditorComposite.layout();
+			testDataComposite.layout();
+
+			// Is this needed?  (if not, hsc)
+			//		sc.setMinSize(horizontallySplitComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+			horizontallySplitComposite.setSize(horizontallySplitComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+			horizontallySplitComposite.layout();
+
+			// Must do this first, before sc, because it decides if there is a horizontal scrollbar which
+			// in turn affects the height for the vertical scroll bar.
+			sc1.layout(true);
+			sc1.update();
+			sc1.getParent().update();
+			sc1.getParent().layout(true);
+
+			sc.layout(true);
+			sc.update();
+			sc.getParent().update();
+			sc.getParent().layout(true);
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 }
