@@ -43,7 +43,7 @@ public abstract class EntryExtension extends ExtensionObject {
 	
 	/*
 	 * All extensions implement the Entry interface.  This is for convenience
-	 * so the comsumer can get a single object that supports both the base Entry
+	 * so the consumer can get a single object that supports both the base Entry
 	 * methods and the extension methods.  All Entry interface methods are passed
 	 * on to the base Entry object.
 	 */

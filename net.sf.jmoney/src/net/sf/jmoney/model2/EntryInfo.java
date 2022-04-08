@@ -264,7 +264,7 @@ public class EntryInfo implements IPropertySetInfo {
 		checkAccessor       = propertySet.addProperty("check",Messages.EntryInfo_Check,String.class, 2, 50,  textControlFactory, onlyIfBankAccount); //$NON-NLS-1$
 		accountAccessor     = propertySet.addProperty("account",Messages.EntryInfo_Category,Account.class, 2, 70,  accountControlFactory, null); //$NON-NLS-1$
 		valutaAccessor      = propertySet.addProperty("valuta",Messages.EntryInfo_Valuta,Date.class, 0, 88,  dateControlFactory, onlyIfCurrencyAccount); //$NON-NLS-1$
-		memoAccessor        = propertySet.addProperty("memo",Messages.EntryInfo_Memo,String.class, 5, 100, textControlFactory, null); //$NON-NLS-1$
+		memoAccessor        = propertySet.addProperty("memo",Messages.EntryInfo_Memo,String.class, 5, 200, textControlFactory, null); //$NON-NLS-1$
 		amountAccessor      = propertySet.addProperty("amount",Messages.EntryInfo_Amount,Long.class, 2, 70,  amountControlFactory, null); //$NON-NLS-1$
 		typeAccessor        = propertySet.addProperty("type",Messages.EntryInfo_Type,String.class, 5, 100, textControlFactory, null); //$NON-NLS-1$
 		commodityAccessor   = propertySet.addProperty("commodity","Commodity",Commodity.class, 2, 70, commodityControlFactory, null); //$NON-NLS-1$
