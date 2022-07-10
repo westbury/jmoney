@@ -9,8 +9,8 @@ DISPATCH TO
 @recipientname
 @(end)
 ORDER # @ordernumber
-Order Details  Invoice 
-@  (collect :maxgap 2)
+View order details  Invoice 
+@  (collect :maxgap 0)
 @   (cases)
  
 @moviename
@@ -104,16 +104,18 @@ Track package
 @        (assert)
 @quantity of @description
 @      (or)
- 
+
 @        (assert)
 @description
 @      (end)
 @      (assert)
 @      (cases)
 Sold by: @soldby
-@      (or)
+@        (or)
 @author
 Sold by: @soldby
+@        (or)
+@author
 @      (end)
 @      (maybe)
 Eligible for return until @returndeadline
@@ -124,7 +126,9 @@ Return window closed on @returndeadline
 @      (maybe)
 Add-on Item
 @      (end)
+@      (maybe)
 £@itemamount
+@      (end)
 @      (maybe)
 Release date: @releasedate
 @      (end)
@@ -133,18 +137,23 @@ Includes Import Fees Deposit
 @(bind overseas "true")
 @      (end)
 @      (cases)
+Buy it again
+ 
+View your item
+@        (or)
  Submit
 Buy it again
-@      (or)
+@        (or)
 Write a product review
 @      (end)
-@      (until)
-Hide Order
+@      (until :mandatory)
+Problem with order
 @    (end)
+Problem with order
 @   (end)
 @    (skip 6)
-Hide Order
+Archive order
 @    (until)
-ORDER PLACED
+Problem with order
 @  (end)
 @(end)

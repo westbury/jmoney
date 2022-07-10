@@ -29,6 +29,7 @@ import analyzer.UnsupportedImportDataException;
 import net.sf.jmoney.importer.wizards.ImportException;
 import txr.matchers.DocumentMatcher;
 import txr.matchers.MatchResults;
+import txr.parser.TxrErrorInDocumentException;
 
 public class AmazonScraperContext {
 
@@ -47,7 +48,7 @@ public class AmazonScraperContext {
 	public AmazonScraperContext(IContextUpdater contextUpdater) {
 		this.contextUpdater = contextUpdater;
 		
-		analyzer = new AmazonOrderAnalyzer();
+		analyzer = new AmazonOrderAnalyzer(orders, contextUpdater);
 	}
 
 	private MatchResults extractOrderBindings(String inputText) {
@@ -86,6 +87,9 @@ public class AmazonScraperContext {
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
+		} catch (TxrErrorInDocumentException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
 		}
 	}
 
@@ -104,34 +108,6 @@ public class AmazonScraperContext {
 		AmazonOrderDetailFields orderFields = new AmazonOrderDetailFieldExtractor(orderBindings);
 		
 		analyzer.processAmazonOrderDetails(orderFields);
-	}
-
-	/**
-	 * Looks to see if this order is already in this view.  If not,
-	 * creates the AmazonOrder object for this order.
-	 * <P>
-	 * Note that when an AmazonOrder object is created, the order may or may
-	 * not already exist in the accounting datastore.  If the order did not
-	 * already exist in the datastore then a new transaction is created.
-	 * 
-	 * @param orderNumber
-	 * @param orderDate
-	 * @param session
-	 * @return
-	 * @throws ImportException 
-	 */
-	private AmazonOrder getAmazonOrderWrapper(String orderNumber, Date orderDate) {
-		// Look to see if this order is already in the view.
-		Optional<AmazonOrder> order = orders.stream().filter(x -> x.getOrderNumber().equals(orderNumber))
-				.findFirst();
-
-		if (order.isPresent()) {
-			return order.get();
-		}
-
-		AmazonOrder newOrder = contextUpdater.createAmazonOrder(orderNumber, orderDate);
-		orders.add(newOrder);
-		return newOrder;
 	}
 
 }

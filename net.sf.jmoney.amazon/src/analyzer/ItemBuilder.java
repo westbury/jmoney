@@ -39,7 +39,7 @@ class ItemBuilder {
 					matches = preexistingItems.stream().filter(item -> item.getAmazonDescription().equals(description) && (item.getNetCost() > 0) == (netCost > 0)).toArray(AmazonOrderItem[]::new);
 				}
 			}
-			if (matches.length != 1) {
+			if (matches.length == 0) {
 				throw new RuntimeException("Existing transaction for order does not match up.");
 			}
 			AmazonOrderItem matchingItem = matches[0];
@@ -60,7 +60,9 @@ class ItemBuilder {
 				shipmentObject.shipment = shipmentOfThisItem;
 			}
 
+			// Remove this one.  This ensures that if there are multiple identical items, each one is matched once.
 			preexistingItems.remove(matchingItem);
+
 			return matchingItem;
 		}
 	}

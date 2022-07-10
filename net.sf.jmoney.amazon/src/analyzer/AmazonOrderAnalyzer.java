@@ -11,19 +11,32 @@ import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
+import amazonscraper.IContextUpdater;
 import amazonscraper.api.AmazonItemFields;
 import amazonscraper.api.AmazonOrderDetailFields;
 import amazonscraper.api.AmazonOrderFields;
 import amazonscraper.api.AmazonShipmentFields;
+import net.sf.jmoney.importer.wizards.ImportException;
 
 public class AmazonOrderAnalyzer {
 
 	/** Date format used by Amazon on its web pages */
 	private static DateFormat amazonDateFormat = new SimpleDateFormat("d MMM yyyy");
+
+	private Set<AmazonOrder> orders;
+	private IContextUpdater contextUpdater;
+
+	public AmazonOrderAnalyzer(Set<AmazonOrder> orders, IContextUpdater contextUpdater) {
+		this.orders = orders;
+		this.contextUpdater = contextUpdater;
+	}
 
 	public Date processAmazonOrder(AmazonOrderFields orderFields) {
 		String orderDateAsString = orderFields.getOrderDate();
@@ -679,6 +692,34 @@ public class AmazonOrderAnalyzer {
 		for (AmazonShipment shipment : order.getShipments()) {
 			shipment.flush();
 		}
+	}
+
+	/**
+	 * Looks to see if this order is already in this view.  If not,
+	 * creates the AmazonOrder object for this order.
+	 * <P>
+	 * Note that when an AmazonOrder object is created, the order may or may
+	 * not already exist in the accounting datastore.  If the order did not
+	 * already exist in the datastore then a new transaction is created.
+	 * 
+	 * @param orderNumber
+	 * @param orderDate
+	 * @param session
+	 * @return
+	 * @throws ImportException 
+	 */
+	private AmazonOrder getAmazonOrderWrapper(String orderNumber, Date orderDate) {
+		// Look to see if this order is already in the view.
+		Optional<AmazonOrder> order = orders.stream().filter(x -> x.getOrderNumber().equals(orderNumber))
+				.findFirst();
+
+		if (order.isPresent()) {
+			return order.get();
+		}
+
+		AmazonOrder newOrder = contextUpdater.createAmazonOrder(orderNumber, orderDate);
+		orders.add(newOrder);
+		return newOrder;
 	}
 
 	private Date parsePastDate(String dateAsString) {
