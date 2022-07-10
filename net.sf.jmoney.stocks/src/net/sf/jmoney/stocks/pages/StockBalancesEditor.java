@@ -246,6 +246,7 @@ public class StockBalancesEditor extends EditorPart {
 			}
 		});
 
+		balancesViewer.addFilter(hideZeroBalancesFilter);
         zeroBalanceCheckbox.addSelectionListener(new SelectionAdapter() {
         	@Override
 			public void widgetSelected(SelectionEvent e) {
