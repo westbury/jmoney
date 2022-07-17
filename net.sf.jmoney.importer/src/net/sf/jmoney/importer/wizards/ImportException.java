@@ -24,7 +24,7 @@ package net.sf.jmoney.importer.wizards;
 
 
 public class ImportException extends Exception {
-	private static final long serialVersionUID = -2215106367226605428L;
+	private static final long serialVersionUID = 1L;
 
 	public ImportException(String message) {
 		super(message);

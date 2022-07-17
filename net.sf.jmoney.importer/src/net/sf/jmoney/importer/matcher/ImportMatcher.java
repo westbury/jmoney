@@ -286,18 +286,20 @@ public class ImportMatcher<T extends BaseEntryData> {
 			 * If we have an auto-match then we don't have to create a new
 			 * transaction at all. We just update a few properties in the
 			 * existing entry.
-			 */
-			Entry entry1 = transactionType.findMatch(entryData, account.getBaseObject(), 5, ourEntries);	
-			if (entry1 == null) {
+
+			// This matching is done earlier, before the dialog.
+			// TODO remove this, remove transactionType.findMatch
+//			Entry entry1 = transactionType.findMatch(entryData, account.getBaseObject(), 5, ourEntries);	
+//			if (entry1 == null) {
 				/*
 				 * We need to create the transaction.
 				 */
 				Transaction transaction = session.createTransaction();
-				entry1 = transaction.createEntry();
+				Entry entry1 = transaction.createEntry();
 				entry1.setAccount(account.getBaseObject());
-			}
+//			}
 			
-			Transaction transaction = entry1.getTransaction();
+//			Transaction transaction = entry1.getTransaction();
 			
 //			entryData.setDataIntoExistingEntry(matchedEntry);
 
@@ -319,11 +321,12 @@ public class ImportMatcher<T extends BaseEntryData> {
 			 * transaction at all. We just update a few properties in the
 			 * existing entry.
 			 */
-			Entry matchedEntry = entryData.findMatch(account.getBaseObject(), 5, ourEntries);	
-			if (matchedEntry != null) {
-				entryData.setDataIntoExistingEntry(matchedEntry);
-				return matchedEntry;
-			}
+			// TODO remove this, findMatch, and setDataIntoExistingEntry. Matching is done earlier now.
+//			Entry matchedEntry = entryData.findMatch(account.getBaseObject(), 5, ourEntries);
+//			if (matchedEntry != null) {
+//				entryData.setDataIntoExistingEntry(matchedEntry);
+//				return matchedEntry;
+//			}
 
 			/*
 			 * We need to create the transaction.

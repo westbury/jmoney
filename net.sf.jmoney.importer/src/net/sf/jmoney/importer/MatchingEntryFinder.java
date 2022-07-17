@@ -89,6 +89,30 @@ public abstract class MatchingEntryFinder {
 	}
 
 	/**
+	 * 
+	 * @param date
+	 * @param startSearchDate the first date to search
+	 * @param numberOfDays the number of days to search, including
+	 * 			both the first and last day search
+	 * @param startBefore normally zero, increase if we want to match against entries
+	 * 			with dates later than date of this import
+	 * @return
+	 */
+	protected boolean isDateInRange(Date date, Date importDate, int numberOfDays, int startBefore) {
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTime(importDate);
+		calendar.add(Calendar.DAY_OF_MONTH, numberOfDays);
+		Date endSearchDate = calendar.getTime();
+
+		calendar.setTime(importDate);
+		calendar.add(Calendar.DAY_OF_MONTH, -startBefore);
+		Date startSearchDate = calendar.getTime();
+
+		return !date.before(startSearchDate)
+				&& date.before(endSearchDate);
+	}
+
+	/**
 	 * This method indicates if the given entry has already been matched to an
 	 * imported entry.
 	 * <P>
