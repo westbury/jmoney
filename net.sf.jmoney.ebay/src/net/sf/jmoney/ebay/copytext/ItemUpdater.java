@@ -3,8 +3,6 @@ package net.sf.jmoney.ebay.copytext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
@@ -14,9 +12,6 @@ import ebayscraper.IItemUpdater;
 import net.sf.jmoney.ebay.AccountFinder;
 import net.sf.jmoney.ebay.EbayEntry;
 import net.sf.jmoney.fields.IBlob;
-import net.sf.jmoney.importer.wizards.ImportException;
-import net.sf.jmoney.model2.BankAccount;
-import net.sf.jmoney.model2.IncomeExpenseAccount;
 
 public class ItemUpdater implements IItemUpdater {
 

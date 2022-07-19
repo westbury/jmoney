@@ -29,22 +29,23 @@ public class ContextUpdater implements IContextUpdater {
 
 	private TransactionManagerForAccounts uncommittedSessionManager;
 
-	// Session, inside transaction
+	/** Session, inside transaction */
 	private Session session;
 
 	private IObservableValue<BankAccount> defaultChargeAccount = new WritableValue<>();
 
 	private AccountFinder accountFinder;
 
+	/** outside transaction */
 	private IDatastoreManager sessionManager;
 
-	public ContextUpdater(IDatastoreManager committedSessionManager, TransactionManagerForAccounts uncommittedSessionManager, AccountFinder accountFinder,
-			IObservableValue<BankAccount> defaultChargeAccount) {
+	public ContextUpdater(IDatastoreManager committedSessionManager, TransactionManagerForAccounts uncommittedSessionManager, IObservableValue<BankAccount> defaultChargeAccount) {
 		this.sessionManager = committedSessionManager;
 		this.uncommittedSessionManager = uncommittedSessionManager;
 		this.session = uncommittedSessionManager.getSession();
-		this.accountFinder = accountFinder;
 		this.defaultChargeAccount = defaultChargeAccount;
+
+		this.accountFinder = new AccountFinder(session, "GBP");
 	}
 
 	/**

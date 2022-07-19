@@ -197,22 +197,21 @@ public class AccountFinder {
 		if (lastFourDigits != null) {
 			for (Iterator<CapitalAccount> iter = session.getCapitalAccountIterator(); iter.hasNext(); ) {
 				CapitalAccount eachAccount = iter.next();
-				if (eachAccount.getName().endsWith(lastFourDigits)
-						&& eachAccount instanceof CurrencyAccount
-						&& ((CurrencyAccount)eachAccount).getCurrency() == currency) {
-					chargeAccount = (CurrencyAccount)eachAccount;
-					break;
+				if (eachAccount instanceof BankAccount) {
+					BankAccount bankAccount = (BankAccount)eachAccount;
+					if (bankAccount.getAccountNumber() != null
+							&& bankAccount.getAccountNumber().endsWith(lastFourDigits)
+							&& bankAccount.getCurrency() == currency) {
+						chargeAccount = bankAccount;
+						break;
+					}
 				}
 			}
 			if (chargeAccount == null) {
-				throw new RuntimeException("No account exists with the given last four digits and a currency of " + currency.getName() + ".");
+				throw new RuntimeException("No account exists with the last four digits " + lastFourDigits + " and a currency of " + currency.getName() + ".");
 			}
 		}
 
-		
-		
-		
-		
 		return chargeAccount;
 	}
 

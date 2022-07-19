@@ -22,7 +22,10 @@ import org.eclipse.jface.wizard.Wizard;
 import org.eclipse.swt.dnd.Clipboard;
 import org.eclipse.swt.dnd.TextTransfer;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.PartInitException;
+import org.eclipse.ui.PlatformUI;
 
 import net.sf.jmoney.associations.AssociationMetadata;
 import net.sf.jmoney.fields.IAmountFormatter;
@@ -38,11 +41,13 @@ import net.sf.jmoney.importer.model.TransactionType;
 import net.sf.jmoney.importer.model.TransactionTypeBasic;
 import net.sf.jmoney.importer.wizards.IAccountImportWizard;
 import net.sf.jmoney.importer.wizards.ImportException;
+import net.sf.jmoney.importer.wizards.TxrMismatchException;
 import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
+import net.sf.jmoney.txr.debug.TxrDebugView;
 import txr.matchers.DocumentMatcher;
 import txr.matchers.MatchResults;
 import txr.parser.TxrErrorInDocumentException;
@@ -155,18 +160,25 @@ public class EbayCopytextImportWizard extends Wizard implements IAccountImportWi
 		} catch (ImportException e) {
 			MessageDialog.openError(window.getShell(), "Unable to import Ebay orders", e.getLocalizedMessage());
 			return false;
+		} catch (TxrMismatchException e) {
+			e.showInDebugView(window);
 		}
 
 		return true;
 	}
 
-	private MatchResults doMatchingFromClipboard(DocumentMatcher matcher) {
+	private MatchResults doMatchingFromClipboard(DocumentMatcher matcher, String resourceName) throws TxrMismatchException {
 		Display display = Display.getCurrent();
 		Clipboard clipboard = new Clipboard(display);
 		String plainText = (String)clipboard.getContents(TextTransfer.getInstance());
 		clipboard.dispose();        
 
 		MatchResults bindings = matcher.process(plainText);
+		if (bindings == null || bindings.getCollections(0).isEmpty()) {
+			ClassLoader classLoader = getClass().getClassLoader();
+			URL resource = classLoader.getResource(resourceName);
+			throw new TxrMismatchException(resource, plainText, "EBay page");
+		}
 
 		return bindings;
 	}
@@ -192,15 +204,12 @@ public class EbayCopytextImportWizard extends Wizard implements IAccountImportWi
 	 * @param importedEntries
 	 * @return the date of the imported statement
 	 * @throws ImportException
+	 * @throws TxrMismatchException 
 	 */
-	private void processFromClipboard(Account accountOutsideTransaction, TransactionManager transactionManager, Collection<EntryData> importedEntries) throws ImportException {
+	private void processFromClipboard(Account accountOutsideTransaction, TransactionManager transactionManager, Collection<EntryData> importedEntries) throws ImportException, TxrMismatchException {
 		DocumentMatcher statementMatcher = createMatcherFromResource("ebay-orders.txr");
 
-		MatchResults bindings = doMatchingFromClipboard(statementMatcher);
-
-		if (bindings == null || bindings.getCollections(0).isEmpty()) {
-			throw new RuntimeException("Data in clipboard does not appear to be copied from an Ebay orders history page.");
-		}
+		MatchResults bindings = doMatchingFromClipboard(statementMatcher, "ebay-orders.txr");
 
 		// TODO lookup the ebay account from the username?
 		DateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy");
@@ -214,7 +223,7 @@ public class EbayCopytextImportWizard extends Wizard implements IAccountImportWi
 			String orderNumber = transactionBindings.getVariable("ordernumber").text;
 			String seller = transactionBindings.getVariable("seller").text;
 
-			String amountAsString = amountAsStringWithCurrency.replace("£", "");
+			String amountAsString = amountAsStringWithCurrency.replace("ï¿½", "");
 
 			Date transactionDate;
 			try {

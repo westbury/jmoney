@@ -102,6 +102,7 @@ import org.eclipse.ui.IViewSite;
 import org.eclipse.ui.IWorkbenchActionConstants;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchPartReference;
+import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
@@ -125,6 +126,7 @@ import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.fields.IBlob;
 import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.importer.wizards.ImportException;
+import net.sf.jmoney.importer.wizards.TxrMismatchException;
 import net.sf.jmoney.model2.BankAccount;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
@@ -466,10 +468,15 @@ public class EbayImportView extends ViewPart {
 	}
 
 	private void pasteOrders() throws ImportException {
-		String text = getTextFromClipboard();
-		scraperContext.importOrders(text);
-
-		viewer.setInput(scraperContext.orders.toArray(new EbayOrder[0]));
+		try {
+			String text = getTextFromClipboard();
+			scraperContext.importOrders(text);
+	
+			viewer.setInput(scraperContext.orders.toArray(new EbayOrder[0]));
+		} catch (TxrMismatchException e) {
+			IWorkbenchWindow window = this.getViewSite().getWorkbenchWindow();
+			e.showInDebugView(window);
+		}
 	}
 
 	private void pasteDetails() throws ImportException {
@@ -479,6 +486,9 @@ public class EbayImportView extends ViewPart {
 			viewer.setInput(scraperContext.orders.toArray(new EbayOrder[0]));
 		} catch (UnsupportedImportDataException e) {
 			throw new ImportException("Import of details failed.", e);
+		} catch (TxrMismatchException e) {
+			IWorkbenchWindow window = this.getViewSite().getWorkbenchWindow();
+			e.showInDebugView(window);
 		}
 	}
 

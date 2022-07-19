@@ -2,32 +2,17 @@ package ebayscraper;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigDecimal;
 import java.net.URL;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.DayOfWeek;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.TextStyle;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import analyzer.EbayOrder;
 import analyzer.EbayOrderAnalyzer;
 import analyzer.UnsupportedImportDataException;
-import ebayscraper.api.EbayDetailOrderFields;
-import ebayscraper.api.EbayOrderListOrderFields;
 import ebayscraper.api.EbayDetailPaymentFields;
-import net.sf.jmoney.importer.wizards.ImportException;
+import ebayscraper.api.EbayOrderListOrderFields;
+import net.sf.jmoney.importer.wizards.TxrMismatchException;
 import txr.matchers.DocumentMatcher;
 import txr.matchers.MatchResults;
 import txr.parser.TxrErrorInDocumentException;
@@ -52,29 +37,32 @@ public class EbayScraperContext {
 		analyzer = new EbayOrderAnalyzer(orders, contextUpdater);
 	}
 
-	private MatchResults extractOrderBindings(String inputText) {
+	private MatchResults extractOrderBindings(String inputText) throws TxrMismatchException {
 		if (ordersMatcher == null) {
 			ordersMatcher = createMatcherFromResource("ebay-orders.txr");
 		}
 
 		MatchResults bindings = ordersMatcher.process(inputText);
-
 		if (bindings == null || bindings.getCollections(0).isEmpty()) {
-			throw new RuntimeException("Data does not appear to be copied from the orders page.");
+			ClassLoader classLoader = getClass().getClassLoader();
+			URL resource = classLoader.getResource("ebay-orders.txr");
+			throw new TxrMismatchException(resource, inputText, "EBay orders page");
 		}
 
 		return bindings;
 	}
 
-	private MatchResults extractDetailsBindings(String plainText) {
+	private MatchResults extractDetailsBindings(String inputText) throws TxrMismatchException {
 		if (detailsMatcher == null) {
 			detailsMatcher = createMatcherFromResource("ebay-details.txr");
 		}
 
-		MatchResults orderBindings = detailsMatcher.process(plainText);
+		MatchResults orderBindings = detailsMatcher.process(inputText);
 
 		if (orderBindings == null) {
-			throw new RuntimeException("Data does not appear to be a details page.");
+			ClassLoader classLoader = getClass().getClassLoader();
+			URL resource = classLoader.getResource("ebay-details.txr");
+			throw new TxrMismatchException(resource, inputText, "EBay details page");
 		}
 
 		return orderBindings;
@@ -94,7 +82,7 @@ public class EbayScraperContext {
 		}
 	}
 
-	public void importOrders(String inputText) {
+	public void importOrders(String inputText) throws TxrMismatchException {
 		MatchResults bindings = extractOrderBindings(inputText);
 
 		for (MatchResults orderBindings : bindings.getCollections(0)) {
@@ -103,7 +91,7 @@ public class EbayScraperContext {
 		}
 	}
 
-	public void importDetails(String inputText) throws UnsupportedImportDataException {
+	public void importDetails(String inputText) throws UnsupportedImportDataException, TxrMismatchException {
 		MatchResults orderBindings = extractDetailsBindings(inputText);
 
 		EbayDetailPaymentFields orderFields = new EbayPaymentDetailFieldExtractor(orderBindings);

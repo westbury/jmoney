@@ -101,6 +101,7 @@ import org.eclipse.ui.IViewSite;
 import org.eclipse.ui.IWorkbenchActionConstants;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchPartReference;
+import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
@@ -124,6 +125,7 @@ import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.fields.IBlob;
 import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.importer.wizards.ImportException;
+import net.sf.jmoney.importer.wizards.TxrMismatchException;
 import net.sf.jmoney.model2.BankAccount;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.EntryInfo;
@@ -131,6 +133,7 @@ import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
+import net.sf.jmoney.txr.debug.TxrDebugView;
 
 public class AmazonImportView extends ViewPart {
 
@@ -197,6 +200,48 @@ public class AmazonImportView extends ViewPart {
 		}
 	}
 
+	public class DebugLastPasteOrdersAction extends Action {
+		public DebugLastPasteOrdersAction() {
+			super("Debug Last Good Paste of Orders");
+			setToolTipText("Debug the Last Successful Orders Paste");
+			setImageDescriptor(PlatformUI.getWorkbench().getSharedImages().getImageDescriptor(ISharedImages.IMG_TOOL_PASTE));
+		}
+
+		@Override
+		public void run() {
+			try {
+				TxrDebugView view = (TxrDebugView)PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().showView(TxrDebugView.ID, null, IWorkbenchPage.VIEW_ACTIVATE);
+				ClassLoader classLoader = getClass().getClassLoader();
+				URL resource = classLoader.getResource("amazon-orders.txr");
+				view.setTxrAndData(resource, lastGoodOrdersData.split("\n"));
+			} catch (Exception e) {
+				e.printStackTrace();
+				MessageDialog.openError(getViewSite().getShell(), "Failed", e.getMessage());
+			}
+		}
+	}
+
+	public class DebugLastPasteDetailsAction extends Action {
+		public DebugLastPasteDetailsAction() {
+			super("Debug Last Good Paste of Detail");
+			setToolTipText("Debug the Last Successful Detail Paste");
+			setImageDescriptor(PlatformUI.getWorkbench().getSharedImages().getImageDescriptor(ISharedImages.IMG_TOOL_PASTE));
+		}
+
+		@Override
+		public void run() {
+			try {
+				TxrDebugView view = (TxrDebugView)PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().showView(TxrDebugView.ID, null, IWorkbenchPage.VIEW_ACTIVATE);
+				ClassLoader classLoader = getClass().getClassLoader();
+				URL resource = classLoader.getResource("amazon-details.txr");
+				view.setTxrAndData(resource, lastGoodDetailsData.split("\n"));
+			} catch (Exception e) {
+				e.printStackTrace();
+				MessageDialog.openError(getViewSite().getShell(), "Failed", e.getMessage());
+			}
+		}
+	}
+
 	public static String ID = "net.sf.jmoney.amazon.AmazonImportView";
 
 	private TreeViewer viewer;
@@ -206,6 +251,14 @@ public class AmazonImportView extends ViewPart {
 	private PasteOrdersAction pasteOrdersAction;
 
 	private PasteDetailsAction pasteDetailsAction;
+	
+	private DebugLastPasteOrdersAction debugLastPasteOrdersAction;
+
+	private DebugLastPasteDetailsAction debugLastPasteDetailsAction;
+
+	private String lastGoodOrdersData;
+
+	private String lastGoodDetailsData;
 
 	private TransactionManagerForAccounts uncommittedSessionManager;
 
@@ -218,11 +271,11 @@ public class AmazonImportView extends ViewPart {
 
 	private IObservableValue<BankAccount> defaultChargeAccount = new WritableValue<>();
 
-	private AccountFinder accountFinder;
-
 	public AmazonImportView() {
 		pasteOrdersAction = new PasteOrdersAction();
 		pasteDetailsAction = new PasteDetailsAction();
+		debugLastPasteOrdersAction = new DebugLastPasteOrdersAction();
+		debugLastPasteDetailsAction = new DebugLastPasteDetailsAction();
 
 		// Load the error indicator
 		URL installURL = Activator.getDefault().getBundle().getEntry("/icons/error.gif");
@@ -252,14 +305,8 @@ public class AmazonImportView extends ViewPart {
 	}
 
 	private void fillLocalPullDown(IMenuManager manager) {
-		// No items are currently in the pull down menu.
-		Toolkit.getDefaultToolkit().getSystemClipboard().addFlavorListener(new FlavorListener() { 
-			@Override 
-			public void flavorsChanged(FlavorEvent e) {
-
-				System.out.println("ClipBoard UPDATED: " + e.getSource() + " " + e.toString());
-			} 
-		}); ;
+		manager.add(debugLastPasteOrdersAction);
+		manager.add(debugLastPasteDetailsAction);
 	}
 
 	private void fillLocalToolBar(IToolBarManager manager) {
@@ -291,11 +338,9 @@ public class AmazonImportView extends ViewPart {
 		
 			currencyFormatter = session.getCurrencyForCode("GBP");
 			
-			accountFinder = new AccountFinder(session, "GBP");
+			defaultChargeAccount.setValue((BankAccount)session.getAccountByFullName("MBNA (Lloyds) Visa 3649"));
 			
-			defaultChargeAccount.setValue((BankAccount)session.getAccountByFullName("Cambridge Visa 1816"));
-			
-			IContextUpdater contextUpdater = new ContextUpdater(committedSessionManager, uncommittedSessionManager, accountFinder, defaultChargeAccount);
+			IContextUpdater contextUpdater = new ContextUpdater(committedSessionManager, uncommittedSessionManager, defaultChargeAccount);
 			scraperContext = new AmazonScraperContext(contextUpdater);
 		}
 		activePage.addPartListener(new IPartListener2() {
@@ -352,7 +397,6 @@ public class AmazonImportView extends ViewPart {
 
 					uncommittedSessionManager = null;
 					session = null;
-					accountFinder = null;
 					scraperContext = null;
 				} else {
 					stackLayout.topControl = dataComposite;
@@ -360,11 +404,9 @@ public class AmazonImportView extends ViewPart {
 					uncommittedSessionManager = new TransactionManagerForAccounts(committedSessionManager);
 					session = uncommittedSessionManager.getSession();
 					
-					accountFinder = new AccountFinder(session, "GBP");
+					defaultChargeAccount.setValue((BankAccount)session.getAccountByFullName("MBNA (Lloyds) Visa 3649"));
 					
-					defaultChargeAccount.setValue((BankAccount)session.getAccountByFullName("Cambridge Visa 1816"));
-					
-					IContextUpdater contextUpdater = new ContextUpdater(committedSessionManager, uncommittedSessionManager, accountFinder, defaultChargeAccount);
+					IContextUpdater contextUpdater = new ContextUpdater(committedSessionManager, uncommittedSessionManager, defaultChargeAccount);
 					scraperContext = new AmazonScraperContext(contextUpdater);
 				}
 				stackComposite.layout();
@@ -415,7 +457,7 @@ public class AmazonImportView extends ViewPart {
 				uncommittedSessionManager = new TransactionManagerForAccounts(committedSessionManager);
 				session = uncommittedSessionManager.getSession();
 				
-				IContextUpdater contextUpdater = new ContextUpdater(committedSessionManager, uncommittedSessionManager, accountFinder, defaultChargeAccount);
+				IContextUpdater contextUpdater = new ContextUpdater(committedSessionManager, uncommittedSessionManager, defaultChargeAccount);
 				scraperContext = new AmazonScraperContext(contextUpdater);
 
 				viewer.setInput(scraperContext.orders.toArray(new AmazonOrder[0]));
@@ -446,7 +488,7 @@ public class AmazonImportView extends ViewPart {
 				uncommittedSessionManager = new TransactionManagerForAccounts(committedSessionManager);
 				session = uncommittedSessionManager.getSession();
 				
-				IContextUpdater contextUpdater = new ContextUpdater(committedSessionManager, uncommittedSessionManager, accountFinder, defaultChargeAccount);
+				IContextUpdater contextUpdater = new ContextUpdater(committedSessionManager, uncommittedSessionManager, defaultChargeAccount);
 				scraperContext = new AmazonScraperContext(contextUpdater);
 
 				viewer.setInput(scraperContext.orders.toArray(new AmazonOrder[0]));
@@ -490,19 +532,28 @@ public class AmazonImportView extends ViewPart {
 	}
 
 	private void pasteOrders() throws ImportException {
-		String text = getTextFromClipboard();
-		scraperContext.importOrders(text);
-
-		viewer.setInput(scraperContext.orders.toArray(new AmazonOrder[0]));
+		try {
+			String text = getTextFromClipboard();
+			scraperContext.importOrders(text);
+			this.lastGoodOrdersData = text;
+			viewer.setInput(scraperContext.orders.toArray(new AmazonOrder[0]));
+		} catch (TxrMismatchException e) {
+			IWorkbenchWindow window = this.getViewSite().getWorkbenchWindow();
+			e.showInDebugView(window);
+		}
 	}
 
 	private void pasteDetails() throws ImportException {
 		try {
 			String text = getTextFromClipboard();
 			scraperContext.importDetails(text);
+			this.lastGoodDetailsData = text;
 			viewer.setInput(scraperContext.orders.toArray(new AmazonOrder[0]));
 		} catch (UnsupportedImportDataException e) {
 			throw new ImportException("Import of details failed.", e);
+		} catch (TxrMismatchException e) {
+			IWorkbenchWindow window = this.getViewSite().getWorkbenchWindow();
+			e.showInDebugView(window);
 		}
 	}
 

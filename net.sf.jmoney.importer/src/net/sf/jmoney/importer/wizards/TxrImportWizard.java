@@ -23,12 +23,14 @@
 package net.sf.jmoney.importer.wizards;
 
 import java.io.IOException;
+import java.net.URL;
 import java.text.MessageFormat;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.eclipse.jface.dialogs.Dialog;
+import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.IStructuredSelection;
@@ -37,7 +39,9 @@ import org.eclipse.swt.dnd.Clipboard;
 import org.eclipse.swt.dnd.TextTransfer;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.PartInitException;
 
 import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.importer.matcher.BaseEntryData;
@@ -53,6 +57,7 @@ import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
+import net.sf.jmoney.txr.debug.TxrDebugView;
 
 /**
  * A wizard to import data from text that has been copied to the clipboard.
@@ -154,6 +159,9 @@ public abstract class TxrImportWizard<T extends BaseEntryData> extends Wizard {
 			} catch (IOException e) {
 				// This is probably not likely to happen so the default error handling is adequate.
 				throw new RuntimeException(e);
+			} catch (TxrMismatchException e) {
+				e.showInDebugView(window);
+				return false;
 //			} catch (ImportException e) {
 //				// There are data in the import file that we are unable to process
 //				e.printStackTrace();
@@ -187,7 +195,7 @@ public abstract class TxrImportWizard<T extends BaseEntryData> extends Wizard {
 	 * @throws IOException
 	 * @throws ImportException
 	 */
-	protected boolean processRows(TransactionManagerForAccounts transactionManager, String inputText) throws IOException, ImportException {
+	protected boolean processRows(TransactionManagerForAccounts transactionManager, String inputText) throws IOException, ImportException, TxrMismatchException {
 		
 		Session session = transactionManager.getSession();
 
@@ -263,7 +271,7 @@ public abstract class TxrImportWizard<T extends BaseEntryData> extends Wizard {
 	 * @param inputText
 	 * @throws ImportException
 	 */
-	protected abstract void buildEntryDataList(Session session, String inputText) throws ImportException;
+	protected abstract void buildEntryDataList(Session session, String inputText) throws ImportException, TxrMismatchException;
 
 	protected abstract String getDescription();
 

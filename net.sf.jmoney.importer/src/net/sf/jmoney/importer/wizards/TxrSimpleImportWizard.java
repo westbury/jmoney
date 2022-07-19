@@ -23,8 +23,10 @@
 package net.sf.jmoney.importer.wizards;
 
 import java.io.IOException;
+import java.net.URL;
 import java.text.MessageFormat;
 
+import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.IStructuredSelection;
@@ -33,12 +35,15 @@ import org.eclipse.swt.dnd.Clipboard;
 import org.eclipse.swt.dnd.TextTransfer;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.PartInitException;
 
 import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
+import net.sf.jmoney.txr.debug.TxrDebugView;
 
 /**
  * A wizard to import data from text that has been copied to the clipboard.
@@ -125,6 +130,9 @@ public abstract class TxrSimpleImportWizard extends Wizard {
 			} catch (IOException e) {
 				// This is probably not likely to happen so the default error handling is adequate.
 				throw new RuntimeException(e);
+			} catch (TxrMismatchException e) {
+				e.showInDebugView(window);
+				return false;
 //			} catch (ImportException e) {
 //				// There are data in the import file that we are unable to process
 //				e.printStackTrace();
@@ -145,7 +153,7 @@ public abstract class TxrSimpleImportWizard extends Wizard {
 		Display display = Display.getCurrent();
 		Clipboard clipboard = new Clipboard(display);
 		String plainText = (String)clipboard.getContents(TextTransfer.getInstance());
-		clipboard.dispose();        
+		clipboard.dispose();
 
 		return plainText;
 	}
@@ -157,9 +165,10 @@ public abstract class TxrSimpleImportWizard extends Wizard {
 	 * 			because the user cancelled or some other reason
 	 * @throws IOException
 	 * @throws ImportException
+	 * @throws TxrMismatchException 
 	 */
 	protected abstract boolean processRows(Session session, String text)
-			throws IOException, ImportException;
+			throws IOException, ImportException, TxrMismatchException;
 
 	protected abstract String getDescription();
 
