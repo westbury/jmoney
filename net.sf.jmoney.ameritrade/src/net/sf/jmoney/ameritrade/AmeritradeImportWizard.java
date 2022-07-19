@@ -33,6 +33,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import org.eclipse.jface.dialogs.IDialogSettings;
+import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.IWorkbenchWizard;
+
 import net.sf.jmoney.associations.AssociationMetadata;
 import net.sf.jmoney.importer.matcher.EntryData;
 import net.sf.jmoney.importer.model.ReconciliationEntryInfo;
@@ -58,14 +66,6 @@ import net.sf.jmoney.stocks.model.StockAccount;
 import net.sf.jmoney.stocks.model.StockEntry;
 import net.sf.jmoney.stocks.model.StockEntryInfo;
 import net.sf.jmoney.stocks.model.StockInfo;
-
-import org.eclipse.jface.dialogs.IDialogSettings;
-import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.jface.viewers.IStructuredSelection;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.ui.IWorkbench;
-import org.eclipse.ui.IWorkbenchWindow;
-import org.eclipse.ui.IWorkbenchWizard;
 
 /**
  * A wizard to import data from a comma-separated file that has been downloaded
@@ -193,6 +193,12 @@ public class AmeritradeImportWizard extends CsvImportToAccountWizard implements 
 	}
 	
 	@Override
+	protected boolean newWay() {
+		return false;
+	}
+
+	@Override
+//	protected void importLine(CsvTransactionReader reader, Collection<T> entryDataList) throws ImportException {
 	public void importLine(CsvTransactionReader reader) throws ImportException {
 		Date date = column_date.getDate();
 		String uniqueId = column_uniqueId.getText();

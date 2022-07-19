@@ -176,6 +176,11 @@ public class PaypalImportWizard extends CsvImportToAccountWizard implements IWor
 	}
 
 	@Override
+	protected boolean newWay() {
+		return false;
+	}
+
+	@Override
 	public void importLine(CsvTransactionReader reader) throws ImportException {
 		String rowType = column_type.getText();
 

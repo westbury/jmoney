@@ -263,9 +263,7 @@ public abstract class CsvImportToAccountWizard<T extends BaseEntryData> extends 
 		}
 	}
 
-	protected boolean newWay() {
-		return false;
-	}
+	abstract protected boolean newWay();
 
 	protected void importLine(CsvTransactionReader reader, Collection<T> entryDataList) throws ImportException {
 		throw new RuntimeException("but we are not doing this the new way...");
