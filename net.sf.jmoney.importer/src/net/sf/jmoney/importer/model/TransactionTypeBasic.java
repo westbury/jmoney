@@ -1,8 +1,15 @@
 package net.sf.jmoney.importer.model;
 
+import java.text.DateFormat;
+
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.ui.PlatformUI;
@@ -26,6 +33,8 @@ public class TransactionTypeBasic extends TransactionType<EntryData> {
 	private TransactionParamMetadataString transDateParam = new TransactionParamMetadataString("transDate", "Transaction Date");
 	private TransactionParamMetadataString valueDateParam = new TransactionParamMetadataString("valueDate", "Value Date");
 
+	private Pattern transDatePattern = Pattern.compile("(\\d\\d?)/(\\d\\d?)");
+	
 	public TransactionTypeBasic() {
 		super("basic", "Basic");
 	}
@@ -48,7 +57,40 @@ public class TransactionTypeBasic extends TransactionType<EntryData> {
 		Entry entry2 = transaction.createEntry();
 		entry2.setAmount(-entryData.amount);
 
+		/*
+		 * transaction date param, if set, must be set to mm/dd format. The year will be calculated
+		 * and must not be in the param value even if it is available from the input text.
+		 */
+		String transDate = transDateParam.obtainValue(match);
+		if (transDate != null) {
+			Matcher matcher = transDatePattern.matcher(transDate);
+			if (matcher.matches()) {
+				int month = Integer.parseInt(matcher.group(1));
+				int day = Integer.parseInt(matcher.group(2));
+				
+				Date date = transaction.getDate();
+				
+				// Date object is always based on local time, which is ok because the
+				// Date as milliseconds is never persisted, and the timezone won't change
+				// within a session (will it?)
+				Calendar cal = Calendar.getInstance();
+				cal.setTime(date);
+				int originalMonth = cal.get(Calendar.MONTH);
+				int year = cal.get(Calendar.YEAR);
+				if (month == 12 && originalMonth == Calendar.JANUARY) {
+					year--;
+				} else if (month == 1 && originalMonth == Calendar.DECEMBER) {
+					year++;
+				}
+				cal.set(year,  month - 1, day);
 
+				// Set previous transaction date as value date only if no value date is already set
+				if (entry1.getValuta() != null) {
+					entry1.setValuta(transaction.getDate());
+				}
+				transaction.setDate(cal.getTime());
+			}
+		}
 		
 		// TODO sort out currency of account.
 		/*
