@@ -23,15 +23,24 @@ class ItemBuilder {
 			EbayOrderItem item = order.createNewItem(itemNumber, description);
 			return item;
 		} else {
-			EbayOrderItem[] matches = preexistingItems.stream().filter(item -> item.getItemNumber() == itemNumber).toArray(EbayOrderItem[]::new);
+			EbayOrderItem[] matches = preexistingItems.stream().filter(item -> itemNumber.equals(item.getItemNumber())).toArray(EbayOrderItem[]::new);
 			if (matches.length > 1) {
-				matches = Stream.of(matches).filter(item -> item.getEbayDescription().equals(description)).toArray(EbayOrderItem[]::new);
+				EbayOrderItem[] matchesOnDesc = Stream.of(matches).filter(item -> item.getEbayDescription().equals(description)).toArray(EbayOrderItem[]::new);
+				if (matchesOnDesc.length >= 1) {
+					matches = matchesOnDesc;
+				}
+			} else if (matches.length == 0) {
+				// Orders page no longer shows item numbers, so filter on description
+				matches = preexistingItems.stream().filter(item -> item.getEbayDescription().equals(description)).toArray(EbayOrderItem[]::new);
 			}
 			if (matches.length == 0) {
 				throw new RuntimeException("Existing transaction for order does not match up.");
 			}
 			EbayOrderItem matchingItem = matches[0];
 
+			// Orders page no longer shows item numbers, so may need to set
+			matchingItem.setItemNumber(itemNumber);
+			
 			// Remove this one.  This ensures that if there are multiple identical items, each one is matched once.
 			preexistingItems.remove(matchingItem);
 			

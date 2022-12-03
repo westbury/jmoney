@@ -1,5 +1,7 @@
 package ebayscraper.api;
 
+import java.util.Date;
+
 public interface EbayOrderListItemFields {
 
 	/**
@@ -35,5 +37,9 @@ public interface EbayOrderListItemFields {
 	 * @return
 	 */
 	String getAmount();
+
+	String getSeller();
+
+	String getDeliveryDate();
 
 }

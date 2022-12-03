@@ -29,9 +29,7 @@ public class EbayOrder {
 	private Date paidDate;
 	
 	private Date shippingDate;
-	
-	private Date deliveryDate;
-	
+
 //	private IncomeExpenseAccount unmatchedAccount;
 
 	private boolean chargeAmountStale;
@@ -125,13 +123,13 @@ public class EbayOrder {
 		// Not persisted in database as not really important. This could be removed.
 	}
 
-	public Date getDeliveryDate() {
-		return deliveryDate;
-	}
-
+	/**
+	 * Mostly delivery date is an item property, and it is stored per-item.\
+	 * However the order detail page contains the delivery date as a single value for
+	 * the order, so we have this setter to support that.
+	 *
+	 */
 	public void setDeliveryDate(Date deliveryDate) {
-		this.deliveryDate = deliveryDate;
-		
 		for (EbayOrderItem item : items) {
 			item.getUnderlyingItem().setDeliveryDate(deliveryDate);
 		}

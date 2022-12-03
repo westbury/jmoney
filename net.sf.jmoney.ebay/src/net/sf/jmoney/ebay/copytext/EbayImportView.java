@@ -109,6 +109,7 @@ import org.eclipse.ui.part.ViewPart;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import analyzer.EbayOrder;
 import analyzer.EbayOrderItem;
@@ -804,11 +805,6 @@ public class EbayImportView extends ViewPart {
 		DateControl shippingDateControl = new DateControl(composite);
 		shippingDateControl.setLayoutData(new GridData(200, SWT.DEFAULT));
 
-		Label deliveryDateLabel = new Label(composite, 0);
-		deliveryDateLabel.setText("Delivery Date:");
-		DateControl deliveryDateControl = new DateControl(composite);
-		deliveryDateControl.setLayoutData(new GridData(200, SWT.DEFAULT));
-
 //		createLabelAndControl(composite, EbayTransactionInfo.getShippingCostAccessor(), ebayTransaction);
 //		createLabelAndControl(composite, EbayTransactionInfo.getDiscountAccessor(), ebayTransaction);
 
@@ -835,7 +831,6 @@ public class EbayImportView extends ViewPart {
 
 					paymentDateControl.setDate(order.getPaidDate());
 					shippingDateControl.setDate(order.getShippingDate());
-					deliveryDateControl.setDate(order.getDeliveryDate());
 
 					if (order.getPostageAndPackaging() != 0) {
 						postageAndPackagingControl.setText(currencyFormatter.format(order.getPostageAndPackaging()));
@@ -861,11 +856,15 @@ public class EbayImportView extends ViewPart {
 				}
 				EbayOrder order = (EbayOrder)selection;
 				String shippingAsString = postageAndPackagingControl.getText();
-				try {
-					long shipping = new BigDecimal(shippingAsString).scaleByPowerOfTen(2).longValueExact();
-					order.setPostageAndPackaging(shipping);
-				} catch (Exception ex) {
-					
+				if (shippingAsString.isBlank()) {
+					order.setPostageAndPackaging(0);
+				} else {
+					try {
+						long shipping = new BigDecimal(shippingAsString).scaleByPowerOfTen(2).longValueExact();
+						order.setPostageAndPackaging(shipping);
+					} catch (Exception ex) {
+
+					}
 				}
 
 				orderAmountControl.setText(currencyFormatter.format(order.getOrderTotal()));
@@ -881,13 +880,17 @@ public class EbayImportView extends ViewPart {
 				}
 				EbayOrder order = (EbayOrder)selection;
 				String discountAsString = discountControl.getText();
-				try {
-					long discount = new BigDecimal(discountAsString).scaleByPowerOfTen(2).longValueExact();
-					order.setDiscount(discount);
-				} catch (Exception ex) {
-					
-				}
+				if (discountAsString.isBlank()) {
+					order.setPostageAndPackaging(0);
+				} else {
+					try {
+						long discount = new BigDecimal(discountAsString).scaleByPowerOfTen(2).longValueExact();
+						order.setDiscount(discount);
+					} catch (Exception ex) {
 
+					}
+				}
+				
 				orderAmountControl.setText(currencyFormatter.format(order.getOrderTotal()));
 			}
 		});
@@ -912,8 +915,7 @@ public class EbayImportView extends ViewPart {
 		createLabelAndControl(composite, EbayEntryInfo.getItemNumberAccessor(), ebayEntry);
 		createLabelAndControl(composite, EntryInfo.getMemoAccessor(), ebayEntry);
 		createLabelAndControl(composite, EntryInfo.getAmountAccessor(), ebayEntry);
-		// In trans in ebay model, but copied across all entries in datastore:
-//		createLabelAndControl(composite, EbayEntryInfo.getDeliveryDateAccessor(), ebayEntry);
+		createLabelAndControl(composite, EbayEntryInfo.getDeliveryDateAccessor(), ebayEntry);
 		createLabelAndControl(composite, EbayEntryInfo.getImageCodeAccessor(), ebayEntry);
 
 		Label netAmountLabel = new Label(composite, 0);
@@ -944,6 +946,23 @@ public class EbayImportView extends ViewPart {
 			}
 		});
 
+		Button pasteImageUrl = new Button(composite, SWT.PUSH);
+		pasteImageUrl.setText("Paste Image URL");
+		pasteImageUrl.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				String text = getTextFromClipboard();
+				Matcher m = urlToImagePattern.matcher(text);
+				if (m.matches()) {
+					String imageCode = m.group(1);
+
+					setImageCode(imageCode, null); // TODO remove param
+				} else {
+					throw new RuntimeException("bad image url");
+				}				
+			}
+		});
+		
 		return composite;
 	}
 
@@ -957,6 +976,22 @@ public class EbayImportView extends ViewPart {
 			@Override
 			public void handleValueChange(ValueChangeEvent<? extends Object> event) {
 				canvas.redraw();
+			}
+		});
+
+		// Monitor the image code. If this is set, either in the above control or by someone else,
+		// we update the picture.
+		
+		IObservableValue<String> observable = EbayEntryInfo.getImageCodeAccessor().observeDetail(ebayEntry);
+		observable.addValueChangeListener(new IValueChangeListener<String>() {
+			@Override
+			public void handleValueChange(ValueChangeEvent<? extends String> event) {
+				//image may have changed, or entry selection changed
+				String imageCode = event.diff.getNewValue();
+				setImageCode(imageCode, canvas);
+
+				canvas.redraw();
+
 			}
 		});
 
@@ -1164,7 +1199,7 @@ public class EbayImportView extends ViewPart {
 
 			setImageIntoItem(imageCode, selectedItem2);
 
-			canvas.redraw();
+//			canvas.redraw();
 			viewer.update(selectedItem, null);
 		}
 	}
@@ -1172,6 +1207,7 @@ public class EbayImportView extends ViewPart {
 	public static void setImageIntoItem(String imageCode, ItemUpdater itemUpdater) {
 		itemUpdater.getEntry().setImageCode(imageCode);
 
+		if (imageCode != null) {
 		/*
 		 * See http://superuser.com/questions/123911/how-to-get-the-full-
 		 * image-when-the-shopping-site-like-amazon-shows-you-only-a-pa
@@ -1192,8 +1228,9 @@ public class EbayImportView extends ViewPart {
 			itemUpdater.setImage(blob);
 
 		} catch (Exception e) {
+			// s-l140 also works, but that is more thumbnail size
 			urlString = MessageFormat
-					.format("https://i.ebayimg.com/images/g/{0}/s-l140.jpg",
+					.format("https://i.ebayimg.com/images/g/{0}/s-l500.jpg",
 							imageCode);
 
 			try {
@@ -1211,6 +1248,9 @@ public class EbayImportView extends ViewPart {
 				throw new RuntimeException(e2);
 			}
 		}
+		} else {
+			itemUpdater.setImage(null);
+		}
 	}
 
 	// Is this the right place for this function?
@@ -1223,12 +1263,14 @@ public class EbayImportView extends ViewPart {
 		try {
 			doc = Jsoup.connect(urlString).get();
 
-			Element element = doc.getElementById("icImg");			
+			Elements elements = doc.getElementsByClass("ux-image-carousel-item");			
 
-			if (element == null) {
+			if (elements.isEmpty()) {
 				throw new RuntimeException("Got back content for item but could not find expected elements.");
 			}
+			Element firstElementInCarousel = elements.first();
 			
+			Element element = firstElementInCarousel.getElementsByTag("img").first();
 			String srcAttr = element.attr("src");
 
 			Matcher m = urlFromItemPageToImageCodePattern.matcher(srcAttr);
@@ -1242,6 +1284,7 @@ public class EbayImportView extends ViewPart {
 		} catch (MalformedURLException e) {
 			throw new RuntimeException(e);
 		} catch (IOException e) {
+			// Item no longer exists. User needs to copy URL from image on order page.
 			throw new RuntimeException(e);
 		}
 	}

@@ -43,7 +43,6 @@ import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
-import net.sf.jmoney.txr.debug.TxrDebugView;
 
 /**
  * A wizard to import data from text that has been copied to the clipboard.

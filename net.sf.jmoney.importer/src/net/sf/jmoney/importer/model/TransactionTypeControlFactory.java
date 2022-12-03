@@ -143,7 +143,11 @@ public class TransactionTypeControlFactory<P, S extends ExtendableObject> extend
         String transactionTypeId = propertyAccessor.getValue(extendableObject);
         MemoPattern pattern = (MemoPattern)extendableObject;
         CapitalAccount account = (CapitalAccount)pattern.getParentKey().getObject();
-        TransactionType value = lookupTransactionType(transactionTypeId, getTransactionTypes(account));
+        List<TransactionType> transactionTypes = getTransactionTypes(account);
+        if (transactionTypes == null) {
+        	transactionTypes = getTransactionTypes(account);
+        }
+		TransactionType value = lookupTransactionType(transactionTypeId, transactionTypes);
         return value == null ? "" : value.getLabel(); //$NON-NLS-1$
     }
 

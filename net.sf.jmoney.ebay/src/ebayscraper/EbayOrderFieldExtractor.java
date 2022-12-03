@@ -50,7 +50,7 @@ public class EbayOrderFieldExtractor implements EbayOrderListOrderFields {
 
 					@Override
 					public String getDescription() {
-						return itemBindings.getVariable("description2").text;
+						return itemBindings.getVariable("description").text;
 					}
 
 					@Override
@@ -73,6 +73,16 @@ public class EbayOrderFieldExtractor implements EbayOrderListOrderFields {
 					public String getAmount() {
 						// This is available from the detail page only
 						return null;
+					}
+
+					@Override
+					public String getSeller() {
+						return itemBindings.getVariable("seller").text;
+					}
+
+					@Override
+					public String getDeliveryDate() {
+						return itemBindings.getVariable("deliverydate").text;
 					}
 					
 				});

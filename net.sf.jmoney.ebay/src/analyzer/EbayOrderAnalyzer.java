@@ -6,10 +6,12 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import ebayscraper.IContextUpdater;
 import ebayscraper.api.EbayDetailItemFields;
@@ -24,11 +26,13 @@ import net.sf.jmoney.importer.wizards.ImportException;
 public class EbayOrderAnalyzer {
 
 	/** Date format used by Ebay on its web pages */
-	private static DateFormat ebayDateFormat = new SimpleDateFormat("MMM dd, yyyy");
-	private static DateFormat ebayPaidDateFormat = new SimpleDateFormat("MMM d, yyyy");
-	private static DateFormat ebayShipDateFormat = new SimpleDateFormat("MM/dd/yyyy");
-	private static DateFormat ebayMonthAndDayFormat = new SimpleDateFormat("MMM d");
-	private static DateFormat ebayDeliveryDateFormat = new SimpleDateFormat("EEE, MMM d, yyyy");
+	private static DateFormat ebayDateFormat = new SimpleDateFormat("dd MMM, yyyy");
+	private static DateFormat ebayDateNoCommaFormat = new SimpleDateFormat("dd MMM yyyy");
+	private static DateFormat ebayPaidDateFormat = new SimpleDateFormat("d MMM, yyyy");
+	private static DateFormat ebayShipDateFormat = new SimpleDateFormat("dd/MM/yyyy");
+	private static DateFormat ebayMonthAndDayFormat = new SimpleDateFormat("d MMM");
+	private static DateFormat ebayDeliveryDateFormat = new SimpleDateFormat("EEE, d MMM yyyy");
+	private static DateFormat ebayShortDeliveryDateFormat = new SimpleDateFormat("EEE d MMM");
 	
 	private Set<EbayOrder> orders;
 	private IContextUpdater contextUpdater;
@@ -66,7 +70,6 @@ public class EbayOrderAnalyzer {
 		EbayOrder order = getEbayOrderWrapper(orderNumber, orderDate);
 
 //		order.setOrderDate(orderDate);  // Done here and in above....
-		order.setSeller(seller);
 //		order.setItemTotal(orderTotal);  actually not available from order list
 
 		ItemBuilder itemBuilder = new ItemBuilder(order, order.getItems());
@@ -98,27 +101,54 @@ public class EbayOrderAnalyzer {
 			item.setNetCost(itemPrice);
 			
 			// Set the image
-			try {
-				String imageCode = EbayImportView.getImageCodeFromItemNumber(itemNumber);
-				if (imageCode != null) {
-					// TODO delete setImageCode method altogether as not now used
-					// In fact why can't more just be set in the entry directly?
-//					item.setImageCode(imageCode);
-					EbayImportView.setImageIntoItem(imageCode, (ItemUpdater)item.getUnderlyingItem());	
+			if (itemNumber != null) {
+				try {
+					String imageCode = EbayImportView.getImageCodeFromItemNumber(itemNumber);
+					if (imageCode != null) {
+						// TODO delete setImageCode method altogether as not now used
+						// In fact why can't more just be set in the entry directly?
+	//					item.setImageCode(imageCode);
+						EbayImportView.setImageIntoItem(imageCode, (ItemUpdater)item.getUnderlyingItem());	
+					}
+				} catch (RuntimeException e) {
+					// Don't fail the entire import if this fails.  It just means we don't get an image for this item.
+					e.printStackTrace(System.out);
 				}
-			} catch (RuntimeException e) {
-				// Don't fail the entire import if this fails.  It just means we don't get an image for this item.
-				e.printStackTrace(System.out);
 			}
-		}
+			
+			// As the seller is listed here separately for each item, set on each item (not on the order as is done elsewhere)
+			String itemSeller = itemFields.getSeller();
+			if (itemSeller != null) {
+				item.setSeller(itemSeller);
+			}
+			
+			String deliveryDateAsString = itemFields.getDeliveryDate();
+			if (deliveryDateAsString != null) {
+				try {
+					Date deliveryDate = ebayShortDeliveryDateFormat.parse(deliveryDateAsString);
 
-//				// Now we have the items in this order,
-//				// we can access the actual order.
-//				EbayShipment order = shipmentObject.shipment;
-//
-//				if (order == null) {
-//					throw new RuntimeException("Shipment with no items in order " + order.getOrderNumber());
-//				}
+					// Set year for delivery date, because that was given as day and month only.
+					Calendar orderedDay = Calendar.getInstance();
+					orderedDay.setTime(orderDate);
+					int orderedMonth = orderedDay.get(Calendar.MONTH);
+					int orderedYear = orderedDay.get(Calendar.YEAR);
+
+					Calendar deliveredCalendar = Calendar.getInstance();
+					deliveredCalendar.setTime(deliveryDate);
+					int deliveredMonth = deliveredCalendar.get(Calendar.MONTH);
+					if (deliveredMonth < orderedMonth) {
+						deliveredCalendar.set(Calendar.YEAR, orderedYear + 1);
+					} else {
+						deliveredCalendar.set(Calendar.YEAR, orderedYear);
+					}
+					item.setDeliveryDate(deliveredCalendar.getTime());
+				} catch (ParseException e) {
+					throw new RuntimeException("bad date", e);
+				}
+			}
+			
+			
+		}
 
 		// Must do this check after returns are processed, because the sale of the return may not otherwise
 		// have been extracted.
@@ -159,7 +189,7 @@ public class EbayOrderAnalyzer {
 			Date shippingDate;
 			Date deliveryDate;
 			try {
-				orderDate = ebayDateFormat.parse(orderDateAsString);
+				orderDate = ebayDateNoCommaFormat.parse(orderDateAsString);
 				paidDate = ebayMonthAndDayFormat.parse(paidDayOfYearAsString);
 				shippingDate = ebayMonthAndDayFormat.parse(shippingDayOfYearAsString);
 				if (deliveryDateAsString != null) {
@@ -200,7 +230,10 @@ public class EbayOrderAnalyzer {
 			long orderTotal = new BigDecimal(totalAsString).scaleByPowerOfTen(2).longValueExact();
 	
 			long discount = discountAsString == null ? 0 : new BigDecimal(discountAsString).scaleByPowerOfTen(2).longValueExact();
-			long shipping = (shippingAsString == null || shippingAsString.equals("Free")) ? 0 : new BigDecimal(shippingAsString.substring("GBP ".length())).scaleByPowerOfTen(2).longValueExact();
+			if (!shippingAsString.startsWith("£") && !shippingAsString.equals("Free")) {
+				throw new RuntimeException("bad shipping amount");
+			}
+			long shipping = (shippingAsString == null || shippingAsString.equals("Free")) ? 0 : new BigDecimal(shippingAsString.substring("£".length())).scaleByPowerOfTen(2).longValueExact();
 	
 			/*
 			 * If no EbayOrder exists yet in this view then create one.
@@ -211,6 +244,7 @@ public class EbayOrderAnalyzer {
 			EbayOrder order = getEbayOrderWrapper(orderNumber, orderDate);
 			order.setSeller(soldBy);
 			order.setOrderTotal(orderTotal);
+			order.setDiscount(discount);
 			order.setPostageAndPackaging(shipping);
 			order.setPaidDate(paidDate);
 			order.setShippingDate(shippingDate);

@@ -1,43 +1,54 @@
 @(skip)
-@{username}user ID, click for member’s profile (@{feedbackscore})Feedback score is @{feedbackscore} for @{username}Make this page your My eBay homepage
+@{username}username, click for member’s profile ( @{feedbackscore}Feedback@{rest}
 @(skip)
-Filter by:
-All
+Orders
 @(collect :maxgap 6)
-ORDER DATE
+Order date:@{orderdate /\d\d\s\w\w\w,\s\d\d\d\d/}
 @(assert)
-@{orderdate /\w\w\w\s\d\d,\s\d\d\d\d/}
-ORDER NUMBER
-@{ordernumber}
-SOLD BY
-@{seller}user ID, click for member’s profile
-@  (maybe)
-ORDER TOTAL@; this stops appearing once orders are more than a few months old
-GBP @{ordertotal /\-?(\d,)?\d\d?\d?\.\d\d/}
-@  (end)
-View order details@{description}
+Order total:£@{ordertotal}
+Order number:@{ordernumber}
+View order details@{orderdescription}
 @  (collect)
-@{description2}
-@{description3}
-(@{itemnumber})
-@  (assert)
-@  (skip 7)
+@{description1}@; once in a while this does not match description below. This has extra spaces
 @  (maybe)
-Paid on @{paiddate /\w\w\w\s\d?\d,\s\d\d\d\d/}@; this stops appearing once orders are more than a few months old
-Shipped on @{shipdate /\d\d\/\d\d\/\d\d/}
-Feedback needed
-@    (cases)
-Feedback received
-@    (or)
-No Feedback received
-@    (end)
+Dispatched: @{dispatchjunk}
 @  (end)
-ITEM PRICE:
-GBP @{itemprice /\-?(\d,)?\d\d?\d?\.\d\d/}
+@  (maybe)
+Delivered on @{deliverydate}
+@  (end)
+@  (maybe)
+Est. delivery @{estimateddeliverydaterange}
+@  (end)
+@  (maybe)
+Return window closed on @{returnclosedate}.
+@  (end)
+@  (maybe)
+Tracking number: @{trackingnumber}
+@  (end)
+@  (maybe)
+The seller has refused to cancel this order. View details
+@    (bind rejectedreturn true)
+@  (end)
+@  (maybe)
+The seller has cancelled this order. View details
+@    (bind ordercancelled true)
+@  (end)
+@{description}
+@  (maybe)
+Main Colour:: @{color}
+@  (end)
+@  (maybe)
+Size: @{size}
+@  (end)
+£@{itemprice /\-?(\d,)?\d\d?\d?\.\d\d/}
+@  (assert)
+Sold by:
+@  (maybe)
+@{seller}username, click for member’s profile@; once in a while this line is missing
+@  (end)
 @(skip 5)
 More actions
-Add note- @{description4}
 @  (until)
-ORDER DATE
+Order date:@{discardorderdate}
 @  (end)
 @(end)

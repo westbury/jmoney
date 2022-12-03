@@ -1,0 +1,13 @@
+txrFiles:
+   -
+      txrFile: "ebay-orders.txr"
+      description: "EBay orders page"
+#      dataFiles:
+#         - { dataFile: "collect - simple.txt" }
+#         - { dataFile: "collect - one fails.txt", description: "test one collect failing" }
+   -
+      txrFile: "ebay-details.txr"
+      description: "EBay details page"
+#      dataFiles:
+#         - { dataFile: "none - fails.txt", description: "none - with a passing sub-clause" }
+#         - { dataFile: "none - passes.txt", description: "none - with all sub-clauses failing" }

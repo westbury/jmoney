@@ -1,44 +1,48 @@
 @(collect)
 Order info
 @(assert)
-Time placed	@{orderdate /\w\w\w\s\d\d?,\s\d\d\d\d/} at @{ordertime}
+Time placed	@{orderdate /\d\d?\s\w\w\w\s\d\d\d\d/} at @{ordertime}
 Order number	@{ordernumber}
-Total	GBP @{total} (@{numberofitems})
+Total	£@{total} (@{numberofitems})
 Sold by	@{seller}
 Delivery info
 @(maybe)
-Delivered on @{deliverydate /\w\w\w,\s\w\w\w\s\d\d?,\s\d\d\d\d/}
+Delivered on @{deliverydate /\w\w\w,\s\d\d?\s\w\w\w\s\d\d\d\d/}
 @(end)
 
 Paid
-@{dayofyearpaid}
-Shipped
-@{dayofyearshipped}
+@{dayofyearpaid /\d\d?\s\w\w\w/}
 @(maybe)
+2
+@(end)
+Dispatched
+@(maybe)
+@{dayofyearshipped /\d\d?\s\w\w\w/}
+@(or)
 3
 @(end)
 Delivered
 @(maybe)
-@{dayofyeardelivered /\w\w\w\s\d\d?/}
+@{dayofyeardelivered /\d\d?\s\w\w\w/}
 @(end)
 Tracking details
-Shipping Service	@{shippingservice}
-Carrier	@{carrier}
+@(maybe)
+Postal service	@{shippingservice}
+Courier	@{carrier}
+@(end)
+@(maybe)
 Number	@{trackingnumber}
-Item info
+@(end)
+Item details
 @(collect)
 @{description}
 @{description}
-@(assert)
 
-GBP @{amount}Unit price GBP @{unitprice}
+£@{amount}Unit price £@{unitprice}
+@(assert)
 
 Item number:@{itemnumber}
 
-@(maybe)
-@{detail}
-
-@(end)
 @(until)
 @  (cases)
 Order info
@@ -47,7 +51,7 @@ Related sponsored items
 @  (or)
 Sponsored items based on your recent views
 @  (or)
-Shipping address
+Delivery address
 @  (end)
 @(end)
 @(until)
@@ -56,7 +60,7 @@ Related sponsored items
 @  (or)
 Sponsored items based on your recent views
 @  (or)
-Shipping address
+Delivery address
 @  (end)
 @(end)
 @(cases)
@@ -64,7 +68,7 @@ Related sponsored items
 @(or)
 Sponsored items based on your recent views
 @  (or)
-Shipping address
+Delivery address
 @(end)
 @(skip)
 Payment info
@@ -73,17 +77,32 @@ Ending in @{lastfourdigits}@{cardtype /Visa|Master Card/} credit card ending in 
 
 @{nameoncard}
 
-GBP @{totalforday}
-@{orderdate2 /\w\w\w\s\d\d?/} at @{ordertime2}
+£@{totalforday}
+@{orderdayofyear /\d\d?\s\w\w\w/} at @{ordertime}
 
+@(maybe)
+Ending in @{lastfourdigits2}@{cardtype2 /Visa|Master Card/} credit card ending in @{lastfourdigits}
+
+@{nameoncard2}
+
+-£@{totalforday2}
+@{orderdayofyear2 /\d\d?\s\w\w\w/} at @{ordertime2}
+
+@(end)
 @{numberofitems2}
-GBP @{itemtotal2}
+£@{itemtotal2}
 @(maybe)
 Item discount
--GBP @{discount}
+-£@{discount}
 @(end)
-Shipping
+Postage
 @{shipping}
+@(maybe)
+Amount paid
+£@{amountpaid}
+Total refunded
+-£@{amountrefunded}
+@(end)
 Order total
-GBP @{totalforday}
+£@{overalltotal}
 How do you like our order details page?

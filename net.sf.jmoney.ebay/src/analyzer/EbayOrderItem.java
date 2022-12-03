@@ -3,6 +3,7 @@ package analyzer;
 import java.util.Date;
 
 import ebayscraper.IItemUpdater;
+import net.sf.jmoney.ebay.copytext.EbayImportView;
 
 public class EbayOrderItem {
 
@@ -19,6 +20,8 @@ public class EbayOrderItem {
 	private String ebayDescription;
 
 	private String imageCode;
+
+	private Date deliveryDate;
 	
 	public EbayOrderItem(EbayOrder order, IItemUpdater updater) {
 		this.order = order;
@@ -102,5 +105,24 @@ public class EbayOrderItem {
 
 	public void setDetail(String detail) {
 		this.detail = detail;
+	}
+
+	public void setDeliveryDate(Date deliveryDate) {
+		this.deliveryDate = deliveryDate;
+		updater.setDeliveryDate(deliveryDate);
+	}
+
+	public void setItemNumber(String itemNumber) {
+		if (!itemNumber.equals(updater.getItemNumber())) {
+			updater.setItemNumber(itemNumber);
+			String imageCode = EbayImportView.getImageCodeFromItemNumber(itemNumber);
+			if (imageCode != null) {
+				updater.setImageCode(imageCode);
+			}
+		}
+	}
+
+	public void setSeller(String seller) {
+		updater.setSoldBy(seller);
 	}
 }

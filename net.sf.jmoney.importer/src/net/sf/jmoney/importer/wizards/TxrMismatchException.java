@@ -29,8 +29,8 @@ import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PartInitException;
+import txr.debug3x.TxrDebugView;
 
-import net.sf.jmoney.txr.debug.TxrDebugView;
 
 /**
  * This exception indicates that the TXR match failed. We handle this situation by showing

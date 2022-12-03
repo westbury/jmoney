@@ -47,7 +47,7 @@ import net.sf.jmoney.model2.Account;
 import net.sf.jmoney.model2.Entry;
 import net.sf.jmoney.model2.IDataManagerForAccounts;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
-import net.sf.jmoney.txr.debug.TxrDebugView;
+
 import txr.matchers.DocumentMatcher;
 import txr.matchers.MatchResults;
 import txr.parser.TxrErrorInDocumentException;
@@ -212,7 +212,7 @@ public class EbayCopytextImportWizard extends Wizard implements IAccountImportWi
 		MatchResults bindings = doMatchingFromClipboard(statementMatcher, "ebay-orders.txr");
 
 		// TODO lookup the ebay account from the username?
-		DateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy");
+		DateFormat dateFormat = new SimpleDateFormat("dd MMM, yyyy");
 
 		String userName = bindings.getVariable("username").text;
 		
