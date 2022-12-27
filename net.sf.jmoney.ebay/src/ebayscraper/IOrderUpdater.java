@@ -33,4 +33,10 @@ public interface IOrderUpdater {
 
 	void setLastFourDigitsOfAccount(String lastFourDigits);
 
+	/**
+	 * This is done after charge account has been determined, including after details page has
+	 * been pasted, but before finally committing.
+	 */
+	void matchChargeEntry();
+
 }

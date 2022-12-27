@@ -149,8 +149,6 @@ public class OrderUpdater implements IOrderUpdater {
 				chargeEntry.setAccount(chargeAccount);
 			}
 			chargeEntry.setAmount(amount);
-
-			matchChargeEntry();
 		}
 	}
 
@@ -181,28 +179,25 @@ public class OrderUpdater implements IOrderUpdater {
 
 			if (chargeEntry != null) {
 				chargeEntry.setAccount(chargeAccount);
-
-				matchChargeEntry();
 			}
 		}
 	}
 
 	/**
-	 * If a charge entry (amount has been determined), and an account set, then
-	 * we auto-match now.
+	 * Auto-match the charge entry to a pre-existing entry for the account (perhaps imported from the bank).
 	 * <P>
-	 * If a piece of information is later changed then this will be allowed provided
-	 * no auto-match had occurred and the charge account entry has no statement, no
-	 * unique id etc.  We need to define this a little better.
+	 * This should not be done until after the charge amount and account have been determined. Both the charge amount
+	 * and charge account can change if the user pastes data from the order details page, so this is done when the
+	 * data is committed.
 	 */
-	private void matchChargeEntry() {
+	public void matchChargeEntry() {
 		/*
 		 * Auto-match the new entry in the charge account the same way that any other
 		 * entry would be auto-matched.  This combines the entry if the entry already exists in the
 		 * charge account (typically because transactions have been downloaded from the bank and imported).
 		 *
 		 * An entry in the charge account has already been matched to an
-		 * Amazon order if it has an order id set.  This matcher will not return
+		 * Ebay order if it has an order id set.  This matcher will not return
 		 * entries that have already been matched.
 		 *
 		 * Although we have already eliminated orders that have already been imported,

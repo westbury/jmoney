@@ -405,6 +405,11 @@ public class EbayImportView extends ViewPart {
 					MessageDialog.openError(getViewSite().getShell(), "Cannot Commit", e.getLocalizedMessage());
 					return;
 				}
+				
+				for (EbayOrder order : scraperContext.orders) {
+					order.getUnderlyingOrder().matchChargeEntry();
+				}
+				
 				uncommittedSessionManager.commit("Ebay Import from Clipboard");
 
 				IDatastoreManager committedSessionManager = (IDatastoreManager)getSite().getWorkbenchWindow().getActivePage().getInput();
