@@ -1,0 +1,13 @@
+txrFiles:
+   -
+      txrFile: "amazon-orders.txr"
+      description: "Amazon orders page"
+#      dataFiles:
+#         - { dataFile: "collect - simple.txt" }
+#         - { dataFile: "collect - one fails.txt", description: "test one collect failing" }
+   -
+      txrFile: "amazon-details.txr"
+      description: "Amazon details page"
+#      dataFiles:
+#         - { dataFile: "none - fails.txt", description: "none - with a passing sub-clause" }
+#         - { dataFile: "none - passes.txt", description: "none - with all sub-clauses failing" }
