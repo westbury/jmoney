@@ -77,8 +77,8 @@ public class ContextUpdater implements IContextUpdater {
 			transaction = transactions[0].getExtension(EbayTransactionInfo.getPropertySet(), true);
 		}
 		
-		BankAccount defaultChargeAccountInTranssaction = uncommittedSessionManager.getCopyInTransaction(defaultChargeAccount.getValue());
-		IOrderUpdater orderUpdater = new OrderUpdater(transaction, accountFinder, defaultChargeAccountInTranssaction);
+		BankAccount defaultChargeAccountInTransaction = uncommittedSessionManager.getCopyInTransaction(defaultChargeAccount.getValue());
+		IOrderUpdater orderUpdater = new OrderUpdater(transaction, accountFinder, defaultChargeAccountInTransaction);
 		EbayOrder order = new EbayOrder(orderNumber, orderUpdater);
 
 		// Is this correct?  It must be here for new transaction, but what about an existing one?

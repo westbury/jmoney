@@ -40,7 +40,7 @@ public class AccountFinder {
 		IncomeExpenseAccount unmatchedAccount = null;
 		for (Iterator<IncomeExpenseAccount> iter = session.getIncomeExpenseAccountIterator(); iter.hasNext(); ) {
 			IncomeExpenseAccount eachAccount = iter.next();
-			if (eachAccount.getName().startsWith("eBay unmatched")
+			if (eachAccount.getName().startsWith("eBay unmatched") || eachAccount.getName().startsWith("Paypal (")
 					&& eachAccount.getCurrency() == currency) {
 				unmatchedAccount = eachAccount;
 				break;
@@ -48,6 +48,29 @@ public class AccountFinder {
 		}
 		if (unmatchedAccount == null) {
 			throw new ImportException("No account exists with a name that begins 'eBay unmatched' and a currency of " + currency.getName() + ".");
+		}
+		return unmatchedAccount;
+	}
+
+	// TODO this is temporary???
+	public BankAccount findPaypalAccount()
+			throws ImportException {
+		/*
+		 * Look for a category account that has a name that starts with "eBay unmatched"
+		 * and a currency that matches the currency of the charge account.
+		 */
+		BankAccount unmatchedAccount = null;
+		for (Iterator<CapitalAccount> iter = session.getCapitalAccountIterator(); iter.hasNext(); ) {
+			CapitalAccount eachAccount = iter.next();
+			if (eachAccount.getName().startsWith("Paypal (")
+					&& eachAccount instanceof BankAccount
+					&& ((BankAccount)eachAccount).getCurrency() == currency) {
+				unmatchedAccount = (BankAccount)eachAccount;
+				break;
+			}
+		}
+		if (unmatchedAccount == null) {
+			throw new ImportException("No account exists with a name that begins 'Paypal (' and a currency of " + currency.getName() + ".");
 		}
 		return unmatchedAccount;
 	}

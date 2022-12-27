@@ -61,7 +61,9 @@ public class OrderUpdater implements IOrderUpdater {
 	 */
 	private Account chargeAccount;
 
-	private IncomeExpenseAccount unmatchedAccount;
+	// TODO put this back when Paypal obsolete...
+//	private IncomeExpenseAccount unmatchedAccount;
+	private BankAccount unmatchedAccount;
 
 	private IncomeExpenseAccount defaultPurchaseAccount;
 
@@ -76,7 +78,9 @@ public class OrderUpdater implements IOrderUpdater {
 		this.chargeAccount = defaultChargeAccount;
 
 		try {
-			unmatchedAccount = accountFinder.findUnmatchedAccount();
+			// TODO put this back when Paypal obsolete...
+//			unmatchedAccount = accountFinder.findUnmatchedAccount();
+			unmatchedAccount = accountFinder.findPaypalAccount();
 			defaultPurchaseAccount = accountFinder.findDefaultPurchaseAccount();
 		} catch (ImportException e) {
 			throw new RuntimeException(e);
