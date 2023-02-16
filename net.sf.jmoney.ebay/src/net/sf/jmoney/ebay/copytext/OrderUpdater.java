@@ -195,6 +195,11 @@ public class OrderUpdater implements IOrderUpdater {
 	 * data is committed.
 	 */
 	public void matchChargeEntry() {
+		if (chargeEntry == null) {
+			// This is a transaction that did not result in a charge. Perhaps a giftcard was used or something.
+			return;
+		}
+		
 		/*
 		 * Auto-match the new entry in the charge account the same way that any other
 		 * entry would be auto-matched.  This combines the entry if the entry already exists in the
@@ -226,6 +231,7 @@ public class OrderUpdater implements IOrderUpdater {
 					return isDateInRange(dateInImport, dateOfExistingTransaction, 10);
 			}
 		};
+		
 		Entry matchedEntryInUnmatchedAccount = matchFinder.findMatch(unmatchedAccount, -chargeEntry.getAmount(), transaction.getDate());
 
 		/*
@@ -254,7 +260,13 @@ public class OrderUpdater implements IOrderUpdater {
 			Transaction targetTransaction = matchedEntryInUnmatchedAccount.getTransaction();
 
 			// Delete the 'unmatched' entry in the target transaction.
-			targetTransaction.getEntryCollection().deleteEntry(matchedEntryInUnmatchedAccount);
+			try {
+				targetTransaction.getEntryCollection().deleteEntry(matchedEntryInUnmatchedAccount);
+			} catch (RuntimeException e) {
+				// Sometimes the entry seems to be already deleted. I have not got to the bottom of
+				// this bug so ignore for now.
+				e.printStackTrace(System.out);
+			}
 
 			/*
 			 * Set the transaction date to be the earlier of the two dates. If the

@@ -191,7 +191,12 @@ public class EbayOrderAnalyzer {
 			try {
 				orderDate = ebayDateNoCommaFormat.parse(orderDateAsString);
 				paidDate = ebayMonthAndDayFormat.parse(paidDayOfYearAsString);
-				shippingDate = ebayMonthAndDayFormat.parse(shippingDayOfYearAsString);
+				if (shippingDayOfYearAsString != null) {
+					shippingDate = ebayMonthAndDayFormat.parse(shippingDayOfYearAsString);
+				} else {
+					// This seems to happen when an order is made but the seller never ships but instead refunds payment
+					shippingDate = null;
+				}
 				if (deliveryDateAsString != null) {
 					deliveryDate = ebayDeliveryDateFormat.parse(deliveryDateAsString);
 				} else {
@@ -213,16 +218,18 @@ public class EbayOrderAnalyzer {
 					paidCalendar.set(Calendar.YEAR, orderedYear);
 				}
 				paidDate = paidCalendar.getTime();
-				
-				Calendar shippedCalendar = Calendar.getInstance();
-				shippedCalendar.setTime(shippingDate);
-				int shippedMonth = paidCalendar.get(Calendar.MONTH);
-				if (shippedMonth < orderedMonth) {
-					shippedCalendar.set(Calendar.YEAR, orderedYear + 1);
-				} else {
-					shippedCalendar.set(Calendar.YEAR, orderedYear);
+
+				if (shippingDate != null) {
+					Calendar shippedCalendar = Calendar.getInstance();
+					shippedCalendar.setTime(shippingDate);
+					int shippedMonth = paidCalendar.get(Calendar.MONTH);
+					if (shippedMonth < orderedMonth) {
+						shippedCalendar.set(Calendar.YEAR, orderedYear + 1);
+					} else {
+						shippedCalendar.set(Calendar.YEAR, orderedYear);
+					}
+					shippingDate = shippedCalendar.getTime();
 				}
-				shippingDate = shippedCalendar.getTime();
 			} catch (ParseException e) {
 				throw new RuntimeException("bad date", e);
 			}
@@ -230,10 +237,10 @@ public class EbayOrderAnalyzer {
 			long orderTotal = new BigDecimal(totalAsString).scaleByPowerOfTen(2).longValueExact();
 	
 			long discount = discountAsString == null ? 0 : new BigDecimal(discountAsString).scaleByPowerOfTen(2).longValueExact();
-			if (!shippingAsString.startsWith("Â£") && !shippingAsString.equals("Free")) {
+			if (!shippingAsString.startsWith("£") && !shippingAsString.equals("Free")) {
 				throw new RuntimeException("bad shipping amount");
 			}
-			long shipping = (shippingAsString == null || shippingAsString.equals("Free")) ? 0 : new BigDecimal(shippingAsString.substring("Â£".length())).scaleByPowerOfTen(2).longValueExact();
+			long shipping = (shippingAsString == null || shippingAsString.equals("Free")) ? 0 : new BigDecimal(shippingAsString.substring("£".length())).scaleByPowerOfTen(2).longValueExact();
 	
 			/*
 			 * If no EbayOrder exists yet in this view then create one.

@@ -116,6 +116,7 @@ import analyzer.EbayOrderItem;
 import analyzer.UnsupportedImportDataException;
 import ebayscraper.EbayScraperContext;
 import ebayscraper.IContextUpdater;
+import ebayscraper.IItemUpdater;
 import net.sf.jmoney.ebay.AccountFinder;
 import net.sf.jmoney.ebay.EbayEntry;
 import net.sf.jmoney.ebay.EbayEntryInfo;
@@ -156,7 +157,7 @@ public class EbayImportView extends ViewPart {
 	static {
 		// Sometimes 1500, sometimes 1300
 		// https://i.ebayimg.com/images/g/LGQAAOSw7kdgRpaG/s-l300.jpg
-		urlFromItemPageToImageCodePattern = Pattern.compile("https://i.ebayimg.com/images/g/((\\d|\\w|-|~)+)/s-l?1?\\d00\\.jpg");
+		urlFromItemPageToImageCodePattern = Pattern.compile("https://i.ebayimg.com/images/g/((\\d|\\w|-|~)+)/s-l?1?\\d00\\.(jpg|png)");
 	}
 	
 	public class PasteOrdersAction extends Action {
@@ -219,6 +220,8 @@ public class EbayImportView extends ViewPart {
 	/** outside transaction */
 	private IObservableValue<BankAccount> defaultChargeAccount = new WritableValue<>();
 
+	private boolean isUpdatingControls;
+	
 	public EbayImportView() {
 		pasteOrdersAction = new PasteOrdersAction();
 		pasteDetailsAction = new PasteDetailsAction();
@@ -824,11 +827,14 @@ public class EbayImportView extends ViewPart {
 		discountControl.setLayoutData(new GridData(80, SWT.DEFAULT));
 
 		selObs.addValueChangeListener(new IValueChangeListener<Object>() {
+
 			@Override
 			public void handleValueChange(ValueChangeEvent<? extends Object> event) {
 				if (selObs.getValue() instanceof EbayOrder) {
 					EbayOrder order = (EbayOrder)selObs.getValue();
 
+					isUpdatingControls = true;
+					
 					orderDateControl.setDate(order.getOrderDate());
 					orderControl.setText(order.getOrderNumber());
 					sellerControl.setText(order.getSeller() == null ? "" : order.getSeller()); // Why would seller be null?
@@ -848,6 +854,8 @@ public class EbayImportView extends ViewPart {
 					} else {
 						discountControl.setText("");
 					}
+
+					isUpdatingControls = true;
 				}
 			}
 		});
@@ -855,6 +863,9 @@ public class EbayImportView extends ViewPart {
 		postageAndPackagingControl.addModifyListener(new ModifyListener() {
 			@Override
 			public void modifyText(ModifyEvent event) {
+				if (isUpdatingControls) {
+					return;
+				}
 				Object selection = selObs.getValue();
 				if (!(selection instanceof EbayOrder)) {
 					throw new RuntimeException("Control should not be visible");
@@ -879,6 +890,9 @@ public class EbayImportView extends ViewPart {
 		discountControl.addModifyListener(new ModifyListener() {
 			@Override
 			public void modifyText(ModifyEvent event) {
+				if (isUpdatingControls) {
+					return;
+				}
 				Object selection = selObs.getValue();
 				if (!(selection instanceof EbayOrder)) {
 					throw new RuntimeException("Control should not be visible");
@@ -1278,6 +1292,8 @@ public class EbayImportView extends ViewPart {
 			Element element = firstElementInCarousel.getElementsByTag("img").first();
 			String srcAttr = element.attr("src");
 
+			urlFromItemPageToImageCodePattern = Pattern.compile("https://i.ebayimg.com/images/g/((\\d|\\w|-|~)+)/s-l?1?\\d00\\.(jpg|png)");
+			
 			Matcher m = urlFromItemPageToImageCodePattern.matcher(srcAttr);
 			if (m.matches()) {
 				String imageCode = m.group(1);

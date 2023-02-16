@@ -109,7 +109,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-
+import txr.debug3x.TxrDebugView;
 import amazonscraper.AmazonScraperContext;
 import amazonscraper.IContextUpdater;
 import analyzer.AmazonOrder;
@@ -133,7 +133,6 @@ import net.sf.jmoney.model2.IDatastoreManager;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
-import net.sf.jmoney.txr.debug.TxrDebugView;
 
 public class AmazonImportView extends ViewPart {
 

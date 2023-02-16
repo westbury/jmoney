@@ -9,36 +9,114 @@ Order total:£@{ordertotal}
 Order number:@{ordernumber}
 View order details@{orderdescription}
 @  (collect)
-@{description1}@; once in a while this does not match description below. This has extra spaces
+@  (cases)
+@{description} @; note this one has a space at the end
+@  (or)
+@{description}
+@  (end)
 @  (maybe)
 Dispatched: @{dispatchjunk}
+@    (assert)
 @  (end)
 @  (maybe)
 Delivered on @{deliverydate}
+@    (assert)
 @  (end)
 @  (maybe)
 Est. delivery @{estimateddeliverydaterange}
+@    (assert)
 @  (end)
 @  (maybe)
 Return window closed on @{returnclosedate}.
+@    (assert)
 @  (end)
 @  (maybe)
 Tracking number: @{trackingnumber}
+@    (assert)
 @  (end)
 @  (maybe)
 The seller has refused to cancel this order. View details
+@    (assert)
 @    (bind rejectedreturn true)
 @  (end)
 @  (maybe)
 The seller has cancelled this order. View details
+@    (assert)
 @    (bind ordercancelled true)
 @  (end)
 @{description}
+@  (assert)
+@  (maybe)
+Main Colour: @{color}
+@  (end)
 @  (maybe)
 Main Colour:: @{color}
 @  (end)
 @  (maybe)
+Colours: @{color}
+@  (end)
+@  (maybe)
+MPN: @{mpn}
+@  (end)
+@  (maybe)
 Size: @{size}
+@  (end)
+@  (maybe)
+Sizes: @{size}
+@  (end)
+@  (maybe)
+Size Type: @{size}
+@  (end)
+@  (maybe)
+UK Shoe Size (Women's): @{size}
+@  (end)
+@  (maybe)
+Inside Leg: @{size2}
+@  (end)
+@  (maybe)
+Leg Length: @{size2}
+@  (end)
+@  (maybe)
+Trouser Size: @{size3}
+@  (end)
+@  (maybe)
+Length: @{size}
+@    (bind sizetype length)
+@  (end)
+@  (maybe)
+Colour Code: @{color}
+@  (end)
+@  (maybe)
+Colour: @{color}
+@  (end)
+@  (maybe)
+size:: @{size}
+@  (end)
+@  (maybe)
+Shoe Size: @{size2}
+@  (end)
+@  (maybe)
+Main Colour: @{color}
+@  (end)
+@  (maybe)
+Main Colour:: @{color}
+@  (end)
+@  (maybe)
+Width Fitting: @{shoewidth}
+@  (end)
+@  (maybe)
+MPN: @{mpn}
+@  (end)
+@  (maybe)
+Quantity: @{quantity}
+@  (end)
+@  (maybe)
+Socket Type: @{sockettype}
+@  (end)
+@  (collect :maxgap 0)
+@{key /[\w\s]+/}: @{value /[\w\d\s]+/}
+@  (until)
+£@{itemprice /\-?(\d,)?\d\d?\d?\.\d\d/}
 @  (end)
 £@{itemprice /\-?(\d,)?\d\d?\d?\.\d\d/}
 @  (assert)

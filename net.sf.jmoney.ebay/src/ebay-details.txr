@@ -28,18 +28,25 @@ Delivered
 Tracking details
 @(maybe)
 Postal service	@{shippingservice}
+@  (maybe)
 Courier	@{carrier}
+@  (end)
 @(end)
 @(maybe)
 Number	@{trackingnumber}
 @(end)
 Item details
 @(collect)
+@  (cases)
 @{description}
 @{description}
+@  (or)
+@{description} 
+@{description}
+@  (end)
+@(assert)
 
 £@{amount}Unit price £@{unitprice}
-@(assert)
 
 Item number:@{itemnumber}
 

@@ -4,6 +4,7 @@ import java.util.Date;
 
 import ebayscraper.IItemUpdater;
 import net.sf.jmoney.ebay.copytext.EbayImportView;
+import net.sf.jmoney.ebay.copytext.ItemUpdater;
 
 public class EbayOrderItem {
 
@@ -97,6 +98,8 @@ public class EbayOrderItem {
 	public void setImageCode(String imageCode) {
 		this.imageCode = imageCode;
 		updater.setImageCode(imageCode);
+		
+		EbayImportView.setImageIntoItem(imageCode, (ItemUpdater)updater);
 	}
 
 	public String getDetail() {
