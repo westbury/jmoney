@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: PortfolioAnalysis
+Bundle-SymbolicName: net.sf.jmoney.portfolioAnalysis;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Activator: net.sf.jmoney.portfolioanalysis.Activator
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ net.sf.jmoney,
+ net.sf.jmoney.stocks,
+ net.sf.jmoney.pricehistory;bundle-version="1.0.0"
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: J2SE-1.5
+Bundle-ClassPath: lib/jxl-2.6.9.jar,
+ .
