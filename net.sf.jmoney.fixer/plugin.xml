@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+  <extension
+         point="org.eclipse.ui.actionSets">
+      <actionSet
+            label="Datastore Updater Action Set"
+            visible="true"
+            id="net.sf.jmoney.updater.actionSet">
+
+         <menu
+               label="&amp;Edit"
+               id="edit">
+            <separator
+                  name="clipboardGroup">
+            </separator>
+         </menu>
+         <action
+               label="Run Datastore Updater"
+               tooltip="Run Datastore Updater"
+               class="net.sf.jmoney.updater.actions.RunUpdaterAction"
+               menubarPath="edit/clipboardGroup"
+               id="net.sf.jmoney.updater.actions.RunUpdater">
+         </action>
+      </actionSet>
+   </extension>
+
+</plugin>
