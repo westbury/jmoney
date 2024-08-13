@@ -22,18 +22,20 @@
 
 package net.sf.jmoney.entrytable;
 
-import net.sf.jmoney.model2.IPropertyControl;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusListener;
+import org.eclipse.swt.events.MouseAdapter;
+import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+
+import net.sf.jmoney.model2.IPropertyControl;
 
 abstract public class ButtonCellControl implements IPropertyControl<EntryData> {
 
@@ -59,11 +61,17 @@ abstract public class ButtonCellControl implements IPropertyControl<EntryData> {
 		button.setImage(image);
 		button.setToolTipText(toolTipText);
 			
-		button.addSelectionListener(new SelectionListener() {
+		// It seems that the widgetSelected method is never called on a Mac.
+		// So listen to the mouseUp instead.
+		// The mouseUp does not seem to fire when drag and dropping on a Mac, so let's
+		// hope that's the case on Windows too.
+		button.addMouseListener(new MouseAdapter() {
 			@Override
-			public void widgetDefaultSelected(SelectionEvent e) {
+			public void mouseUp(MouseEvent e) {
 				run(coordinator);
 			}
+		});
+		button.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				run(coordinator);
