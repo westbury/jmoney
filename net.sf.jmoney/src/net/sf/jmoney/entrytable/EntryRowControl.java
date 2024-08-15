@@ -22,6 +22,9 @@
 
 package net.sf.jmoney.entrytable;
 
+import java.io.IOException;
+import java.io.InputStream;
+
 import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
@@ -237,7 +240,16 @@ Entry newEntry = uncommittedEntry.getValue();
 
 	protected <V> void copyValue(ScalarPropertyAccessor<V, ? super Entry> accessor, Entry selectedEntry, Entry newEntry) {
 		V value = accessor.getValue(selectedEntry);
-
+		if (value instanceof IBlob) {
+			// If a blob, we must really copy the blob. We can't have two references to the same database entry
+			// because these are owning references.
+			try {
+				value = (V) ((IBlob)value).createPersistentBlob();
+			} catch (IOException e) {
+				// Internal error, should not happen
+				throw new RuntimeException(e);
+			}
+		}
 		/*
 		 * Copy all values that are numbers, flags, text, or references to accounts or commodities.
 		 * We do not copy dates or statement numbers.

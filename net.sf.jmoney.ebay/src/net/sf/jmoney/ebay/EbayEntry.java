@@ -22,9 +22,11 @@
 
 package net.sf.jmoney.ebay;
 
+import java.io.IOException;
 import java.util.Date;
 
 import net.sf.jmoney.fields.IBlob;
+import net.sf.jmoney.fields.IPersistentBlob;
 import net.sf.jmoney.model2.EntryExtension;
 import net.sf.jmoney.model2.ExtendableObject;
 
@@ -180,11 +182,30 @@ public class EbayEntry extends EntryExtension {
 		return picture;
 	}
 	
+	/**
+	 * Note that the object being set here is not IBlob but IBlobWriter. IBlobWriter extends
+	 * IBlob but adds no methods. It is a marker interface that indicates the blob has been reliably
+	 * cached and that the IBlob methods will work indefinitely, even if the original blob source
+	 * has been deleted.
+	 * 
+	 * @param picture
+	 */
 	public void setPicture(IBlob picture) {
+		// We must cache now, because the blob we are given may have a limited lifetime.
+		IPersistentBlob persistentBlob;
+		try {
+			persistentBlob = picture == null ? null : picture.createPersistentBlob();
+		} catch (IOException e) {
+			// May not be the best way of handling this error, but it's a whole
+			// lot better than having this error when the data is committed to the datastore.
+			// (Which is what would happen if we didn't convert to a persisent blob here.)
+			throw new RuntimeException(e);
+		}
+		
 		IBlob oldPicture = this.picture;
-		this.picture = picture;
+		this.picture = persistentBlob;
 
 		// Notify the change manager.
-		processPropertyChange(EbayEntryInfo.getPictureAccessor(), oldPicture, picture);
+		processPropertyChange(EbayEntryInfo.getPictureAccessor(), oldPicture, persistentBlob);
 	}
 }

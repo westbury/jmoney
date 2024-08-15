@@ -1,5 +1,7 @@
 package net.sf.jmoney.jdbcdatastore;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Blob;
 import java.sql.PreparedStatement;
@@ -7,6 +9,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import net.sf.jmoney.fields.IBlob;
+import net.sf.jmoney.fields.IPersistentBlob;
+import net.sf.jmoney.fields.PersistentBlobFromImmutableByteArray;
 import net.sf.jmoney.isolation.IExtendablePropertySet;
 import net.sf.jmoney.isolation.IModelObject;
 import net.sf.jmoney.isolation.IScalarPropertyAccessor;
@@ -28,6 +32,13 @@ import net.sf.jmoney.model2.ScalarPropertyAccessor;
  * would be fetching and storing vast amounts of blob data for no reason. This
  * implementation therefore reads the blob from the database by executing a
  * statement at the time the blob's content is requested.
+ * <P>
+ * However the blob must still exist in the database when we read the blob. This can cause
+ * problems when an image is moved from one entry to another. The entry containing the source image
+ * may have already been deleted when the image is written to the new entry. So we need to convert this
+ * to an IBlobWriter (which holds the blob internally in a byte array) before starting to
+ * commit the changes. The framework will enforce this by refusing to write a blob if it has not been persisted.
+ * 
  */
 public class BlobFromDatabase implements IBlob {
 
@@ -74,6 +85,15 @@ public class BlobFromDatabase implements IBlob {
 			return blob.getBinaryStream();
 		} catch (SQLException e) {
 			throw new RuntimeException("Unable to read JDBC blob", e);
+		}
+	}
+
+	@Override
+	public IPersistentBlob createPersistentBlob() throws IOException {
+		try (InputStream inputStream = createStream()) {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			inputStream.transferTo(baos);
+			return new PersistentBlobFromImmutableByteArray(baos.toByteArray());
 		}
 	}
 

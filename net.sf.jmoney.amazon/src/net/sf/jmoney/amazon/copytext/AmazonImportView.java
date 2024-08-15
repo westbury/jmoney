@@ -123,6 +123,7 @@ import net.sf.jmoney.fields.AccountControl;
 import net.sf.jmoney.fields.DateControl;
 import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.fields.IBlob;
+import net.sf.jmoney.fields.IPersistentBlob;
 import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.importer.wizards.ImportException;
 import net.sf.jmoney.importer.wizards.TxrMismatchException;
@@ -1247,15 +1248,16 @@ public class AmazonImportView extends ViewPart {
 				URL picture = new URL(urlString);
 
 				IBlob blob = new UrlBlob(picture);
+				IPersistentBlob persistentBlob = blob.createPersistentBlob();
 
 				// We must go thru the wrapper item, do not set
 				// directly on the entry, because the wrapper caches
 				// the image.
-				selectedItem2.setImage(blob);
+				selectedItem2.setImage(persistentBlob);
 
 				canvas.redraw();
 
-			} catch (MalformedURLException e) {
+			} catch (IOException e) {
 				// Should not happen so convert to an unchecked exception
 				throw new RuntimeException(e);
 			}

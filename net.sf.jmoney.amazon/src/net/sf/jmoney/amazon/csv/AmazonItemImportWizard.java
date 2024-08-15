@@ -24,6 +24,8 @@ import net.sf.jmoney.amazon.AccountFinder;
 import net.sf.jmoney.amazon.AmazonEntry;
 import net.sf.jmoney.amazon.AmazonEntryInfo;
 import net.sf.jmoney.amazon.UrlBlob;
+import net.sf.jmoney.fields.IBlob;
+import net.sf.jmoney.fields.IPersistentBlob;
 import net.sf.jmoney.importer.wizards.CsvImportWizard;
 import net.sf.jmoney.importer.wizards.CsvTransactionReader;
 import net.sf.jmoney.importer.wizards.ImportException;
@@ -355,7 +357,8 @@ public class AmazonItemImportWizard extends CsvImportWizard implements IImportWi
 								rowItem2.id);
 				try {
 					URL picture = new URL(urlString);
-					itemEntry.setPicture(new UrlBlob(picture));
+					IBlob urlBlob = new UrlBlob(picture);
+					itemEntry.setPicture(urlBlob);
 				} catch (MalformedURLException e) {
 					// Should not happen so convert to an unchecked exception
 					throw new RuntimeException(e);

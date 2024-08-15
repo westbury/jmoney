@@ -607,7 +607,9 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 
 						// Currently only blobs use parameters
 						if (value instanceof IBlob) {
-							statement.setBlob(parameterNumber++, ((IBlob)value).createStream());
+							IBlob blob = (IBlob)value;
+							statement.setBlob(parameterNumber++, blob.createStream());
+							blob.close();
 						}
 					}
 
@@ -894,7 +896,9 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 
 							// Currently only blobs use parameters
 							if (newValue instanceof IBlob) {
-								statement.setBlob(parameterNumber++, ((IBlob)newValue).createStream());
+								IBlob newBlob = (IBlob)newValue;
+								statement.setBlob(parameterNumber++, newBlob.createStream());
+								newBlob.close();
 							}
 						}
 					}

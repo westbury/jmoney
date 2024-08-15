@@ -32,6 +32,8 @@ import net.sf.jmoney.amazon.AmazonEntry;
 import net.sf.jmoney.amazon.AmazonEntryInfo;
 import net.sf.jmoney.amazon.UrlBlob;
 import net.sf.jmoney.amazon.csv.AmazonOrderImportWizard;
+import net.sf.jmoney.fields.IBlob;
+import net.sf.jmoney.fields.IPersistentBlob;
 import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.importer.MatchingEntryFinder;
 import net.sf.jmoney.importer.wizards.ImportException;
@@ -939,7 +941,8 @@ public class AmazonHtmlImportWizard extends Wizard implements IImportWizard {
 									item.asin);
 					try {
 						URL picture = new URL(urlString);
-						itemEntry.setPicture(new UrlBlob(picture));
+						IBlob urlBlob = new UrlBlob(picture);
+						itemEntry.setPicture(urlBlob);
 					} catch (MalformedURLException e) {
 						// Should not happen so convert to an unchecked exception
 						throw new RuntimeException(e);

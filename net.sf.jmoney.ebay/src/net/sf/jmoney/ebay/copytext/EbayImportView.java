@@ -126,6 +126,7 @@ import net.sf.jmoney.fields.AccountControl;
 import net.sf.jmoney.fields.DateControl;
 import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.fields.IBlob;
+import net.sf.jmoney.fields.IPersistentBlob;
 import net.sf.jmoney.importer.Activator;
 import net.sf.jmoney.importer.wizards.ImportException;
 import net.sf.jmoney.importer.wizards.TxrMismatchException;
@@ -1240,11 +1241,12 @@ public class EbayImportView extends ViewPart {
 			URL picture = new URL(urlString);
 
 			IBlob blob = new UrlBlob(picture);
+			IPersistentBlob blobThatCanReliablyBeWritten = blob.createPersistentBlob();
 
 			// We must go thru the wrapper item, do not set
 			// directly on the entry, because the wrapper caches
 			// the image.
-			itemUpdater.setImage(blob);
+			itemUpdater.setImage(blobThatCanReliablyBeWritten);
 
 		} catch (Exception e) {
 			// s-l140 also works, but that is more thumbnail size
@@ -1256,13 +1258,14 @@ public class EbayImportView extends ViewPart {
 				URL picture = new URL(urlString);
 
 				IBlob blob = new UrlBlob(picture);
+				IPersistentBlob blobThatCanReliablyBeWritten = blob.createPersistentBlob();
 
 				// We must go thru the wrapper item, do not set
 				// directly on the entry, because the wrapper caches
 				// the image.
-				itemUpdater.setImage(blob);
+				itemUpdater.setImage(blobThatCanReliablyBeWritten);
 
-			} catch (MalformedURLException e2) {
+			} catch (IOException e2) {
 				// Should not happen so convert to an unchecked exception
 				throw new RuntimeException(e2);
 			}

@@ -22,6 +22,9 @@
 
 package net.sf.jmoney.reconciliation.reconcilePage;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -48,6 +51,7 @@ import net.sf.jmoney.entrytable.ReusableRowProvider;
 import net.sf.jmoney.entrytable.RowControl;
 import net.sf.jmoney.entrytable.RowSelectionTracker;
 import net.sf.jmoney.entrytable.SingleOtherEntryDetailPropertyBlock;
+import net.sf.jmoney.fields.IBlob;
 import net.sf.jmoney.isolation.ReferenceViolationException;
 import net.sf.jmoney.isolation.TransactionManager;
 import net.sf.jmoney.model2.Account;
@@ -580,6 +584,7 @@ public class StatementSection extends SectionPart {
 		}
 
 		// Delete all entries in the target except the entry in the account.
+		// TODO give error if more than one???? And that one is not 'unreconciled'?
 		for (Entry entry: targetTransaction.getEntryCollection()) {
 			if (entry != targetEntry) {
 				targetTransaction.getEntryCollection().deleteEntry(entry);
@@ -614,7 +619,6 @@ public class StatementSection extends SectionPart {
 	        	return false;
 	        }
 		}
-
 		/*
 		 * All other properties are taken from the target transaction only if
 		 * the property is null in the source transaction.
@@ -688,19 +692,44 @@ public class StatementSection extends SectionPart {
 	 * Helper method to copy a property from the target entry to the source entry if the
 	 * property is null in the source entry but not null in the target entry.
 	 */
-	private <V> void copyPropertyConditionally(ScalarPropertyAccessor<V,? super Entry> propertyAccessor, Entry sourceAccount, Entry targetAccount) {
-		V targetValue = propertyAccessor.getValue(targetAccount);
-		V sourceValue = propertyAccessor.getValue(sourceAccount);
+	private <V> void copyPropertyConditionally(ScalarPropertyAccessor<V,? super Entry> propertyAccessor, Entry sourceEntry, Entry targetEntry) {
+		V targetValue = propertyAccessor.getValue(targetEntry);
+		V sourceValue = propertyAccessor.getValue(sourceEntry);
 		if (sourceValue != null) {
 			if (targetValue == null
 					|| !doesImportedValueHavePriority(propertyAccessor)) {
-				propertyAccessor.setValue(targetAccount, sourceValue);
+				// If a blob, we must copy now to a persistent blob. The blob cannot be fetched if the source
+				// of the blob has been deleted from the datastore, and (at least with Derby) the blob contents cannot
+				// be read from the blob if the SQL statement has been closed.
+				// So get a persistent blob now.
+				if (sourceValue instanceof IBlob) {
+					try {
+						sourceValue = (V) ((IBlob)sourceValue).createPersistentBlob();
+					} catch (IOException e) {
+						// Internal error, should not happen
+						throw new RuntimeException(e);
+					}
+				}
+				propertyAccessor.setValue(targetEntry, sourceValue);
 			}
 		}
 	}
 
 	private <V> void copyPropertyForcibly(ScalarPropertyAccessor<V,? super Entry> propertyAccessor, Entry sourceEntry, Entry targetEntry) {
 		V sourceValue = propertyAccessor.getValue(sourceEntry);
+
+		// If a blob, we must copy now to a persistent blob. The blob cannot be fetched if the source
+		// of the blob has been deleted from the datastore, and (at least with Derby) the blob contents cannot
+		// be read from the blob if the SQL statement has been closed.
+		// So get a persistent blob now.
+		if (sourceValue instanceof IBlob) {
+			try {
+				sourceValue = (V) ((IBlob)sourceValue).createPersistentBlob();
+			} catch (IOException e) {
+				// Internal error, should not happen
+				throw new RuntimeException(e);
+			}
+		}
 		propertyAccessor.setValue(targetEntry, sourceValue);
 	}
 
