@@ -5,7 +5,7 @@ import java.text.MessageFormat;
 import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
-import org.eclipse.jface.databinding.swt.WidgetProperties;
+import org.eclipse.jface.databinding.swt.typed.WidgetProperties;
 import org.eclipse.jface.internal.databinding.provisional.swt.UpdatingComposite;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridLayout;
@@ -34,7 +34,7 @@ public class TransactionParamMetadataString extends TransactionParamMetadata {
 		final Label label2 = new Label(composite, SWT.NONE);
 
 		final IObservableValue<String> parameterValueProperty = MemoPatternInfo.getParameterValueProperty(getId()).observeDetail(memoPattern);
-		Bind.twoWay(parameterValueProperty).to(WidgetProperties.text(new int[] { SWT.Modify }), textbox);
+		Bind.twoWay(parameterValueProperty).to(WidgetProperties.text(SWT.Modify), textbox);
 
 		/*
 		 * We can't use computed values here because we are in a tracked getter, and

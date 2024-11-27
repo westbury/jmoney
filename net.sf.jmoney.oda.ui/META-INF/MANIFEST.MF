@@ -12,4 +12,4 @@ Require-Bundle: org.eclipse.ui,
  net.sf.jmoney
 Bundle-ActivationPolicy: lazy
 Bundle-Vendor: JMoney.sf.net
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8

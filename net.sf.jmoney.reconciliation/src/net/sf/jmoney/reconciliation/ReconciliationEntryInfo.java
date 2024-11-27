@@ -38,7 +38,7 @@ import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
-import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.jface.databinding.swt.typed.WidgetProperties;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -153,7 +153,7 @@ public class ReconciliationEntryInfo implements IPropertySetInfo {
 
 				Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
 				.convert(integerToStringConverter)
-				.to(SWTObservables.observeText(propertyControl, SWT.Modify));
+				.to(WidgetProperties.text(SWT.Modify).observe(propertyControl));
 
 				return propertyControl;
 			}

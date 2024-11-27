@@ -31,7 +31,7 @@ import net.sf.jmoney.resources.Messages;
 
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
-import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.jface.databinding.swt.typed.WidgetProperties;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -59,7 +59,7 @@ public class TextControlFactory<S extends ExtendableObject> implements IProperty
     	Text propertyControl = new Text(parent, SWT.NONE);
 
 		Bind.twoWay(modelStringObservable)
-		.to(SWTObservables.observeText(propertyControl, SWT.Modify));
+		.to(WidgetProperties.text(SWT.Modify).observe(propertyControl));
 
 		return propertyControl;
     }

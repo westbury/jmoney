@@ -30,7 +30,7 @@ import java.util.Vector;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IConverter;
-import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.jface.databinding.swt.typed.WidgetProperties;
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusEvent;
@@ -102,7 +102,7 @@ public abstract class AccountControl<A extends Account> extends AccountComposite
 		};
 		Bind.oneWay(account)
 			.convert(accountToTextConverter)
-			.to(SWTObservables.observeText(textControl, SWT.None));
+			.to(WidgetProperties.text(SWT.None).observe(textControl));
 
 		textControl.addFocusListener(new FocusListener() {
 

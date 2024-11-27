@@ -9,7 +9,7 @@ import net.sf.jmoney.stocks.model.Security;
 import net.sf.jmoney.stocks.model.SecurityControl;
 import net.sf.jmoney.stocks.model.SecurityInfo;
 
-import org.eclipse.core.databinding.beans.BeanProperties;
+import org.eclipse.core.databinding.beans.typed.BeanProperties;
 import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.property.value.IValueProperty;

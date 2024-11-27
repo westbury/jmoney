@@ -6,7 +6,7 @@ import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiWithExceptionConverter;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.databinding.fieldassist.ControlStatusDecoration;
-import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.jface.databinding.swt.typed.WidgetProperties;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.widgets.Composite;
@@ -94,10 +94,10 @@ public class ShareQuantityBlock extends
 
 			Bind.twoWay(shareQuantityProperty.observeDetail(master))
 			.convertWithTracking(amountToText)
-			.to(SWTObservables.observeText(control, SWT.Modify), statusDecoration::update);
+			.to(WidgetProperties.text(SWT.Modify).observe(control), statusDecoration::update);
 
 			Bind.bounceBack(amountToText)
-			.to(SWTObservables.observeText(control, SWT.FocusOut));
+			.to(WidgetProperties.text(SWT.FocusOut).observe(control));
 			
 			
 			ICellControl2<StockEntryFacade> cellControl = new ICellControl2<StockEntryFacade>() {

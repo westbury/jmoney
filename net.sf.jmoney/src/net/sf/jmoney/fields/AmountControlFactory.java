@@ -28,7 +28,7 @@ import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiWithExceptionConverter;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.databinding.fieldassist.ControlStatusDecoration;
-import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.jface.databinding.swt.typed.WidgetProperties;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -94,10 +94,10 @@ public abstract class AmountControlFactory<S extends ExtendableObject> extends P
 
 		Bind.twoWay(modelAmountObservable)
 		.convertWithTracking(amountToText)
-		.to(SWTObservables.observeText(propertyControl, SWT.Modify), statusDecoration::update);
+		.to(WidgetProperties.text(SWT.Modify).observe(propertyControl), statusDecoration::update);
 
 		Bind.bounceBack(amountToText)
-		.to(SWTObservables.observeText(propertyControl, SWT.FocusOut));
+		.to(WidgetProperties.text(SWT.FocusOut).observe(propertyControl));
 
 		return propertyControl;
 	}

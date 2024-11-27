@@ -40,7 +40,7 @@ import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.IValueChangeListener;
 import org.eclipse.core.databinding.observable.value.ValueChangeEvent;
-import org.eclipse.jface.databinding.viewers.ViewerProperties;
+import org.eclipse.jface.databinding.viewers.typed.ViewerProperties;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.DialogMessageArea;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -173,7 +173,7 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 
 		@Override
 		public Control createControl() {
-			return paramMetadata.createControl(parent, ViewerProperties.singleSelection().observe(patternViewer), args);
+			return paramMetadata.createControl(parent, ViewerProperties.singleSelection(MemoPattern.class).observe(patternViewer), args);
 		}
 		
 		@Override
@@ -212,8 +212,8 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 	public IObservableValue<String[]> args = new ComputedValue<String[]>() {
 		@Override
 		protected String[] calculate() {
-			BaseEntryData entryData = (BaseEntryData)ViewerProperties.<BaseEntryData>singleSelection().observe(entriesViewer).getValue();
-			MemoPattern pattern = (MemoPattern)ViewerProperties.<MemoPattern>singleSelection().observe(patternViewer).getValue();
+			BaseEntryData entryData = (BaseEntryData)ViewerProperties.singleSelection(BaseEntryData.class).observe(entriesViewer).getValue();
+			MemoPattern pattern = (MemoPattern)ViewerProperties.singleSelection(MemoPattern.class).observe(patternViewer).getValue();
 
 			/*
 			 * The pattern may not yet have been entered if the user has just added a new

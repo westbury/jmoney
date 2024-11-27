@@ -30,7 +30,7 @@ import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.runtime.Assert;
-import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.jface.databinding.swt.typed.WidgetProperties;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.widgets.Composite;
@@ -71,7 +71,7 @@ public class BalanceColumn extends IndividualBlock<IObservableValue<EntryData>> 
 				}
 			};
 			
-			Bind.oneWay(balanceText).to(SWTObservables.observeText(balanceLabel));
+			Bind.oneWay(balanceText).to(WidgetProperties.text().observe(balanceLabel));
 		}
 
 		@Override

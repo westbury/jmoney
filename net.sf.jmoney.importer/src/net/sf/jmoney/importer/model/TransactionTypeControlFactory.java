@@ -35,7 +35,7 @@ import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.databinding.viewers.ObservableListContentProvider;
-import org.eclipse.jface.databinding.viewers.ViewersObservables;
+import org.eclipse.jface.databinding.viewers.typed.ViewerProperties;
 import org.eclipse.jface.viewers.ComboViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
@@ -115,7 +115,7 @@ public class TransactionTypeControlFactory<P, S extends ExtendableObject> extend
 				return transactionType.getId();
 			}
 		})
-        .to((IObservableValue<TransactionType>)ViewersObservables.observeSingleSelection(viewer));
+        .to(ViewerProperties.singleSelection(TransactionType.class).observe(viewer));
 
 		return propertyControl;
     }

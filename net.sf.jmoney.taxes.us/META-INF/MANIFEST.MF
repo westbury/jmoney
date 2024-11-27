@@ -9,4 +9,4 @@ Require-Bundle: org.eclipse.ui,
  net.sf.jmoney,
  net.sf.jmoney.stocks
 Bundle-ActivationPolicy: lazy
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8

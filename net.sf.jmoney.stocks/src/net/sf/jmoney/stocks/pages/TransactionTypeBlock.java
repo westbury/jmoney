@@ -3,7 +3,7 @@ package net.sf.jmoney.stocks.pages;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.property.value.IValueProperty;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
-import org.eclipse.jface.databinding.viewers.ViewersObservables;
+import org.eclipse.jface.databinding.viewers.typed.ViewerProperties;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.ComboViewer;
 import org.eclipse.jface.viewers.LabelProvider;
@@ -46,7 +46,7 @@ public class TransactionTypeBlock extends
 			};
 			
 			Bind.twoWay(transactionProperty, master)
-			.to(ViewersObservables.observeSingleSelection(viewer));
+			.to(ViewerProperties.singleSelection(TransactionType.class).observe(viewer));
 			
 //				master.addValueChangeListener(new IValueChangeListener() {
 //

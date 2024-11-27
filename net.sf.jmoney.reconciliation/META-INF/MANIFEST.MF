@@ -18,4 +18,4 @@ Require-Bundle: net.sf.jmoney,
  org.eclipse.core.databinding;bundle-version="1.5.0"
 Bundle-ActivationPolicy: lazy
 Bundle-Vendor: JMoney.sf.net
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8

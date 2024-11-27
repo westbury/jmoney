@@ -11,7 +11,7 @@ import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.resources.Messages;
 
-import org.eclipse.core.databinding.beans.PojoProperties;
+import org.eclipse.core.databinding.beans.typed.PojoProperties;
 import org.eclipse.core.databinding.observable.value.ComputedValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.jface.wizard.WizardPage;

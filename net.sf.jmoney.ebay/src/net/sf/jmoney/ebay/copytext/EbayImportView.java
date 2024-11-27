@@ -44,7 +44,7 @@ import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.databinding.viewers.IViewerObservableValue;
-import org.eclipse.jface.databinding.viewers.ViewersObservables;
+import org.eclipse.jface.databinding.viewers.typed.ViewerProperties;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.CellLabelProvider;
@@ -589,16 +589,13 @@ public class EbayImportView extends ViewPart {
 		return containerOfSash;
 	}	
 
-
-	
-	
 	private Control createTreeControl(Composite parent) {
 		viewer = new TreeViewer(parent, SWT.H_SCROLL
 				| SWT.V_SCROLL | SWT.FULL_SELECTION | SWT.HIDE_SELECTION);
 		viewer.setContentProvider(new EbayOrderContentProvider());
 		viewer.setAutoExpandLevel(3);
 		
-		selObs = ViewersObservables.observeSingleSelection(viewer);
+		selObs = ViewerProperties.singleSelection().observe(viewer);
 
 		Tree tree = viewer.getTree();
 

@@ -26,7 +26,7 @@ import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiWithStatusConverter;
 import org.eclipse.jface.databinding.fieldassist.ControlStatusDecoration;
-import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.jface.databinding.swt.typed.WidgetProperties;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
@@ -80,10 +80,10 @@ class SplitEntryDebitAndCreditColumns extends IndividualBlock<Entry> {
 
 			Bind.twoWay(amountObservable)
 			.convert(creditAndDebitSplitConverter)
-			.to(SWTObservables.observeText(textControl, SWT.Modify), statusDecoration::update);
+			.to(WidgetProperties.text(SWT.Modify).observe(textControl), statusDecoration::update);
 			
 			Bind.bounceBack(creditAndDebitSplitConverter)
-			.to(SWTObservables.observeText(textControl, SWT.FocusOut));
+			.to(WidgetProperties.text(SWT.FocusOut).observe(textControl));
 			
 			// TODO check that disposing the Text disposed the binding
 			textControl.addDisposeListener(new DisposeListener() {

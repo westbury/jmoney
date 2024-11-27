@@ -30,7 +30,7 @@ import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
-import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.jface.databinding.swt.typed.WidgetProperties;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
@@ -55,7 +55,7 @@ public class CheckBoxControlFactory<S extends ExtendableObject> implements IProp
     
     private Control createPropertyControlInternal(Composite parent, IObservableValue<Boolean> modelBooleanObservable) {
     	Button button = new Button(parent, SWT.CHECK);
-  		Bind.twoWay(modelBooleanObservable).to(SWTObservables.observeSelection(button));
+  		Bind.twoWay(modelBooleanObservable).to(WidgetProperties.buttonSelection().observe(button));
   		return button;
     }
 

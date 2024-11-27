@@ -24,7 +24,7 @@ package net.sf.jmoney.fields;
 
 import java.util.Comparator;
 
-import org.eclipse.core.databinding.beans.PojoProperties;
+import org.eclipse.core.databinding.beans.typed.PojoProperties;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.swt.widgets.Composite;

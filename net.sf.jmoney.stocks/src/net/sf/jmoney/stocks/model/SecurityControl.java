@@ -31,7 +31,7 @@ import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IConverter;
-import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.jface.databinding.swt.typed.WidgetProperties;
 import org.eclipse.jface.window.Window;
 import org.eclipse.jface.wizard.WizardDialog;
 import org.eclipse.swt.SWT;
@@ -107,7 +107,7 @@ public abstract class SecurityControl<A extends Security> extends Composite {
 		};
 		Bind.oneWay(commodity)
 			.convert(commodityToTextConverter)
-			.to(SWTObservables.observeText(textControl, SWT.Modify));
+			.to(WidgetProperties.text(SWT.Modify).observe(textControl));
 
 		textControl.addKeyListener(new KeyAdapter() {
 

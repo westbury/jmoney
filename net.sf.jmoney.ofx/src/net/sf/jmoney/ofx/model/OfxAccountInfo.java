@@ -42,7 +42,7 @@ import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
-import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.jface.databinding.swt.typed.WidgetProperties;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
@@ -170,7 +170,7 @@ public class OfxAccountInfo implements IPropertySetInfo {
 
 				Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
 				.convert(idToLabelConverter)
-				.to(SWTObservables.observeSelection(control));
+				.to(WidgetProperties.comboSelection().observe(control));
 
 				return control;
 			}

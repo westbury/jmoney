@@ -4,5 +4,5 @@ Bundle-Name: Derby
 Bundle-SymbolicName: net.sf.jmoney.jdbcdatastore.derby
 Bundle-Version: 1.0.0.qualifier
 Fragment-Host: net.sf.jmoney.jdbcdatastore
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ClassPath: lib/derby.jar

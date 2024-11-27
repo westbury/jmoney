@@ -30,7 +30,7 @@ import org.eclipse.core.databinding.observable.list.IObservableList;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.jface.databinding.viewers.ObservableListContentProvider;
-import org.eclipse.jface.databinding.viewers.ViewersObservables;
+import org.eclipse.jface.databinding.viewers.typed.ViewerProperties;
 import org.eclipse.jface.viewers.ComboViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
@@ -104,7 +104,7 @@ public abstract class CurrencyControlFactory<P, S extends ExtendableObject> exte
         viewer.setInput(currencyList);
 
         Bind.twoWay(modelCurrencyObservable)
-        .to(ViewersObservables.observeSingleSelection(viewer));
+        .to(ViewerProperties.singleSelection(Currency.class).observe(viewer));
 
 		return propertyControl;
     }

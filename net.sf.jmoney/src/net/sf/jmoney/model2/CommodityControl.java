@@ -31,7 +31,7 @@ import org.eclipse.core.databinding.observable.list.IObservableList;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IConverter;
-import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.jface.databinding.swt.typed.WidgetProperties;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.KeyAdapter;
 import org.eclipse.swt.events.KeyEvent;
@@ -101,7 +101,7 @@ public class CommodityControl<A extends Commodity> extends Composite {
 		};
 		Bind.oneWay(commodity)
 			.convert(commodityToTextConverter)
-			.to(SWTObservables.observeText(textControl, SWT.FocusOut));
+			.to(WidgetProperties.text(SWT.FocusOut).observe(textControl));
 
 		textControl.addKeyListener(new KeyAdapter() {
 

@@ -48,7 +48,7 @@ import org.eclipse.core.runtime.preferences.IScopeContext;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.databinding.fieldassist.ControlStatusDecoration;
 import org.eclipse.jface.databinding.preference.PreferenceObservables;
-import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.jface.databinding.swt.typed.WidgetProperties;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -128,10 +128,10 @@ public class DateControlFactory<S extends ExtendableObject> implements IProperty
 
 		Bind.twoWay(modelDateObservable)
 		.convertWithTracking(dateToText)
-		.to(SWTObservables.observeText(propertyControl.textControl, SWT.Modify), statusDecoration::update);
+		.to(WidgetProperties.text(SWT.Modify).observe(propertyControl.textControl), statusDecoration::update);
 
 		Bind.bounceBack(dateToText)
-		.to(SWTObservables.observeText(propertyControl.textControl, SWT.FocusOut));
+		.to(WidgetProperties.text(SWT.FocusOut).observe(propertyControl.textControl));
 
 		return propertyControl;
     }

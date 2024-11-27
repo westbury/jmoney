@@ -26,7 +26,7 @@ import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiWithStatusConverter;
 import org.eclipse.jface.databinding.fieldassist.ControlStatusDecoration;
-import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.jface.databinding.swt.typed.WidgetProperties;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.events.TraverseEvent;
@@ -63,10 +63,10 @@ public class DebitAndCreditColumns extends IndividualBlock<IObservableValue<Entr
 
 			Bind.twoWay(amountObservable)
 			.convert(creditAndDebitSplitConverter)
-			.to(SWTObservables.observeText(textControl, SWT.Modify), statusDecoration::update);
+			.to(WidgetProperties.text(SWT.Modify).observe(textControl), statusDecoration::update);
 			
 			Bind.bounceBack(creditAndDebitSplitConverter)
-			.to(SWTObservables.observeText(textControl, SWT.FocusOut));
+			.to(WidgetProperties.text(SWT.FocusOut).observe(textControl));
 			
 			FocusListener controlFocusListener = new CellFocusListener<RowControl>(rowControl, this);
 			textControl.addFocusListener(controlFocusListener);

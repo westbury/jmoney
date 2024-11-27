@@ -45,7 +45,7 @@ import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.databinding.viewers.IViewerObservableValue;
-import org.eclipse.jface.databinding.viewers.ViewersObservables;
+import org.eclipse.jface.databinding.viewers.typed.ViewerProperties;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.CellLabelProvider;
@@ -653,7 +653,7 @@ public class AmazonImportView extends ViewPart {
 		viewer.setContentProvider(new AmazonOrderContentProvider());
 		viewer.setAutoExpandLevel(3);
 		
-		selObs = ViewersObservables.observeSingleSelection(viewer);
+		selObs = ViewerProperties.singleSelection().observe(viewer);
 
 		Tree tree = viewer.getTree();
 

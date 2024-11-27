@@ -27,7 +27,7 @@ import java.util.Date;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
 import org.eclipse.core.internal.databinding.provisional.bind.IConverter;
-import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.jface.databinding.swt.typed.WidgetProperties;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -220,7 +220,7 @@ public class EntryInfo implements IPropertySetInfo {
 
 				Bind.oneWay(propertyAccessor.observeDetail(modelObservable))
 				.convert(longToStringDateConverter)
-				.to(SWTObservables.observeText(control));
+				.to(WidgetProperties.text().observe(control));
 
 				return control;
 			}
