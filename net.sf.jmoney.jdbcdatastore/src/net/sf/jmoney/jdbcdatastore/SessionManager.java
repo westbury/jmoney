@@ -104,9 +104,13 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 	
 	private boolean isDerby = false;
 	
+	private boolean isPostgresql = false;
+	
 	private String booleanTypeName = null;
 	
 	private String dateTypeName = "DATETIME";
+	
+	private String blobTypeName = "BLOB";
 	
 	private String onDeleteRestrict = "ON DELETE RESTRICT";
 	
@@ -186,6 +190,11 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 		} else if (databaseProductName.equals("Microsoft SQL Server")) {
 			booleanTypeName = "BIT";
 			onDeleteRestrict = "ON DELETE NO ACTION";
+		} else if (databaseProductName.equals("PostgreSQL")) {
+			isPostgresql = true;
+			dateTypeName = "DATE";
+			booleanTypeName = "SMALLINT";
+			blobTypeName = "BYTEA";
 		}
 
 		// Create a weak reference map for every base property set.
@@ -1553,7 +1562,7 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 				 */
 				info.columnDefinition = dateTypeName;  
 			} else if (valueClass == IBlob.class) {
-				info.columnDefinition = "BLOB";
+				info.columnDefinition = blobTypeName;
 			} else if (ExtendableObject.class.isAssignableFrom(valueClass)) {
 				info.columnDefinition = "INT";
 
@@ -1863,7 +1872,7 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 			+ " (\"_ID\" INT";
 		
 		if (propertySet.getBasePropertySet() == null) {
-			if (isDerby) {
+			if (isDerby || isPostgresql) {
 				sql += " NOT NULL GENERATED ALWAYS AS IDENTITY";
 			} else {
 				sql += " IDENTITY";
