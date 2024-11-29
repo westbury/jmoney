@@ -10,10 +10,13 @@ public abstract class ImportEntryProperty<T extends BaseEntryData> extends Value
 	
 	final String label;
 	
-	protected ImportEntryProperty(String id, String label) {
+	final String matchTypeDescription;
+	
+	protected ImportEntryProperty(String id, String label, String matchTypeDescription) {
 		super();
 		this.id = id;
 		this.label = label;
+		this.matchTypeDescription = matchTypeDescription;
 	}
 
 	@Override

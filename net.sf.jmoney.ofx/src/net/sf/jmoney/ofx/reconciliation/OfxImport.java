@@ -266,7 +266,7 @@ public class OfxImport implements IBankStatementSource {
 			private static final long serialVersionUID = 1L;
 
 			{
-				add(new ImportEntryProperty<EntryData>("memo", "Memo") {
+				add(new ImportEntryProperty<EntryData>("memo", "Memo", "Pattern") {
 					protected String getCurrentValue(EntryData importEntry) {
 						return importEntry.getMemo();
 					}

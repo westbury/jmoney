@@ -26,6 +26,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.net.URL;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -94,11 +95,15 @@ import org.eclipse.swt.widgets.Table;
 
 import net.sf.jmoney.fields.AccountControl;
 import net.sf.jmoney.importer.Activator;
+import net.sf.jmoney.importer.model.IMatchEvaluator;
+import net.sf.jmoney.importer.model.IMatchEvaluator.MatchResult;
 import net.sf.jmoney.importer.model.MemoPattern;
 import net.sf.jmoney.importer.model.MemoPatternInfo;
 import net.sf.jmoney.importer.model.TransactionType;
+import net.sf.jmoney.importer.model.TransactionTypeControlFactory;
 import net.sf.jmoney.isolation.ObjectCollection;
 import net.sf.jmoney.isolation.ReferenceViolationException;
+import net.sf.jmoney.model2.CapitalAccount;
 import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
@@ -220,22 +225,18 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 			 * pattern.
 			 */
 			if (pattern != null && entryData != null) {
-				Pattern compiledPattern = pattern.getCompiledPattern("memo");
-				Matcher m = compiledPattern.matcher(entryData.getTextForRegexMatching());
-				if (m.matches()) {
+				IMatchEvaluator compiledPattern = pattern.getCompiledPattern("memo");
+				MatchResult m = compiledPattern.matcher(entryData.getTextForRegexMatching());
+				if (m.matches) {
 					/*
-					 * Group zero is the entire string and the groupCount method
-					 * does not include that group, so there is really one more group
-					 * than the number given by groupCount.
-					 *
-					 * This code also tidies up the imported text.
+					 * Tidy up the matching text and use as args.
 					 */
-					String [] args = new String[m.groupCount()+1];
-					for (int i = 0; i <= m.groupCount(); i++) {
+					List<String> args = new ArrayList<>();
+					for (String arg : m.args) {
 						// Not sure why it can be null, but it happened...
-						args[i] = m.group(i) == null ? null : ImportMatcher.convertToMixedCase(m.group(i));
+						args.add(arg == null ? null : ImportMatcher.convertToMixedCase(arg));
 					}
-					return args;
+					return args.toArray(new String[0]);
 				}
 			}
 			
@@ -668,7 +669,14 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 			addColumn(importEntryProperty, "<html>The pattern is a Java regular expression that is matched against the memo in the downloadable file.<br>For each record from the bank, the first row in this table with a matching pattern is used.</html>");
 		}
 		
-		addColumn(MemoPatternInfo.getTransactionTypeIdAccessor(), "The id for the transaction type.  The values of this property must be a type supported by the account type.");
+		// If there is only one transaction type supported by this account then skip this column.
+		// Most accounts do only support one transaction type. It's really only brokerage accounts
+		// that support multiple transaction types.
+		List<TransactionType> transactionTypes = TransactionTypeControlFactory.getTransactionTypes((CapitalAccount) account.getBaseObject());
+		if (transactionTypes.size() > 1) {
+			addColumn(MemoPatternInfo.getTransactionTypeIdAccessor(), "The id for the transaction type.  The values of this property must be a type supported by the account type.");
+		}
+
 		addColumn(MemoPatternInfo.getTransactionParameterValuesAccessor(), "Text that specifies the value of each parameter to the transaction, the parameter metadata depending on the transaction type.");
 //		addColumn(MemoPatternInfo.getMemoAccessor(), "The value to be put in the memo field.  The values in this table may contain {0}, {1} etc. where the number matches the group number in the Java regular expression.");
 //		addColumn(MemoPatternInfo.getAccountAccessor(), "The account to be used for entries that match this pattern.");
@@ -820,7 +828,7 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 	private void addColumn(final ImportEntryProperty importEntryProperty, String tooltip) {
 		TableViewerColumn column = new TableViewerColumn(patternViewer, SWT.LEFT);
 		column.getColumn().setWidth(100);
-		column.getColumn().setText(importEntryProperty.label + " Pattern");
+		column.getColumn().setText(importEntryProperty.label + " " + importEntryProperty.matchTypeDescription);
 		column.getColumn().setToolTipText(tooltip);
 
 		column.setLabelProvider(new ColumnLabelProvider() {
@@ -1018,6 +1026,15 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 				newPattern.setOrderingIndex(nextOrderingIndex++);
 
 				/*
+				 * If there's only one transaction type that's valid for this account
+				 * then set it now. The user may not be prompted.
+				 */
+				List<TransactionType> transactionTypes = TransactionTypeControlFactory.getTransactionTypes((CapitalAccount) account.getBaseObject());
+				if (transactionTypes.size() == 1) {
+					newPattern.setTransactionTypeId(transactionTypes.get(0).getId());
+				}
+
+				/*
 				 * Add the new pattern to the end of the table.
 				 */
 				patternViewer.add(newPattern);
@@ -1176,6 +1193,8 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 		int aboveIndex = abovePattern.getOrderingIndex();
 		abovePattern.setOrderingIndex(thisIndex);
 		thisPattern.setOrderingIndex(aboveIndex);
+		
+		matcher.swapOrderOfPatterns(thisIndex, aboveIndex);
 	}
 
 	private TransactionType<T> lookupTransactionType(String transactionTypeId) {

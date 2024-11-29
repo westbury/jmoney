@@ -226,7 +226,7 @@ public abstract class CsvImportToAccountWizard<T extends BaseEntryData> extends 
 			private static final long serialVersionUID = 1L;
 
 			{
-				add(new ImportEntryProperty<T>("memo", "Memo") {
+				add(new ImportEntryProperty<T>("memo", "Memo", "Pattern") {
 					@Override
 					protected String getCurrentValue(BaseEntryData importEntry) {
 						return importEntry.getDefaultMemo();

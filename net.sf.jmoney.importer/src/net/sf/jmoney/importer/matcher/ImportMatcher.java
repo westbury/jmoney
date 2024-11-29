@@ -5,11 +5,14 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.eclipse.swt.widgets.Control;
 
+import net.sf.jmoney.importer.model.IMatchEvaluator;
 import net.sf.jmoney.importer.model.MemoPattern;
 import net.sf.jmoney.importer.model.MemoPatternInfo;
 import net.sf.jmoney.importer.model.TransactionType;
@@ -80,15 +83,19 @@ public class ImportMatcher<T extends BaseEntryData> {
 					}
 				}
 
-				@Override
-				public void objectChanged(IModelObject changedObject, IScalarPropertyAccessor changedProperty, Object oldValue, Object newValue) {
-					if (changedObject instanceof MemoPattern
-							&& changedProperty == MemoPatternInfo.getOrderingIndexAccessor()
-							&& changedObject.getParentListKey().getParentKey().equals(account.getBaseObject().getObjectKey())) {
-						sortedPatterns.remove(changedObject);
-						sortedPatterns.add((MemoPattern)changedObject);
-					}
-				}
+				// This is now done directly. The problem with going thru the listener is
+				// That this comes as two separate events, and the intermediate state has
+				// two elements with the same ordering index. So even if the List were a SortedList
+				// it would still be broken.
+//				@Override
+//				public void objectChanged(IModelObject changedObject, IScalarPropertyAccessor changedProperty, Object oldValue, Object newValue) {
+//					if (changedObject instanceof MemoPattern
+//							&& changedProperty == MemoPatternInfo.getOrderingIndexAccessor()
+//							&& changedObject.getParentListKey().getParentKey().equals(account.getBaseObject().getObjectKey())) {
+//						sortedPatterns.remove(changedObject);
+//						sortedPatterns.add((MemoPattern)changedObject);
+//					}
+//				}
 
 			}, control);
 		}
@@ -138,17 +145,20 @@ public class ImportMatcher<T extends BaseEntryData> {
 	 * 			means the caller should create a default transaction using the default category)
 	 */
 	public PatternMatch findMatchingPattern(T entryData) {
+		if (entryData.getDefaultMemo().startsWith("Gas")) {
+			System.out.println("");
+		}
    		for (MemoPattern pattern: sortedPatterns) {
    			
 			boolean unmatchedFound = false;
-			Object [] args = null;
+			List<Object> args = new ArrayList<>();
 			for (ImportEntryProperty<T> importEntryProperty : importEntryProperties) {
 				String importEntryPropertyValue = importEntryProperty.getCurrentValue(entryData);
-				Pattern compiledPattern = pattern.getCompiledPattern(importEntryProperty.id);
+				IMatchEvaluator compiledPattern = pattern.getCompiledPattern(importEntryProperty.id);
 
 				if (compiledPattern != null && importEntryPropertyValue != null) {
-					Matcher m = compiledPattern.matcher(importEntryPropertyValue);
-					if (!m.matches()) {
+					IMatchEvaluator.MatchResult m = compiledPattern.matcher(importEntryPropertyValue);
+					if (!m.matches) {
 						unmatchedFound = true;
 						break;
 					}
@@ -158,23 +168,18 @@ public class ImportMatcher<T extends BaseEntryData> {
 					 */
 					if (importEntryProperty.id.equals("memo")) {
 						/*
-						 * Group zero is the entire string and the groupCount method
-						 * does not include that group, so there is really one more group
-						 * than the number given by groupCount.
-						 *
-						 * This code also tidies up the imported text.
+						 * Tidy up the matching text and use as args.
 						 */
-						args = new Object[m.groupCount()+1];
-						for (int i = 0; i <= m.groupCount(); i++) {
+						for (String arg : m.args) {
 							// Not sure why it can be null, but it happened...
-							args[i] = m.group(i) == null ? null : ImportMatcher.convertToMixedCase(m.group(i));
+							args.add(arg == null ? null : ImportMatcher.convertToMixedCase(arg));
 						}
 					}
 				}
 			}
 			
 			if (!unmatchedFound) {
-				return new PatternMatch(pattern, args);
+				return new PatternMatch(pattern, args.toArray());
    			}
    		}
 		return null;
@@ -354,5 +359,11 @@ public class ImportMatcher<T extends BaseEntryData> {
 
 	   		return entry1;
 		}
+	}
+
+	public void swapOrderOfPatterns(int index1, int index2) {
+		MemoPattern pattern1 = sortedPatterns.get(index1);
+		sortedPatterns.set(index1, sortedPatterns.get(index2));
+		sortedPatterns.set(index2, pattern1);
 	}
 }

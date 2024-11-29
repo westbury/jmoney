@@ -159,7 +159,7 @@ public class TransactionTypeControlFactory<P, S extends ExtendableObject> extend
      * @param account
      * @return
      */
-	private List<TransactionType> getTransactionTypes(CapitalAccount account) {
+	public static List<TransactionType> getTransactionTypes(CapitalAccount account) {
 		
 //		IConfigurationElement wizardElement = findWizard(account);
 

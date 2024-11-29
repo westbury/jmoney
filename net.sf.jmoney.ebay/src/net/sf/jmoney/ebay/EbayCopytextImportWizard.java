@@ -308,13 +308,13 @@ public class EbayCopytextImportWizard extends Wizard implements IAccountImportWi
 			private static final long serialVersionUID = 1L;
 
 			{
-				add(new ImportEntryProperty<EntryData>("memo", "Memo") {
+				add(new ImportEntryProperty<EntryData>("memo", "Memo", "Pattern") {
 					@Override
 					protected String getCurrentValue(EntryData importEntry) {
 						return importEntry.getMemo();
 					}
 				});
-				add(new ImportEntryProperty<EntryData>("amount", "Amount") {
+				add(new ImportEntryProperty<EntryData>("amount", "Amount", "Range") {
 					@Override
 					protected String getCurrentValue(EntryData importEntry) {
 						// As we don't have an account accessible that would give us a currency, just format using GBP

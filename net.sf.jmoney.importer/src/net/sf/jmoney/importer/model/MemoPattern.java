@@ -26,6 +26,7 @@ package net.sf.jmoney.importer.model;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -36,6 +37,8 @@ import org.eclipse.core.databinding.observable.map.WritableMap;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.internal.databinding.observable.MapEntryObservableValue;
 
+import net.sf.jmoney.importer.matcher.ImportMatcher;
+import net.sf.jmoney.importer.model.IMatchEvaluator.MatchResult;
 import net.sf.jmoney.isolation.IObjectKey;
 import net.sf.jmoney.isolation.IValues;
 import net.sf.jmoney.isolation.ListKey;
@@ -121,7 +124,7 @@ public final class MemoPattern extends ExtendableObject {
 
 	private Map<String, String> patternMap;
 
-	private Map<String, Pattern> compiledPatternMap;
+	private Map<String, IMatchEvaluator> compiledPatternMap;
 
     /**
      * Constructor used by datastore plug-ins to create
@@ -158,7 +161,7 @@ public final class MemoPattern extends ExtendableObject {
 		this.incomeExpenseCurrencyKey = incomeExpenseCurrencyKey;
 	
 		patternMap = new HashMap<String, String>();
-		compiledPatternMap = new HashMap<String, Pattern>();
+		compiledPatternMap = new HashMap<String, IMatchEvaluator>();
 		if (pattern != null) {
 			extractPatterns();
  		}
@@ -194,7 +197,7 @@ public final class MemoPattern extends ExtendableObject {
 		this.incomeExpenseCurrencyKey = null;
 
 		patternMap = new HashMap<String, String>();
-		compiledPatternMap = new HashMap<String, Pattern>();
+		compiledPatternMap = new HashMap<String, IMatchEvaluator>();
 		transactionParameterValueMap = new WritableMap<String, String>();
 
 		transactionParameterValueMap.addMapChangeListener(new ParameterMapChangeListener());
@@ -202,7 +205,7 @@ public final class MemoPattern extends ExtendableObject {
 
     private void extractPatterns() {
     	patternMap = new WritableMap<String, String>();
-    	compiledPatternMap = new WritableMap<String, Pattern>();
+    	compiledPatternMap = new WritableMap<String, IMatchEvaluator>();
     	 
  		if (pattern != null) {
  			String[] pairs = pattern.split("\n");
@@ -233,7 +236,7 @@ public final class MemoPattern extends ExtendableObject {
 				 * matches everything.
 				 */
  				if (!columnPattern.trim().isEmpty()) {
- 					putPatternInternally(columnId, columnPattern);
+					putPatternInternally(columnId, columnPattern);
  				}
  			}
  		}
@@ -270,6 +273,62 @@ public final class MemoPattern extends ExtendableObject {
 		
 	}
 
+	enum LimitType { INCLUSIVE, EXCLUSIVE };
+
+	class AmountMatchEvaluator implements IMatchEvaluator {
+		LimitType start;
+		LimitType end;
+		int start_number;
+		int end_number;
+		
+		AmountMatchEvaluator(String columnPattern) throws InputPatternSyntaxException {
+			columnPattern = columnPattern.trim();
+			
+			if (columnPattern.startsWith("(") || columnPattern.startsWith("[")) {
+				if (columnPattern.startsWith("(")) {
+					start = LimitType.EXCLUSIVE;
+				} else if (columnPattern.startsWith("[")) {
+					start = LimitType.INCLUSIVE;
+				} else {
+					throw new RuntimeException("impossible");
+				}
+
+				if (columnPattern.endsWith(")")) {
+					end = LimitType.EXCLUSIVE;
+				} else if (columnPattern.endsWith("]")) {
+					end = LimitType.INCLUSIVE;
+				} else {
+					throw new InputPatternSyntaxException("Opening brackets have no matching closing brackets");
+				}
+
+				String withoutBrackets = columnPattern.substring(1, columnPattern.length()-1);
+				String[] parts = withoutBrackets.split(",");
+				start_number = parseNumber(parts[0].trim());
+				end_number = parseNumber(parts[1].trim());
+			} else {
+				int n = parseNumber(columnPattern);
+				start_number = n;
+				end_number = n;
+				start = LimitType.INCLUSIVE;
+				end = LimitType.INCLUSIVE;
+			}
+			
+		}
+		
+		@Override
+		public MatchResult matcher(String text) {
+			int n = parseNumber(text);
+			if (n < start_number || (n <= start_number && start == LimitType.EXCLUSIVE)) {
+				return new MatchResult(false, null);
+			}
+			if (n > end_number || (n >= end_number && end == LimitType.EXCLUSIVE)) {
+				return new MatchResult(false, null);
+			}
+			return new MatchResult(true, new String[0]);
+		}
+		
+	}
+	
 	/**
 	 * Puts the pattern for the given id into our maps.
 	 * 
@@ -279,6 +338,7 @@ public final class MemoPattern extends ExtendableObject {
 	 * @param columnId
 	 * @param columnPattern the pattern that this column must match, or null
 	 * 			if there are to be no restrictions on this column
+	 * @throws InputPatternSyntaxException 
 	 */
 	private void putPatternInternally(String columnId, String columnPattern) {
 		System.out.println("Setting " + columnId + " to " + columnPattern);
@@ -289,16 +349,64 @@ public final class MemoPattern extends ExtendableObject {
 		} else {
 			patternMap.put(columnId, columnPattern);
 
-			try {
-				Pattern thisCompiledPattern = Pattern.compile(columnPattern, Pattern.CASE_INSENSITIVE);
-				compiledPatternMap.put(columnId, thisCompiledPattern);
-			} catch (PatternSyntaxException e) {
-				compiledPatternMap.remove(columnId);
+			switch (columnId) {
+			case "memo":
+				try {
+					final Pattern thisCompiledPattern = Pattern.compile(columnPattern, Pattern.CASE_INSENSITIVE);
+					IMatchEvaluator matchEvaluator = new IMatchEvaluator() {
+	
+						@Override
+						public MatchResult matcher(String text) {
+							Matcher m = thisCompiledPattern.matcher(text);
+							if (m.matches()) {
+								/*
+								 * Group zero is the entire string and the groupCount method
+								 * does not include that group, so there is really one more group
+								 * than the number given by groupCount.
+								 */
+								String[] args = new String[m.groupCount()+1];
+								for (int i = 0; i <= m.groupCount(); i++) {
+									args[i] = m.group(i);
+								}
+								return new MatchResult(true, args);
+							} else {
+								return new MatchResult(false, null);
+							}
+						}
+						
+					};
+					compiledPatternMap.put(columnId, matchEvaluator);
+				} catch (PatternSyntaxException e) {
+					compiledPatternMap.remove(columnId);
+				}
+				break;
+			case "amount":
+				try {
+					IMatchEvaluator matchEvaluator = new AmountMatchEvaluator(columnPattern);
+					compiledPatternMap.put(columnId, matchEvaluator);
+				} catch (InputPatternSyntaxException e) {
+					compiledPatternMap.remove(columnId);
+				}
+				break;
 			}
 		}
 	}
 
-    private void extractParameterValues() {
+    private int parseNumber(String text) throws PatternSyntaxException {
+		final Pattern thisCompiledPattern = Pattern.compile("\\-?(\\d+)(\\.(\\d\\d))?");
+		// This is used on the displayable value which includes commas.
+		// The user might also put commas in the range specification if there is only a single value.
+		String textNoCommas = text.replaceAll(",", "");
+		Matcher m = thisCompiledPattern.matcher(textNoCommas);
+		if (!m.matches()) {
+			throw new PatternSyntaxException("Number does not match currency amount format", "\\-?(\\d+)(\\.(\\d\\d))?", 0);
+		}
+		String numberText = m.group(1) + (m.group(2) == null ? "00" : m.group(3));
+		
+		return Integer.parseInt(numberText);
+    }
+		
+	private void extractParameterValues() {
    	 transactionParameterValueMap = new WritableMap<String, String>();
    	 
 		if (transactionParameterValues != null) {
@@ -564,7 +672,7 @@ public final class MemoPattern extends ExtendableObject {
 		putPattern(importEntryPropertyId, value);
 	}
 
-	public Pattern getCompiledPattern(String importEntryPropertyId) {
+	public IMatchEvaluator getCompiledPattern(String importEntryPropertyId) {
 		return compiledPatternMap.get(importEntryPropertyId);
 	}
 }
