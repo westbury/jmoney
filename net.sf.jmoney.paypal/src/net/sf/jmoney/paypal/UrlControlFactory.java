@@ -27,19 +27,17 @@ import java.net.URL;
 import java.util.Comparator;
 
 import net.sf.jmoney.model2.ExtendableObject;
-import net.sf.jmoney.model2.IPropertyControl;
 import net.sf.jmoney.model2.IPropertyControlFactory;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
 import org.eclipse.core.internal.databinding.provisional.bind.Bind;
-import org.eclipse.core.internal.databinding.provisional.bind.IBidiConverter;
 import org.eclipse.core.internal.databinding.provisional.bind.IBidiWithStatusConverter;
 import org.eclipse.core.internal.databinding.provisional.bind.IValueWithStatus;
 import org.eclipse.core.internal.databinding.provisional.bind.ValueWithStatus;
 import org.eclipse.jface.databinding.fieldassist.ControlStatusDecoration;
-import org.eclipse.jface.databinding.swt.SWTObservables;
+import org.eclipse.jface.databinding.swt.typed.WidgetProperties;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -93,7 +91,7 @@ public class UrlControlFactory<S extends ExtendableObject> implements IPropertyC
 
 		Bind.twoWay(propertyAccessor.observeDetail(modelObservable))
 		.convert(urlToStringConverter)
-		.to(SWTObservables.observeText(control, SWT.FocusOut), statusDecoration::update);
+		.to(WidgetProperties.text(SWT.FocusOut).observe(control), statusDecoration::update);
 
         return control;
 	}
