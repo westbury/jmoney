@@ -6,6 +6,7 @@ import java.util.List;
 
 import ebayscraper.IItemUpdater;
 import ebayscraper.IOrderUpdater;
+import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.importer.wizards.ImportException;
 
 public class EbayOrder {
@@ -15,8 +16,6 @@ public class EbayOrder {
 	private Date orderDate;
 	
 	private String orderNumber;
-
-	private String seller;
 
 	private List<EbayOrderItem> items = new ArrayList<>();
 
@@ -34,6 +33,8 @@ public class EbayOrder {
 
 	private boolean chargeAmountStale;
 
+	private IAmountFormatter amountFormatter;
+
 	/**
 	 * This form is used when no transaction exists in the session for this
 	 * order.  A new transaction is created.
@@ -42,9 +43,10 @@ public class EbayOrder {
 	 * @param transaction
 	 * @throws ImportException 
 	 */
-	public EbayOrder(String orderNumber, IOrderUpdater orderUpdater) {
+	public EbayOrder(String orderNumber, IOrderUpdater orderUpdater, IAmountFormatter amountFormatter) {
 		this.orderNumber = orderNumber;
 		this.orderUpdater = orderUpdater;
+		this.amountFormatter = amountFormatter;
 
 		/*
 		 * Create items from data that already exists in the accounting database.
@@ -58,14 +60,6 @@ public class EbayOrder {
 	
 	public String getOrderNumber() {
 		return orderNumber;
-	}
-
-	public String getSeller() {
-		return seller;
-	}
-
-	public void setSeller(String seller) {
-		this.seller = seller;
 	}
 
 	public List<EbayOrderItem> getItems() {
@@ -88,12 +82,7 @@ public class EbayOrder {
 
 	/** the amount charged, calculated if we have only imported order list */
 	public long getOrderTotal() {
-		long total = 0;
-		for (EbayOrderItem item : items) {
-			total += item.getNetCost();
-		}
-
-		return total + this.orderUpdater.getPostageAndPackaging() - this.orderUpdater.getDiscount();
+		return orderTotal;
 	}
 
 	public void setLastFourDigitsOfAccount(String lastFourDigits) {
@@ -227,7 +216,7 @@ public class EbayOrder {
 
 		if (orderUpdater.isChargeAmountFixed()) {
 			if (-orderTotal != orderUpdater.getChargeAmount()) {
-				throw new RuntimeException("Can't update the charge amount because it has been matched to other imports (e.g. import from bank).");
+//				throw new UnsupportedImportDataException(orderNumber, orderDate, "Can't update the charge amount from " + amountFormatter.format(orderUpdater.getChargeAmount()) + " to " + amountFormatter.format(-orderTotal) + " because it has been matched to other imports (e.g. import from bank).");
 			}
 		} else {
 			setChargeAmount(-orderTotal);

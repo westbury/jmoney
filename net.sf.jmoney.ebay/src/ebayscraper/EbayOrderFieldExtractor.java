@@ -1,7 +1,9 @@
 package ebayscraper;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import ebayscraper.api.EbayOrderListItemFields;
 import ebayscraper.api.EbayOrderListOrderFields;
@@ -59,10 +61,16 @@ public class EbayOrderFieldExtractor implements EbayOrderListOrderFields {
 						return itemBindings.getVariable("itemprice").text;
 					}
 
-//					@Override
-//					public String getDetail() {
-//						return itemBindings.getVariable("detail").text;
-//					}
+					@Override
+					public Map<String, String> getDetail() {
+						Map<String, String> detailMap = new HashMap<>();
+						for (MatchResults detailBindings : itemBindings.getCollections(0)) {
+							String key = detailBindings.getVariable("key").text;
+							String value = detailBindings.getVariable("value").text;	
+							detailMap.put(key, value);							
+						}
+						return detailMap;
+					}
 
 					@Override
 					public String getItemPrice() {

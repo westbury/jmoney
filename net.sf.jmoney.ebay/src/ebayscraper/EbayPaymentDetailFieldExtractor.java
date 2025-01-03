@@ -23,7 +23,7 @@ public class EbayPaymentDetailFieldExtractor implements EbayDetailPaymentFields 
 
 	@Override
 	public String getItemTotal() {
-		return paymentBindings.getVariable("itemtotal2").text;
+		return paymentBindings.getVariable("totalnetitemprices").text;
 	}
 
 	@Override
@@ -34,6 +34,11 @@ public class EbayPaymentDetailFieldExtractor implements EbayDetailPaymentFields 
 	@Override
 	public String getShippingCost() {
 		return paymentBindings.getVariable("shipping").text;
+	}
+
+	@Override
+	public String getTax() {
+		return paymentBindings.getVariable("tax").text;
 	}
 
 	@Override
@@ -83,11 +88,6 @@ public class EbayPaymentDetailFieldExtractor implements EbayDetailPaymentFields 
 						}
 
 						@Override
-						public String getTrackingNumber() {
-							return orderBindings.getVariable("trackingnumber").text;
-						}
-
-						@Override
 						public String getDayOfYearPaid() {
 							return orderBindings.getVariable("dayofyearpaid").text;
 						}
@@ -127,11 +127,6 @@ public class EbayPaymentDetailFieldExtractor implements EbayDetailPaymentFields 
 										@Override
 										public String getAmount() {
 											return itemBindings.getVariable("amount").text;
-										}
-
-										@Override
-										public String getDetail() {
-											return itemBindings.getVariable("detail").text;
 										}
 									});
 							}

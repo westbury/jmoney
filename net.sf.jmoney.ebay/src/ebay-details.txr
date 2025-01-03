@@ -5,25 +5,32 @@ Time placed	@{orderdate /\d\d?\s\w\w\w\s\d\d\d\d/} at @{ordertime}
 Order number	@{ordernumber}
 Total	£@{total} (@{numberofitems})
 Sold by	@{seller}
-Delivery info
+Delivery info@{pageofpage}
 @(maybe)
 Delivered on @{deliverydate /\w\w\w,\s\d\d?\s\w\w\w\s\d\d\d\d/}
 @(end)
 
 Paid
-@{dayofyearpaid /\d\d?\s\w\w\w/}
-@(maybe)
-2
-@(end)
-Dispatched
-@(maybe)
-@{dayofyearshipped /\d\d?\s\w\w\w/}
+@{dayofyearpaid /\d\d?\s\w\w\w/}-Completed
+@(cases)
+Dispatched (Untracked)
 @(or)
-3
+Tracking available
 @(end)
-Delivered
+@(cases)
+@{dayofyearshipped /\d\d?\s\w\w\w/}-Completed
+@(or)
+-Completed
+@(end)
 @(maybe)
-@{dayofyeardelivered /\d\d?\s\w\w\w/}
+Delivered
+@{dayofyeardelivered /\d\d?\s\w\w\w/}-Completed
+@(end)
+@(maybe)
+Delivered
+@(end)
+@(maybe)
+-Delivery in progress
 @(end)
 Tracking details
 @(maybe)
@@ -34,6 +41,9 @@ Courier	@{carrier}
 @(end)
 @(maybe)
 Number	@{trackingnumber}
+@  (maybe)
+Track package
+@  (end)
 @(end)
 Item details
 @(collect)
@@ -97,7 +107,7 @@ Ending in @{lastfourdigits2}@{cardtype2 /Visa|Master Card/} credit card ending i
 
 @(end)
 @{numberofitems2}
-£@{itemtotal2}
+£@{totalnetitemprices}
 @(maybe)
 Item discount
 -£@{discount}
@@ -110,6 +120,11 @@ Amount paid
 Total refunded
 -£@{amountrefunded}
 @(end)
+@(maybe)
+VAT *
+£@{tax}
+@(end)
 Order total
 £@{overalltotal}
+@(skip 5)
 How do you like our order details page?

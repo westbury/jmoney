@@ -1,34 +1,44 @@
 @(skip)
-@{username}username, click for member’s profile ( @{feedbackscore}Feedback@{rest}
+@{username}user ID, select to see member's profile ( @{feedbackscore}Feedback@{rest}
 @(skip)
 Orders
 @(collect :maxgap 6)
-Order date:@{orderdate /\d\d\s\w\w\w,\s\d\d\d\d/}
+Order date:
+@{orderdate /\d\d\s\w\w\w,\s\d\d\d\d/}
 @(assert)
-Order total:£@{ordertotal}
-Order number:@{ordernumber}
+Order total:
+£@{ordertotal}
+Order number:
+@{ordernumber}
 View order details@{orderdescription}
 @  (collect)
 @  (cases)
 @{description} @; note this one has a space at the end
 @  (or)
-@{description}
+@{descriptionwithdoublespaces}
 @  (end)
-@  (maybe)
+@  (cases)
 Dispatched: @{dispatchjunk}
-@    (assert)
-@  (end)
-@  (maybe)
+@  (or)
+Dispatched (Untracked): Est. delivery @{deliverydate}
+@  (or)
+Tracking available: Est. delivery @{deliverydate}
+@  (or)
+Dispatched (Untracked): @{dispatchjunk}
+@  (or)
 Delivered on @{deliverydate}
-@    (assert)
-@  (end)
-@  (maybe)
+@  (or)
 Est. delivery @{estimateddeliverydaterange}
-@    (assert)
+@  (end)
+@  (assert)
+@  (maybe)
+Returns accepted through @{returnclosedate}.
 @  (end)
 @  (maybe)
 Return window closed on @{returnclosedate}.
-@    (assert)
+@  (end)
+@  (maybe)
+Returns not accepted.
 @  (end)
 @  (maybe)
 Tracking number: @{trackingnumber}
@@ -46,73 +56,6 @@ The seller has cancelled this order. View details
 @  (end)
 @{description}
 @  (assert)
-@  (maybe)
-Main Colour: @{color}
-@  (end)
-@  (maybe)
-Main Colour:: @{color}
-@  (end)
-@  (maybe)
-Colours: @{color}
-@  (end)
-@  (maybe)
-MPN: @{mpn}
-@  (end)
-@  (maybe)
-Size: @{size}
-@  (end)
-@  (maybe)
-Sizes: @{size}
-@  (end)
-@  (maybe)
-Size Type: @{size}
-@  (end)
-@  (maybe)
-UK Shoe Size (Women's): @{size}
-@  (end)
-@  (maybe)
-Inside Leg: @{size2}
-@  (end)
-@  (maybe)
-Leg Length: @{size2}
-@  (end)
-@  (maybe)
-Trouser Size: @{size3}
-@  (end)
-@  (maybe)
-Length: @{size}
-@    (bind sizetype length)
-@  (end)
-@  (maybe)
-Colour Code: @{color}
-@  (end)
-@  (maybe)
-Colour: @{color}
-@  (end)
-@  (maybe)
-size:: @{size}
-@  (end)
-@  (maybe)
-Shoe Size: @{size2}
-@  (end)
-@  (maybe)
-Main Colour: @{color}
-@  (end)
-@  (maybe)
-Main Colour:: @{color}
-@  (end)
-@  (maybe)
-Width Fitting: @{shoewidth}
-@  (end)
-@  (maybe)
-MPN: @{mpn}
-@  (end)
-@  (maybe)
-Quantity: @{quantity}
-@  (end)
-@  (maybe)
-Socket Type: @{sockettype}
-@  (end)
 @  (collect :maxgap 0)
 @{key /[\w\s]+/}: @{value /[\w\d\s]+/}
 @  (until)
@@ -122,11 +65,15 @@ Socket Type: @{sockettype}
 @  (assert)
 Sold by:
 @  (maybe)
-@{seller}username, click for member’s profile@; once in a while this line is missing
+@{seller} ID@; once in a while this line is missing
 @  (end)
-@(skip 5)
+@  (skip 5)
 More actions
 @  (until)
-Order date:@{discardorderdate}
+@    (cases)
+Order date:
+@    (or)
+Results pagination - page
+@    (end)
 @  (end)
 @(end)

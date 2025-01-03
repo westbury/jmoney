@@ -161,7 +161,7 @@ public class EbayCopytextImportWizard extends Wizard implements IAccountImportWi
 			MessageDialog.openError(window.getShell(), "Unable to import Ebay orders", e.getLocalizedMessage());
 			return false;
 		} catch (TxrMismatchException e) {
-			e.showInDebugView(window);
+			e.showInDebugView(window, (String [] txrLines) -> {/* TODO as the TXR may be edited */});
 		}
 
 		return true;

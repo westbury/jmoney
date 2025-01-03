@@ -42,4 +42,6 @@ public interface IItemUpdater {
 
 	void setImageCode(String imageCode);
 
+	void setDetail(String detail);
+
 }

@@ -4,9 +4,15 @@ import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -26,13 +32,15 @@ import net.sf.jmoney.importer.wizards.ImportException;
 public class EbayOrderAnalyzer {
 
 	/** Date format used by Ebay on its web pages */
-	private static DateFormat ebayDateFormat = new SimpleDateFormat("dd MMM, yyyy");
-	private static DateFormat ebayDateNoCommaFormat = new SimpleDateFormat("dd MMM yyyy");
-	private static DateFormat ebayPaidDateFormat = new SimpleDateFormat("d MMM, yyyy");
+	private static DateTimeFormatter ebayDateFormat = DateTimeFormatter.ofPattern("dd MMM, yyyy", Locale.ENGLISH);
+
+//	private static DateFormat ebayDateFormat = new SimpleDateFormat("dd MMM, yyyy");
+	private static DateFormat ebayDateNoCommaFormat = new SimpleDateFormat("dd MMM yyyy", Locale.ENGLISH);
+	private static DateFormat ebayPaidDateFormat = new SimpleDateFormat("d MMM, yyyy", Locale.ENGLISH);
 	private static DateFormat ebayShipDateFormat = new SimpleDateFormat("dd/MM/yyyy");
-	private static DateFormat ebayMonthAndDayFormat = new SimpleDateFormat("d MMM");
-	private static DateFormat ebayDeliveryDateFormat = new SimpleDateFormat("EEE, d MMM yyyy");
-	private static DateFormat ebayShortDeliveryDateFormat = new SimpleDateFormat("EEE d MMM");
+	private static DateFormat ebayMonthAndDayFormat = new SimpleDateFormat("d MMM", Locale.ENGLISH);
+	private static DateFormat ebayDeliveryDateFormat = new SimpleDateFormat("EEE, d MMM yyyy", Locale.ENGLISH);
+	private static DateFormat ebayShortDeliveryDateFormat = new SimpleDateFormat("EEE d MMM", Locale.ENGLISH);
 	
 	private Set<EbayOrder> orders;
 	private IContextUpdater contextUpdater;
@@ -54,11 +62,17 @@ public class EbayOrderAnalyzer {
 
 		Date orderDate;
 		try {
-			orderDate = ebayDateFormat.parse(orderDateAsString);
-		} catch (ParseException e) {
+			LocalDate date = LocalDate.parse(orderDateAsString, ebayDateFormat);
+			// This is a hacky way of getting to an old Date, whether default
+			// timezone is PDT, PST, BST, OR GMT.
+			// TODO use LocalDate internally, not Date.
+		    Date timestamp = Date.from(date.atTime(12, 0).atZone(ZoneId.of("GMT")).toInstant());
+            orderDate = timestamp;
+//			orderDate = ebayDateFormat.parse(orderDateAsString);
+		} catch (DateTimeParseException e) {
 			// TODO Return as error to TXR when that is supported???
 			e.printStackTrace();
-			throw new RuntimeException("bad date");
+			throw new RuntimeException("bad date in " + orderNumber + ": " + orderDateAsString);
 		}
 
 		/*
@@ -71,7 +85,8 @@ public class EbayOrderAnalyzer {
 
 //		order.setOrderDate(orderDate);  // Done here and in above....
 //		order.setItemTotal(orderTotal);  actually not available from order list
-
+		order.setOrderTotal(orderTotal);
+		
 		ItemBuilder itemBuilder = new ItemBuilder(order, order.getItems());
 
 		for (EbayOrderListItemFields itemFields : orderFields.getItems()) {
@@ -93,6 +108,7 @@ public class EbayOrderAnalyzer {
 			String description = itemFields.getDescription();
 			String itemPriceAsString = itemFields.getUnitPrice();
 			String itemNumber = itemFields.getItemNumber();
+			Map<String, String> itemDetail = itemFields.getDetail();
 
 			long itemPrice = new BigDecimal(itemPriceAsString).scaleByPowerOfTen(2).longValueExact();
 
@@ -147,13 +163,29 @@ public class EbayOrderAnalyzer {
 				}
 			}
 			
+			if (!itemDetail.isEmpty()) {
+				String detailAsString = serializeDetailAsJson(itemDetail);
+				item.setDetail(detailAsString);
+			}
+			
+			// Look for quantity in the detail
+			int itemQuantity = 1;
+			if (itemDetail != null) {
+				if (itemQuantity != 1) {
+					item.setQuantity(itemQuantity);	
+				}
+			}
+			
+			// What's left, show that as 'detail' to the user.
+			String detailAsJson = serializeDetailAsJson(itemDetail);
+			item.setDetail(detailAsJson);
 			
 		}
 
 		// Must do this check after returns are processed, because the sale of the return may not otherwise
 		// have been extracted.
 		if (!itemBuilder.isEmpty()) {
-			throw new RuntimeException("The imported items in the order do not match the previous set of imported items in order " + order.getOrderNumber() + ".  This should not happen and the code cannot cope with this situation.");
+			throw new RuntimeException("The imported items in the order do not match the previous set of imported items in order " + order.getOrderNumber() + ". The unmatched items are " + itemBuilder + ".  This should not happen and the code cannot cope with this situation.");
 		}
 
 		/*
@@ -167,12 +199,45 @@ public class EbayOrderAnalyzer {
 		return orderDate;
 	}
 
+	private String serializeDetailAsJson(Map<String, String> map) {
+	    StringBuilder jsonBuilder = new StringBuilder();
+	    jsonBuilder.append("{");
+	
+	    // Iterate over the entries of the map
+	    boolean first = true;
+	    for (Map.Entry<String, String> entry : map.entrySet()) {
+	        if (!first) {
+	            jsonBuilder.append(","); // Add a comma before each new entry (except the first)
+	        }
+	        first = false;
+	
+	        // Escape quotes and special characters in keys and values
+	        String key = escapeJson(entry.getKey());
+	        String value = escapeJson(entry.getValue());
+	
+	        // Append the key-value pair
+	        jsonBuilder.append("\"").append(key).append("\":\"").append(value).append("\"");
+	    }
+	
+	    jsonBuilder.append("}");
+	    return jsonBuilder.toString();
+	}
+	
+    private static String escapeJson(String input) {
+        return input.replace("\\", "\\\\") // Escape backslashes
+                    .replace("\"", "\\\"") // Escape double quotes
+                    .replace("\n", "\\n") // Escape newlines
+                    .replace("\r", "\\r") // Escape carriage returns
+                    .replace("\t", "\\t"); // Escape tabs
+    }
+    
 	public void processEbayOrderDetails(EbayDetailPaymentFields paymentFields)
 			throws UnsupportedImportDataException {
 		
 		String lastFourDigits = paymentFields.getLastFourDigits();
 		String discountAsString = paymentFields.getDiscount();
 		String shippingAsString = paymentFields.getShippingCost();
+		String taxAsString = paymentFields.getTax();
 
 		for (EbayDetailOrderFields orderFields : paymentFields.getOrders()) {
 		
@@ -237,11 +302,16 @@ public class EbayOrderAnalyzer {
 			long orderTotal = new BigDecimal(totalAsString).scaleByPowerOfTen(2).longValueExact();
 	
 			long discount = discountAsString == null ? 0 : new BigDecimal(discountAsString).scaleByPowerOfTen(2).longValueExact();
-			if (!shippingAsString.startsWith("£") && !shippingAsString.equals("Free")) {
-				throw new RuntimeException("bad shipping amount");
+			if (!shippingAsString.startsWith("Â£") && !shippingAsString.equals("Free")) {
+				throw new RuntimeException(String.format("bad shipping amount %s, should be 'Free' or start with 'Â£'", shippingAsString));
 			}
-			long shipping = (shippingAsString == null || shippingAsString.equals("Free")) ? 0 : new BigDecimal(shippingAsString.substring("£".length())).scaleByPowerOfTen(2).longValueExact();
+			long shipping = (shippingAsString == null || shippingAsString.equals("Free")) ? 0 : new BigDecimal(shippingAsString.substring("Â£".length())).scaleByPowerOfTen(2).longValueExact();
+			long tax = (taxAsString == null) ? 0 : new BigDecimal(taxAsString).scaleByPowerOfTen(2).longValueExact();
 	
+			if (tax != 0 && orderFields.getItems().size() != 1) {
+				throw new UnsupportedImportDataException(orderNumber, orderDate, "A VAT amount is in the details. However there is not a single item, so we don't know which items the VAT applies to.");
+			}
+			
 			/*
 			 * If no EbayOrder exists yet in this view then create one.
 			 * This will be either initially empty if the order does not yet
@@ -249,7 +319,6 @@ public class EbayOrderAnalyzer {
 			 * found in the session.
 			 */
 			EbayOrder order = getEbayOrderWrapper(orderNumber, orderDate);
-			order.setSeller(soldBy);
 			order.setOrderTotal(orderTotal);
 			order.setDiscount(discount);
 			order.setPostageAndPackaging(shipping);
@@ -268,41 +337,17 @@ public class EbayOrderAnalyzer {
 				String description = itemFields.getDescription();
 				String unitPriceAsString = itemFields.getUnitPrice();
 				String itemNumber = itemFields.getItemNumber();
-				String itemDetail = itemFields.getDetail();
-
+	
 				long itemPrice = new BigDecimal(unitPriceAsString).scaleByPowerOfTen(2).longValueExact();
 
 				EbayOrderItem item = itemBuilder.get(itemNumber, description);
 
-				item.setNetCost(itemPrice);
-				item.getUnderlyingItem().setSoldBy(soldBy);
-				
-				// Look for quantity in the detail
-				int itemQuantity = 1;
-				if (itemDetail != null) {
-					Pattern quantityPattern1 = Pattern.compile("(.*)Qty\\s(\\d+)(.*)");
-					Matcher m = quantityPattern1.matcher(itemDetail);
-					if (m.matches()) {
-						String q = m.group(2);
-						itemQuantity = Integer.parseInt(q);
-						itemDetail = m.group(1) + m.group(3);
-						Pattern quantityPattern2 = Pattern.compile("(.*)quantity\\s" + q + "(.*)");
-						Matcher m2 = quantityPattern2.matcher(itemDetail);
-						if (m2.matches()) {
-							itemDetail = m2.group(1) + m2.group(2);
-						}
-					}
-					if (itemQuantity != 1) {
-						item.setQuantity(itemQuantity);	
-					}
-				}
-				
-				// What's left, show that as 'detail' to the user.
-				item.setDetail(itemDetail);
+				item.setNetCost(itemPrice + tax);
+				item.getUnderlyingItem().setSoldBy(soldBy);				
 			}
 	
 			if (!itemBuilder.isEmpty()) {
-				throw new RuntimeException("The imported items in the order do not match the previous set of imported items in order " + order.getOrderNumber() + ".  This should not happen and the code cannot cope with this situation.");
+				throw new RuntimeException("The imported items in the order do not match the previous set of imported items in order " + order.getOrderNumber() + ". The unmatched items are " + itemBuilder + ". This should not happen and the code cannot cope with this situation.");
 			}
 
 			if (discount != 0) {

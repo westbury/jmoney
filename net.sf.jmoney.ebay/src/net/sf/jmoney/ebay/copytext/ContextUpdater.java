@@ -16,6 +16,7 @@ import net.sf.jmoney.ebay.EbayEntry;
 import net.sf.jmoney.ebay.EbayEntryInfo;
 import net.sf.jmoney.ebay.EbayTransaction;
 import net.sf.jmoney.ebay.EbayTransactionInfo;
+import net.sf.jmoney.fields.IAmountFormatter;
 import net.sf.jmoney.importer.wizards.ImportException;
 import net.sf.jmoney.model2.BankAccount;
 import net.sf.jmoney.model2.Entry;
@@ -34,6 +35,8 @@ public class ContextUpdater implements IContextUpdater {
 	/** outside transaction (committed) */
 	private IObservableValue<BankAccount> defaultChargeAccount = new WritableValue<>();
 
+	private IAmountFormatter currencyFormatter;
+	
 	private AccountFinder accountFinder;
 
 	private IDatastoreManager sessionManager;
@@ -44,6 +47,7 @@ public class ContextUpdater implements IContextUpdater {
 		this.session = uncommittedSessionManager.getSession();
 		this.defaultChargeAccount = defaultChargeAccount;
 
+		this.currencyFormatter = sessionManager.getSession().getCurrencyForCode("GBP");		
 		this.accountFinder = new AccountFinder(session, "GBP");
 	}
 
@@ -79,7 +83,7 @@ public class ContextUpdater implements IContextUpdater {
 		
 		BankAccount defaultChargeAccountInTransaction = uncommittedSessionManager.getCopyInTransaction(defaultChargeAccount.getValue());
 		IOrderUpdater orderUpdater = new OrderUpdater(transaction, accountFinder, defaultChargeAccountInTransaction);
-		EbayOrder order = new EbayOrder(orderNumber, orderUpdater);
+		EbayOrder order = new EbayOrder(orderNumber, orderUpdater, currencyFormatter);
 
 		// Is this correct?  It must be here for new transaction, but what about an existing one?
 		order.setOrderDate(orderDate);

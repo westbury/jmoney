@@ -335,9 +335,14 @@ public class CopierPlugin extends AbstractUIPlugin {
     		} else {
     			newValue = oldValue;
     		}
-    		propertyAccessor.setValue(
-    				newObject,
-					newValue);
+    		// Many property settings don't allow setting of null values even though
+    		// the database contains objects where the property is null.
+    		// In cases the property can only be null because it has never been set.
+    		if (newValue != null) {
+	    		propertyAccessor.setValue(
+	    				newObject,
+						newValue);
+    		}
     }
     
     private <E extends ExtendableObject, S extends ExtendableObject> void copyList(S newParent, S oldParent, ListPropertyAccessor<E,S> listAccessor, Map<ExtendableObject, ExtendableObject> objectMap) {

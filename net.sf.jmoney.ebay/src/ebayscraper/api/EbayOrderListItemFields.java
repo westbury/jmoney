@@ -1,6 +1,6 @@
 package ebayscraper.api;
 
-import java.util.Date;
+import java.util.Map;
 
 public interface EbayOrderListItemFields {
 
@@ -26,6 +26,14 @@ public interface EbayOrderListItemFields {
 	 */
 	String getItemPrice();
 	
+
+	/**
+	 * order list only
+	 * 
+	 * @return
+	 */
+	Map<String, String> getDetail();
+
 	/**
 	 * order detail only
 	 * @return

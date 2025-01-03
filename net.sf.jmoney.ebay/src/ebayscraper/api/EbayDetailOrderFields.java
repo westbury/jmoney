@@ -23,8 +23,6 @@ public interface EbayDetailOrderFields {
 
 	String getShippingService();
 
-	String getTrackingNumber();
-
 	String getDayOfYearPaid();
 
 	String getDayOfYearShipped();

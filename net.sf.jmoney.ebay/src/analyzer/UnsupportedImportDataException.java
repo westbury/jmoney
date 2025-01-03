@@ -22,6 +22,10 @@
 
 package analyzer;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 /**
  * Exception thrown when something is found in the input data that
  * is unsupported, unknown, appears to be incorrect.  This exception
@@ -30,11 +34,14 @@ package analyzer;
  * 
  * @author Nigel
  */
-public class UnsupportedImportDataException extends Exception {
+// TODO consider making this a checked exception
+public class UnsupportedImportDataException extends RuntimeException {
 	private static final long serialVersionUID = 1L;
 
-	public UnsupportedImportDataException(String message) {
-		super(message);
+	static DateFormat df = new SimpleDateFormat("dd MMM yyyy");
+
+	public UnsupportedImportDataException(String orderNumber, Date orderDate, String message) {
+		super("Order " + orderNumber + " on " + df.format(orderDate) + " cannot be imported. " + message);
 	}
 
 }

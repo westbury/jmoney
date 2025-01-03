@@ -46,12 +46,6 @@ public class EbayEntry extends EntryExtension {
 	
 	private String itemNumber = null;
 	
-	/**
-	 * the carrier and tracking number, being used when importing items and
-	 * orders to match the items to the orders
-	 */
-	private String trackingNumber = null;
-	
 	private Date deliveryDate = null;
 
 	private String ebayDescription = null;
@@ -64,6 +58,11 @@ public class EbayEntry extends EntryExtension {
 	 * picture of the item in JPEG format
 	 */
 	private IBlob picture = null;
+
+	/**
+	 * JSON string containing map of item attributes (size, color etc)
+	 */
+	private String detail;
 	
 	/**
 	 * A default constructor is mandatory for all extension objects.
@@ -82,16 +81,16 @@ public class EbayEntry extends EntryExtension {
 	 * This constructor is called by the datastore to construct
 	 * the extension objects when loading data.
 	 */
-	public EbayEntry(ExtendableObject extendedObject, String orderId, String itemNumber, String trackingNumber, Date deliveryDate, String ebayDescription, String soldBy, String imageCode, IBlob picture) {
+	public EbayEntry(ExtendableObject extendedObject, String orderId, String itemNumber, Date deliveryDate, String ebayDescription, String soldBy, String imageCode, IBlob picture, String detail) {
 		super(extendedObject);
 		this.orderNumber = orderId;
 		this.itemNumber = itemNumber;
-		this.trackingNumber = trackingNumber;
 		this.deliveryDate = deliveryDate;
 		this.ebayDescription = ebayDescription;
 		this.soldBy = soldBy;
 		this.imageCode = imageCode;
 		this.picture = picture;
+		this.detail = detail;
 	}
 	
 	public String getOrderNumber() {
@@ -116,18 +115,6 @@ public class EbayEntry extends EntryExtension {
 
 		// Notify the change manager.
 		processPropertyChange(EbayEntryInfo.getItemNumberAccessor(), oldItemNumber, itemNumber);
-	}
-	
-	public String getTrackingNumber() {
-		return trackingNumber;
-	}
-	
-	public void setTrackingNumber(String trackingNumber) {
-		String oldTrackingNumber = this.trackingNumber;
-		this.trackingNumber = trackingNumber;
-
-		// Notify the change manager.
-		processPropertyChange(EbayEntryInfo.getTrackingNumberAccessor(), oldTrackingNumber, trackingNumber);
 	}
 	
 	public Date getDeliveryDate() {
@@ -208,4 +195,18 @@ public class EbayEntry extends EntryExtension {
 		// Notify the change manager.
 		processPropertyChange(EbayEntryInfo.getPictureAccessor(), oldPicture, persistentBlob);
 	}
+
+
+	public String getDetail() {
+		return detail;
+	}
+	
+	public void setDetail(String detail) {
+		String oldDetail = this.detail;
+		this.detail = detail;
+
+		// Notify the change manager.
+		processPropertyChange(EbayEntryInfo.getDetailAccessor(), oldDetail, detail);
+	}
+
 }

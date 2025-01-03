@@ -108,6 +108,7 @@ public class EbayOrderItem {
 
 	public void setDetail(String detail) {
 		this.detail = detail;
+		updater.setDetail(detail);
 	}
 
 	public void setDeliveryDate(Date deliveryDate) {

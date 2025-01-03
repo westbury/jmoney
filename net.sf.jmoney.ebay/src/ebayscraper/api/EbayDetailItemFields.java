@@ -6,8 +6,6 @@ public interface EbayDetailItemFields {
 
 	String getDescription();
 
-	String getDetail();
-
 	String getUnitPrice();
 
 	String getAmount();

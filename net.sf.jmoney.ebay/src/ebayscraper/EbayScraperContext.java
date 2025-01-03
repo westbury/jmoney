@@ -1,11 +1,19 @@
 package ebayscraper;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+
+import org.eclipse.core.runtime.FileLocator;
 
 import analyzer.EbayOrder;
 import analyzer.EbayOrderAnalyzer;
@@ -21,11 +29,17 @@ public class EbayScraperContext {
 
 	IContextUpdater contextUpdater;
 
-	// Lazily created
-	private DocumentMatcher ordersMatcher = null;
+	interface ITxrReader {
+		DocumentMatcher createMatcherFromResource() throws TxrErrorInDocumentException;
+	}
 
 	// Lazily created
+	private DocumentMatcher ordersMatcher = null;
+	private ITxrReader ordersTxrSource = createTxrReader("ebay-orders.txr");
+	
+	// Lazily created
 	private DocumentMatcher detailsMatcher = null;
+	private ITxrReader detailsTxrSource = createTxrReader("ebay-details.txr");
 
 	public Set<EbayOrder> orders = new HashSet<>();
 
@@ -37,10 +51,80 @@ public class EbayScraperContext {
 		analyzer = new EbayOrderAnalyzer(orders, contextUpdater);
 	}
 
-	private MatchResults extractOrderBindings(String inputText) throws TxrMismatchException {
-		if (ordersMatcher == null) {
-			ordersMatcher = createMatcherFromResource("ebay-orders.txr");
+	private ITxrReader createTxrReader(String resourceName) {
+		ClassLoader classLoader = getClass().getClassLoader();
+		URL resourceUrl = classLoader.getResource(resourceName);
+
+		try {
+			URL txrFileUrl = FileLocator.resolve(resourceUrl);
+			assert ("file".equals(txrFileUrl.getProtocol()));
+			File binFile = new File(txrFileUrl.toURI());
+			String binPath = binFile.getAbsolutePath();
+
+			if (binPath.contains("/bin/")) {
+				// Assume it's the bin path in an Eclipse source project.
+
+				String srcPath = binPath.replace("/bin/", "/src/");
+				File srcFile = new File(srcPath);
+
+				return new ITxrReader() {
+					@Override
+					public DocumentMatcher createMatcherFromResource() throws TxrErrorInDocumentException {
+
+						try (
+							InputStream txrInputStream = new FileInputStream(srcFile)
+						) {
+							return new DocumentMatcher(txrInputStream, "UTF-8");
+						} catch (UnsupportedEncodingException e) {
+							throw new RuntimeException(e);
+						} catch (FileNotFoundException e) {
+							throw new RuntimeException(e);
+						} catch (IOException e) {
+							throw new RuntimeException(e);
+						}
+					}
+				};
+
+			} else {
+				DocumentMatcher matcher = createMatcherFromResource(resourceName);
+				return new ITxrReader() {
+					@Override
+					public DocumentMatcher createMatcherFromResource() {
+						return matcher;
+					}
+				};
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		} catch (URISyntaxException e) {
+			throw new RuntimeException(e);
 		}
+	}
+
+	public void updateOrdersMatcher(String [] txrLines) {
+		String txrData = String.join("\n", txrLines);
+        try (InputStream txrInputStream = new ByteArrayInputStream(txrData.getBytes())) {
+			ordersMatcher = new DocumentMatcher(txrInputStream, "UTF-8");
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		} catch (TxrErrorInDocumentException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public void updateDetailsMatcher(String [] txrLines) {
+		String txrData = String.join("\n", txrLines);
+        try (InputStream txrInputStream = new ByteArrayInputStream(txrData.getBytes())) {
+        	detailsMatcher = new DocumentMatcher(txrInputStream, "UTF-8");
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		} catch (TxrErrorInDocumentException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	private MatchResults extractOrderBindings(String inputText) throws TxrErrorInDocumentException, TxrMismatchException {
+		ordersMatcher = ordersTxrSource.createMatcherFromResource();
 
 		MatchResults bindings = ordersMatcher.process(inputText);
 		if (bindings == null || bindings.getCollections(0).isEmpty()) {
@@ -52,10 +136,9 @@ public class EbayScraperContext {
 		return bindings;
 	}
 
-	private MatchResults extractDetailsBindings(String inputText) throws TxrMismatchException {
-		if (detailsMatcher == null) {
-			detailsMatcher = createMatcherFromResource("ebay-details.txr");
-		}
+	private MatchResults extractDetailsBindings(String inputText) throws TxrErrorInDocumentException, TxrMismatchException {
+		detailsMatcher = detailsTxrSource.createMatcherFromResource();
+
 
 		MatchResults orderBindings = detailsMatcher.process(inputText);
 
@@ -82,7 +165,7 @@ public class EbayScraperContext {
 		}
 	}
 
-	public void importOrders(String inputText) throws TxrMismatchException {
+	public void importOrders(String inputText) throws TxrMismatchException, TxrErrorInDocumentException {
 		MatchResults bindings = extractOrderBindings(inputText);
 
 		for (MatchResults orderBindings : bindings.getCollections(0)) {
@@ -91,7 +174,7 @@ public class EbayScraperContext {
 		}
 	}
 
-	public void importDetails(String inputText) throws UnsupportedImportDataException, TxrMismatchException {
+	public void importDetails(String inputText) throws UnsupportedImportDataException, TxrMismatchException, TxrErrorInDocumentException {
 		MatchResults orderBindings = extractDetailsBindings(inputText);
 
 		EbayDetailPaymentFields orderFields = new EbayPaymentDetailFieldExtractor(orderBindings);

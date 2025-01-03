@@ -19,6 +19,8 @@ public interface EbayDetailPaymentFields {
 
 	String getShippingCost();
 	
+	String getTax();
+	
 	String getAmountCharged();
 	
 	List<EbayDetailOrderFields> getOrders();

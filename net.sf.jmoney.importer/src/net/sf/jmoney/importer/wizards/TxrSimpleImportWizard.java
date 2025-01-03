@@ -130,7 +130,7 @@ public abstract class TxrSimpleImportWizard extends Wizard {
 				// This is probably not likely to happen so the default error handling is adequate.
 				throw new RuntimeException(e);
 			} catch (TxrMismatchException e) {
-				e.showInDebugView(window);
+				e.showInDebugView(window, (String [] txrLines) -> {/* TODO as the TXR may be edited */});
 				return false;
 //			} catch (ImportException e) {
 //				// There are data in the import file that we are unable to process

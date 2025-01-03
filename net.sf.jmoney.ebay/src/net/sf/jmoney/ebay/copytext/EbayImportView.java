@@ -91,6 +91,7 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Menu;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Sash;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.Tree;
@@ -106,6 +107,7 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
+import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -139,6 +141,8 @@ import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
 import net.sf.jmoney.model2.Transaction;
 import net.sf.jmoney.model2.TransactionManagerForAccounts;
+import net.sf.jmoney.resources.Messages;
+import txr.parser.TxrErrorInDocumentException;
 
 public class EbayImportView extends ViewPart {
 
@@ -483,9 +487,14 @@ public class EbayImportView extends ViewPart {
 			scraperContext.importOrders(text);
 	
 			viewer.setInput(scraperContext.orders.toArray(new EbayOrder[0]));
+		} catch (TxrErrorInDocumentException e) {
+			MessageBox messageBox = new MessageBox(getSite().getShell(), SWT.ICON_ERROR | SWT.OK);
+			messageBox.setText("TXR Error");
+			messageBox.setMessage(e.getMessage());
+			messageBox.open();
 		} catch (TxrMismatchException e) {
 			IWorkbenchWindow window = this.getViewSite().getWorkbenchWindow();
-			e.showInDebugView(window);
+			e.showInDebugView(window, (String [] txrLines) -> scraperContext.updateOrdersMatcher(txrLines));
 		}
 	}
 
@@ -496,9 +505,14 @@ public class EbayImportView extends ViewPart {
 			viewer.setInput(scraperContext.orders.toArray(new EbayOrder[0]));
 		} catch (UnsupportedImportDataException e) {
 			throw new ImportException("Import of details failed.", e);
+		} catch (TxrErrorInDocumentException e) {
+			MessageBox messageBox = new MessageBox(getSite().getShell(), SWT.ICON_ERROR | SWT.OK);
+			messageBox.setText("TXR Error");
+			messageBox.setMessage(e.getMessage());
+			messageBox.open();
 		} catch (TxrMismatchException e) {
 			IWorkbenchWindow window = this.getViewSite().getWorkbenchWindow();
-			e.showInDebugView(window);
+			e.showInDebugView(window, (String [] txrLines) -> scraperContext.updateDetailsMatcher(txrLines));
 		}
 	}
 
@@ -791,11 +805,6 @@ public class EbayImportView extends ViewPart {
 		Text orderControl = new Text(composite, SWT.NONE);
 		orderControl.setLayoutData(new GridData(200, SWT.DEFAULT));
 
-		Label sellerLabel = new Label(composite, 0);
-		sellerLabel.setText("Sold By:");
-		Text sellerControl = new Text(composite, SWT.NONE);
-		sellerControl.setLayoutData(new GridData(200, SWT.DEFAULT));
-
 		Label orderAmountLabel = new Label(composite, 0);
 		orderAmountLabel.setText("Order Total:");
 		Text orderAmountControl = new Text(composite, SWT.TRAIL);
@@ -835,7 +844,6 @@ public class EbayImportView extends ViewPart {
 					
 					orderDateControl.setDate(order.getOrderDate());
 					orderControl.setText(order.getOrderNumber());
-					sellerControl.setText(order.getSeller() == null ? "" : order.getSeller()); // Why would seller be null?
 					orderAmountControl.setText(currencyFormatter.format(order.getOrderTotal()));
 
 					paymentDateControl.setDate(order.getPaidDate());
@@ -933,6 +941,7 @@ public class EbayImportView extends ViewPart {
 		createLabelAndControl(composite, EntryInfo.getMemoAccessor(), ebayEntry);
 		createLabelAndControl(composite, EntryInfo.getAmountAccessor(), ebayEntry);
 		createLabelAndControl(composite, EbayEntryInfo.getDeliveryDateAccessor(), ebayEntry);
+		createLabelAndControl(composite, EbayEntryInfo.getSoldByAccessor(), ebayEntry);
 		createLabelAndControl(composite, EbayEntryInfo.getImageCodeAccessor(), ebayEntry);
 
 		Label netAmountLabel = new Label(composite, 0);
@@ -1272,6 +1281,12 @@ public class EbayImportView extends ViewPart {
 		}
 	}
 
+	/**
+	 * 
+	 * @param itemNumber
+	 * @return the image code, or null if the image is no longer available on e-bay
+	 * 			and we are fairly sure the image is permanently gone (i.e. not a temporary error)
+	 */
 	// Is this the right place for this function?
 	public static String getImageCodeFromItemNumber(String itemNumber) {
 
@@ -1304,8 +1319,14 @@ public class EbayImportView extends ViewPart {
 
 		} catch (MalformedURLException e) {
 			throw new RuntimeException(e);
+		} catch (HttpStatusException e) {
+			if (e.getStatusCode() == 400) {
+				// Item no longer exists. User needs to copy URL from image on order page.
+				return null;
+			} else {
+				throw new RuntimeException(e);
+			}
 		} catch (IOException e) {
-			// Item no longer exists. User needs to copy URL from image on order page.
 			throw new RuntimeException(e);
 		}
 	}

@@ -157,4 +157,9 @@ public class ItemUpdater implements IItemUpdater {
 		entry.setImageCode(imageCode);
 	}
 
+	@Override
+	public void setDetail(String detail) {
+		entry.setDetail(detail);
+	}
+
 }
