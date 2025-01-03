@@ -81,8 +81,10 @@ public class BlobFromDatabase implements IBlob {
 				throw new RuntimeException("blob error");
 			}
 
-			Blob blob = rs.getBlob(1);
-			return blob.getBinaryStream();
+			return rs.getBinaryStream(1);
+			// The following worked for Derby:
+//			Blob blob = rs.getBlob(1);
+//			return blob.getBinaryStream();
 		} catch (SQLException e) {
 			throw new RuntimeException("Unable to read JDBC blob", e);
 		}

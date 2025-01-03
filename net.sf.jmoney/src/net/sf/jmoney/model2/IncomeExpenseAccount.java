@@ -141,6 +141,8 @@ public class IncomeExpenseAccount extends Account {
 	}
 
 	public void setCurrency(Currency currency) {
+		if (currency == null)
+			return; // Copying of database does this.
         Currency oldCurrency = getCurrency();
 		this.currencyKey = currency.getObjectKey();
 

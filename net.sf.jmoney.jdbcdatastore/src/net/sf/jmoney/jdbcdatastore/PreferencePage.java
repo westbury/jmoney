@@ -22,9 +22,18 @@
 
 package net.sf.jmoney.jdbcdatastore;
 
+import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.preference.BooleanFieldEditor;
+import org.eclipse.jface.preference.FieldEditor;
 import org.eclipse.jface.preference.FieldEditorPreferencePage;
 import org.eclipse.jface.preference.StringFieldEditor;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.layout.RowLayout;
+import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 
@@ -47,6 +56,12 @@ public class PreferencePage
 extends FieldEditorPreferencePage
 implements IWorkbenchPreferencePage {
 
+	StringFieldEditor driverField;
+	StringFieldEditor subProtocolField;
+	StringFieldEditor subProtocolDataField;
+	StringFieldEditor userField;
+	StringFieldEditor passwordField;
+	
 	public PreferencePage() {
 		super(GRID);
 		setPreferenceStore(JDBCDatastorePlugin.getDefault().getPreferenceStore());
@@ -82,23 +97,88 @@ implements IWorkbenchPreferencePage {
 				}, 
 				getFieldEditorParent()));
 		 */		
-		addField(
-				new StringFieldEditor("driver", "Driver:", getFieldEditorParent()));
-		addField(
-				new StringFieldEditor("subProtocol", "Sub-Protocol:", getFieldEditorParent()));
-		addField(
-				new StringFieldEditor("subProtocolData", "Sub-Protocol Data:", getFieldEditorParent()));
-		addField(
-				new StringFieldEditor("user", "User:", getFieldEditorParent()));
-		addField(
-				new StringFieldEditor("password", "Password:", getFieldEditorParent()));
+		driverField = new StringFieldEditor("driver", "Driver:", getFieldEditorParent());
+		addField(driverField);
+		subProtocolField = new StringFieldEditor("subProtocol", "Sub-Protocol:", getFieldEditorParent());
+		addField(subProtocolField);
+		subProtocolDataField = new StringFieldEditor("subProtocolData", "Sub-Protocol Data:", getFieldEditorParent());
+		addField(subProtocolDataField);
+		userField = new StringFieldEditor("user", "User:", getFieldEditorParent());
+		addField(userField);
+		passwordField = new StringFieldEditor("password", "Password:", getFieldEditorParent());
+		addField(passwordField);
 
 		addField(
 				new BooleanFieldEditor(
 						"promptEachTime",
 						"Always &prompt for connection details each open",
 						getFieldEditorParent()));
+		
+        // Add buttons to set hard-coded values
+	    Composite parent = getFieldEditorParent();
+        createSetDefaultsButtons(parent).setLayoutData(GridDataFactory.fillDefaults().span(2, 1).create());
 	}
+	
+	private Control createSetDefaultsButtons(Composite parent) {
+        Composite buttonComposite = new Composite(parent, SWT.NONE);
+        buttonComposite.setLayout(new RowLayout(SWT.HORIZONTAL));
+
+        Button setDerbyButton = new Button(buttonComposite, SWT.PUSH);
+        setDerbyButton.setText("Set Derby Values");
+        setDerbyButton.addListener(SWT.Selection, e -> setDerbyValues());
+
+        Button setLocalPostgresButton = new Button(buttonComposite, SWT.PUSH);
+        setLocalPostgresButton.setText("Set local Postgresql Values");
+        setLocalPostgresButton.addListener(SWT.Selection, e -> setLocalPostgresValues());
+
+        Button setNeonButton = new Button(buttonComposite, SWT.PUSH);
+        setNeonButton.setText("Set neon.tech Values");
+        setNeonButton.addListener(SWT.Selection, e -> setNeonValues());
+        
+        return buttonComposite;
+    }
+
+    private void setDerbyValues() {
+        getPreferenceStore().setValue("driver", "org.apache.derby.jdbc.EmbeddedDriver");
+        getPreferenceStore().setValue("subProtocol", "derby");
+        getPreferenceStore().setValue("subProtocolData", "/Users/nigel/JMoneyAccounts-test");
+        getPreferenceStore().setValue("user", "sa");
+        getPreferenceStore().setValue("password", "");
+
+        // Refresh the fields to show updated values
+        refreshFieldEditors();
+    }
+
+  
+    private void setLocalPostgresValues() {
+        getPreferenceStore().setValue("driver", "org.postgresql.Driver");
+        getPreferenceStore().setValue("subProtocol", "postgresql");
+        getPreferenceStore().setValue("subProtocolData", "//localhost:5432/accounts");
+        getPreferenceStore().setValue("user", "<<<username>>>");
+        getPreferenceStore().setValue("password", "");
+
+        // Refresh the fields to show updated values
+        refreshFieldEditors();
+    }
+
+    private void setNeonValues() {
+        getPreferenceStore().setValue("driver", "org.postgresql.Driver");
+        getPreferenceStore().setValue("subProtocol", "postgresql");
+        getPreferenceStore().setValue("subProtocolData", "//<<<aws-host>>>.aws.neon.tech/Accounts?sslmode=require");
+        getPreferenceStore().setValue("user", "Accounts_owner");
+        getPreferenceStore().setValue("password", "<<<password>>>");
+
+        // Refresh the fields to show updated values
+        refreshFieldEditors();
+    }
+
+    private void refreshFieldEditors() {
+       	driverField.load();
+       	subProtocolField.load();
+       	subProtocolDataField.load();
+       	userField.load();
+       	passwordField.load();
+    }
 
 	public void init(IWorkbench workbench) {
 	}

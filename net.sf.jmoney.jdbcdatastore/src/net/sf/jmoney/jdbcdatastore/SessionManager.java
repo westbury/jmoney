@@ -23,6 +23,7 @@
 package net.sf.jmoney.jdbcdatastore;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Blob;
@@ -617,12 +618,16 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 						// Currently only blobs use parameters
 						if (value instanceof IBlob) {
 							IBlob blob = (IBlob)value;
-							statement.setBlob(parameterNumber++, blob.createStream());
+							statement.setBinaryStream(parameterNumber++, blob.createStream());
 							blob.close();
 						}
 					}
 
-					statement.execute();
+					try {
+						statement.execute();
+					} catch (Exception e) {
+						throw e;
+					}
 					
 					if (index == propertySets.size()-1) {
 						ResultSet rs;
@@ -906,7 +911,7 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 							// Currently only blobs use parameters
 							if (newValue instanceof IBlob) {
 								IBlob newBlob = (IBlob)newValue;
-								statement.setBlob(parameterNumber++, newBlob.createStream());
+								statement.setBinaryStream(parameterNumber++, newBlob.createStream());
 								newBlob.close();
 							}
 						}
@@ -1197,7 +1202,7 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 				} else if (valueClass == Date.class) {
 					return valueClass.cast(rs.getDate(columnName));
 				} else if (valueClass == IBlob.class) {
-					Blob jdbcBlob = rs.getBlob(columnName);
+					InputStream jdbcBlob = rs.getBinaryStream(columnName);
 					IScalarPropertyAccessor<IBlob,E> blobPropertyAccessor = (IScalarPropertyAccessor<IBlob,E>)propertyAccessor;
 					return jdbcBlob == null ? null : valueClass.cast(new BlobFromDatabase(SessionManager.this, propertySet, objectKey, blobPropertyAccessor));
 				} else {
@@ -1243,20 +1248,23 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 							 */
 							 // TODO: put the above mentioned check into
 							 // the initialization code.
-							e.printStackTrace();
-							throw new RuntimeException("internal error");
+							throw new RuntimeException("internal error", e);
 						}
 					}
 				}
 				} catch (SQLException e) {
-					e.printStackTrace();
-					throw new RuntimeException("database error");
+					throw new RuntimeException("database error", e);
 				}
 			}
 			
 			@Override
 			public IObjectKey getReferencedObjectKey(IReferencePropertyAccessor<?,? super E> propertyAccessor) {
 				String columnName = getColumnName((ReferencePropertyAccessor)propertyAccessor);
+				// Postgresql does not allow column names longer than 63 characters. It truncates them.
+				if (isPostgresql && columnName.length() > 63) {
+					columnName = columnName.substring(0, 63);
+					System.out.println(columnName.length());
+				}
 				try {
 					int rowIdOfProperty = rs.getInt(columnName);
 					if (rs.wasNull()) {
@@ -1271,7 +1279,7 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 						 */
 						return new ObjectKey(rowIdOfProperty, propertySetOfProperty, SessionManager.this);
 					}
-				} catch (SQLException e) {
+				} catch (Exception e) {
 					e.printStackTrace();
 					throw new RuntimeException("database error");
 				}
@@ -1681,13 +1689,26 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 		for (ExtendablePropertySet<?> propertySet: PropertySet.getAllExtendablePropertySets()) {
 			String tableName = propertySet.getId().replace('.', '_');
 
+			// postgres seems to convert table names to lower case.
+			if (isPostgresql) {
+				tableName = tableName.toLowerCase();
+			} else {
+				tableName = tableName.toUpperCase();
+			}
+			
 			// Check that the table exists.
-			ResultSet tableResultSet = dmd.getTables(null, null, tableName.toUpperCase(), tableOnlyType);
+			ResultSet tableResultSet = dmd.getTables(null, null, tableName, tableOnlyType);
 
 			if (tableResultSet.next()) {
 				Vector<ColumnInfo> columnInfos = buildColumnList(propertySet);
 				for (ColumnInfo columnInfo: columnInfos) {
-					ResultSet columnResultSet = dmd.getColumns(null, null, tableName.toUpperCase(), columnInfo.columnName);
+					
+					String columnName = columnInfo.columnName;
+					if (isPostgresql && columnName.length() > 63) {
+						columnName = columnName.substring(0, 63);
+					}
+					
+					ResultSet columnResultSet = dmd.getColumns(null, null, tableName, columnName);
 					if (columnResultSet.next()) {
 						// int dataType = columnResultSet.getInt("DATA_TYPE");
 						// String typeName = columnResultSet.getString("TYPE_NAME");
@@ -1793,23 +1814,33 @@ public class SessionManager extends AbstractDataManager implements IDatastoreMan
 	 * @param primaryTableName
 	 */
 	private void checkForeignKey(DatabaseMetaData dmd, Statement stmt, String tableName, String columnName, String primaryTableName, boolean onDeleteCascade) throws SQLException {
-		ResultSet columnResultSet2 = dmd.getCrossReference(null, null, primaryTableName.toUpperCase(), null, null, tableName.toUpperCase());
+		if (isPostgresql) {
+			tableName = tableName.toLowerCase();
+			primaryTableName = primaryTableName.toLowerCase();
+		} else {
+			tableName = tableName.toUpperCase();
+			primaryTableName = primaryTableName.toUpperCase();
+		}
+		
+		ResultSet columnResultSet2 = dmd.getCrossReference(null, null, primaryTableName, null, null, tableName);
 		traceResultSet(columnResultSet2);
 		columnResultSet2.close();
 
-		ResultSet columnResultSet = dmd.getCrossReference(null, null, primaryTableName.toUpperCase(), null, null, tableName.toUpperCase());
+		ResultSet columnResultSet = dmd.getCrossReference(null, null, primaryTableName, null, null, tableName);
 		try {
 			while (columnResultSet.next()) {
 
-				if (columnResultSet.getString("FKCOLUMN_NAME").equalsIgnoreCase(columnName)) {
+				String fkColumnName = columnResultSet.getString("FKCOLUMN_NAME");
+				System.out.println("fk is " + fkColumnName);
+				if (fkColumnName.equalsIgnoreCase(columnName)) {
 
 					if (columnResultSet.getString("PKCOLUMN_NAME").equals("_ID")) {
 						// Foreign key found, so we are done.
 						return;
 					} else {
 						throw new RuntimeException("The database schema is invalid.  "
-								+ "Table " + tableName.toUpperCase() + " contains a foreign key column called " + columnName
-								+ " but it is not constrained to primary key _ID in table " + primaryTableName.toUpperCase() 
+								+ "Table " + tableName + " contains a foreign key column called " + columnName
+								+ " but it is not constrained to primary key _ID in table " + primaryTableName 
 								+ " as it should be.");
 					}
 				}
