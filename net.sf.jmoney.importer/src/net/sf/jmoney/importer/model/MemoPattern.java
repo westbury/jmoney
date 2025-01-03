@@ -215,18 +215,9 @@ public final class MemoPattern extends ExtendableObject {
  				 * that the value may contain one or more '=' that
  				 * should not cause a split.
  				 */
- 				String [] parts = pair.split("=");
-
- 				String columnId;
- 				String columnPattern;
- 				int splitIndex = pair.indexOf("=");
- 				if (splitIndex == -1) {
- 					columnId = pair;
- 					columnPattern = "bad value";
- 				} else {
- 					columnId = pair.substring(0, splitIndex);
- 					columnPattern = pair.substring(splitIndex + 1);
- 				}
+ 				String [] parts = pair.split("=", 2);
+				String columnId = parts[0];
+				String columnPattern = parts[1];
 
 				/*
 				 * The pattern should not be empty, but this has happened and
@@ -273,62 +264,6 @@ public final class MemoPattern extends ExtendableObject {
 		
 	}
 
-	enum LimitType { INCLUSIVE, EXCLUSIVE };
-
-	class AmountMatchEvaluator implements IMatchEvaluator {
-		LimitType start;
-		LimitType end;
-		int start_number;
-		int end_number;
-		
-		AmountMatchEvaluator(String columnPattern) throws InputPatternSyntaxException {
-			columnPattern = columnPattern.trim();
-			
-			if (columnPattern.startsWith("(") || columnPattern.startsWith("[")) {
-				if (columnPattern.startsWith("(")) {
-					start = LimitType.EXCLUSIVE;
-				} else if (columnPattern.startsWith("[")) {
-					start = LimitType.INCLUSIVE;
-				} else {
-					throw new RuntimeException("impossible");
-				}
-
-				if (columnPattern.endsWith(")")) {
-					end = LimitType.EXCLUSIVE;
-				} else if (columnPattern.endsWith("]")) {
-					end = LimitType.INCLUSIVE;
-				} else {
-					throw new InputPatternSyntaxException("Opening brackets have no matching closing brackets");
-				}
-
-				String withoutBrackets = columnPattern.substring(1, columnPattern.length()-1);
-				String[] parts = withoutBrackets.split(",");
-				start_number = parseNumber(parts[0].trim());
-				end_number = parseNumber(parts[1].trim());
-			} else {
-				int n = parseNumber(columnPattern);
-				start_number = n;
-				end_number = n;
-				start = LimitType.INCLUSIVE;
-				end = LimitType.INCLUSIVE;
-			}
-			
-		}
-		
-		@Override
-		public MatchResult matcher(String text) {
-			int n = parseNumber(text);
-			if (n < start_number || (n <= start_number && start == LimitType.EXCLUSIVE)) {
-				return new MatchResult(false, null);
-			}
-			if (n > end_number || (n >= end_number && end == LimitType.EXCLUSIVE)) {
-				return new MatchResult(false, null);
-			}
-			return new MatchResult(true, new String[0]);
-		}
-		
-	}
-	
 	/**
 	 * Puts the pattern for the given id into our maps.
 	 * 
@@ -349,63 +284,25 @@ public final class MemoPattern extends ExtendableObject {
 		} else {
 			patternMap.put(columnId, columnPattern);
 
-			switch (columnId) {
-			case "memo":
-				try {
-					final Pattern thisCompiledPattern = Pattern.compile(columnPattern, Pattern.CASE_INSENSITIVE);
-					IMatchEvaluator matchEvaluator = new IMatchEvaluator() {
-	
-						@Override
-						public MatchResult matcher(String text) {
-							Matcher m = thisCompiledPattern.matcher(text);
-							if (m.matches()) {
-								/*
-								 * Group zero is the entire string and the groupCount method
-								 * does not include that group, so there is really one more group
-								 * than the number given by groupCount.
-								 */
-								String[] args = new String[m.groupCount()+1];
-								for (int i = 0; i <= m.groupCount(); i++) {
-									args[i] = m.group(i);
-								}
-								return new MatchResult(true, args);
-							} else {
-								return new MatchResult(false, null);
-							}
-						}
-						
-					};
-					compiledPatternMap.put(columnId, matchEvaluator);
-				} catch (PatternSyntaxException e) {
-					compiledPatternMap.remove(columnId);
+			try {
+				IMatchEvaluator matchEvaluator;
+				switch (columnId) {
+					case "memo":
+						matchEvaluator = new RegexMatchEvaluator(columnPattern);
+						break;
+					case "amount":
+						matchEvaluator = new AmountMatchEvaluator(columnPattern);
+						break;
+					default:
+						throw new RuntimeException("unsupport columnId: " + columnId);
 				}
-				break;
-			case "amount":
-				try {
-					IMatchEvaluator matchEvaluator = new AmountMatchEvaluator(columnPattern);
-					compiledPatternMap.put(columnId, matchEvaluator);
-				} catch (InputPatternSyntaxException e) {
-					compiledPatternMap.remove(columnId);
-				}
-				break;
+				compiledPatternMap.put(columnId, matchEvaluator);
+			} catch (InputPatternSyntaxException e) {
+				compiledPatternMap.remove(columnId);
 			}
 		}
 	}
 
-    private int parseNumber(String text) throws PatternSyntaxException {
-		final Pattern thisCompiledPattern = Pattern.compile("\\-?(\\d+)(\\.(\\d\\d))?");
-		// This is used on the displayable value which includes commas.
-		// The user might also put commas in the range specification if there is only a single value.
-		String textNoCommas = text.replaceAll(",", "");
-		Matcher m = thisCompiledPattern.matcher(textNoCommas);
-		if (!m.matches()) {
-			throw new PatternSyntaxException("Number does not match currency amount format", "\\-?(\\d+)(\\.(\\d\\d))?", 0);
-		}
-		String numberText = m.group(1) + (m.group(2) == null ? "00" : m.group(3));
-		
-		return Integer.parseInt(numberText);
-    }
-		
 	private void extractParameterValues() {
    	 transactionParameterValueMap = new WritableMap<String, String>();
    	 

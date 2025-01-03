@@ -108,6 +108,7 @@ import net.sf.jmoney.model2.ExtendablePropertySet;
 import net.sf.jmoney.model2.IncomeExpenseAccount;
 import net.sf.jmoney.model2.ScalarPropertyAccessor;
 import net.sf.jmoney.model2.Session;
+import net.sf.jmoney.model2.TransactionManagerForAccounts;
 
 /**
  * A dialog that allows the user to see how imported entries will be matched using the account's pattern matching rules.  The user may edit the pattern matching
@@ -555,8 +556,16 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 			final PropertyChangeListener listener = new PropertyChangeListener() {
 				@Override
 				public void propertyChange(PropertyChangeEvent event) {
-					updateSampleEntriesTable();
-					updateErrorMessage();
+					/*
+					 * The ordering index is handled differently from the other properties. This is
+					 * because when patterns are swapped in the order, there are two updates, with
+					 * an invalid intermediate state. So we refresh explicitly after making the swap
+					 * rather than relying on listeners.
+					 */
+					if (!event.getPropertyName().equals(MemoPatternInfo.getOrderingIndexAccessor().getLocalName())) {
+						updateSampleEntriesTable();
+						updateErrorMessage();
+					}
 				}
 			};
 			entriesViewer.getControl().addDisposeListener(new DisposeListener() {
@@ -722,6 +731,7 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 			return "No regex pattern has been entered";
 		}
 
+//		this is wrong... Nigel
 		try {
 			Pattern.compile(pattern.getPattern());
 		} catch (PatternSyntaxException e) {
@@ -970,6 +980,7 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 	 * This is called whenever the matching rules are changed.
 	 */
 	protected void updateSampleEntriesTable() {
+		// TODO we really only need to update the labels.
 		entriesViewer.refresh(true);
 	}
 
@@ -1039,7 +1050,12 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 				 */
 				patternViewer.add(newPattern);
 
-				entriesViewer.refresh(true);
+				/*
+				 * As the pattern is always added to the end of the table,
+				 * this can't change the matching of existing entries.
+				 * Hence why we pass 'false'.
+				 */
+				entriesViewer.refresh(false);
 			}
 		});
 
@@ -1187,14 +1203,16 @@ public class PatternMatchingDialog<T extends BaseEntryData> extends Dialog {
 	}
 
 	void swapOrderOfPatterns(MemoPattern thisPattern,
-			MemoPattern abovePattern) {
+			MemoPattern otherPattern) {
 		// Swap the ordering indexes
-		int thisIndex = thisPattern.getOrderingIndex();
-		int aboveIndex = abovePattern.getOrderingIndex();
-		abovePattern.setOrderingIndex(thisIndex);
-		thisPattern.setOrderingIndex(aboveIndex);
+		int thisOrderingIndex = thisPattern.getOrderingIndex();
+		int otherOrderingIndex = otherPattern.getOrderingIndex();
+		otherPattern.setOrderingIndex(thisOrderingIndex);
+		thisPattern.setOrderingIndex(otherOrderingIndex);
 		
-		matcher.swapOrderOfPatterns(thisIndex, aboveIndex);
+		matcher.swapOrderOfPatterns(thisPattern, otherPattern);
+		updateSampleEntriesTable();
+		patternViewer.refresh();
 	}
 
 	private TransactionType<T> lookupTransactionType(String transactionTypeId) {

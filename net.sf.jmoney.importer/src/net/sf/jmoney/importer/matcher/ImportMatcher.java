@@ -361,9 +361,10 @@ public class ImportMatcher<T extends BaseEntryData> {
 		}
 	}
 
-	public void swapOrderOfPatterns(int index1, int index2) {
-		MemoPattern pattern1 = sortedPatterns.get(index1);
-		sortedPatterns.set(index1, sortedPatterns.get(index2));
+	public void swapOrderOfPatterns(MemoPattern pattern1, MemoPattern pattern2) {
+		int index1 = sortedPatterns.indexOf(pattern1);
+		int index2 = sortedPatterns.indexOf(pattern2);
+		sortedPatterns.set(index1, pattern2);
 		sortedPatterns.set(index2, pattern1);
 	}
 }
